@@ -174,10 +174,11 @@ async function loadModel(id: string, modelId: ModelId = DEFAULT_MODEL, emitReady
   self.postMessage({ id, type: 'model-progress', progress: 5 });
 
   const transformers = await import('@huggingface/transformers');
-  // Self-host models from our own CDN — zero external requests
+  // RMBG-1.4 (42MB) exceeds Cloudflare Pages 25MB file limit
+  // so it loads from HuggingFace CDN. MODNet (6MB) is self-hosted.
   transformers.env.allowLocalModels = true;
   transformers.env.localModelPath = '/models/';
-  transformers.env.allowRemoteModels = false;
+  transformers.env.allowRemoteModels = true;
   RawImageClass = transformers.RawImage as unknown as typeof RawImageClass;
 
   self.postMessage({ id, type: 'model-progress', progress: 10 });
