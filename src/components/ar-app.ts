@@ -61,8 +61,9 @@ export class ArApp extends HTMLElement {
   private currentImageData: ImageData | null = null;
   private currentFileSize = 0;
   private selectedModel: ModelId = MODEL_OPTIONS[0].id;
-  private selectedPrecision: 'permissive' | 'standard' | 'aggressive' = 'standard';
+  private selectedPrecision: 'low-power' | 'keep-more' | 'balanced' | 'clean-more' | 'full-nuke' = 'balanced';
   private lastResultImageData: ImageData | null = null;
+  private crtFlickerTimers: number[] = [];
 
   constructor() {
     super();
@@ -73,6 +74,12 @@ export class ArApp extends HTMLElement {
     this.render();
     this.setupComponents();
     this.setupEvents();
+    this.setupCrtFlicker();
+  }
+
+  disconnectedCallback(): void {
+    this.crtFlickerTimers.forEach(id => clearInterval(id));
+    this.crtFlickerTimers = [];
   }
 
   private render(): void {
@@ -81,6 +88,7 @@ export class ArApp extends HTMLElement {
         :host {
           display: block;
           width: 100%;
+          --terminal-color-override: initial;
         }
         .hero {
           text-align: left;
@@ -254,8 +262,102 @@ export class ArApp extends HTMLElement {
         .precision-label {
           font-size: var(--text-xs, 0.75rem);
           color: #00ff41;
-          min-width: 70px;
+          min-width: 90px;
           text-align: center;
+          transition: color 0.3s ease;
+        }
+        .precision-marquee {
+          display: none;
+          position: fixed;
+          bottom: 0;
+          left: 0;
+          right: 0;
+          overflow: hidden;
+          white-space: nowrap;
+          font-family: 'JetBrains Mono', monospace;
+          font-size: 11px;
+          font-weight: 700;
+          letter-spacing: 0.15em;
+          text-transform: uppercase;
+          padding: 4px 0;
+          z-index: 50;
+          background: rgba(0, 0, 0, 0.9);
+        }
+        .precision-marquee.active {
+          display: block;
+        }
+        .precision-marquee span {
+          display: inline-block;
+          animation: marquee-scroll 8s linear infinite;
+        }
+        @keyframes marquee-scroll {
+          0% { transform: translateX(100vw); }
+          100% { transform: translateX(-100%); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .precision-marquee span { animation: none; }
+          .nuke-vibrate * { animation: none !important; }
+          .smoke-effect { display: none !important; }
+        }
+
+        /* === Full Nuke vibration effect === */
+        @keyframes nuke-shake {
+          0%, 100% { transform: translate(0, 0); }
+          10% { transform: translate(-2px, 1px); }
+          20% { transform: translate(2px, -1px); }
+          30% { transform: translate(-1px, 2px); }
+          40% { transform: translate(1px, -2px); }
+          50% { transform: translate(-2px, -1px); }
+          60% { transform: translate(2px, 1px); }
+          70% { transform: translate(1px, 2px); }
+          80% { transform: translate(-1px, -1px); }
+          90% { transform: translate(2px, -2px); }
+        }
+        :host(.nuke-vibrate) h1,
+        :host(.nuke-vibrate) .subline,
+        :host(.nuke-vibrate) .feature-title {
+          animation: nuke-shake 0.4s ease-in-out 3;
+        }
+
+        /* === Smoke effect from bottom === */
+        .smoke-effect {
+          display: none;
+          position: fixed;
+          bottom: 0;
+          left: 0;
+          right: 0;
+          height: 200px;
+          pointer-events: none;
+          z-index: 49;
+          background: linear-gradient(
+            to top,
+            rgba(80, 20, 20, 0.6) 0%,
+            rgba(60, 15, 15, 0.3) 30%,
+            rgba(40, 10, 10, 0.1) 60%,
+            transparent 100%
+          );
+          animation: smoke-rise 3s ease-out forwards;
+        }
+        .smoke-effect.active {
+          display: block;
+        }
+        @keyframes smoke-rise {
+          0% {
+            opacity: 0;
+            transform: translateY(100px);
+          }
+          20% {
+            opacity: 1;
+            transform: translateY(0);
+          }
+          70% {
+            opacity: 0.8;
+            transform: translateY(-30px);
+          }
+          100% {
+            opacity: 0;
+            transform: translateY(-80px);
+          }
         }
         .reprocess-btn {
           background: #00ff41;
@@ -294,6 +396,67 @@ export class ArApp extends HTMLElement {
           color: #00ff41;
           border-color: #00ff41;
           box-shadow: 0 0 10px rgba(0, 255, 65, 0.1);
+        }
+
+        /* === Color override for extreme precision levels === */
+        :host(.precision-override) h1,
+        :host(.precision-override) h1 .accent {
+          color: var(--terminal-color-override, #00ff41);
+          text-shadow: none;
+        }
+        :host(.precision-override) h1::before,
+        :host(.precision-override) .subline::before,
+        :host(.precision-override) .feature-title::before {
+          color: var(--terminal-color-override, #006622);
+        }
+        :host(.precision-override) .subline,
+        :host(.precision-override) .feature-desc,
+        :host(.precision-override) .model-desc,
+        :host(.precision-override) .model-selector label,
+        :host(.precision-override) .model-status {
+          color: var(--terminal-color-override, #00cc33);
+        }
+        :host(.precision-override) .feature-title,
+        :host(.precision-override) .precision-label,
+        :host(.precision-override) .model-selector select {
+          color: var(--terminal-color-override, #00ff41);
+        }
+        :host(.precision-override) .edit-btn {
+          color: var(--terminal-color-override, #00cc33);
+          border-color: var(--terminal-color-override, #1a3a1a);
+        }
+        :host(.precision-override) #precision-slider {
+          accent-color: var(--terminal-color-override, #00ff41);
+        }
+
+        /* === CRT Flicker effect for feature cards === */
+        .feature-card .feature-title,
+        .feature-card .feature-desc,
+        .feature-card .feature-icon {
+          transition: opacity 0.05s ease;
+        }
+        .feature-card.crt-flicker .feature-title,
+        .feature-card.crt-flicker .feature-desc,
+        .feature-card.crt-flicker .feature-icon {
+          opacity: 0.3;
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .feature-card.crt-flicker .feature-title,
+          .feature-card.crt-flicker .feature-desc,
+          .feature-card.crt-flicker .feature-icon {
+            opacity: 1;
+          }
+        }
+
+        /* === Layout stability fixes === */
+        .model-desc {
+          min-height: 2.5em;
+        }
+        .model-selector {
+          min-height: 3.5em;
+        }
+        .model-selector select {
+          min-width: 160px;
         }
 
         /* === Mobile (max-width: 480px) === */
@@ -411,8 +574,10 @@ export class ArApp extends HTMLElement {
           <span class="model-desc" id="model-desc">${this.getModelDescription(MODEL_OPTIONS[0].id)}</span>
           <span class="precision-sep">|</span>
           <label for="precision-slider">Precision:</label>
-          <input type="range" id="precision-slider" min="0" max="2" value="1" step="1" aria-label="Precision level">
-          <span class="precision-label" id="precision-label">Standard</span>
+          <input type="range" id="precision-slider" min="0" max="4" value="2" step="1" aria-label="Precision level">
+          <span class="precision-label" id="precision-label">Balanced</span>
+          <div class="precision-marquee" id="precision-marquee"></div>
+          <div class="smoke-effect" id="smoke-effect"></div>
         </div>
         <ar-dropzone></ar-dropzone>
         <p class="model-status" id="model-status">${t('hero.modelStatus')}</p>
@@ -548,13 +713,65 @@ export class ArApp extends HTMLElement {
       if (descEl) descEl.textContent = desc;
     });
 
-    // Precision slider — 3 positions: Permissive (0), Standard (1), Aggressive (2)
-    const precisionLabels = ['Permissive', 'Standard', 'Aggressive'];
+    // Precision slider — 5 positions with visual effects at extremes
+    const precisionKeys = ['low-power', 'keep-more', 'balanced', 'clean-more', 'full-nuke'] as const;
+    const precisionLabels = ['Low Power', 'Keep More', 'Balanced', 'Clean More', 'Full Nuke'];
     this.shadowRoot!.querySelector('#precision-slider')?.addEventListener('input', (e) => {
       const val = parseInt((e.target as HTMLInputElement).value);
-      this.selectedPrecision = (['permissive', 'standard', 'aggressive'] as const)[val];
+      this.selectedPrecision = precisionKeys[val];
       const label = this.shadowRoot!.querySelector('#precision-label');
       if (label) label.textContent = precisionLabels[val];
+
+      const marquee = this.shadowRoot!.querySelector('#precision-marquee') as HTMLElement;
+
+      if (val === 4) {
+        // Full Nuke — red override
+        document.documentElement.style.setProperty('--terminal-color-override', '#cc3333');
+        this.classList.add('precision-override');
+        if (marquee) {
+          marquee.style.color = '#cc3333';
+          marquee.innerHTML = '<span>\u26A0 MAXIMUM POWER \u26A0 MAXIMUM POWER \u26A0 MAXIMUM POWER \u26A0</span>';
+          marquee.classList.add('active');
+        }
+
+        // Vibration + smoke: trigger once per activation, after random 1-5s delay
+        const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        if (!reducedMotion) {
+          const delay = 1000 + Math.random() * 4000;
+          setTimeout(() => {
+            // Only fire if still in Full Nuke mode
+            if (this.selectedPrecision !== 'full-nuke') return;
+            // Vibrate text
+            this.classList.add('nuke-vibrate');
+            setTimeout(() => this.classList.remove('nuke-vibrate'), 1200);
+            // Smoke from bottom
+            const smoke = this.shadowRoot!.querySelector('#smoke-effect') as HTMLElement;
+            if (smoke) {
+              smoke.classList.remove('active');
+              void smoke.offsetWidth; // force reflow to restart animation
+              smoke.classList.add('active');
+              setTimeout(() => smoke.classList.remove('active'), 3000);
+            }
+          }, delay);
+        }
+      } else if (val === 0) {
+        // Low Power — yellow override
+        document.documentElement.style.setProperty('--terminal-color-override', '#b8a500');
+        this.classList.add('precision-override');
+        if (marquee) {
+          marquee.style.color = '#b8a500';
+          marquee.innerHTML = '<span>\u26A1 LOW POWER MODE \u26A1 LOW POWER MODE \u26A1 LOW POWER MODE \u26A1</span>';
+          marquee.classList.add('active');
+        }
+      } else {
+        // Normal levels — restore green
+        document.documentElement.style.removeProperty('--terminal-color-override');
+        this.classList.remove('precision-override');
+        if (marquee) {
+          marquee.classList.remove('active');
+          marquee.innerHTML = '';
+        }
+      }
     });
 
     // Workspace model selector — for reprocessing with a different model
@@ -602,6 +819,35 @@ export class ArApp extends HTMLElement {
     });
   }
 
+  private setupCrtFlicker(): void {
+    // Respect prefers-reduced-motion
+    const motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+    if (motionQuery.matches) return;
+
+    const cards = this.shadowRoot!.querySelectorAll('.feature-card');
+    cards.forEach((card) => {
+      const scheduleFlicker = (): void => {
+        const delay = 3000 + Math.random() * 5000; // 3s-8s random
+        const timerId = window.setInterval(() => {
+          card.classList.add('crt-flicker');
+          window.setTimeout(() => card.classList.remove('crt-flicker'), 100);
+        }, delay);
+        this.crtFlickerTimers.push(timerId);
+      };
+      scheduleFlicker();
+    });
+
+    // Stop flicker if user enables reduced motion later
+    motionQuery.addEventListener('change', (e) => {
+      if (e.matches) {
+        this.crtFlickerTimers.forEach(id => clearInterval(id));
+        this.crtFlickerTimers = [];
+        const allCards = this.shadowRoot!.querySelectorAll('.feature-card');
+        allCards.forEach(c => c.classList.remove('crt-flicker'));
+      }
+    });
+  }
+
   private async processImage(imageData: ImageData, fileSize: number): Promise<void> {
     this.currentImageData = imageData;
     this.currentFileSize = fileSize;
@@ -633,8 +879,8 @@ export class ArApp extends HTMLElement {
     }
 
     try {
-      // Map precision to threshold: Permissive=0.3 (keep more), Standard=0.5, Aggressive=0.7 (remove more)
-      const thresholdMap = { permissive: 0.3, standard: 0.5, aggressive: 0.7 } as const;
+      // Map precision to threshold: 5 levels from conservative to aggressive
+      const thresholdMap = { 'low-power': 0.1, 'keep-more': 0.3, 'balanced': 0.5, 'clean-more': 0.7, 'full-nuke': 0.9 } as const;
       const threshold = thresholdMap[this.selectedPrecision];
       const result = await this.pipeline.process(imageData, this.selectedModel, threshold);
       const { exportPng } = await import('../utils/image-io');
