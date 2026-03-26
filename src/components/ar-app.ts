@@ -550,6 +550,232 @@ export class ArApp extends HTMLElement {
             transition: none !important;
           }
         }
+
+        /* === Layout variants via data-card-layout === */
+
+        /* Hidden by default — shown per-layout */
+        .terminal-prefix,
+        .feature-sep {
+          display: none;
+        }
+
+        /* ──────────────────────────────────────────
+           LAYOUT A: Terminal list
+           One-liner per feature, no cards, no icons
+        ────────────────────────────────────────── */
+        :host .features[data-card-layout="A"] {
+          display: flex;
+          flex-direction: column;
+          gap: 0;
+          padding: var(--space-3, 0.75rem) var(--space-6, 1.5rem);
+        }
+        :host .features[data-card-layout="A"] .feature-card {
+          display: flex;
+          flex-wrap: wrap;
+          align-items: baseline;
+          background: transparent;
+          border: none;
+          border-bottom: none;
+          padding: var(--space-1, 0.25rem) 0;
+        }
+        :host .features[data-card-layout="A"] .feature-card:hover {
+          border-color: transparent;
+        }
+        :host .features[data-card-layout="A"] .terminal-prefix {
+          display: inline;
+          font-family: 'JetBrains Mono', monospace;
+          font-size: 12px;
+          color: #006622;
+          margin-right: 6px;
+          flex-shrink: 0;
+        }
+        :host .features[data-card-layout="A"] .feature-icon {
+          display: none;
+        }
+        :host .features[data-card-layout="A"] .feature-title {
+          display: inline;
+          font-size: 12px;
+          margin-bottom: 0;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+        }
+        :host .features[data-card-layout="A"] .feature-title::before {
+          content: none;
+        }
+        :host .features[data-card-layout="A"] .feature-sep {
+          display: inline;
+          font-family: 'JetBrains Mono', monospace;
+          font-size: 12px;
+          color: #006622;
+        }
+        :host .features[data-card-layout="A"] .feature-desc {
+          display: inline;
+          font-size: 12px;
+          color: #00cc33;
+        }
+
+        /* Layout A mobile */
+        @media (max-width: 480px) {
+          :host .features[data-card-layout="A"] {
+            padding: var(--space-2, 0.5rem) var(--space-3, 0.75rem);
+          }
+          :host .features[data-card-layout="A"] .feature-title,
+          :host .features[data-card-layout="A"] .feature-sep,
+          :host .features[data-card-layout="A"] .feature-desc,
+          :host .features[data-card-layout="A"] .terminal-prefix {
+            font-size: 11px;
+          }
+        }
+
+        /* ──────────────────────────────────────────
+           LAYOUT B: Inline cards
+           Icon left, title + desc stacked right, vertical list
+        ────────────────────────────────────────── */
+        :host .features[data-card-layout="B"] {
+          display: flex;
+          flex-direction: column;
+          gap: 0;
+          padding: var(--space-3, 0.75rem) var(--space-6, 1.5rem);
+        }
+        :host .features[data-card-layout="B"] .feature-card {
+          display: grid;
+          grid-template-columns: 24px 1fr;
+          grid-template-rows: auto auto;
+          column-gap: var(--space-2, 0.5rem);
+          row-gap: 0;
+          background: transparent;
+          border: none;
+          border-left: 1px solid transparent;
+          padding: var(--space-2, 0.5rem) var(--space-2, 0.5rem);
+          transition: border-color 0.3s ease;
+        }
+        :host .features[data-card-layout="B"] .feature-card:hover {
+          border-left-color: #1a3a1a;
+        }
+        :host .features[data-card-layout="B"] .terminal-prefix {
+          display: none;
+        }
+        :host .features[data-card-layout="B"] .feature-sep {
+          display: none;
+        }
+        :host .features[data-card-layout="B"] .feature-icon {
+          grid-row: 1 / 3;
+          grid-column: 1;
+          display: flex;
+          align-items: flex-start;
+          justify-content: center;
+          font-size: 14px;
+          margin: 0;
+          padding-top: 2px;
+        }
+        :host .features[data-card-layout="B"] .feature-title {
+          grid-column: 2;
+          grid-row: 1;
+          font-size: var(--text-sm, 0.875rem);
+          margin-bottom: 0;
+        }
+        :host .features[data-card-layout="B"] .feature-title::before {
+          content: none;
+        }
+        :host .features[data-card-layout="B"] .feature-desc {
+          grid-column: 2;
+          grid-row: 2;
+          font-size: 12px;
+          color: #00cc33;
+          line-height: 1.4;
+        }
+
+        /* Layout B mobile */
+        @media (max-width: 480px) {
+          :host .features[data-card-layout="B"] {
+            padding: var(--space-2, 0.5rem) var(--space-3, 0.75rem);
+          }
+          :host .features[data-card-layout="B"] .feature-title {
+            font-size: var(--text-xs, 0.75rem);
+          }
+          :host .features[data-card-layout="B"] .feature-desc {
+            font-size: 11px;
+          }
+        }
+
+        /* ──────────────────────────────────────────
+           LAYOUT C: Compact grid
+           3 columns, icon+title inline, minimal padding
+        ────────────────────────────────────────── */
+        :host .features[data-card-layout="C"] {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: var(--space-2, 0.5rem);
+          padding: var(--space-3, 0.75rem) var(--space-6, 1.5rem);
+        }
+        :host .features[data-card-layout="C"] .feature-card {
+          background: transparent;
+          border: 1px solid transparent;
+          border-bottom: none;
+          padding: var(--space-2, 0.5rem);
+          transition: border-color 0.3s ease;
+        }
+        :host .features[data-card-layout="C"] .feature-card:hover {
+          border-color: #1a3a1a;
+        }
+        :host .features[data-card-layout="C"] .terminal-prefix {
+          display: none;
+        }
+        :host .features[data-card-layout="C"] .feature-sep {
+          display: none;
+        }
+        :host .features[data-card-layout="C"] .feature-icon {
+          display: inline;
+          font-size: 14px;
+          margin-right: 6px;
+        }
+        :host .features[data-card-layout="C"] .feature-title {
+          display: inline;
+          font-size: var(--text-sm, 0.875rem);
+          margin-bottom: 0;
+        }
+        :host .features[data-card-layout="C"] .feature-title::before {
+          content: none;
+        }
+        :host .features[data-card-layout="C"] .feature-desc {
+          display: block;
+          font-size: 11px;
+          color: #00cc33;
+          line-height: 1.4;
+          margin-top: var(--space-1, 0.25rem);
+        }
+
+        /* Layout C mobile — stack to 1 column */
+        @media (max-width: 480px) {
+          :host .features[data-card-layout="C"] {
+            grid-template-columns: 1fr;
+            padding: var(--space-2, 0.5rem) var(--space-3, 0.75rem);
+          }
+          :host .features[data-card-layout="C"] .feature-title {
+            font-size: var(--text-xs, 0.75rem);
+          }
+          :host .features[data-card-layout="C"] .feature-desc {
+            font-size: 10px;
+          }
+        }
+        /* Layout C tablet — 2 columns */
+        @media (min-width: 481px) and (max-width: 768px) {
+          :host .features[data-card-layout="C"] {
+            grid-template-columns: repeat(2, 1fr);
+          }
+        }
+
+        /* === CRT flicker for all layouts === */
+        .feature-card.crt-flicker .terminal-prefix,
+        .feature-card.crt-flicker .feature-sep {
+          opacity: 0.3;
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .feature-card.crt-flicker .terminal-prefix,
+          .feature-card.crt-flicker .feature-sep {
+            opacity: 1;
+          }
+        }
       </style>
 
       <section class="hero" id="hero">
@@ -592,25 +818,31 @@ export class ArApp extends HTMLElement {
         </div>
       </section>
 
-      <section class="features" aria-label="Key features">
+      <section class="features" aria-label="Key features" data-card-layout="A">
         <h2 class="sr-only">${t('features.srTitle')}</h2>
         <article class="feature-card">
+          <span class="terminal-prefix" aria-hidden="true">[+]</span>
           <div class="feature-icon" aria-hidden="true">&#9889;</div>
           <h3 class="feature-title">${t('features.bgRemoval.title')}</h3>
+          <span class="feature-sep" aria-hidden="true"> — </span>
           <p class="feature-desc">
             ${t('features.bgRemoval.desc')}
           </p>
         </article>
         <article class="feature-card">
+          <span class="terminal-prefix" aria-hidden="true">[+]</span>
           <div class="feature-icon" aria-hidden="true">&#9762;</div>
           <h3 class="feature-title">${t('features.aiArtifacts.title')}</h3>
+          <span class="feature-sep" aria-hidden="true"> — </span>
           <p class="feature-desc">
             ${t('features.aiArtifacts.desc')}
           </p>
         </article>
         <article class="feature-card">
+          <span class="terminal-prefix" aria-hidden="true">[+]</span>
           <div class="feature-icon" aria-hidden="true">&#128274;</div>
           <h3 class="feature-title">${t('features.private.title')}</h3>
+          <span class="feature-sep" aria-hidden="true"> — </span>
           <p class="feature-desc">
             ${t('features.private.desc')}
           </p>

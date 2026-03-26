@@ -88,8 +88,8 @@ const translations: Translations = {
     'features.srTitle': 'Background Removal That Actually Works',
     'features.bgRemoval.title': 'Instant Background Removal',
     'features.bgRemoval.desc': 'Photos, illustrations, screenshots \u2014 drop any image and get a clean transparent PNG. Powered by ML models that run right in your browser.',
-    'features.aiArtifacts.title': 'Handles AI Artifacts',
-    'features.aiArtifacts.desc': 'Painted checkerboards and Gemini watermarks \u2014 NukeBG tackles the artifacts that generic removers miss.',
+    'features.aiArtifacts.title': 'AI Garbage? Gone.',
+    'features.aiArtifacts.desc': 'Painted checkerboards, Gemini watermarks \u2014 the junk other tools can\u2019t even see. NukeBG sees it. NukeBG kills it.',
     'features.private.title': '100% Private, Zero Friction',
     'features.private.desc': "Everything runs client-side. No uploads, no accounts, no credits. Your files never leave your device. Don\u2019t trust us \u2014 check the source.",
 
@@ -185,8 +185,8 @@ const translations: Translations = {
     'features.srTitle': 'Eliminaci\u00F3n de fondos que realmente funciona',
     'features.bgRemoval.title': 'Eliminaci\u00F3n instant\u00E1nea de fondos',
     'features.bgRemoval.desc': 'Fotos, ilustraciones, capturas \u2014 arrastra cualquier imagen y obt\u00E9n un PNG transparente. Impulsado por modelos ML que corren en tu navegador.',
-    'features.aiArtifacts.title': 'Maneja artefactos de IA',
-    'features.aiArtifacts.desc': 'Tableros de ajedrez pintados y marcas de agua de Gemini \u2014 NukeBG elimina los artefactos que otros removedores ignoran.',
+    'features.aiArtifacts.title': '\u00BFBasura de IA? Eliminada.',
+    'features.aiArtifacts.desc': 'Tableros de ajedrez pintados, marcas de agua de Gemini \u2014 la porquer\u00EDa que otras herramientas ni detectan. NukeBG la ve. NukeBG la destruye.',
     'features.private.title': '100% Privado, Cero Fricci\u00F3n',
     'features.private.desc': 'Todo corre en tu navegador. Sin subidas, sin cuentas, sin cr\u00E9ditos. Tus archivos nunca salen de tu dispositivo. No nos creas \u2014 revisa el c\u00F3digo.',
 
