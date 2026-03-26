@@ -1,5 +1,3 @@
-<img src="https://raw.githubusercontent.com/yocreoquesi/nukebg/main/public/og-image.png" width="100%" alt="NUKEBG - Drop. Nuke. Download.">
-
 # NUKEBG
 
 > Nuke backgrounds from any image. 100% client-side. Zero uploads. Zero BS.
