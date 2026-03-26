@@ -277,10 +277,90 @@ function updateHtmlTexts(): void {
   if (footerPrivacy) footerPrivacy.textContent = t('footer.privacy');
 }
 
+// === Terminal Prompt Easter Egg ===
+function initTerminalPrompt(): void {
+  const input = document.getElementById('terminal-input') as HTMLInputElement | null;
+  const cursor = document.getElementById('terminal-cursor');
+  const promptContainer = document.getElementById('terminal-prompt');
+  if (!input || !cursor || !promptContainer) return;
+
+  let isShowingResponse = false;
+
+  const COMMANDS: Record<string, string> = {
+    'sudo': '> Permission denied. Nice try.',
+    'sudo rm': '> rm: cannot remove \'backgrounds\': already nuked',
+    'sudo nuke': '> LAUNCHING ALL NUKES...',
+    'sudo help': '> man nukebg: Drop. Nuke. Download.',
+    'help': '> Try: sudo, nuke, exit, ls',
+    'nuke': '> Nuke what? Drop an image first.',
+    'exit': '> There is no escape from NukeBG.',
+    'ls': '> backgrounds/ watermarks/ — scheduled for deletion',
+    'rm -rf': '> whoa whoa whoa. Not that kind of terminal.',
+    'hack': '> You\'re already in. What more do you want?',
+    'hello': '> Hello, operator. Ready to nuke?',
+    'hi': '> Hello, operator. Ready to nuke?',
+  };
+
+  function showResponse(text: string, isError: boolean = false): void {
+    isShowingResponse = true;
+    input!.style.display = 'none';
+    cursor!.style.display = 'none';
+
+    const response = document.createElement('span');
+    response.className = 'terminal-response' + (isError ? ' error' : '');
+    response.textContent = text;
+    promptContainer!.appendChild(response);
+
+    setTimeout(() => {
+      response.remove();
+      input!.style.display = '';
+      input!.value = '';
+      cursor!.style.display = '';
+      cursor!.classList.remove('hidden');
+      isShowingResponse = false;
+    }, isError ? 1500 : 2000);
+  }
+
+  // Hide cursor when typing, show when empty
+  input.addEventListener('input', () => {
+    if (input.value.length > 0) {
+      cursor.classList.add('hidden');
+    } else {
+      cursor.classList.remove('hidden');
+    }
+
+    // Buffer overflow: char 11 triggers error
+    if (input.value.length >= 11) {
+      showResponse('> ERROR: Buffer overflow', true);
+    }
+  });
+
+  input.addEventListener('keydown', (e: KeyboardEvent) => {
+    if (e.key !== 'Enter' || isShowingResponse) return;
+    e.preventDefault();
+
+    const cmd = input.value.trim().toLowerCase();
+    if (!cmd) return;
+
+    // Special case: sudo nuke triggers vibrate on ar-app
+    if (cmd === 'sudo nuke') {
+      const arApp = document.querySelector('ar-app');
+      if (arApp) {
+        arApp.classList.add('nuke-vibrate');
+        setTimeout(() => arApp.classList.remove('nuke-vibrate'), 1000);
+      }
+    }
+
+    const response = COMMANDS[cmd] || `> Command not found: ${input.value.trim()}. Try 'help'`;
+    showResponse(response);
+  });
+}
+
 // Init on DOMContentLoaded
 function init(): void {
   initI18n();
   initKeyboardShortcuts();
+  initTerminalPrompt();
   showConsoleLogo();
   initHolidayEasterEgg();
   initKonamiCode();
