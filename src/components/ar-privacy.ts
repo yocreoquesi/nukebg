@@ -42,7 +42,7 @@ export class ArPrivacy extends HTMLElement {
           font-family: 'JetBrains Mono', monospace;
           font-size: 10px;
           font-weight: var(--font-medium, 500);
-          color: #00cc33;
+          color: var(--color-text-secondary, #00cc33);
           cursor: default;
           position: relative;
         }
@@ -59,7 +59,7 @@ export class ArPrivacy extends HTMLElement {
           border-radius: 0;
           padding: 0.75rem;
           font-size: var(--text-xs, 0.75rem);
-          color: #00cc33;
+          color: var(--color-text-secondary, #00cc33);
           font-family: 'JetBrains Mono', monospace;
           white-space: nowrap;
           box-shadow: var(--shadow-md);

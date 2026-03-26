@@ -42,7 +42,7 @@ export class ArDropzone extends HTMLElement {
         .dropzone::before {
           content: 'nukebg@local:~$ ';
           display: block;
-          color: #006622;
+          color: var(--color-text-tertiary, #006622);
           font-family: 'JetBrains Mono', monospace;
           font-size: 12px;
           margin-bottom: 8px;
@@ -50,12 +50,12 @@ export class ArDropzone extends HTMLElement {
           width: 100%;
         }
         .dropzone:hover {
-          border-color: #00ff41;
+          border-color: var(--color-accent-primary, #00ff41);
           background: rgba(0, 255, 65, 0.02);
           box-shadow: 0 0 10px rgba(0, 255, 65, 0.1);
         }
         .dropzone.dragover {
-          border-color: #00ff41;
+          border-color: var(--color-accent-primary, #00ff41);
           border-style: solid;
           background: rgba(0, 255, 65, 0.04);
           box-shadow: 0 0 15px rgba(0, 255, 65, 0.15);
@@ -71,28 +71,28 @@ export class ArDropzone extends HTMLElement {
         }
         .icon {
           font-size: 24px;
-          color: #006622;
+          color: var(--color-text-tertiary, #006622);
           line-height: 1;
           transition: color 0.3s ease, filter 0.3s ease;
         }
         .dropzone:hover .icon {
-          color: #00ff41;
+          color: var(--color-accent-primary, #00ff41);
           filter: drop-shadow(0 0 6px rgba(0, 255, 65, 0.5));
         }
         .main-text {
           font-family: 'JetBrains Mono', monospace;
           font-size: var(--text-sm, 0.875rem);
           font-weight: var(--font-medium, 500);
-          color: #00ff41;
+          color: var(--color-accent-primary, #00ff41);
         }
         .main-text::before {
           content: '> ';
-          color: #006622;
+          color: var(--color-text-tertiary, #006622);
         }
         .sub-text {
           font-family: 'JetBrains Mono', monospace;
           font-size: 12px;
-          color: #00cc33;
+          color: var(--color-text-secondary, #00cc33);
         }
         .hint {
           font-family: 'JetBrains Mono', monospace;

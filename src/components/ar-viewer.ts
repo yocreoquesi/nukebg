@@ -93,7 +93,7 @@ export class ArViewer extends HTMLElement {
           position: absolute;
           top: 0; bottom: 0;
           width: 2px;
-          background: #00ff41;
+          background: var(--color-accent-primary, #00ff41);
           box-shadow: 0 0 6px rgba(0, 255, 65, 0.4);
           pointer-events: none;
           z-index: 10;
@@ -104,7 +104,7 @@ export class ArViewer extends HTMLElement {
           transform: translate(-50%, -50%);
           width: 28px; height: 28px;
           border-radius: 0;
-          background: #00ff41;
+          background: var(--color-accent-primary, #00ff41);
           border: 2px solid #000;
           cursor: col-resize;
           z-index: 11;
@@ -119,7 +119,7 @@ export class ArViewer extends HTMLElement {
           position: absolute;
           top: 8px;
           background: rgba(0, 0, 0, 0.85);
-          color: #00ff41;
+          color: var(--color-accent-primary, #00ff41);
           padding: 2px 10px;
           border-radius: 0;
           font-family: 'JetBrains Mono', monospace;
@@ -139,7 +139,7 @@ export class ArViewer extends HTMLElement {
           padding: 8px 12px;
           font-size: 11px;
           font-family: 'JetBrains Mono', monospace;
-          color: #00cc33;
+          color: var(--color-text-secondary, #00cc33);
           background: #000;
           border-top: 1px solid #1a3a1a;
         }
@@ -148,7 +148,7 @@ export class ArViewer extends HTMLElement {
           gap: 6px;
           align-items: center;
         }
-        .bg-options span { font-size: 11px; color: #006622; }
+        .bg-options span { font-size: 11px; color: var(--color-text-tertiary, #006622); }
         .bg-btn {
           width: 20px; height: 20px;
           border-radius: 0;
@@ -156,7 +156,7 @@ export class ArViewer extends HTMLElement {
           cursor: pointer;
           transition: border-color 0.15s;
         }
-        .bg-btn:hover, .bg-btn.active { border-color: #00ff41; }
+        .bg-btn:hover, .bg-btn.active { border-color: var(--color-accent-primary, #00ff41); }
         .bg-checker {
           background-image:
             linear-gradient(45deg, #ccc 25%, transparent 25%),

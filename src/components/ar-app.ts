@@ -106,21 +106,21 @@ export class ArApp extends HTMLElement {
           margin: 0 0 0.75rem 0;
           line-height: var(--leading-tight, 1.25);
           font-family: 'JetBrains Mono', monospace;
-          color: #00ff41;
+          color: var(--color-accent-primary, #00ff41);
           text-shadow: 0 0 10px rgba(0, 255, 65, 0.4);
         }
         h1::before {
           content: '$ ';
-          color: #006622;
+          color: var(--color-text-tertiary, #006622);
         }
         h1 .accent {
-          color: #00ff41;
+          color: var(--color-accent-primary, #00ff41);
           text-shadow: 0 0 12px rgba(0, 255, 65, 0.5);
         }
         .subline {
           font-family: 'JetBrains Mono', monospace;
           font-size: var(--text-sm, 0.875rem);
-          color: #00cc33;
+          color: var(--color-text-secondary, #00cc33);
           max-width: none;
           margin: 0 0 var(--space-4, 1rem);
           text-align: left;
@@ -128,12 +128,12 @@ export class ArApp extends HTMLElement {
         }
         .subline::before {
           content: '# ';
-          color: #006622;
+          color: var(--color-text-tertiary, #006622);
         }
         .model-status {
           font-family: 'JetBrains Mono', monospace;
           font-size: var(--text-xs, 0.75rem);
-          color: #006622;
+          color: var(--color-text-tertiary, #006622);
           margin-top: var(--space-2, 0.5rem);
           min-height: 1.2em;
         }
@@ -194,17 +194,17 @@ export class ArApp extends HTMLElement {
           font-weight: var(--font-semibold, 600);
           text-transform: uppercase;
           letter-spacing: 0.05em;
-          color: #00ff41;
+          color: var(--color-accent-primary, #00ff41);
           margin-bottom: var(--space-2, 0.5rem);
         }
         .feature-title::before {
           content: '> ';
-          color: #006622;
+          color: var(--color-text-tertiary, #006622);
         }
         .feature-desc {
           font-family: 'JetBrains Mono', monospace;
           font-size: 12px;
-          color: #00cc33;
+          color: var(--color-text-secondary, #00cc33);
           line-height: 1.5;
         }
         .sr-only {
@@ -230,13 +230,13 @@ export class ArApp extends HTMLElement {
         }
         .model-selector label {
           font-size: var(--text-sm, 0.875rem);
-          color: #006622;
+          color: var(--color-text-tertiary, #006622);
           white-space: nowrap;
           font-family: 'JetBrains Mono', monospace;
         }
         .model-selector select {
           background: #0a0a0a;
-          color: #00ff41;
+          color: var(--color-accent-primary, #00ff41);
           border: 1px solid #1a3a1a;
           border-radius: 0;
           padding: var(--space-1, 0.25rem) var(--space-2, 0.5rem);
@@ -255,12 +255,12 @@ export class ArApp extends HTMLElement {
         }
         #precision-slider {
           width: 80px;
-          accent-color: #00ff41;
+          accent-color: var(--color-accent-primary, #00ff41);
           cursor: pointer;
         }
         .precision-label {
           font-size: var(--text-xs, 0.75rem);
-          color: #00ff41;
+          color: var(--color-accent-primary, #00ff41);
           min-width: 90px;
           text-align: center;
           transition: color 0.3s ease;
@@ -351,7 +351,7 @@ export class ArApp extends HTMLElement {
           }
         }
         .reprocess-btn {
-          background: #00ff41;
+          background: var(--color-accent-primary, #00ff41);
           color: #000;
           border: none;
           border-radius: 0;
@@ -384,8 +384,8 @@ export class ArApp extends HTMLElement {
           transition: color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
         }
         .edit-btn:hover {
-          color: #00ff41;
-          border-color: #00ff41;
+          color: var(--color-accent-primary, #00ff41);
+          border-color: var(--color-accent-primary, #00ff41);
           box-shadow: 0 0 10px rgba(0, 255, 65, 0.1);
         }
 
@@ -585,7 +585,7 @@ export class ArApp extends HTMLElement {
           display: inline;
           font-family: 'JetBrains Mono', monospace;
           font-size: 12px;
-          color: #006622;
+          color: var(--color-text-tertiary, #006622);
           margin-right: 6px;
           flex-shrink: 0;
         }
@@ -606,12 +606,12 @@ export class ArApp extends HTMLElement {
           display: inline;
           font-family: 'JetBrains Mono', monospace;
           font-size: 12px;
-          color: #006622;
+          color: var(--color-text-tertiary, #006622);
         }
         :host .features[data-card-layout="A"] .feature-desc {
           display: inline;
           font-size: 12px;
-          color: #00cc33;
+          color: var(--color-text-secondary, #00cc33);
         }
 
         /* Layout A mobile */
@@ -681,7 +681,7 @@ export class ArApp extends HTMLElement {
           grid-column: 2;
           grid-row: 2;
           font-size: 12px;
-          color: #00cc33;
+          color: var(--color-text-secondary, #00cc33);
           line-height: 1.4;
         }
 
@@ -740,7 +740,7 @@ export class ArApp extends HTMLElement {
         :host .features[data-card-layout="C"] .feature-desc {
           display: block;
           font-size: 11px;
-          color: #00cc33;
+          color: var(--color-text-secondary, #00cc33);
           line-height: 1.4;
           margin-top: var(--space-1, 0.25rem);
         }

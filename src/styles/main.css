@@ -117,7 +117,7 @@
 
   /* Terminal-specific tokens */
   --terminal-scanline-opacity: 0.03;
-  --terminal-cursor-color: #00ff41;
+  --terminal-cursor-color: var(--color-accent-primary);
   --terminal-border-style: 1px solid #1a3a1a;
 }
 
@@ -240,18 +240,18 @@ body::after {
 .logo {
   font-size: var(--text-sm);
   font-weight: var(--font-bold);
-  color: #00ff41;
+  color: var(--color-accent-primary);
   text-decoration: none;
   letter-spacing: 0.2em;
   text-transform: uppercase;
   font-family: var(--font-mono);
-  text-shadow: 0 0 10px rgba(0, 255, 65, 0.5);
+  text-shadow: 0 0 10px var(--color-accent-glow);
   transition: text-shadow var(--duration-normal) var(--ease-default);
 }
 
 .logo::before {
   content: '> ';
-  color: #006622;
+  color: var(--color-text-tertiary);
 }
 
 .logo:hover {
@@ -259,8 +259,8 @@ body::after {
 }
 
 .logo-accent {
-  color: #00ff41;
-  text-shadow: 0 0 12px rgba(0, 255, 65, 0.6);
+  color: var(--color-accent-primary);
+  text-shadow: 0 0 12px var(--color-accent-glow);
 }
 
 .header-nav {
@@ -292,27 +292,27 @@ body::after {
   gap: 4px;
   font-family: 'JetBrains Mono', monospace;
   font-size: 12px;
-  color: #00ff41;
+  color: var(--color-accent-primary);
 }
 .terminal-prompt-prefix {
-  color: #006622;
+  color: var(--color-text-tertiary);
   user-select: none;
 }
 .terminal-input {
   background: transparent;
   border: none;
   outline: none;
-  color: #00ff41;
+  color: var(--color-accent-primary);
   font-family: inherit;
   font-size: inherit;
   width: 120px;
-  caret-color: #00ff41;
+  caret-color: var(--color-accent-primary);
 }
 .terminal-input::placeholder {
   color: transparent;
 }
 .terminal-response {
-  color: #00cc33;
+  color: var(--color-text-secondary);
   font-size: 11px;
   white-space: nowrap;
 }
@@ -328,7 +328,7 @@ body::after {
   display: inline-block;
   width: 7px;
   height: 14px;
-  background: #00ff41;
+  background: var(--color-accent-primary);
   animation: blink-cursor 1s step-end infinite;
 }
 .terminal-cursor.hidden {
@@ -352,12 +352,12 @@ body::after {
   font-family: var(--font-mono);
   font-size: var(--text-sm);
   letter-spacing: 0.05em;
-  color: #006622;
+  color: var(--color-text-tertiary);
   background: #000000;
 }
 
 .footer a {
-  color: #00cc33;
+  color: var(--color-text-secondary);
   text-decoration: none;
   transition: color var(--duration-normal) var(--ease-default),
               text-shadow var(--duration-normal) var(--ease-default);
@@ -382,7 +382,7 @@ body::after {
 .footer-holiday {
   display: block;
   margin-top: var(--space-2);
-  color: #00cc33;
+  color: var(--color-text-secondary);
 }
 
 .kofi-link {
@@ -425,7 +425,7 @@ body::after {
   border-radius: 0;
   padding: var(--space-3) var(--space-4);
   font-size: var(--text-sm);
-  color: #00ff41;
+  color: var(--color-accent-primary);
   font-family: var(--font-mono);
   box-shadow: var(--shadow-md);
   z-index: var(--z-toast);

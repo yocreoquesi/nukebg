@@ -152,13 +152,13 @@ export class ArEditor extends HTMLElement {
         }
         .toolbar label {
           font-size: var(--text-xs, 0.75rem);
-          color: #006622;
+          color: var(--color-text-tertiary, #006622);
           font-family: 'JetBrains Mono', monospace;
           white-space: nowrap;
         }
         .toolbar select, .toolbar input[type="range"] {
           background: #0a0a0a;
-          color: #00ff41;
+          color: var(--color-accent-primary, #00ff41);
           border: 1px solid #1a3a1a;
           border-radius: 0;
           padding: 2px 6px;
@@ -167,17 +167,17 @@ export class ArEditor extends HTMLElement {
         }
         .toolbar input[type="range"] {
           width: 100px;
-          accent-color: #00ff41;
+          accent-color: var(--color-accent-primary, #00ff41);
         }
         .size-display {
           font-size: var(--text-xs, 0.75rem);
-          color: #006622;
+          color: var(--color-text-tertiary, #006622);
           min-width: 32px;
           text-align: center;
         }
         .toolbar-btn {
           background: #0a0a0a;
-          color: #00ff41;
+          color: var(--color-accent-primary, #00ff41);
           border: 1px solid #1a3a1a;
           border-radius: 0;
           padding: 4px 10px;
@@ -191,16 +191,16 @@ export class ArEditor extends HTMLElement {
         }
         .toolbar-btn:hover {
           background: rgba(0, 255, 65, 0.05);
-          border-color: #00ff41;
+          border-color: var(--color-accent-primary, #00ff41);
         }
         .toolbar-btn:disabled {
           opacity: 0.4;
           cursor: default;
         }
         .toolbar-btn.primary {
-          background: #00ff41;
+          background: var(--color-accent-primary, #00ff41);
           color: #000;
-          border-color: #00ff41;
+          border-color: var(--color-accent-primary, #00ff41);
         }
         .toolbar-btn.primary:hover {
           background: #33ff66;
@@ -220,7 +220,7 @@ export class ArEditor extends HTMLElement {
           border-radius: 0;
           padding: 12px 16px;
           font-size: var(--text-xs, 0.75rem);
-          color: #00cc33;
+          color: var(--color-text-secondary, #00cc33);
           font-family: 'JetBrains Mono', monospace;
           line-height: 1.8;
           white-space: nowrap;
@@ -229,7 +229,7 @@ export class ArEditor extends HTMLElement {
         }
         .help-tooltip.visible { display: block; }
         .help-tooltip strong {
-          color: #00ff41;
+          color: var(--color-accent-primary, #00ff41);
           font-size: var(--text-sm, 0.875rem);
         }
         .help-tooltip kbd {
@@ -240,7 +240,7 @@ export class ArEditor extends HTMLElement {
           padding: 1px 5px;
           font-family: 'JetBrains Mono', monospace;
           font-size: 10px;
-          color: #00ff41;
+          color: var(--color-accent-primary, #00ff41);
           margin-right: 6px;
           min-width: 40px;
           text-align: center;
@@ -277,7 +277,7 @@ export class ArEditor extends HTMLElement {
           gap: 6px;
           align-items: center;
         }
-        .bg-options span { font-size: 11px; color: #006622; }
+        .bg-options span { font-size: 11px; color: var(--color-text-tertiary, #006622); }
         .bg-btn {
           width: 20px; height: 20px;
           border-radius: 0;
@@ -286,7 +286,7 @@ export class ArEditor extends HTMLElement {
           transition: border-color 0.2s ease, box-shadow 0.2s ease;
         }
         .bg-btn:hover, .bg-btn.active {
-          border-color: #00ff41;
+          border-color: var(--color-accent-primary, #00ff41);
           box-shadow: 0 0 6px rgba(0, 255, 65, 0.2);
         }
         .bg-checker {
@@ -301,13 +301,13 @@ export class ArEditor extends HTMLElement {
         }
         .hint {
           font-size: var(--text-xs, 0.75rem);
-          color: #006622;
+          color: var(--color-text-tertiary, #006622);
           text-align: center;
           padding: var(--space-1, 0.25rem);
         }
         .zoom-display {
           font-size: var(--text-xs, 0.75rem);
-          color: #006622;
+          color: var(--color-text-tertiary, #006622);
         }
 
         /* Touch brush indicator (replaces cursor on touch devices) */

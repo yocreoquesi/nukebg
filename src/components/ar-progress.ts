@@ -115,7 +115,7 @@ export class ArProgress extends HTMLElement {
           gap: var(--space-2, 0.5rem);
           font-family: 'JetBrains Mono', monospace;
           font-size: 12px;
-          color: #00cc33;
+          color: var(--color-text-secondary, #00cc33);
         }
         .stage-icon {
           width: 18px;
@@ -130,12 +130,12 @@ export class ArProgress extends HTMLElement {
           border-radius: 0;
         }
         .stage.running .stage-icon {
-          color: #00ff41;
+          color: var(--color-accent-primary, #00ff41);
           animation: spin 2s linear infinite;
           filter: drop-shadow(0 0 4px rgba(0, 255, 65, 0.6));
         }
         .stage.done .stage-icon {
-          color: #00ff41;
+          color: var(--color-accent-primary, #00ff41);
         }
         .stage.skipped .stage-icon {
           color: var(--color-text-tertiary, #006622);
@@ -152,7 +152,7 @@ export class ArProgress extends HTMLElement {
         }
         .stage-message {
           font-size: var(--text-xs, 0.75rem);
-          color: #006622;
+          color: var(--color-text-tertiary, #006622);
         }
         .progress-bar {
           width: 100%;
@@ -164,7 +164,7 @@ export class ArProgress extends HTMLElement {
         }
         .progress-fill {
           height: 100%;
-          background: #00ff41;
+          background: var(--color-accent-primary, #00ff41);
           border-radius: 0;
           box-shadow: 0 0 4px rgba(0, 255, 65, 0.4);
           transition: width 0.3s ease;
@@ -221,16 +221,16 @@ export class ArProgress extends HTMLElement {
           gap: var(--space-2, 0.5rem);
           font-family: 'JetBrains Mono', monospace;
           font-size: 12px;
-          color: #00ff41;
+          color: var(--color-accent-primary, #00ff41);
           margin-top: var(--space-2, 0.5rem);
           padding-top: var(--space-2, 0.5rem);
           border-top: 1px solid #1a3a1a;
         }
         .total-time .total-label {
-          color: #00cc33;
+          color: var(--color-text-secondary, #00cc33);
         }
         .total-time .total-value {
-          color: #00ff41;
+          color: var(--color-accent-primary, #00ff41);
           text-shadow: 0 0 6px rgba(0, 255, 65, 0.4);
         }
       </style>

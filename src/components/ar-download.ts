@@ -73,7 +73,7 @@ export class ArDownload extends HTMLElement {
         }
         .download-bar.visible { display: flex; }
         .btn-primary {
-          background: #00ff41;
+          background: var(--color-accent-primary, #00ff41);
           color: #000;
           border: none;
           padding: 12px 24px;
@@ -98,7 +98,7 @@ export class ArDownload extends HTMLElement {
         .btn-primary:active { opacity: 0.9; }
         .btn-secondary {
           background: transparent;
-          color: #00ff41;
+          color: var(--color-accent-primary, #00ff41);
           border: 1px solid #1a3a1a;
           padding: 10px 20px;
           border-radius: 0;
@@ -116,7 +116,7 @@ export class ArDownload extends HTMLElement {
         }
         .btn-copy {
           background: transparent;
-          color: #00cc33;
+          color: var(--color-text-secondary, #00cc33);
           border: 1px solid #1a3a1a;
           padding: 10px 16px;
           border-radius: 0;
@@ -126,8 +126,8 @@ export class ArDownload extends HTMLElement {
           transition: all 0.3s ease;
         }
         .btn-copy:hover {
-          border-color: #00ff41;
-          color: #00ff41;
+          border-color: var(--color-accent-primary, #00ff41);
+          color: var(--color-accent-primary, #00ff41);
         }
         @media (prefers-reduced-motion: reduce) {
           .btn-primary { animation: none !important; }
@@ -196,11 +196,11 @@ export class ArDownload extends HTMLElement {
           }
         }
 
-        .btn-copy.copied { border-color: #00ff41; color: #00ff41; }
+        .btn-copy.copied { border-color: var(--color-accent-primary, #00ff41); color: var(--color-accent-primary, #00ff41); }
         .metadata {
           font-size: 11px;
           font-family: 'JetBrains Mono', monospace;
-          color: #006622;
+          color: var(--color-text-tertiary, #006622);
         }
         .separator { color: #1a3a1a; margin: 0 4px; }
       </style>
