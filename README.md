@@ -1,4 +1,4 @@
-<img src="public/og-image.png" width="100%" alt="NUKEBG - Drop. Nuke. Download.">
+<img src="https://raw.githubusercontent.com/yocreoquesi/nukebg/main/public/og-image.png" width="100%" alt="NUKEBG - Drop. Nuke. Download.">
 
 # NUKEBG
 
@@ -21,10 +21,10 @@
 ```
 $ nukebg --explain
 
-AI image generators leave garbage behind:
-painted checkerboard patterns, watermarks, shadow smudges, fake transparency.
+Background removal tools are everywhere. Most of them suck at AI-generated images:
+painted checkerboard patterns, baked-in watermarks, fake transparency.
 
-NukeBG obliterates all of it. In your browser. On your device.
+NukeBG handles all of it. In your browser. On your device.
 No uploads. No accounts. No tracking. Nothing leaves your machine.
 
 Drop. Nuke. Download. That's it.
@@ -33,22 +33,20 @@ Drop. Nuke. Download. That's it.
 ## > features
 
 ```
-[+] CHECKERBOARD OBLITERATION   Detects and nukes painted checkerboard backgrounds.
+[+] BACKGROUND REMOVAL          ML-powered removal for any image: photos, illustrations,
+                                AI art, whatever. RMBG-1.4 + MODNet. WebGPU/WASM.
+
+[+] CHECKERBOARD OBLITERATION   Detects and classifies painted checkerboard backgrounds.
                                 Any grid size, any generator.
 
-[+] AI WATERMARK REMOVAL        Auto-detects Gemini sparkle watermark.
-                                DALL-E and Midjourney patterns incoming.
-
-[+] ML BACKGROUND REMOVAL       RMBG-1.4 (INT8, ~45MB) + MODNet (~6MB) for complex
-                                backgrounds. WebGPU acceleration, WASM fallback.
-
-[+] SHADOW & ARTIFACT CLEANUP   Removes low-saturation shadow artifacts from AI generation.
-
-[+] ALPHA EDGE REFINEMENT       Median filter + Gaussian blur + threshold.
-                                Clean, production-ready transparent PNGs.
+[+] GEMINI WATERMARK REMOVAL    Auto-detects and inpaints Gemini's sparkle watermark.
+                                Telea FMM reconstruction -- no blurry patches.
 
 [+] 100% CLIENT-SIDE            Zero server uploads. Zero network requests during processing.
                                 Verify it yourself in DevTools.
+
+[+] DUAL ML MODELS              RMBG-1.4 (~45MB) for illustrations and AI art.
+                                MODNet (~25MB) optimized for photos of people.
 
 [+] OFFLINE MODE                After first visit, app + model weights are cached.
                                 Process images without internet.
@@ -83,27 +81,22 @@ Deploy `dist/` to any static host: Cloudflare Pages, GitHub Pages, Netlify, Verc
   INPUT (PNG, JPG, WebP)
     |
     v
-  [DETECT BACKGROUND TYPE] ---- corner sampling, brightness analysis
+  [1. DETECT BACKGROUND] ------ corner sampling, brightness analysis
+    |                            classifies: checkerboard / solid / complex
+    v
+  [2. WATERMARK SCAN] --------- Gemini sparkle detection (runs on every image)
     |
-    +-- Checkerboard? -------> Grid detection + grid-aware flood-fill
-    +-- Solid color? --------> Edge-seeded flood-fill
-    +-- Photo of person? ----> MODNet (~6MB, optimized for portraits)
-    +-- Complex? ------------> RMBG-1.4 (~45MB, general purpose)
+    +-- Watermark found? ------> [3. INPAINT] Telea FMM reconstruction
+    +-- No watermark? ----------> skip
     |
     v
-  [WATERMARK SCAN] ----------- Gemini sparkle detection (runs on every image)
-    |
-    v
-  [SHADOW CLEANUP] ----------- Low-saturation artifact removal
-    |
-    v
-  [ALPHA REFINEMENT] --------- Median + Gaussian blur + threshold
-    |
+  [4. ML SEGMENTATION] -------- RMBG-1.4 or MODNet (user's choice)
+    |                            WebGPU preferred, WASM fallback
     v
   CLEAN RGBA PNG w/ REAL TRANSPARENCY
 ```
 
-Classical CV handles the majority of AI-generated images in under 3 seconds. ML models are lazy-loaded only when needed.
+ML models are lazy-loaded on first use, then cached by the Service Worker for offline access.
 
 ## > tech_stack
 
@@ -114,11 +107,11 @@ Classical CV handles the majority of AI-generated images in under 3 seconds. ML 
 | Build | Vite 6 |
 | Testing | Vitest |
 | ML Runtime | Transformers.js (ONNX Runtime Web) |
-| ML Models | RMBG-1.4 INT8 (~45MB) + MODNet quantized (~6MB) |
+| ML Models | RMBG-1.4 INT8 (~45MB) + MODNet (~25MB) |
 | GPU | WebGPU with WASM fallback |
 | Processing | Canvas API + OffscreenCanvas in Web Workers |
 | Caching | Service Worker + Cache API |
-| Styling | Tailwind CSS |
+| Styling | Custom CSS (JetBrains Mono, zero dependencies) |
 
 ## > privacy
 
@@ -138,8 +131,8 @@ OPEN SOURCE.             Don't trust us -- verify.
 
 | Feature | NukeBG | remove.bg | backgroundless.io | Photoshop |
 |---------|--------|-----------|-------------------|-----------|
-| Checkerboard removal | Yes | No | No | Manual |
-| AI watermark removal | Yes | No | No | Manual |
+| Checkerboard detection | Yes | No | No | Manual |
+| Gemini watermark removal | Yes | No | No | Manual |
 | ML background removal | Yes | Yes | Yes | Yes |
 | Client-side (private) | Yes | No | Yes | N/A |
 | Free and unlimited | Yes | No (credits) | Yes | No ($22/mo) |
@@ -166,4 +159,4 @@ If NukeBG saves you time, consider keeping it alive:
 
 Built with the assistance of AI agents (Claude by Anthropic).
 
-**Built for creators who are done dealing with AI artifacts. Open source forever.**
+**Built for creators who are done dealing with garbage backgrounds. Open source forever.**
