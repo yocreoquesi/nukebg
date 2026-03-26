@@ -186,7 +186,7 @@ const translations: Translations = {
     'features.bgRemoval.title': 'Eliminaci\u00F3n instant\u00E1nea de fondos',
     'features.bgRemoval.desc': 'Fotos, ilustraciones, capturas \u2014 arrastra cualquier imagen y obt\u00E9n un PNG transparente. Impulsado por modelos ML que corren en tu navegador.',
     'features.aiArtifacts.title': 'Maneja artefactos de IA',
-    'features.aiArtifacts.desc': 'Tableros de ajedrez pintados y marcas de agua de Gemini \u2014 NukeBG elimina los artefactos que otros removedores ignoran. M\u00E1s generadores IA en camino.',
+    'features.aiArtifacts.desc': 'Tableros de ajedrez pintados y marcas de agua de Gemini \u2014 NukeBG elimina los artefactos que otros removedores ignoran.',
     'features.private.title': '100% Privado, Cero Fricci\u00F3n',
     'features.private.desc': 'Todo corre en tu navegador. Sin subidas, sin cuentas, sin cr\u00E9ditos. Tus archivos nunca salen de tu dispositivo. No nos creas \u2014 revisa el c\u00F3digo.',
 
