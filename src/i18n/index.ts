@@ -21,8 +21,8 @@ const translations: Translations = {
     'model.autoDetected': 'Auto-detected {type} \u2192 {desc}',
 
     // Model descriptions
-    'model.rmbg.description': 'Best for illustrations, icons, and AI art (~45MB)',
-    'model.modnet.description': 'Optimized for photos of people (~25MB)',
+    'model.rmbg.description': 'Best for illustrations, icons, and AI art',
+    'model.modnet.description': 'Optimized for photos of people',
 
     // Dropzone
     'dropzone.title': 'Drop your image here',
@@ -86,12 +86,13 @@ const translations: Translations = {
 
     // Features
     'features.srTitle': 'Background Removal That Actually Works',
-    'features.bgRemoval.title': 'Instant Background Removal',
-    'features.bgRemoval.desc': 'Photos, illustrations, screenshots \u2014 drop any image and get a clean transparent PNG. Powered by ML models that run right in your browser.',
+    'features.bgRemoval.title': 'No Upload. No Wait.',
+    'features.bgRemoval.desc': 'Drop any image \u2014 photo, illustration, screenshot \u2014 and get a transparent PNG in seconds. No watermark on output, no usage limits, no account required.',
     'features.aiArtifacts.title': 'AI Garbage? Gone.',
-    'features.aiArtifacts.desc': 'Painted checkerboards, Gemini watermarks \u2014 the junk other tools can\u2019t even see. NukeBG sees it. NukeBG kills it.',
-    'features.private.title': '100% Private, Zero Friction',
-    'features.private.desc': "Everything runs client-side. No uploads, no accounts, no credits. Your files never leave your device. Don\u2019t trust us \u2014 check the source.",
+    'features.aiArtifacts.desc': 'Painted checkerboards, Gemini watermarks \u2014 the junk that standard background removers miss. NukeBG detects it. NukeBG kills it.',
+    'features.private.title': 'Open Source. Verify Everything.',
+    'features.private.desc': 'Your images never leave your device \u2014 zero server uploads, zero tracking. No artificial slowdowns, no credit system, no paywall. GPL-3.0 \u2014 verify it yourself.',
+    'features.disclaimer': 'We\u2019re not perfect \u2014 but at least we won\u2019t hold your pixels hostage.',
 
     // Header / Footer (index.html)
     'header.skipLink': 'Skip to main content',
@@ -118,8 +119,8 @@ const translations: Translations = {
     'model.autoDetected': 'Auto-detectado {type} \u2192 {desc}',
 
     // Model descriptions
-    'model.rmbg.description': 'Ideal para ilustraciones, iconos y arte IA (~45MB)',
-    'model.modnet.description': 'Optimizado para fotos de personas (~25MB)',
+    'model.rmbg.description': 'Ideal para ilustraciones, iconos y arte IA',
+    'model.modnet.description': 'Optimizado para fotos de personas',
 
     // Dropzone
     'dropzone.title': 'Arrastra tu imagen aqu\u00ED',
@@ -183,12 +184,13 @@ const translations: Translations = {
 
     // Features
     'features.srTitle': 'Eliminaci\u00F3n de fondos que realmente funciona',
-    'features.bgRemoval.title': 'Eliminaci\u00F3n instant\u00E1nea de fondos',
-    'features.bgRemoval.desc': 'Fotos, ilustraciones, capturas \u2014 arrastra cualquier imagen y obt\u00E9n un PNG transparente. Impulsado por modelos ML que corren en tu navegador.',
+    'features.bgRemoval.title': 'Sin subidas. Sin esperas.',
+    'features.bgRemoval.desc': 'Arrastra cualquier imagen \u2014 foto, ilustraci\u00F3n, captura \u2014 y obt\u00E9n un PNG transparente en segundos. Sin marca de agua, sin l\u00EDmites de uso, sin cuenta.',
     'features.aiArtifacts.title': '\u00BFBasura de IA? Eliminada.',
-    'features.aiArtifacts.desc': 'Tableros de ajedrez pintados, marcas de agua de Gemini \u2014 la porquer\u00EDa que otras herramientas ni detectan. NukeBG la ve. NukeBG la destruye.',
-    'features.private.title': '100% Privado, Cero Fricci\u00F3n',
-    'features.private.desc': 'Todo corre en tu navegador. Sin subidas, sin cuentas, sin cr\u00E9ditos. Tus archivos nunca salen de tu dispositivo. No nos creas \u2014 revisa el c\u00F3digo.',
+    'features.aiArtifacts.desc': 'Tableros de ajedrez pintados, marcas de agua de Gemini \u2014 la basura que los eliminadores de fondo est\u00E1ndar ni detectan. NukeBG la ve. NukeBG la destruye.',
+    'features.private.title': 'C\u00F3digo abierto. Verifica todo.',
+    'features.private.desc': 'Tus im\u00E1genes nunca salen de tu dispositivo \u2014 cero subidas al servidor, cero rastreo. Sin ralentizaciones artificiales, sin sistema de cr\u00E9ditos, sin muro de pago. GPL-3.0 \u2014 verif\u00EDcalo t\u00FA mismo.',
+    'features.disclaimer': 'No somos perfectos \u2014 pero al menos no secuestramos tus p\u00EDxeles.',
 
     // Header / Footer (index.html)
     'header.skipLink': 'Saltar al contenido principal',

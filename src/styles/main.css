@@ -263,6 +263,12 @@ body::after {
   text-shadow: 0 0 12px var(--color-accent-glow);
 }
 
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 0;
+}
+
 .header-nav {
   display: flex;
   align-items: center;
@@ -285,14 +291,15 @@ body::after {
   text-shadow: 0 0 8px var(--color-accent-glow);
 }
 
-/* === Terminal Prompt === */
+/* === Terminal Prompt (sits right after logo) === */
 .terminal-prompt {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 4px;
   font-family: 'JetBrains Mono', monospace;
   font-size: 12px;
   color: var(--color-accent-primary);
+  margin-left: var(--space-3);
 }
 .terminal-prompt-prefix {
   color: var(--color-text-tertiary);
@@ -305,8 +312,15 @@ body::after {
   color: var(--color-accent-primary);
   font-family: inherit;
   font-size: inherit;
-  width: 120px;
+  width: 0;
+  min-width: 2px;
+  max-width: 120px;
   caret-color: var(--color-accent-primary);
+  padding: 0;
+}
+/* Auto-grow input to fit content */
+.terminal-input:focus {
+  width: auto;
 }
 .terminal-input::placeholder {
   color: transparent;
@@ -319,7 +333,7 @@ body::after {
 .terminal-response.error {
   color: #cc3333;
 }
-/* Blinking cursor when input is empty */
+/* Blinking cursor follows the text */
 @keyframes blink-cursor {
   0%, 100% { opacity: 1; }
   50% { opacity: 0; }
@@ -330,6 +344,7 @@ body::after {
   height: 14px;
   background: var(--color-accent-primary);
   animation: blink-cursor 1s step-end infinite;
+  vertical-align: middle;
 }
 .terminal-cursor.hidden {
   display: none;

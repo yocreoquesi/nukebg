@@ -195,23 +195,30 @@ function activateUltraNukeMode(reducedMotion: boolean): void {
     document.head.appendChild(scanlineStyle);
   }
 
-  // Show toast
+  // Show toast (dismissable on click)
   const toast = document.getElementById('kbd-toast');
   if (toast) {
-    toast.textContent = '⚠ ULTRA NUKE MODE ACTIVATED ⚠';
+    toast.textContent = '⚠ ULTRA NUKE MODE ACTIVATED ⚠ (click to dismiss)';
     toast.classList.add('visible');
+    toast.style.cursor = 'pointer';
   }
 
-  // Revert after 5 seconds
-  setTimeout(() => {
+  const dismiss = (): void => {
     const style = document.getElementById('ultra-nuke-style');
     if (style) style.remove();
     if (heroH1 && originalH1) heroH1.innerHTML = originalH1;
     if (toast) {
       toast.textContent = '> normal mode restored_';
+      toast.style.cursor = '';
+      toast.removeEventListener('click', dismiss);
       setTimeout(() => toast.classList.remove('visible'), 1500);
     }
-  }, 5000);
+  };
+
+  if (toast) toast.addEventListener('click', dismiss);
+
+  // Auto-revert after 10 seconds
+  setTimeout(dismiss, 10000);
 }
 
 // === Easter Egg: Logo Click Counter ===
@@ -233,9 +240,16 @@ function initLogoClickCounter(): void {
       clickCount = 0;
       const toast = document.getElementById('kbd-toast');
       if (toast) {
-        toast.textContent = 'Achievement unlocked: COMPULSIVE CLICKER 🏆';
+        toast.textContent = 'Achievement unlocked: COMPULSIVE CLICKER (click to dismiss)';
         toast.classList.add('visible');
-        setTimeout(() => toast.classList.remove('visible'), 3000);
+        toast.style.cursor = 'pointer';
+        const dismissClick = (): void => {
+          toast.classList.remove('visible');
+          toast.style.cursor = '';
+          toast.removeEventListener('click', dismissClick);
+        };
+        toast.addEventListener('click', dismissClick);
+        setTimeout(dismissClick, 8000);
       }
     }
   });
