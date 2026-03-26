@@ -74,7 +74,6 @@ export class ArApp extends HTMLElement {
     this.render();
     this.setupComponents();
     this.setupEvents();
-    this.setupCrtFlicker();
   }
 
   disconnectedCallback(): void {
@@ -268,10 +267,6 @@ export class ArApp extends HTMLElement {
         }
         .precision-marquee {
           display: none;
-          position: fixed;
-          bottom: 0;
-          left: 0;
-          right: 0;
           overflow: hidden;
           white-space: nowrap;
           font-family: 'JetBrains Mono', monospace;
@@ -280,18 +275,17 @@ export class ArApp extends HTMLElement {
           letter-spacing: 0.15em;
           text-transform: uppercase;
           padding: 4px 0;
-          z-index: 50;
-          background: rgba(0, 0, 0, 0.9);
+          margin-top: var(--space-1, 0.25rem);
         }
         .precision-marquee.active {
           display: block;
         }
         .precision-marquee span {
           display: inline-block;
-          animation: marquee-scroll 8s linear infinite;
+          animation: marquee-scroll 20s linear infinite;
         }
         @keyframes marquee-scroll {
-          0% { transform: translateX(100vw); }
+          0% { transform: translateX(100%); }
           100% { transform: translateX(-100%); }
         }
         @media (prefers-reduced-motion: reduce) {
@@ -319,24 +313,21 @@ export class ArApp extends HTMLElement {
           animation: nuke-shake 0.4s ease-in-out 3;
         }
 
-        /* === Smoke effect from bottom === */
+        /* === Smoke effect covering feature cards area === */
         .smoke-effect {
           display: none;
-          position: fixed;
-          bottom: 0;
-          left: 0;
-          right: 0;
-          height: 200px;
+          position: relative;
+          width: 100%;
+          height: 400px;
           pointer-events: none;
-          z-index: 49;
           background: linear-gradient(
             to top,
-            rgba(80, 20, 20, 0.6) 0%,
-            rgba(60, 15, 15, 0.3) 30%,
-            rgba(40, 10, 10, 0.1) 60%,
+            rgba(20, 80, 20, 0.6) 0%,
+            rgba(15, 60, 15, 0.3) 30%,
+            rgba(10, 40, 10, 0.1) 60%,
             transparent 100%
           );
-          animation: smoke-rise 3s ease-out forwards;
+          animation: smoke-rise 5s ease-out forwards;
         }
         .smoke-effect.active {
           display: block;
@@ -576,11 +567,11 @@ export class ArApp extends HTMLElement {
           <label for="precision-slider">Precision:</label>
           <input type="range" id="precision-slider" min="0" max="4" value="2" step="1" aria-label="Precision level">
           <span class="precision-label" id="precision-label">Balanced</span>
-          <div class="precision-marquee" id="precision-marquee"></div>
-          <div class="smoke-effect" id="smoke-effect"></div>
         </div>
         <ar-dropzone></ar-dropzone>
         <p class="model-status" id="model-status">${t('hero.modelStatus')}</p>
+        <div class="precision-marquee" id="precision-marquee"></div>
+        <div class="smoke-effect" id="smoke-effect"></div>
       </section>
 
       <section class="workspace" id="workspace" aria-label="Image processing workspace">
@@ -723,11 +714,17 @@ export class ArApp extends HTMLElement {
       if (label) label.textContent = precisionLabels[val];
 
       const marquee = this.shadowRoot!.querySelector('#precision-marquee') as HTMLElement;
+      const smoke = this.shadowRoot!.querySelector('#smoke-effect') as HTMLElement;
 
       if (val === 4) {
-        // Full Nuke — red override
+        // Full Nuke — red override (shadow DOM + global properties)
         document.documentElement.style.setProperty('--terminal-color-override', '#cc3333');
+        document.documentElement.style.setProperty('--color-text-primary', '#cc3333');
+        document.documentElement.style.setProperty('--color-text-secondary', '#aa2222');
+        document.documentElement.style.setProperty('--color-accent-primary', '#cc3333');
         this.classList.add('precision-override');
+        // Stop CRT flicker in Full Nuke
+        this.stopCrtFlicker();
         if (marquee) {
           marquee.style.color = '#cc3333';
           marquee.innerHTML = '<span>\u26A0 MAXIMUM POWER \u26A0 MAXIMUM POWER \u26A0 MAXIMUM POWER \u26A0</span>';
@@ -744,33 +741,46 @@ export class ArApp extends HTMLElement {
             // Vibrate text
             this.classList.add('nuke-vibrate');
             setTimeout(() => this.classList.remove('nuke-vibrate'), 1200);
-            // Smoke from bottom
-            const smoke = this.shadowRoot!.querySelector('#smoke-effect') as HTMLElement;
+            // Smoke effect
             if (smoke) {
               smoke.classList.remove('active');
               void smoke.offsetWidth; // force reflow to restart animation
               smoke.classList.add('active');
-              setTimeout(() => smoke.classList.remove('active'), 3000);
+              setTimeout(() => smoke.classList.remove('active'), 5000);
             }
           }, delay);
         }
       } else if (val === 0) {
-        // Low Power — yellow override
+        // Low Power — yellow override (shadow DOM + global properties)
         document.documentElement.style.setProperty('--terminal-color-override', '#b8a500');
+        document.documentElement.style.setProperty('--color-text-primary', '#b8a500');
+        document.documentElement.style.setProperty('--color-text-secondary', '#8a7d00');
+        document.documentElement.style.setProperty('--color-accent-primary', '#b8a500');
         this.classList.add('precision-override');
+        // Start CRT flicker only in Low Power
+        this.startCrtFlicker();
         if (marquee) {
           marquee.style.color = '#b8a500';
           marquee.innerHTML = '<span>\u26A1 LOW POWER MODE \u26A1 LOW POWER MODE \u26A1 LOW POWER MODE \u26A1</span>';
           marquee.classList.add('active');
         }
+        // Hide smoke in Low Power
+        if (smoke) smoke.classList.remove('active');
       } else {
-        // Normal levels — restore green
+        // Normal levels — restore all overrides
         document.documentElement.style.removeProperty('--terminal-color-override');
+        document.documentElement.style.removeProperty('--color-text-primary');
+        document.documentElement.style.removeProperty('--color-text-secondary');
+        document.documentElement.style.removeProperty('--color-accent-primary');
         this.classList.remove('precision-override');
+        // Stop CRT flicker in normal modes
+        this.stopCrtFlicker();
         if (marquee) {
           marquee.classList.remove('active');
           marquee.innerHTML = '';
         }
+        // Hide smoke in normal modes
+        if (smoke) smoke.classList.remove('active');
       }
     });
 
@@ -819,33 +829,28 @@ export class ArApp extends HTMLElement {
     });
   }
 
-  private setupCrtFlicker(): void {
+  private startCrtFlicker(): void {
+    // Don't start if already running
+    if (this.crtFlickerTimers.length > 0) return;
     // Respect prefers-reduced-motion
-    const motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
-    if (motionQuery.matches) return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 
     const cards = this.shadowRoot!.querySelectorAll('.feature-card');
     cards.forEach((card) => {
-      const scheduleFlicker = (): void => {
-        const delay = 3000 + Math.random() * 5000; // 3s-8s random
-        const timerId = window.setInterval(() => {
-          card.classList.add('crt-flicker');
-          window.setTimeout(() => card.classList.remove('crt-flicker'), 100);
-        }, delay);
-        this.crtFlickerTimers.push(timerId);
-      };
-      scheduleFlicker();
+      const delay = 3000 + Math.random() * 5000; // 3s-8s random
+      const timerId = window.setInterval(() => {
+        card.classList.add('crt-flicker');
+        window.setTimeout(() => card.classList.remove('crt-flicker'), 100);
+      }, delay);
+      this.crtFlickerTimers.push(timerId);
     });
+  }
 
-    // Stop flicker if user enables reduced motion later
-    motionQuery.addEventListener('change', (e) => {
-      if (e.matches) {
-        this.crtFlickerTimers.forEach(id => clearInterval(id));
-        this.crtFlickerTimers = [];
-        const allCards = this.shadowRoot!.querySelectorAll('.feature-card');
-        allCards.forEach(c => c.classList.remove('crt-flicker'));
-      }
-    });
+  private stopCrtFlicker(): void {
+    this.crtFlickerTimers.forEach(id => clearInterval(id));
+    this.crtFlickerTimers = [];
+    const allCards = this.shadowRoot!.querySelectorAll('.feature-card');
+    allCards.forEach(c => c.classList.remove('crt-flicker'));
   }
 
   private async processImage(imageData: ImageData, fileSize: number): Promise<void> {
