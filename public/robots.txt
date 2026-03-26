@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://nukebg.app/sitemap.xml
+
+# Static assets - no need to crawl
+Disallow: /models/
+Disallow: /service-worker.js

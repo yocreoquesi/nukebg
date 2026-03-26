@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
+
+  <!-- Primary Meta Tags -->
+  <title>NukeBG — Free Background Remover | Private, Client-Side, No Upload</title>
+  <meta name="description" content="Remove backgrounds from any image instantly. 100% private — runs in your browser, zero uploads. Handles AI artifacts, checkerboard patterns, and watermarks that other tools miss. Drop. Nuke. Download." />
+  <meta name="keywords" content="background remover, remove background free, transparent png, remove ai background, nuke background, remove gemini watermark, checkerboard background removal, ai image cleanup, client-side background remover, private background removal, remove dall-e watermark, remove midjourney watermark, background eraser online, nukebg" />
+  <meta name="robots" content="index, follow" />
+  <meta name="author" content="NukeBG" />
+  <meta name="application-name" content="NukeBG" />
+  <meta name="theme-color" content="#000000" />
+  <meta name="color-scheme" content="dark" />
+  <link rel="canonical" href="https://nukebg.app/" />
+  <link rel="alternate" hreflang="en" href="https://nukebg.app/" />
+  <link rel="alternate" hreflang="es" href="https://nukebg.app/?lang=es" />
+  <link rel="alternate" hreflang="x-default" href="https://nukebg.app/" />
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://nukebg.app/" />
+  <meta property="og:title" content="NukeBG — Free Background Remover | No Upload, No BS" />
+  <meta property="og:description" content="Remove backgrounds from any image. Get a clean PNG in seconds. No upload, no account, no BS. Also handles AI artifacts and watermarks that other tools can't touch." />
+  <meta property="og:image" content="https://nukebg.app/og-image.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:image:alt" content="NukeBG: before and after nuking checkerboard background from an AI-generated image" />
+  <meta property="og:site_name" content="NukeBG" />
+  <meta property="og:locale" content="en_US" />
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="NukeBG — Free Background Remover | No Upload, No BS" />
+  <meta name="twitter:description" content="Drop. Nuke. Download. Remove backgrounds from any image, 100% private. Also handles AI checkerboard patterns and Gemini watermarks." />
+  <meta name="twitter:image" content="https://nukebg.app/og-image.png" />
+  <meta name="twitter:image:alt" content="NukeBG: before and after nuking checkerboard background from an AI-generated image" />
+
+  <!-- Favicon & Icons -->
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+  <link rel="manifest" href="/manifest.webmanifest" />
+
+  <!-- Fonts: self-hosted, zero external requests -->
+  <style>
+    @font-face { font-family: 'JetBrains Mono'; font-style: normal; font-weight: 400; font-display: swap; src: url('/fonts/JetBrainsMono-Regular.woff2') format('woff2'); }
+    @font-face { font-family: 'JetBrains Mono'; font-style: normal; font-weight: 500; font-display: swap; src: url('/fonts/JetBrainsMono-Medium.woff2') format('woff2'); }
+    @font-face { font-family: 'JetBrains Mono'; font-style: normal; font-weight: 600; font-display: swap; src: url('/fonts/JetBrainsMono-SemiBold.woff2') format('woff2'); }
+    @font-face { font-family: 'JetBrains Mono'; font-style: normal; font-weight: 700; font-display: swap; src: url('/fonts/JetBrainsMono-Bold.woff2') format('woff2'); }
+  </style>
+
+  <!-- JSON-LD Structured Data: WebApplication -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    "name": "NukeBG",
+    "alternateName": "Nuke Background",
+    "description": "Free client-side background remover. Nuke backgrounds from any image — photos, illustrations, AI-generated art. Also handles checkerboard patterns and AI watermarks from Gemini, DALL-E, Midjourney. 100% private — images never leave your browser.",
+    "url": "https://nukebg.app",
+    "applicationCategory": "DesignApplication",
+    "applicationSubCategory": "Image Editing",
+    "operatingSystem": "Any (Web Browser)",
+    "browserRequirements": "Chrome 90+, Firefox 90+, Safari 17+, Edge 90+",
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "USD",
+      "description": "Free and open source"
+    },
+    "featureList": [
+      "AI checkerboard pattern detection and removal",
+      "Gemini sparkle watermark removal",
+      "ML-powered background removal (RMBG-1.4)",
+      "100% client-side processing (images never uploaded)",
+      "Works offline after first visit",
+      "WebGPU acceleration with WASM fallback",
+      "Before/after comparison view",
+      "PNG export with true alpha transparency"
+    ],
+    "screenshot": "https://nukebg.app/og-image.png",
+    "softwareVersion": "1.0.0",
+    "license": "https://www.gnu.org/licenses/gpl-3.0.html",
+    "isAccessibleForFree": true,
+    "creator": {
+      "@type": "Organization",
+      "name": "NukeBG",
+      "url": "https://github.com/yocreoquesi/nukebg"
+    },
+    "potentialAction": {
+      "@type": "UseAction",
+      "target": "https://nukebg.app",
+      "name": "Nuke Background"
+    }
+  }
+  </script>
+
+  <!-- JSON-LD Structured Data: FAQPage -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "How do I remove the checkerboard background from AI-generated images?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Drop your image into NukeBG. It automatically detects painted checkerboard patterns from AI generators and replaces them with real transparency. Gemini watermark detection included. No upload needed — processing happens in your browser."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Can I remove the Gemini sparkle watermark for free?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes. NukeBG detects and removes Gemini's sparkle watermark automatically. It uses color deviation analysis to find the watermark and inpaints the area cleanly. Completely free, no sign-up required."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Are my images uploaded to a server?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "No. NukeBG processes everything in your browser using WebGPU and WebAssembly. Your images never leave your device. The code is open source (GPL) so you can verify this yourself."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Does it work offline?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes. After your first visit, NukeBG caches all assets including the ML model via Service Worker. You can process images completely offline."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What AI generators does NukeBG support?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "NukeBG removes backgrounds from any image — photos, illustrations, or AI-generated art. It includes specific detection for Gemini watermarks and painted checkerboard patterns."
+        }
+      }
+    ]
+  }
+  </script>
+</head>
+<body>
+  <a href="#main" class="skip-link" id="skip-link">Skip to main content</a>
+
+  <header class="header hazard-border" role="banner">
+    <div class="header-inner">
+      <a href="/" class="logo" id="logo" aria-label="NukeBG - Home"><span class="logo-accent">Nuke</span>BG</a>
+      <nav class="header-nav" aria-label="Main navigation">
+        <span class="privacy-badge-header">
+          <ar-privacy></ar-privacy>
+        </span>
+        <select id="lang-selector" aria-label="Language" style="background:#000;color:#00ff41;border:1px solid #1a3a1a;border-radius:0;padding:2px 6px;font-family:'JetBrains Mono',monospace;font-size:11px;cursor:pointer;text-transform:uppercase;letter-spacing:0.05em;">
+          <option value="en">EN</option>
+          <option value="es">ES</option>
+        </select>
+        <a href="https://github.com/yocreoquesi/nukebg" class="header-link" target="_blank" rel="noopener noreferrer">GitHub</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="main-content" id="main" role="main">
+    <ar-app></ar-app>
+  </main>
+
+  <footer class="footer hazard-border-top" role="contentinfo">
+    <span>NukeBG</span>
+    <span class="footer-sep">|</span>
+    <span>GPL-3.0</span>
+    <span class="footer-sep">|</span>
+    <a href="https://github.com/yocreoquesi/nukebg" target="_blank" rel="noopener noreferrer">GitHub</a>
+    <span class="footer-sep">|</span>
+    <a href="https://ko-fi.com/yocreoquesi" target="_blank" rel="noopener noreferrer" class="kofi-link" id="kofi-link">☕ Support on Ko-fi</a>
+    <span class="footer-privacy" id="footer-privacy">Your images never leave your device. Zero uploads. Zero BS.</span>
+    <span class="footer-holiday" id="footer-holiday"></span>
+  </footer>
+
+  <div class="kbd-toast" id="kbd-toast" role="status" aria-live="polite"></div>
+
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>

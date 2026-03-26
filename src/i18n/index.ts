@@ -1,0 +1,278 @@
+/**
+ * Sistema i18n lightweight para NukeBG.
+ * Auto-detecta idioma del navegador, persiste en localStorage,
+ * emite evento custom cuando cambia el locale.
+ */
+
+type Translations = Record<string, Record<string, string>>;
+
+const translations: Translations = {
+  en: {
+    // Hero
+    'hero.title.accent': 'Nuke',
+    'hero.title.rest': 'Any Background',
+    'hero.subtitle': 'Drop any image. Get a clean transparent PNG.\nNo upload. No account. No BS.',
+    'hero.modelStatus': 'Ready to nuke',
+
+    // Model selector
+    'model.label': 'AI Model:',
+    'model.tryAnother': 'Not happy? Try another model:',
+    'model.reprocess': 'Reprocess',
+    'model.autoDetected': 'Auto-detected {type} \u2192 {desc}',
+
+    // Model descriptions
+    'model.rmbg.description': 'Best for illustrations, icons, and AI art (~45MB)',
+    'model.modnet.description': 'Optimized for photos of people (~25MB)',
+
+    // Dropzone
+    'dropzone.title': 'Drop your image here',
+    'dropzone.subtitle': "or click to browse \u2014 we'll nuke the background",
+    'dropzone.formats': 'PNG, JPG, WebP up to 4096x4096',
+    'dropzone.clipboard': 'Ctrl+V to paste from clipboard',
+    'dropzone.dragover': 'Drop to process',
+    'dropzone.ariaLabel': 'Upload image for background removal',
+    'dropzone.errorFormat': 'Unsupported format. Use PNG, JPG, or WebP.',
+
+    // Progress
+    'progress.detectBg': 'Scanning image...',
+    'progress.watermarkScan': 'Checking for watermarks',
+    'progress.inpaint': 'Removing watermark',
+    'progress.bgRemoval': 'Removing background',
+    'progress.bgRemovalCV': 'Removing background [CV]',
+    'progress.bgRemovalML': 'Removing background [ML]',
+    'progress.initAI': 'Initializing AI engine...',
+    'progress.total': 'Total:',
+
+    // Download
+    'download.btn': '\u2193 Download Clean PNG',
+    'download.copy': '\uD83D\uDCCB Copy',
+    'download.copied': '\u2713 Copied!',
+    'download.copyFailed': 'Copy not supported',
+    'download.another': '\u21BB Process another',
+
+    // Editor
+    'editor.brush': 'Brush:',
+    'editor.brushCircle': 'Circle',
+    'editor.brushSquare': 'Square',
+    'editor.size': 'Size:',
+    'editor.undo': 'Undo',
+    'editor.redo': 'Redo',
+    'editor.zoomFit': 'Fit',
+    'editor.cancel': 'Cancel',
+    'editor.apply': 'Apply edits',
+    'editor.bg': 'BG:',
+    'editor.shortcuts': 'Shortcuts',
+    'editor.shortcutErase': 'Erase',
+    'editor.shortcutBrushSize': 'Brush size \u00B15',
+    'editor.shortcutZoom': 'Zoom',
+    'editor.shortcutPan': 'Pan',
+    'editor.shortcutResetView': 'Reset view',
+    'editor.shortcutUndo': 'Undo',
+    'editor.shortcutRedo': 'Redo',
+
+    // Edit button (ar-app)
+    'edit.btn': 'Not clean enough? Edit manually',
+
+    // Viewer
+    'viewer.original': 'Original',
+    'viewer.result': 'Result',
+    'viewer.bg': 'BG:',
+
+    // Privacy
+    'privacy.badge': '\uD83D\uDD12 100% Client-Side',
+    'privacy.tooltip.line1': 'Your images never leave your device.',
+    'privacy.tooltip.line2': 'All processing happens in your browser.',
+    'privacy.tooltip.line3': 'Verify: check Network tab in DevTools.',
+
+    // Features
+    'features.srTitle': 'Background Removal That Actually Works',
+    'features.bgRemoval.title': 'Instant Background Removal',
+    'features.bgRemoval.desc': 'Photos, illustrations, screenshots \u2014 drop any image and get a clean transparent PNG. Powered by ML models that run right in your browser.',
+    'features.aiArtifacts.title': 'Handles AI Artifacts',
+    'features.aiArtifacts.desc': 'Painted checkerboards and Gemini watermarks \u2014 NukeBG tackles the artifacts that generic removers miss.',
+    'features.private.title': '100% Private, Zero Friction',
+    'features.private.desc': "Everything runs client-side. No uploads, no accounts, no credits. Your files never leave your device. Don\u2019t trust us \u2014 check the source.",
+
+    // Header / Footer (index.html)
+    'header.skipLink': 'Skip to main content',
+    'footer.kofi': '\u2615 Support on Ko-fi',
+    'footer.privacy': 'Your images never leave your device. Zero uploads. Zero BS.',
+
+    // Pipeline error
+    'pipeline.error': 'Processing failed: {msg}',
+
+    // Language selector
+    'lang.label': 'Language',
+  },
+  es: {
+    // Hero
+    'hero.title.accent': 'Nukea',
+    'hero.title.rest': 'Cualquier Fondo',
+    'hero.subtitle': 'Arrastra una imagen. Obt\u00E9n un PNG transparente.\nSin subidas. Sin cuenta. Sin rollos.',
+    'hero.modelStatus': 'Listo para nukear',
+
+    // Model selector
+    'model.label': 'Modelo IA:',
+    'model.tryAnother': '\u00BFNo te convence? Prueba otro modelo:',
+    'model.reprocess': 'Reprocesar',
+    'model.autoDetected': 'Auto-detectado {type} \u2192 {desc}',
+
+    // Model descriptions
+    'model.rmbg.description': 'Ideal para ilustraciones, iconos y arte IA (~45MB)',
+    'model.modnet.description': 'Optimizado para fotos de personas (~25MB)',
+
+    // Dropzone
+    'dropzone.title': 'Arrastra tu imagen aqu\u00ED',
+    'dropzone.subtitle': 'o haz clic para buscar \u2014 nukearemos el fondo',
+    'dropzone.formats': 'PNG, JPG, WebP hasta 4096x4096',
+    'dropzone.clipboard': 'Ctrl+V para pegar del portapapeles',
+    'dropzone.dragover': 'Suelta para procesar',
+    'dropzone.ariaLabel': 'Subir imagen para eliminar fondo',
+    'dropzone.errorFormat': 'Formato no soportado. Usa PNG, JPG o WebP.',
+
+    // Progress
+    'progress.detectBg': 'Analizando imagen...',
+    'progress.watermarkScan': 'Buscando marcas de agua',
+    'progress.inpaint': 'Eliminando marca de agua',
+    'progress.bgRemoval': 'Eliminando fondo',
+    'progress.bgRemovalCV': 'Eliminando fondo [CV]',
+    'progress.bgRemovalML': 'Eliminando fondo [ML]',
+    'progress.initAI': 'Inicializando motor IA...',
+    'progress.total': 'Total:',
+
+    // Download
+    'download.btn': '\u2193 Descargar PNG limpio',
+    'download.copy': '\uD83D\uDCCB Copiar',
+    'download.copied': '\u2713 \u00A1Copiado!',
+    'download.copyFailed': 'Copia no soportada',
+    'download.another': '\u21BB Procesar otra',
+
+    // Editor
+    'editor.brush': 'Pincel:',
+    'editor.brushCircle': 'C\u00EDrculo',
+    'editor.brushSquare': 'Cuadrado',
+    'editor.size': 'Tama\u00F1o:',
+    'editor.undo': 'Deshacer',
+    'editor.redo': 'Rehacer',
+    'editor.zoomFit': 'Ajustar',
+    'editor.cancel': 'Cancelar',
+    'editor.apply': 'Aplicar edici\u00F3n',
+    'editor.bg': 'Fondo:',
+    'editor.shortcuts': 'Atajos',
+    'editor.shortcutErase': 'Borrar',
+    'editor.shortcutBrushSize': 'Tama\u00F1o pincel \u00B15',
+    'editor.shortcutZoom': 'Zoom',
+    'editor.shortcutPan': 'Mover',
+    'editor.shortcutResetView': 'Resetear vista',
+    'editor.shortcutUndo': 'Deshacer',
+    'editor.shortcutRedo': 'Rehacer',
+
+    // Edit button (ar-app)
+    'edit.btn': '\u00BFNo qued\u00F3 limpio? Edita manualmente',
+
+    // Viewer
+    'viewer.original': 'Original',
+    'viewer.result': 'Resultado',
+    'viewer.bg': 'Fondo:',
+
+    // Privacy
+    'privacy.badge': '\uD83D\uDD12 100% en tu navegador',
+    'privacy.tooltip.line1': 'Tus im\u00E1genes nunca salen de tu dispositivo.',
+    'privacy.tooltip.line2': 'Todo el procesamiento ocurre en tu navegador.',
+    'privacy.tooltip.line3': 'Verifica: revisa la pesta\u00F1a Red en DevTools.',
+
+    // Features
+    'features.srTitle': 'Eliminaci\u00F3n de fondos que realmente funciona',
+    'features.bgRemoval.title': 'Eliminaci\u00F3n instant\u00E1nea de fondos',
+    'features.bgRemoval.desc': 'Fotos, ilustraciones, capturas \u2014 arrastra cualquier imagen y obt\u00E9n un PNG transparente. Impulsado por modelos ML que corren en tu navegador.',
+    'features.aiArtifacts.title': 'Maneja artefactos de IA',
+    'features.aiArtifacts.desc': 'Tableros de ajedrez pintados y marcas de agua de Gemini \u2014 NukeBG elimina los artefactos que otros removedores ignoran. M\u00E1s generadores IA en camino.',
+    'features.private.title': '100% Privado, Cero Fricci\u00F3n',
+    'features.private.desc': 'Todo corre en tu navegador. Sin subidas, sin cuentas, sin cr\u00E9ditos. Tus archivos nunca salen de tu dispositivo. No nos creas \u2014 revisa el c\u00F3digo.',
+
+    // Header / Footer (index.html)
+    'header.skipLink': 'Saltar al contenido principal',
+    'footer.kofi': '\u2615 Apoyar en Ko-fi',
+    'footer.privacy': 'Tus im\u00E1genes nunca salen de tu dispositivo. Cero subidas. Cero rollos.',
+
+    // Pipeline error
+    'pipeline.error': 'Procesamiento fallido: {msg}',
+
+    // Language selector
+    'lang.label': 'Idioma',
+  },
+};
+
+const STORAGE_KEY = 'nukebg-locale';
+const SUPPORTED_LOCALES = Object.keys(translations);
+const DEFAULT_LOCALE = 'en';
+
+/** Detecta el idioma del navegador con fallback a 'en' */
+function detectLocale(): string {
+  // Primero, revisar si hay un parametro ?lang= en la URL
+  const urlParams = new URLSearchParams(window.location.search);
+  const langParam = urlParams.get('lang');
+  if (langParam && SUPPORTED_LOCALES.includes(langParam)) {
+    return langParam;
+  }
+
+  // Segundo, revisar localStorage
+  const stored = localStorage.getItem(STORAGE_KEY);
+  if (stored && SUPPORTED_LOCALES.includes(stored)) {
+    return stored;
+  }
+
+  // Tercero, detectar del navegador
+  const browserLang = navigator.language?.split('-')[0] || DEFAULT_LOCALE;
+  if (SUPPORTED_LOCALES.includes(browserLang)) {
+    return browserLang;
+  }
+
+  return DEFAULT_LOCALE;
+}
+
+let currentLocale = detectLocale();
+
+/**
+ * Traduce una clave al idioma actual.
+ * Soporta interpolacion basica: t('key', { var: 'value' })
+ */
+export function t(key: string, params?: Record<string, string>): string {
+  const value = translations[currentLocale]?.[key]
+    ?? translations[DEFAULT_LOCALE]?.[key]
+    ?? key;
+
+  if (!params) return value;
+
+  return Object.entries(params).reduce(
+    (str, [k, v]) => str.replace(`{${k}}`, v),
+    value,
+  );
+}
+
+/** Cambia el idioma activo */
+export function setLocale(locale: string): void {
+  if (!SUPPORTED_LOCALES.includes(locale)) return;
+  if (locale === currentLocale) return;
+
+  currentLocale = locale;
+  localStorage.setItem(STORAGE_KEY, locale);
+
+  // Actualizar lang del html
+  document.documentElement.lang = locale;
+
+  // Emitir evento para que los componentes se re-rendericen
+  document.dispatchEvent(new CustomEvent('nukebg:locale-changed', {
+    detail: { locale },
+  }));
+}
+
+/** Obtiene el idioma activo */
+export function getLocale(): string {
+  return currentLocale;
+}
+
+/** Obtiene la lista de idiomas soportados */
+export function getSupportedLocales(): string[] {
+  return [...SUPPORTED_LOCALES];
+}

@@ -1,0 +1,483 @@
+/* === Design Tokens (CSS Custom Properties) — Terminal Edition === */
+:root {
+  /* Base (Terminal dark — pure black) */
+  --color-bg-primary: #000000;
+  --color-bg-secondary: #0a0a0a;
+  --color-bg-tertiary: #0d0d0d;
+  --color-bg-elevated: #111111;
+
+  /* Surface */
+  --color-surface-border: #1a3a1a;
+  --color-surface-hover: #0f2a0f;
+  --color-surface-active: #153015;
+
+  /* Text */
+  --color-text-primary: #00ff41;
+  --color-text-secondary: #00cc33;
+  --color-text-tertiary: #006622;
+  --color-text-inverse: #000000;
+
+  /* Accent (Terminal Green) */
+  --color-accent-primary: #00ff41;
+  --color-accent-hover: #33ff66;
+  --color-accent-muted: rgba(0, 255, 65, 0.08);
+  --color-accent-glow: rgba(0, 255, 65, 0.35);
+
+  /* Secondary accent (same green for terminal) */
+  --color-hazard: #00ff41;
+  --color-hazard-muted: rgba(0, 255, 65, 0.08);
+
+  /* Semantic */
+  --color-success: #00ff41;
+  --color-success-muted: rgba(0, 255, 65, 0.10);
+  --color-warning: #ffcc00;
+  --color-warning-muted: rgba(255, 204, 0, 0.10);
+  --color-error: #ff3131;
+  --color-error-muted: rgba(255, 49, 49, 0.12);
+  --color-info: #00ff41;
+  --color-info-muted: rgba(0, 255, 65, 0.10);
+
+  /* Checkerboard Preview */
+  --color-checker-light: #0a0a0a;
+  --color-checker-dark: #050505;
+  --color-checker-size: 12px;
+
+  /* Typography — JetBrains Mono everywhere */
+  --font-sans: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+  --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+
+  --text-xs: 0.8125rem;
+  --text-sm: 0.9375rem;
+  --text-base: 1.0625rem;
+  --text-lg: 1.25rem;
+  --text-xl: 1.4375rem;
+  --text-2xl: 1.75rem;
+  --text-3xl: 2.125rem;
+  --text-4xl: 2.625rem;
+  --text-5xl: 3.375rem;
+
+  --font-normal: 400;
+  --font-medium: 500;
+  --font-semibold: 600;
+  --font-bold: 700;
+
+  --leading-tight: 1.35;
+  --leading-normal: 1.65;
+  --leading-relaxed: 1.8;
+
+  --tracking-tight: -0.025em;
+  --tracking-normal: 0;
+  --tracking-wide: 0.025em;
+
+  /* Spacing */
+  --space-0: 0;
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+  --space-16: 4rem;
+  --space-20: 5rem;
+  --space-24: 6rem;
+
+  /* Radius — 0 everywhere for Terminal */
+  --radius-sm: 0px;
+  --radius-md: 0px;
+  --radius-lg: 0px;
+  --radius-xl: 0px;
+  --radius-full: 0px;
+
+  /* Shadows */
+  --shadow-sm: none;
+  --shadow-md: 0 0 10px rgba(0, 255, 65, 0.05);
+  --shadow-lg: 0 0 20px rgba(0, 255, 65, 0.08);
+  --shadow-glow: 0 0 15px rgba(0, 255, 65, 0.25);
+
+  /* Transitions */
+  --ease-default: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-out: cubic-bezier(0, 0, 0.2, 1);
+  --duration-fast: 100ms;
+  --duration-normal: 200ms;
+  --duration-slow: 350ms;
+
+  /* Z-index */
+  --z-base: 0;
+  --z-drop-overlay: 10;
+  --z-sticky: 20;
+  --z-slider-handle: 30;
+  --z-toast: 40;
+  --z-modal: 50;
+
+  /* Header bg opacity for blur */
+  --header-bg: rgba(0, 0, 0, 0.95);
+
+  /* Terminal-specific tokens */
+  --terminal-scanline-opacity: 0.03;
+  --terminal-cursor-color: #00ff41;
+  --terminal-border-style: 1px solid #1a3a1a;
+}
+
+/* === Reset === */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* === Base === */
+html {
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  color-scheme: dark;
+}
+
+body {
+  font-family: var(--font-mono);
+  background: #000000;
+  color: var(--color-text-primary);
+  line-height: var(--leading-normal);
+  min-height: 100vh;
+  position: relative;
+}
+
+/* Scanline overlay */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 255, 65, 0.015) 2px,
+    rgba(0, 255, 65, 0.015) 4px
+  );
+  pointer-events: none;
+  z-index: 9998;
+}
+
+/* === Skip to content (a11y) === */
+.skip-link {
+  position: absolute;
+  top: -100%;
+  left: var(--space-4);
+  background: var(--color-accent-primary);
+  color: #000;
+  padding: var(--space-2) var(--space-4);
+  border-radius: 0;
+  z-index: 100;
+  font-size: var(--text-sm);
+  text-decoration: none;
+  font-weight: var(--font-medium);
+  font-family: var(--font-mono);
+}
+
+.skip-link:focus {
+  top: var(--space-2);
+}
+
+/* === Hazard Stripe Accents (simplified for terminal) === */
+.hazard-border {
+  border-bottom: none;
+  position: relative;
+}
+
+.hazard-border::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: #1a3a1a;
+  opacity: 1;
+}
+
+.hazard-border-top {
+  border-top: none;
+  position: relative;
+}
+
+.hazard-border-top::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: #1a3a1a;
+  opacity: 1;
+}
+
+/* === Header — terminal status bar === */
+.header {
+  position: sticky;
+  top: 0;
+  z-index: var(--z-sticky);
+  background: #000000;
+  backdrop-filter: none;
+  border-bottom: 1px solid #1a3a1a;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  padding: 0 var(--space-6);
+}
+
+.header-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.logo {
+  font-size: var(--text-sm);
+  font-weight: var(--font-bold);
+  color: #00ff41;
+  text-decoration: none;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  font-family: var(--font-mono);
+  text-shadow: 0 0 10px rgba(0, 255, 65, 0.5);
+  transition: text-shadow var(--duration-normal) var(--ease-default);
+}
+
+.logo::before {
+  content: '> ';
+  color: #006622;
+}
+
+.logo:hover {
+  text-shadow: 0 0 16px var(--color-accent-glow);
+}
+
+.logo-accent {
+  color: #00ff41;
+  text-shadow: 0 0 12px rgba(0, 255, 65, 0.6);
+}
+
+.header-nav {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.header-link {
+  color: var(--color-text-secondary);
+  text-decoration: none;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  transition: color var(--duration-normal) var(--ease-default),
+              text-shadow var(--duration-normal) var(--ease-default);
+}
+
+.header-link:hover {
+  color: var(--color-text-primary);
+  text-shadow: 0 0 8px var(--color-accent-glow);
+}
+
+/* === Main === */
+.main-content {
+  max-width: 960px;
+  margin: 0 auto;
+  border-left: 1px solid #0d1a0d;
+  border-right: 1px solid #0d1a0d;
+  min-height: calc(100vh - 48px - 80px);
+}
+
+/* === Footer === */
+.footer {
+  border-top: 1px solid #1a3a1a;
+  padding: var(--space-8) var(--space-6);
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.05em;
+  color: #006622;
+  background: #000000;
+}
+
+.footer a {
+  color: #00cc33;
+  text-decoration: none;
+  transition: color var(--duration-normal) var(--ease-default),
+              text-shadow var(--duration-normal) var(--ease-default);
+}
+
+.footer a:hover {
+  color: var(--color-text-primary);
+  text-shadow: 0 0 6px var(--color-accent-glow);
+}
+
+.footer-sep {
+  margin: 0 var(--space-2);
+}
+
+.footer-privacy {
+  display: block;
+  margin-top: var(--space-2);
+}
+
+.footer-holiday {
+  display: block;
+  margin-top: var(--space-2);
+  color: #00cc33;
+}
+
+.kofi-link {
+  color: var(--color-accent-primary) !important;
+  transition: text-shadow var(--duration-fast);
+}
+
+.kofi-link:hover {
+  text-shadow: 0 0 8px var(--color-accent-glow);
+}
+
+/* === Focus Visible === */
+:focus-visible {
+  outline: 2px solid var(--color-accent-primary);
+  outline-offset: 2px;
+  border-radius: 0;
+}
+
+/* === Reduced Motion === */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  body::after {
+    display: none;
+  }
+}
+
+/* === Keyboard shortcuts toast === */
+.kbd-toast {
+  position: fixed;
+  bottom: var(--space-6);
+  right: var(--space-6);
+  background: #0a0a0a;
+  border: 1px solid #1a3a1a;
+  border-radius: 0;
+  padding: var(--space-3) var(--space-4);
+  font-size: var(--text-sm);
+  color: #00ff41;
+  font-family: var(--font-mono);
+  box-shadow: var(--shadow-md);
+  z-index: var(--z-toast);
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity var(--duration-normal), transform var(--duration-normal);
+  pointer-events: none;
+}
+
+.kbd-toast.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* === Screen reader only === */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* === Mobile (max-width: 480px) === */
+@media (max-width: 480px) {
+  .header {
+    height: 44px;
+    padding: 0 var(--space-3);
+  }
+  .logo {
+    font-size: 11px;
+    letter-spacing: 0.1em;
+  }
+  .logo::before {
+    content: '>';
+  }
+  .header-nav {
+    gap: var(--space-2);
+  }
+  .header-link {
+    font-size: 10px;
+  }
+  .privacy-badge-header {
+    display: none;
+  }
+  .main-content {
+    border-left: none;
+    border-right: none;
+  }
+  .footer {
+    padding: var(--space-4) var(--space-3);
+    font-size: 9px;
+  }
+  .footer-sep {
+    margin: 0 var(--space-1);
+  }
+  .kbd-toast {
+    bottom: var(--space-3);
+    right: var(--space-3);
+    left: var(--space-3);
+    font-size: var(--text-xs);
+  }
+}
+
+/* === Tablet (481px - 768px) === */
+@media (min-width: 481px) and (max-width: 768px) {
+  .header {
+    height: 48px;
+    padding: 0 var(--space-4);
+  }
+  .privacy-badge-header {
+    display: none;
+  }
+  .main-content {
+    border-left: none;
+    border-right: none;
+  }
+  .footer {
+    padding: var(--space-6) var(--space-4);
+    font-size: 10px;
+  }
+}
+
+/* === Touch targets — WCAG 2.1 minimum 44x44px === */
+@media (pointer: coarse) {
+  .header-link {
+    min-height: 44px;
+    min-width: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .skip-link:focus {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+  }
+}
+
+/* === Safari/iOS -webkit- prefixes === */
+@supports (-webkit-touch-callout: none) {
+  body {
+    -webkit-text-size-adjust: 100%;
+  }
+}

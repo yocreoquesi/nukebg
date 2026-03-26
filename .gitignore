@@ -1,0 +1,31 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+test-output/
+
+# Environment
+.env
+.env.*
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# ONNX models (large binaries) — except self-hosted RMBG
+public/models/*.onnx
+!public/models/briaai/
+
+# Claude Code agents (internal tooling)
+.claude/

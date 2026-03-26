@@ -1,0 +1,6 @@
+{
+  "model_type": "modnet",
+  "transformers.js_config": {
+    "dtype": "fp32"
+  }
+}
