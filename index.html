@@ -5,9 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
 
   <!-- Primary Meta Tags -->
-  <title>NukeBG — Free Background Remover | Private, Client-Side, No Upload</title>
-  <meta name="description" content="Remove backgrounds from any image instantly. 100% private — runs in your browser, zero uploads. Handles AI artifacts, checkerboard patterns, and watermarks that other tools miss. Drop. Nuke. Download." />
-  <meta name="keywords" content="background remover, remove background free, transparent png, remove ai background, nuke background, remove gemini watermark, checkerboard background removal, ai image cleanup, client-side background remover, private background removal, remove dall-e watermark, remove midjourney watermark, background eraser online, nukebg" />
+  <title>NukeBG — Free Background Remover Online | Transparent PNG, No Upload</title>
+  <meta name="description" content="Remove background from any image for free — get a transparent PNG in seconds. 100% client-side background removal, zero uploads. Also removes painted checkerboard patterns and Gemini watermarks from AI images. No Photoshop needed." />
+  <meta name="keywords" content="remove background free, background remover online, transparent png, client-side background removal, remove checkerboard AI, remove gemini watermark, checkerboard background removal, ai image cleanup, private background removal, background eraser online, remove background without photoshop, free transparent background, remove background from screenshot, nukebg" />
   <meta name="robots" content="index, follow" />
   <meta name="author" content="NukeBG" />
   <meta name="application-name" content="NukeBG" />
@@ -57,7 +57,7 @@
     "@type": "WebApplication",
     "name": "NukeBG",
     "alternateName": "Nuke Background",
-    "description": "Free client-side background remover. Nuke backgrounds from any image — photos, illustrations, AI-generated art. Also handles checkerboard patterns and AI watermarks from Gemini, DALL-E, Midjourney. 100% private — images never leave your browser.",
+    "description": "Free client-side background remover. Nuke backgrounds from any image — photos, illustrations, AI-generated art. Also handles painted checkerboard patterns and Gemini watermarks from AI-generated images. 100% private — images never leave your browser.",
     "url": "https://nukebg.app",
     "applicationCategory": "DesignApplication",
     "applicationSubCategory": "Image Editing",
@@ -141,6 +141,136 @@
           "@type": "Answer",
           "text": "NukeBG removes backgrounds from any image — photos, illustrations, or AI-generated art. It includes specific detection for Gemini watermarks and painted checkerboard patterns."
         }
+      },
+      {
+        "@type": "Question",
+        "name": "How to remove background from image for free?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Open NukeBG in your browser, drop or paste any image, and download the result as a transparent PNG. It is 100% free with no account, no watermark on output, and no usage limits. The tool runs entirely client-side so there is nothing to pay for."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How to get transparent background without Photoshop?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "NukeBG gives you a transparent PNG background without Photoshop or any installed software. It uses an ML model (RMBG-1.4) running directly in your browser to separate the subject from the background. Just drop your image and download the result."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Is NukeBG safe to use with private photos?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes. NukeBG is 100% client-side — your images are processed locally in your browser and never uploaded anywhere. There are no analytics, no cookies, and no tracking. The source code is open under GPL-3.0 so anyone can audit it."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How to remove painted checkerboard from AI image?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "AI generators sometimes paint a fake checkerboard pattern instead of producing real transparency. NukeBG detects these painted checkerboard grids using classical computer vision, then replaces them with actual alpha transparency. Drop the image in and it handles it automatically."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Can I use NukeBG offline?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes. NukeBG uses a Service Worker to cache all assets including the ML model after your first visit. Once cached, you can remove backgrounds completely offline with no internet connection required."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What image formats does NukeBG support?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "NukeBG accepts any image your browser can display — PNG, JPEG, WebP, GIF, BMP, and more. The output is always a PNG with true alpha transparency, which is the standard format for transparent backgrounds."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How to remove background from a screenshot?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Drop or paste your screenshot directly into NukeBG. It works with screenshots from any device — desktop, phone, or tablet. The ML model isolates the subject and produces a transparent PNG you can use anywhere."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Does NukeBG work on mobile?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes. NukeBG works in any modern mobile browser — Chrome, Safari, Firefox. The interface is responsive and you can upload images from your camera roll or files app. Processing may be slower on older phones since the ML model runs on-device."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why does the model take time to load the first time?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "The ML model (RMBG-1.4) is approximately 45 MB and needs to download on your first visit. After that, it is cached by the Service Worker so subsequent visits load instantly — even offline. The initial download is a one-time cost."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Is NukeBG really free? What is the catch?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "NukeBG is genuinely free and open source under GPL-3.0. There is no catch — no premium tier, no watermarks on output, no account required. It runs entirely in your browser so there are no server costs to recoup. You can support the project on Ko-fi if you want to."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Can I use the resulting images commercially?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "The tool itself is GPL-3.0, but the images you process are yours. NukeBG does not add watermarks or impose restrictions on your output. You can use the resulting transparent PNGs for any purpose — personal, commercial, or otherwise."
+        }
+      }
+    ]
+  }
+  </script>
+
+  <!-- JSON-LD Structured Data: HowTo -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "HowTo",
+    "name": "How to Remove Background from Any Image for Free",
+    "description": "Remove the background from any image and get a transparent PNG in under 30 seconds using NukeBG. No upload, no account, no Photoshop needed. Works with photos, screenshots, and AI-generated images.",
+    "totalTime": "PT30S",
+    "tool": {
+      "@type": "HowToTool",
+      "name": "NukeBG — Free Online Background Remover"
+    },
+    "supply": [],
+    "step": [
+      {
+        "@type": "HowToStep",
+        "position": 1,
+        "name": "Open NukeBG",
+        "text": "Go to nukebg.app in any modern browser. No account or installation required. The tool loads instantly after the first visit."
+      },
+      {
+        "@type": "HowToStep",
+        "position": 2,
+        "name": "Drop or paste your image",
+        "text": "Drag and drop your image onto the page, paste from clipboard, or use the file picker. NukeBG accepts PNG, JPEG, WebP, and other common formats."
+      },
+      {
+        "@type": "HowToStep",
+        "position": 3,
+        "name": "Wait for processing",
+        "text": "NukeBG runs an ML model (RMBG-1.4) directly in your browser to detect and remove the background. It also checks for painted checkerboard patterns and Gemini watermarks. Processing takes a few seconds depending on your device."
+      },
+      {
+        "@type": "HowToStep",
+        "position": 4,
+        "name": "Download the transparent PNG",
+        "text": "Preview the result using the before/after comparison view. When satisfied, download the image as a PNG with true alpha transparency. Your image was never uploaded — everything happened on your device."
       }
     ]
   }
