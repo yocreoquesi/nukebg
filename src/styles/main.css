@@ -267,6 +267,7 @@ body::after {
   display: flex;
   align-items: center;
   gap: 0;
+  position: relative;
 }
 
 .mobile-mode-label {
@@ -279,12 +280,15 @@ body::after {
 }
 
 .logo-whisper {
+  position: absolute;
+  left: 0;
+  top: calc(100% + 4px);
   font-family: var(--font-mono);
   font-size: 10px;
   color: var(--color-text-tertiary);
-  margin-left: var(--space-2);
   opacity: 0;
   transition: opacity 0.3s ease;
+  pointer-events: none;
   white-space: nowrap;
 }
 .logo-whisper.visible {
