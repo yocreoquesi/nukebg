@@ -281,7 +281,7 @@ export class ArApp extends HTMLElement {
           transition: color 0.3s ease;
         }
         .precision-marquee {
-          display: none;
+          display: block;
           overflow: hidden;
           white-space: nowrap;
           font-family: 'JetBrains Mono', monospace;
@@ -291,9 +291,9 @@ export class ArApp extends HTMLElement {
           text-transform: uppercase;
           padding: 4px 0;
           margin-top: var(--space-1, 0.25rem);
-        }
-        .precision-marquee.active {
-          display: block;
+          min-height: 24px;
+          position: relative;
+          color: #006622;
         }
         .precision-marquee span {
           display: inline-block;
@@ -800,7 +800,7 @@ export class ArApp extends HTMLElement {
         </div>
         <ar-dropzone></ar-dropzone>
         <p class="model-status" id="model-status">${t('hero.modelStatus')}</p>
-        <div class="precision-marquee" id="precision-marquee"></div>
+        <div class="precision-marquee" id="precision-marquee"><span>\u2622 NUKEBG \u2014 DROP. NUKE. DOWNLOAD. \u2622 NUKEBG \u2014 DROP. NUKE. DOWNLOAD. \u2622</span></div>
         <div class="smoke-effect" id="smoke-effect"></div>
       </section>
 
@@ -819,6 +819,7 @@ export class ArApp extends HTMLElement {
             <input type="range" id="precision-slider-ws" min="0" max="4" value="2" step="1" aria-label="Precision level">
             <span class="precision-label" id="precision-label-ws">Balanced</span>
           </div>
+          <div class="precision-marquee" id="precision-marquee-ws"><span>\u2622 NUKEBG \u2014 DROP. NUKE. DOWNLOAD. \u2622 NUKEBG \u2014 DROP. NUKE. DOWNLOAD. \u2622</span></div>
           <ar-download></ar-download>
           <button class="edit-btn" id="edit-btn" style="display:none">${t('edit.btn')}</button>
           <ar-editor style="display:none" id="editor-section"></ar-editor>
@@ -961,7 +962,18 @@ export class ArApp extends HTMLElement {
       if (wsLabel) wsLabel.textContent = precisionLabels[val];
 
       const marquee = this.shadowRoot!.querySelector('#precision-marquee') as HTMLElement;
+      const marqueeWs = this.shadowRoot!.querySelector('#precision-marquee-ws') as HTMLElement;
       const smoke = document.getElementById('smoke-overlay');
+
+      // Helper to update both marquees (hero + workspace)
+      const updateMarquees = (color: string, html: string): void => {
+        [marquee, marqueeWs].forEach(m => {
+          if (m) {
+            m.style.color = color;
+            m.innerHTML = html;
+          }
+        });
+      };
 
       if (val === 4) {
         // Full Nuke — red override (shadow DOM + global properties)
@@ -972,11 +984,7 @@ export class ArApp extends HTMLElement {
         this.classList.add('precision-override');
         // Stop CRT flicker in Full Nuke
         this.stopCrtFlicker();
-        if (marquee) {
-          marquee.style.color = '#cc3333';
-          marquee.innerHTML = '<span>\u26A0 MAXIMUM POWER \u26A0 MAXIMUM POWER \u26A0 MAXIMUM POWER \u26A0</span>';
-          marquee.classList.add('active');
-        }
+        updateMarquees('#cc3333', '<span>\u26A0 MAXIMUM POWER \u26A0 MAXIMUM POWER \u26A0 MAXIMUM POWER \u26A0</span>');
 
         // Vibration + smoke: trigger once per activation, after random 1-5s delay
         const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -1006,11 +1014,7 @@ export class ArApp extends HTMLElement {
         this.classList.add('precision-override');
         // Start CRT flicker only in Low Power
         this.startCrtFlicker();
-        if (marquee) {
-          marquee.style.color = '#b8a500';
-          marquee.innerHTML = '<span>\u26A1 LOW POWER MODE \u26A1 LOW POWER MODE \u26A1 LOW POWER MODE \u26A1</span>';
-          marquee.classList.add('active');
-        }
+        updateMarquees('#b8a500', '<span>\u26A1 LOW POWER MODE \u26A1 LOW POWER MODE \u26A1 LOW POWER MODE \u26A1</span>');
         // Hide smoke in Low Power
         if (smoke) smoke.classList.remove('active');
       } else {
@@ -1022,10 +1026,8 @@ export class ArApp extends HTMLElement {
         this.classList.remove('precision-override');
         // Stop CRT flicker in normal modes
         this.stopCrtFlicker();
-        if (marquee) {
-          marquee.classList.remove('active');
-          marquee.innerHTML = '';
-        }
+        // Subtle green marquee for normal modes
+        updateMarquees('#006622', '<span>\u2622 NUKEBG \u2014 DROP. NUKE. DOWNLOAD. \u2622 NUKEBG \u2014 DROP. NUKE. DOWNLOAD. \u2622</span>');
         // Hide smoke in normal modes
         if (smoke) smoke.classList.remove('active');
       }

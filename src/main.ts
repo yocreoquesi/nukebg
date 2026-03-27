@@ -410,12 +410,72 @@ function initTerminalPrompt(): void {
   });
 }
 
+// === Share Button ===
+function initShareButton(): void {
+  const btn = document.getElementById('share-btn');
+  if (!btn) return;
+
+  const messagesEN = [
+    'Just nuked a background in 3 seconds. No upload, no account, no BS \u2192 nukebg.app',
+    'Found a background remover that actually respects your privacy \u2192 nukebg.app',
+    'Drop. Nuke. Download. That\'s it. \u2192 nukebg.app',
+    'My backgrounds didn\'t stand a chance \u2192 nukebg.app',
+    'Open source background remover that runs in your browser \u2192 nukebg.app',
+    'Zero uploads, zero tracking, zero BS. Just clean PNGs \u2192 nukebg.app',
+    'nukebg.app \u2014 because your pixels deserve freedom',
+    'Other tools upload your images. This one doesn\'t even know you exist \u2192 nukebg.app',
+  ];
+
+  const messagesES = [
+    'Acabo de nukear un fondo en 3 segundos. Sin subidas, sin cuenta, sin rollos \u2192 nukebg.app',
+    'Un eliminador de fondos que respeta tu privacidad de verdad \u2192 nukebg.app',
+    'Arrastra. Nukea. Descarga. Fin. \u2192 nukebg.app',
+    'Mis fondos no tuvieron oportunidad \u2192 nukebg.app',
+    'Eliminador de fondos open source que corre en tu navegador \u2192 nukebg.app',
+    'Cero subidas, cero rastreo, cero rollos. Solo PNGs limpios \u2192 nukebg.app',
+    'nukebg.app \u2014 porque tus p\u00EDxeles merecen libertad',
+    'Otras herramientas suben tus im\u00E1genes. Esta ni sabe que existes \u2192 nukebg.app',
+  ];
+
+  const messages = document.documentElement.lang === 'es' ? messagesES : messagesEN;
+
+  btn.addEventListener('click', async () => {
+    const msg = messages[Math.floor(Math.random() * messages.length)];
+    try {
+      await navigator.clipboard.writeText(msg);
+      const toast = document.getElementById('kbd-toast');
+      if (toast) {
+        toast.textContent = document.documentElement.lang === 'es' ? '> Copiado! P\u00E9galo donde quieras.' : '> Copied! Paste it anywhere.';
+        toast.classList.add('visible');
+        setTimeout(() => toast.classList.remove('visible'), 2000);
+      }
+    } catch {
+      // Fallback: use textarea trick
+      const ta = document.createElement('textarea');
+      ta.value = msg;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      ta.remove();
+      const toast = document.getElementById('kbd-toast');
+      if (toast) {
+        toast.textContent = '> Copied! Paste it anywhere.';
+        toast.classList.add('visible');
+        setTimeout(() => toast.classList.remove('visible'), 2000);
+      }
+    }
+  });
+}
+
 // Init on DOMContentLoaded
 function init(): void {
   initI18n();
   initKeyboardShortcuts();
   initTerminalPrompt();
   initClearCacheButton();
+  initShareButton();
   showConsoleLogo();
   initHolidayEasterEgg();
   initKonamiCode();

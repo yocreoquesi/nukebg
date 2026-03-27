@@ -420,6 +420,25 @@ body::after {
   text-shadow: 0 0 12px var(--color-accent-glow);
 }
 
+/* === Header Share Button === */
+.header-share-btn {
+  background: transparent;
+  border: 1px solid var(--color-surface-border);
+  color: var(--color-text-secondary);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 4px 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.header-share-btn:hover {
+  border-color: var(--color-accent-primary);
+  color: var(--color-accent-primary);
+  box-shadow: 0 0 8px var(--color-accent-glow);
+}
+
 /* === Focus Visible === */
 :focus-visible {
   outline: 2px solid var(--color-accent-primary);
@@ -525,8 +544,9 @@ body::after {
   .header-nav {
     gap: var(--space-2);
   }
-  .header-link {
+  .header-share-btn {
     font-size: 10px;
+    padding: 3px 8px;
   }
   .privacy-badge-header {
     display: none;
@@ -580,7 +600,7 @@ body::after {
 
 /* === Touch targets — WCAG 2.1 minimum 44x44px === */
 @media (pointer: coarse) {
-  .header-link {
+  .header-share-btn {
     min-height: 44px;
     min-width: 44px;
     display: inline-flex;
