@@ -25,17 +25,9 @@ let resolvedDevice: 'webgpu' | 'wasm' | null = null;
 
 /** Detect WebGPU availability with safe fallback to WASM */
 async function detectDevice(): Promise<'webgpu' | 'wasm'> {
-  if (resolvedDevice) return resolvedDevice;
-  try {
-    if (typeof navigator !== 'undefined' && 'gpu' in navigator) {
-      const adapter = await (navigator as unknown as { gpu: { requestAdapter(): Promise<unknown | null> } }).gpu?.requestAdapter();
-      if (adapter) {
-        resolvedDevice = 'webgpu';
-        console.log('[NukeBG] Using WebGPU backend');
-        return 'webgpu';
-      }
-    }
-  } catch { /* WebGPU not available — fall through to WASM */ }
+  // Force WASM — WebGPU in Transformers.js is unstable and causes
+  // NetworkError on some browsers when loading the WebGPU runtime.
+  // Re-enable when Transformers.js WebGPU support is stable.
   resolvedDevice = 'wasm';
   console.log('[NukeBG] Using WASM backend');
   return 'wasm';
