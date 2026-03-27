@@ -1052,7 +1052,6 @@ export class ArApp extends HTMLElement {
         this.cachedRefineResult = this.lastResultImageData;
         this.lastResultImageData = this.preRefineResult;
         this.preRefineResult = null;
-    this.cachedRefineResult = null;
         const { exportPng } = await import('../utils/image-io');
         const blob = await exportPng(this.lastResultImageData);
         if (this.currentImageData) this.viewer.setOriginal(this.currentImageData, this.currentFileSize);
