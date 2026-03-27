@@ -235,9 +235,9 @@ export class ArViewer extends HTMLElement {
         }
 
       </style>
-      <div class="viewer-container checker-bg" id="container">
+      <div class="viewer-container" id="container">
         <canvas class="canvas-layer" id="original"></canvas>
-        <div class="result-layer" id="result-layer">
+        <div class="result-layer checker-bg" id="result-layer">
           <canvas id="result"></canvas>
         </div>
         <div class="slider-line" id="slider-line"></div>
@@ -307,18 +307,13 @@ export class ArViewer extends HTMLElement {
   }
 
   private applyBgColor(): void {
-    const container = this.shadowRoot!.querySelector('#container') as HTMLElement;
     const layer = this.shadowRoot!.querySelector('#result-layer') as HTMLElement;
     if (this.bgColor === 'transparent') {
-      container.className = 'viewer-container checker-bg';
-      container.style.backgroundColor = '';
-      layer.className = 'result-layer';
+      layer.className = 'result-layer checker-bg';
       layer.style.backgroundColor = '';
     } else {
-      container.className = 'viewer-container';
-      container.style.backgroundColor = this.bgColor;
       layer.className = 'result-layer';
-      layer.style.backgroundColor = '';
+      layer.style.backgroundColor = this.bgColor;
     }
   }
 
