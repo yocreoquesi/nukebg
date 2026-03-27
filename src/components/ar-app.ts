@@ -234,7 +234,8 @@ export class ArApp extends HTMLElement {
         .model-selector {
           display: flex;
           align-items: center;
-          gap: var(--space-3, 0.75rem);
+          flex-wrap: wrap;
+          gap: var(--space-2, 0.5rem) var(--space-3, 0.75rem);
           padding: var(--space-3, 0.75rem) var(--space-4, 1rem);
           border: 1px solid #1a3a1a;
           border-radius: 0;
@@ -326,28 +327,7 @@ export class ArApp extends HTMLElement {
           animation: nuke-shake 0.4s ease-in-out 3;
         }
 
-        /* === Smoke effect overlays the page from bottom === */
-        .smoke-effect {
-          display: none;
-          position: fixed;
-          bottom: 0;
-          left: 0;
-          right: 0;
-          height: 400px;
-          pointer-events: none;
-          z-index: 100;
-          background: linear-gradient(
-            to top,
-            rgba(20, 80, 20, 0.6) 0%,
-            rgba(15, 60, 15, 0.3) 30%,
-            rgba(10, 40, 10, 0.1) 60%,
-            transparent 100%
-          );
-          animation: smoke-rise 5s ease-out forwards;
-        }
-        .smoke-effect.active {
-          display: block;
-        }
+        /* Smoke is rendered outside shadow DOM — see main thread */
         @keyframes smoke-rise {
           0% {
             opacity: 0;
@@ -972,7 +952,7 @@ export class ArApp extends HTMLElement {
       if (wsLabel) wsLabel.textContent = precisionLabels[val];
 
       const marquee = this.shadowRoot!.querySelector('#precision-marquee') as HTMLElement;
-      const smoke = this.shadowRoot!.querySelector('#smoke-effect') as HTMLElement;
+      const smoke = document.getElementById('smoke-overlay');
 
       if (val === 4) {
         // Full Nuke — red override (shadow DOM + global properties)
