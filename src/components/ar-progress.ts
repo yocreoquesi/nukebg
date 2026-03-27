@@ -262,8 +262,14 @@ export class ArProgress extends HTMLElement {
     const container = this.shadowRoot!.querySelector('.stages');
     if (!container) return;
 
-    // Filter out inpaint stage if skipped (no watermark detected)
-    const visibleStages = this.stages.filter(s => !(s.stage === 'inpaint' && s.status === 'skipped'));
+    // Filter out stages that shouldn't be shown
+    const visibleStages = this.stages.filter(s => {
+      // Hide inpaint if skipped (no watermark)
+      if (s.stage === 'inpaint' && s.status === 'skipped') return false;
+      // Hide edge-refine if skipped or pending (not enabled)
+      if (s.stage === 'edge-refine' && (s.status === 'skipped' || s.status === 'pending')) return false;
+      return true;
+    });
 
     container.innerHTML = visibleStages.map(s => {
       const icon = this.getIcon(s.status);
