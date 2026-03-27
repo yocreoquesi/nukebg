@@ -449,7 +449,7 @@ body::after {
 .kofi-link {
   color: var(--color-accent-primary) !important;
   font-weight: var(--font-semibold);
-  text-shadow: 0 0 6px rgba(0, 255, 65, 0.3);
+  text-shadow: 0 0 6px var(--color-accent-glow);
   transition: text-shadow var(--duration-fast);
 }
 
