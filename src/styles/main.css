@@ -269,6 +269,15 @@ body::after {
   gap: 0;
 }
 
+.mobile-mode-label {
+  display: none;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--color-text-tertiary);
+  margin-left: var(--space-2);
+  letter-spacing: 0.05em;
+}
+
 .header-nav {
   display: flex;
   align-items: center;
@@ -555,6 +564,9 @@ body::after {
   }
   .terminal-prompt {
     display: none;
+  }
+  .mobile-mode-label {
+    display: inline !important;
   }
   .main-content {
     border-left: none;

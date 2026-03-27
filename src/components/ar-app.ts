@@ -433,7 +433,7 @@ export class ArApp extends HTMLElement {
         .feature-card.crt-flicker .feature-title,
         .feature-card.crt-flicker .feature-desc,
         .feature-card.crt-flicker .feature-icon {
-          opacity: 0.3;
+          opacity: 0.05;
         }
         @media (prefers-reduced-motion: reduce) {
           .feature-card.crt-flicker .feature-title,
@@ -1092,19 +1092,29 @@ export class ArApp extends HTMLElement {
   }
 
   private startCrtFlicker(): void {
-    // Don't start if already running
     if (this.crtFlickerTimers.length > 0) return;
-    // Respect prefers-reduced-motion
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 
     const cards = this.shadowRoot!.querySelectorAll('.feature-card');
     cards.forEach((card) => {
-      const delay = 3000 + Math.random() * 5000; // 3s-8s random
-      const timerId = window.setInterval(() => {
-        card.classList.add('crt-flicker');
-        window.setTimeout(() => card.classList.remove('crt-flicker'), 100);
-      }, delay);
-      this.crtFlickerTimers.push(timerId);
+      const scheduleFlicker = (): void => {
+        const delay = 2000 + Math.random() * 6000; // 2s-8s random
+        const timerId = window.setTimeout(() => {
+          // Random: 70% quick flicker, 30% longer blackout
+          const isBlackout = Math.random() < 0.3;
+          const duration = isBlackout
+            ? 300 + Math.random() * 500  // 300-800ms blackout
+            : 80 + Math.random() * 80;   // 80-160ms flicker
+
+          card.classList.add('crt-flicker');
+          window.setTimeout(() => {
+            card.classList.remove('crt-flicker');
+            scheduleFlicker(); // schedule next one
+          }, duration);
+        }, delay);
+        this.crtFlickerTimers.push(timerId);
+      };
+      scheduleFlicker();
     });
   }
 

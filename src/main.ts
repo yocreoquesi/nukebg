@@ -473,25 +473,25 @@ function initShareButton(): void {
   if (!btn) return;
 
   const messagesEN = [
-    'Just nuked a background in 3 seconds. No upload, no account, no BS \u2192 nukebg.app',
-    'Found a background remover that actually respects your privacy \u2192 nukebg.app',
-    'Drop. Nuke. Download. That\'s it. \u2192 nukebg.app',
-    'My backgrounds didn\'t stand a chance \u2192 nukebg.app',
-    'Open source background remover that runs in your browser \u2192 nukebg.app',
-    'Zero uploads, zero tracking, zero BS. Just clean PNGs \u2192 nukebg.app',
-    'nukebg.app \u2014 because your pixels deserve freedom',
-    'Other tools upload your images. This one doesn\'t even know you exist \u2192 nukebg.app',
+    'Just nuked a background in 3 seconds. No upload, no account, no BS \u2192 https://nukebg.app',
+    'Found a background remover that actually respects your privacy \u2192 https://nukebg.app',
+    'Drop. Nuke. Download. That\'s it. \u2192 https://nukebg.app',
+    'My backgrounds didn\'t stand a chance \u2192 https://nukebg.app',
+    'Open source background remover that runs in your browser \u2192 https://nukebg.app',
+    'Zero uploads, zero tracking, zero BS. Just clean PNGs \u2192 https://nukebg.app',
+    'https://nukebg.app \u2014 because your pixels deserve freedom',
+    'Other tools upload your images. This one doesn\'t even know you exist \u2192 https://nukebg.app',
   ];
 
   const messagesES = [
-    'Acabo de nukear un fondo en 3 segundos. Sin subidas, sin cuenta, sin rollos \u2192 nukebg.app',
-    'Un eliminador de fondos que respeta tu privacidad de verdad \u2192 nukebg.app',
-    'Arrastra. Nukea. Descarga. Fin. \u2192 nukebg.app',
-    'Mis fondos no tuvieron oportunidad \u2192 nukebg.app',
-    'Eliminador de fondos open source que corre en tu navegador \u2192 nukebg.app',
-    'Cero subidas, cero rastreo, cero rollos. Solo PNGs limpios \u2192 nukebg.app',
-    'nukebg.app \u2014 porque tus p\u00EDxeles merecen libertad',
-    'Otras herramientas suben tus im\u00E1genes. Esta ni sabe que existes \u2192 nukebg.app',
+    'Acabo de nukear un fondo en 3 segundos. Sin subidas, sin cuenta, sin rollos \u2192 https://nukebg.app',
+    'Un eliminador de fondos que respeta tu privacidad de verdad \u2192 https://nukebg.app',
+    'Arrastra. Nukea. Descarga. Fin. \u2192 https://nukebg.app',
+    'Mis fondos no tuvieron oportunidad \u2192 https://nukebg.app',
+    'Eliminador de fondos open source que corre en tu navegador \u2192 https://nukebg.app',
+    'Cero subidas, cero rastreo, cero rollos. Solo PNGs limpios \u2192 https://nukebg.app',
+    'https://nukebg.app \u2014 porque tus p\u00EDxeles merecen libertad',
+    'Otras herramientas suben tus im\u00E1genes. Esta ni sabe que existes \u2192 https://nukebg.app',
   ];
 
   const messages = document.documentElement.lang === 'es' ? messagesES : messagesEN;
