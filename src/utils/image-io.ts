@@ -3,8 +3,8 @@ import { MAX_DIMENSION } from '../types/image';
 
 const SUPPORTED_FORMATS: SupportedFormat[] = ['image/png', 'image/jpeg', 'image/webp'];
 
-/** Max file size in bytes (50 MB, per security policy) */
-const MAX_FILE_SIZE = 50 * 1024 * 1024;
+/** Max file size in bytes (20 MB, per security policy) */
+const MAX_FILE_SIZE = 20 * 1024 * 1024;
 
 export function isSupportedFormat(type: string): type is SupportedFormat {
   return SUPPORTED_FORMATS.includes(type as SupportedFormat);
@@ -19,7 +19,7 @@ export async function loadImage(file: File): Promise<ImageLoadResult> {
   }
 
   if (file.size > MAX_FILE_SIZE) {
-    throw new Error(`File too large: ${Math.round(file.size / 1024 / 1024)} MB. Maximum is 50 MB.`);
+    throw new Error(`File too large: ${Math.round(file.size / 1024 / 1024)} MB. Maximum is 20 MB.`);
   }
 
   const bitmap = await createImageBitmap(file);

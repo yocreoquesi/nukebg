@@ -116,6 +116,9 @@ export class ArProgress extends HTMLElement {
           display: flex;
           flex-direction: column;
           gap: var(--space-2, 0.5rem);
+          max-height: 120px;
+          min-height: 120px;
+          overflow-y: auto;
         }
         .stage {
           display: flex;
@@ -259,7 +262,10 @@ export class ArProgress extends HTMLElement {
     const container = this.shadowRoot!.querySelector('.stages');
     if (!container) return;
 
-    container.innerHTML = this.stages.map(s => {
+    // Filter out inpaint stage if skipped (no watermark detected)
+    const visibleStages = this.stages.filter(s => !(s.stage === 'inpaint' && s.status === 'skipped'));
+
+    container.innerHTML = visibleStages.map(s => {
       const icon = this.getIcon(s.status);
       const timeStr = s.timeMs !== undefined ? `${(s.timeMs / 1000).toFixed(1)}s` : '';
       const safeMessage = s.message ? this.escapeHtml(s.message) : '';
@@ -310,6 +316,9 @@ export class ArProgress extends HTMLElement {
         </div>
       `;
     }
+
+    // Auto-scroll to bottom (terminal console behavior)
+    container.scrollTop = container.scrollHeight;
   }
 
   private getIcon(status: StageStatus | 'pending'): string {

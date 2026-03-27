@@ -14,7 +14,7 @@ interface HistoryEntry {
 
 /** Generate a CSS cursor data URL that matches the brush shape and size */
 function makeBrushCursor(size: number, shape: BrushShape, zoom: number): string {
-  const displaySize = Math.max(4, Math.round(size * zoom));
+  const displaySize = Math.min(64, Math.max(8, Math.round(size * zoom)));
   const r = displaySize / 2;
   const svgSize = displaySize + 2; // 1px padding
   const center = svgSize / 2;
@@ -92,15 +92,15 @@ export class ArEditor extends HTMLElement {
   private updateTexts(): void {
     const root = this.shadowRoot!;
     const brushLabel = root.querySelector('#ed-brush-label');
-    if (brushLabel) brushLabel.textContent = t('editor.brush');
+    if (brushLabel) brushLabel.textContent = t('editor.eraser');
     const brushSelect = root.querySelector('#brush-shape') as HTMLSelectElement | null;
     if (brushSelect) {
       const opts = brushSelect.options;
-      if (opts[0]) opts[0].textContent = t('editor.brushCircle');
-      if (opts[1]) opts[1].textContent = t('editor.brushSquare');
+      if (opts[0]) opts[0].textContent = t('editor.eraserCircle');
+      if (opts[1]) opts[1].textContent = t('editor.eraserSquare');
     }
     const sizeLabel = root.querySelector('#ed-size-label');
-    if (sizeLabel) sizeLabel.textContent = t('editor.size');
+    if (sizeLabel) sizeLabel.textContent = t('editor.eraserSize');
     const undoBtn = root.querySelector('#undo-btn');
     if (undoBtn) undoBtn.textContent = t('editor.undo');
     const redoBtn = root.querySelector('#redo-btn');
@@ -421,14 +421,14 @@ export class ArEditor extends HTMLElement {
 
       <div class="editor-container">
         <div class="toolbar">
-          <label id="ed-brush-label">${t('editor.brush')}</label>
-          <select id="brush-shape" aria-label="${t('editor.brush')}">
-            <option value="circle" selected>${t('editor.brushCircle')}</option>
-            <option value="square">${t('editor.brushSquare')}</option>
+          <label id="ed-brush-label">${t('editor.eraser')}</label>
+          <select id="brush-shape" aria-label="${t('editor.eraser')}">
+            <option value="circle" selected>${t('editor.eraserCircle')}</option>
+            <option value="square">${t('editor.eraserSquare')}</option>
           </select>
 
-          <label id="ed-size-label">${t('editor.size')}</label>
-          <input type="range" id="brush-size" min="2" max="100" value="20" aria-label="${t('editor.size')}">
+          <label id="ed-size-label">${t('editor.eraserSize')}</label>
+          <input type="range" id="brush-size" min="2" max="100" value="20" aria-label="${t('editor.eraserSize')}">
           <span class="size-display" id="size-display">20px</span>
 
           <div class="separator"></div>
@@ -453,7 +453,7 @@ export class ArEditor extends HTMLElement {
             <div class="help-tooltip" id="help-tooltip">
               <strong>${t('editor.shortcuts')}</strong><br>
               <kbd>Click</kbd> ${t('editor.shortcutErase')}<br>
-              <kbd>[ ]</kbd> ${t('editor.shortcutBrushSize')}<br>
+              <kbd>[ ]</kbd> ${t('editor.shortcutEraserSize')}<br>
               <kbd>Scroll</kbd> ${t('editor.shortcutZoom')}<br>
               <kbd>Middle drag</kbd> ${t('editor.shortcutPan')}<br>
               <kbd>0</kbd> ${t('editor.shortcutResetView')}<br>
@@ -640,6 +640,7 @@ export class ArEditor extends HTMLElement {
     this.zoom = Math.min(scaleX, scaleY, 2) * 0.9;
     this.panX = 0;
     this.panY = 0;
+    this.canvas.style.transform = 'translate(0px, 0px)';
     this.updateCanvasSize();
   }
 

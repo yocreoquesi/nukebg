@@ -45,10 +45,10 @@ const translations: Translations = {
     'download.another': '\u21BB Process another',
 
     // Editor
-    'editor.brush': 'Brush:',
-    'editor.brushCircle': 'Circle',
-    'editor.brushSquare': 'Square',
-    'editor.size': 'Size:',
+    'editor.eraser': 'Eraser:',
+    'editor.eraserCircle': 'Circle',
+    'editor.eraserSquare': 'Square',
+    'editor.eraserSize': 'Size:',
     'editor.undo': 'Undo',
     'editor.redo': 'Redo',
     'editor.zoomFit': 'Fit',
@@ -57,7 +57,7 @@ const translations: Translations = {
     'editor.bg': 'BG:',
     'editor.shortcuts': 'Shortcuts',
     'editor.shortcutErase': 'Erase',
-    'editor.shortcutBrushSize': 'Brush size \u00B15',
+    'editor.shortcutEraserSize': 'Eraser size \u00B15',
     'editor.shortcutZoom': 'Zoom',
     'editor.shortcutPan': 'Pan',
     'editor.shortcutResetView': 'Reset view',
@@ -66,6 +66,7 @@ const translations: Translations = {
 
     // Edit button (ar-app)
     'edit.btn': 'Not clean enough? Edit manually',
+    'edit.discard': '\u21A9 Discard edits',
 
     // Viewer
     'viewer.original': 'Original',
@@ -142,10 +143,10 @@ const translations: Translations = {
     'download.another': '\u21BB Procesar otra',
 
     // Editor
-    'editor.brush': 'Pincel:',
-    'editor.brushCircle': 'C\u00EDrculo',
-    'editor.brushSquare': 'Cuadrado',
-    'editor.size': 'Tama\u00F1o:',
+    'editor.eraser': 'Borrador:',
+    'editor.eraserCircle': 'C\u00EDrculo',
+    'editor.eraserSquare': 'Cuadrado',
+    'editor.eraserSize': 'Tama\u00F1o:',
     'editor.undo': 'Deshacer',
     'editor.redo': 'Rehacer',
     'editor.zoomFit': 'Ajustar',
@@ -154,7 +155,7 @@ const translations: Translations = {
     'editor.bg': 'Fondo:',
     'editor.shortcuts': 'Atajos',
     'editor.shortcutErase': 'Borrar',
-    'editor.shortcutBrushSize': 'Tama\u00F1o pincel \u00B15',
+    'editor.shortcutEraserSize': 'Tama\u00F1o borrador \u00B15',
     'editor.shortcutZoom': 'Zoom',
     'editor.shortcutPan': 'Mover',
     'editor.shortcutResetView': 'Resetear vista',
@@ -163,6 +164,7 @@ const translations: Translations = {
 
     // Edit button (ar-app)
     'edit.btn': '\u00BFNo qued\u00F3 limpio? Edita manualmente',
+    'edit.discard': '\u21A9 Descartar edici\u00F3n',
 
     // Viewer
     'viewer.original': 'Original',

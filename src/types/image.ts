@@ -1,8 +1,9 @@
 /** Supported input formats */
 export type SupportedFormat = 'image/png' | 'image/jpeg' | 'image/webp';
 
-/** Max dimensions before downsampling */
-export const MAX_DIMENSION = 4096;
+/** Max dimensions before downsampling (lower on mobile to reduce memory) */
+const isMobile = typeof navigator !== 'undefined' && /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
+export const MAX_DIMENSION = isMobile ? 2048 : 4096;
 
 /** Validate and load an image file */
 export interface ImageLoadResult {

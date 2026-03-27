@@ -28,6 +28,8 @@ export class ArApp extends HTMLElement {
   private isProcessing = false;
   private processingAborted = false;
   private hasManualEdits = false;
+  private preEditResult: ImageData | null = null;
+  private cachedEditResult: ImageData | null = null;
 
   constructor() {
     super();
@@ -894,7 +896,7 @@ export class ArApp extends HTMLElement {
     const modelStatus = root.querySelector('#model-status');
     if (modelStatus) modelStatus.textContent = t('hero.modelStatus');
     const editBtn = root.querySelector('#edit-btn');
-    if (editBtn) editBtn.textContent = t('edit.btn');
+    if (editBtn) editBtn.textContent = this.preEditResult ? t('edit.discard') : t('edit.btn');
     const refineCheckbox = root.querySelector('#refine-checkbox') as HTMLInputElement | null;
     if (refineCheckbox) refineCheckbox.setAttribute('aria-label', t('refine.toggle'));
     const refineToggleLabel = root.querySelector('#refine-toggle-label');
@@ -1114,12 +1116,33 @@ export class ArApp extends HTMLElement {
       }
     });
 
-    // Edit button — opens the manual eraser editor
-    this.shadowRoot!.querySelector('#edit-btn')?.addEventListener('click', () => {
-      if (this.lastResultImageData) {
+    // Edit button — opens editor or discards edits
+    this.shadowRoot!.querySelector('#edit-btn')?.addEventListener('click', async () => {
+      if (!this.lastResultImageData) return;
+
+      if (this.preEditResult) {
+        // Discard mode: restore pre-edit result, cache edit for instant re-apply
+        this.cachedEditResult = this.lastResultImageData;
+        this.lastResultImageData = this.preEditResult;
+        this.preEditResult = null;
+        this.hasManualEdits = false;
+
+        const { exportPng } = await import('../utils/image-io');
+        const blob = await exportPng(this.lastResultImageData);
+        if (this.currentImageData) this.viewer.setOriginal(this.currentImageData, this.currentFileSize);
+        this.viewer.setResult(this.lastResultImageData, blob);
+        await this.download.setResult(this.lastResultImageData, this.currentFileName, 0, blob);
+
+        // Switch button back to "Edit manually"
+        const editBtn = this.shadowRoot!.querySelector('#edit-btn') as HTMLElement;
+        if (editBtn) editBtn.textContent = t('edit.btn');
+        this.updateRefineButton();
+      } else {
+        // Edit mode: open editor, pass cached edit result for instant toggle if available
         const editorSection = this.shadowRoot!.querySelector('#editor-section') as HTMLElement;
         editorSection.style.display = 'block';
-        this.editor.setImage(this.lastResultImageData);
+        this.editor.setImage(this.cachedEditResult ?? this.lastResultImageData);
+        this.cachedEditResult = null;
         (this.shadowRoot!.querySelector('#edit-btn') as HTMLElement).style.display = 'none';
       }
     });
@@ -1135,14 +1158,26 @@ export class ArApp extends HTMLElement {
       const editedData = (e as CustomEvent).detail.imageData as ImageData;
       const { exportPng } = await import('../utils/image-io');
       const blob = await exportPng(editedData);
+
+      // Save pre-edit for discard functionality
+      this.preEditResult = this.lastResultImageData;
+      this.cachedEditResult = editedData;
       this.lastResultImageData = editedData;
+
+      // Viewer compares pre-edit vs post-edit
+      if (this.preEditResult) {
+        this.viewer.setOriginal(this.preEditResult, this.currentFileSize);
+      }
       this.viewer.setResult(editedData, blob);
       await this.download.setResult(editedData, this.currentFileName, 0, blob);
       this.hasManualEdits = true;
       this.updateRefineButton();
-      // Hide editor, show edit button again
+
+      // Hide editor, show discard button
       (this.shadowRoot!.querySelector('#editor-section') as HTMLElement).style.display = 'none';
-      (this.shadowRoot!.querySelector('#edit-btn') as HTMLElement).style.display = 'block';
+      const editBtn = this.shadowRoot!.querySelector('#edit-btn') as HTMLElement;
+      editBtn.style.display = 'block';
+      editBtn.textContent = t('edit.discard');
     });
   }
 
@@ -1261,6 +1296,8 @@ export class ArApp extends HTMLElement {
     this.preRefineResult = null;
     this.cachedRefineResult = null;
     this.hasManualEdits = false;
+    this.preEditResult = null;
+    this.cachedEditResult = null;
     this.lastResultImageData = null;
 
     const hero = this.shadowRoot!.querySelector('#hero')!;
@@ -1354,6 +1391,8 @@ export class ArApp extends HTMLElement {
     this.preRefineResult = null;
     this.cachedRefineResult = null;
     this.hasManualEdits = false;
+    this.preEditResult = null;
+    this.cachedEditResult = null;
 
     // Hide refine button
     const refineBtn = this.shadowRoot!.querySelector('#refine-btn') as HTMLElement;
