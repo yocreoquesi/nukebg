@@ -40,9 +40,9 @@ export class ArPrivacy extends HTMLElement {
           border-radius: 0;
           padding: 0.25rem 0.75rem;
           font-family: 'JetBrains Mono', monospace;
-          font-size: 10px;
+          font-size: 12px;
           font-weight: var(--font-medium, 500);
-          color: var(--color-text-secondary, #00cc33);
+          color: var(--color-text-secondary, #00dd44);
           cursor: pointer;
           position: relative;
           transition: border-color 0.2s ease, box-shadow 0.2s ease;
@@ -59,7 +59,7 @@ export class ArPrivacy extends HTMLElement {
           background: #000;
           border: 1px solid var(--color-accent-primary, #00ff41);
           padding: 0.5rem 0.75rem;
-          font-size: 10px;
+          font-size: 12px;
           color: var(--color-accent-primary, #00ff41);
           font-family: 'JetBrains Mono', monospace;
           white-space: nowrap;
@@ -80,7 +80,7 @@ export class ArPrivacy extends HTMLElement {
           border-radius: 0;
           padding: 0.75rem;
           font-size: var(--text-xs, 0.75rem);
-          color: var(--color-text-secondary, #00cc33);
+          color: var(--color-text-secondary, #00dd44);
           font-family: 'JetBrains Mono', monospace;
           white-space: nowrap;
           box-shadow: var(--shadow-md);
@@ -91,7 +91,7 @@ export class ArPrivacy extends HTMLElement {
           .tooltip {
             white-space: normal;
             max-width: 220px;
-            font-size: 10px;
+            font-size: 12px;
           }
         }
       </style>

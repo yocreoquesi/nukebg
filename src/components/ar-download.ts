@@ -89,11 +89,11 @@ export class ArDownload extends HTMLElement {
           align-items: center;
           gap: 8px;
           transition: background 0.3s ease, box-shadow 0.3s ease;
-          box-shadow: 0 0 8px rgba(0, 255, 65, 0.2);
+          box-shadow: 0 0 8px var(--color-accent-glow, rgba(0, 255, 65, 0.2));
         }
         .btn-primary:hover {
-          background: #33ff66;
-          box-shadow: 0 0 15px rgba(0, 255, 65, 0.4);
+          background: var(--color-accent-hover, #33ff66);
+          box-shadow: 0 0 15px var(--color-accent-glow, rgba(0, 255, 65, 0.4));
         }
         .btn-primary:active { opacity: 0.9; }
         .btn-secondary {
@@ -111,8 +111,8 @@ export class ArDownload extends HTMLElement {
           transition: background 0.3s ease, box-shadow 0.3s ease;
         }
         .btn-secondary:hover {
-          background: rgba(0, 255, 65, 0.05);
-          box-shadow: 0 0 8px rgba(0, 255, 65, 0.15);
+          background: var(--color-accent-muted, rgba(0, 255, 65, 0.05));
+          box-shadow: 0 0 8px var(--color-accent-glow, rgba(0, 255, 65, 0.15));
         }
         .btn-copy {
           background: transparent;

@@ -1391,6 +1391,10 @@ export class ArApp extends HTMLElement {
       const blob = await exportPng(result.imageData);
       if (this.processingAborted) return;
 
+      // If refined, show pre-refine as "Before" and refined as "After"
+      if (result.preRefineImageData) {
+        this.viewer.setOriginal(result.preRefineImageData, fileSize);
+      }
       this.viewer.setResult(result.imageData, blob);
       await this.download.setResult(result.imageData, this.currentFileName, result.totalTimeMs, blob);
       if (this.processingAborted) return;

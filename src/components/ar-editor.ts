@@ -152,7 +152,7 @@ export class ArEditor extends HTMLElement {
         }
         .toolbar label {
           font-size: var(--text-xs, 0.75rem);
-          color: var(--color-text-tertiary, #006622);
+          color: var(--color-text-tertiary, #008830);
           font-family: 'JetBrains Mono', monospace;
           white-space: nowrap;
         }
@@ -171,7 +171,7 @@ export class ArEditor extends HTMLElement {
         }
         .size-display {
           font-size: var(--text-xs, 0.75rem);
-          color: var(--color-text-tertiary, #006622);
+          color: var(--color-text-tertiary, #008830);
           min-width: 32px;
           text-align: center;
         }
@@ -182,7 +182,7 @@ export class ArEditor extends HTMLElement {
           border-radius: 0;
           padding: 4px 10px;
           font-family: 'JetBrains Mono', monospace;
-          font-size: 10px;
+          font-size: 12px;
           text-transform: uppercase;
           letter-spacing: 0.05em;
           cursor: pointer;
@@ -203,7 +203,7 @@ export class ArEditor extends HTMLElement {
           border-color: var(--color-accent-primary, #00ff41);
         }
         .toolbar-btn.primary:hover {
-          background: #33ff66;
+          background: var(--color-accent-hover, #33ff66);
           box-shadow: 0 0 10px rgba(0, 255, 65, 0.3);
         }
         .help-wrap {
@@ -220,7 +220,7 @@ export class ArEditor extends HTMLElement {
           border-radius: 0;
           padding: 12px 16px;
           font-size: var(--text-xs, 0.75rem);
-          color: var(--color-text-secondary, #00cc33);
+          color: var(--color-text-secondary, #00dd44);
           font-family: 'JetBrains Mono', monospace;
           line-height: 1.8;
           white-space: nowrap;
@@ -239,7 +239,7 @@ export class ArEditor extends HTMLElement {
           border-radius: 0;
           padding: 1px 5px;
           font-family: 'JetBrains Mono', monospace;
-          font-size: 10px;
+          font-size: 12px;
           color: var(--color-accent-primary, #00ff41);
           margin-right: 6px;
           min-width: 40px;
@@ -277,7 +277,7 @@ export class ArEditor extends HTMLElement {
           gap: 6px;
           align-items: center;
         }
-        .bg-options span { font-size: 11px; color: var(--color-text-tertiary, #006622); }
+        .bg-options span { font-size: 12px; color: var(--color-text-tertiary, #008830); }
         .bg-btn {
           width: 20px; height: 20px;
           border-radius: 0;
@@ -301,13 +301,13 @@ export class ArEditor extends HTMLElement {
         }
         .hint {
           font-size: var(--text-xs, 0.75rem);
-          color: var(--color-text-tertiary, #006622);
+          color: var(--color-text-tertiary, #008830);
           text-align: center;
           padding: var(--space-1, 0.25rem);
         }
         .zoom-display {
           font-size: var(--text-xs, 0.75rem);
-          color: var(--color-text-tertiary, #006622);
+          color: var(--color-text-tertiary, #008830);
         }
 
         /* Touch brush indicator (replaces cursor on touch devices) */
@@ -337,7 +337,7 @@ export class ArEditor extends HTMLElement {
             padding: var(--space-2, 0.5rem);
           }
           .toolbar label {
-            font-size: 10px;
+            font-size: 12px;
           }
           .toolbar select {
             min-height: 36px;
@@ -350,7 +350,7 @@ export class ArEditor extends HTMLElement {
             min-height: 44px;
             min-width: 44px;
             padding: 4px 8px;
-            font-size: 10px;
+            font-size: 12px;
             display: inline-flex;
             align-items: center;
             justify-content: center;
@@ -371,7 +371,7 @@ export class ArEditor extends HTMLElement {
           .help-tooltip {
             right: auto;
             left: 0;
-            font-size: 10px;
+            font-size: 12px;
           }
         }
 

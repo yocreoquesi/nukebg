@@ -217,8 +217,9 @@ async function loadModel(id: string, modelId: ModelId = DEFAULT_MODEL, emitReady
   }
 }
 
-/** Morphological smoothing: erode→dilate→edge blur. No halos. */
-function morphSmooth(alpha: Uint8Array, w: number, h: number): Uint8Array {
+/** Morphological smoothing: erode→dilate→edge blur. No halos. Reserved for future use. */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export function morphSmooth(alpha: Uint8Array, w: number, h: number): Uint8Array {
   // Step 1: Erode (shrink foreground by 1px to remove edge residue)
   const eroded = new Uint8Array(w * h);
   for (let y = 1; y < h - 1; y++) {

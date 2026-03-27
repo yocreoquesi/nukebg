@@ -96,8 +96,8 @@ export class ArDropzone extends HTMLElement {
         }
         .hint {
           font-family: 'JetBrains Mono', monospace;
-          font-size: 10px;
-          color: #004d1a;
+          font-size: 12px;
+          color: var(--color-text-tertiary, #008830);
         }
         .dragover-text {
           display: none;
@@ -112,8 +112,8 @@ export class ArDropzone extends HTMLElement {
         :host(:focus-visible) .dropzone,
         .dropzone:focus-visible {
           outline: none;
-          box-shadow: 0 0 10px rgba(0, 255, 65, 0.25),
-                      0 0 0 2px #00ff41;
+          box-shadow: 0 0 10px var(--color-accent-glow, rgba(0, 255, 65, 0.25)),
+                      0 0 0 2px var(--color-accent-primary, #00ff41);
         }
         /* === Mobile (max-width: 480px) === */
         @media (max-width: 480px) {
@@ -123,7 +123,7 @@ export class ArDropzone extends HTMLElement {
             gap: 0.5rem;
           }
           .dropzone::before {
-            font-size: 10px;
+            font-size: 12px;
             margin-bottom: 4px;
           }
           .icon {
@@ -133,10 +133,10 @@ export class ArDropzone extends HTMLElement {
             font-size: var(--text-xs, 0.75rem);
           }
           .sub-text {
-            font-size: 11px;
+            font-size: 12px;
           }
           .hint {
-            font-size: 9px;
+            font-size: 12px;
           }
         }
 

@@ -163,7 +163,7 @@ export class ArProgress extends HTMLElement {
         }
         .stage-time {
           font-size: var(--text-xs, 0.75rem);
-          color: #004d1a;
+          color: var(--color-text-tertiary, #008830);
         }
         .stage-message {
           font-size: var(--text-xs, 0.75rem);
