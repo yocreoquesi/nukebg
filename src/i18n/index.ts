@@ -69,8 +69,8 @@ const translations: Translations = {
     'edit.discard': '\u21A9 Discard edits',
 
     // Viewer
-    'viewer.original': 'Original',
-    'viewer.result': 'Result',
+    'viewer.original': 'Before',
+    'viewer.result': 'After',
     'viewer.bg': 'BG:',
 
     // Privacy
@@ -167,8 +167,8 @@ const translations: Translations = {
     'edit.discard': '\u21A9 Descartar edici\u00F3n',
 
     // Viewer
-    'viewer.original': 'Original',
-    'viewer.result': 'Resultado',
+    'viewer.original': 'Antes',
+    'viewer.result': 'Despu\u00E9s',
     'viewer.bg': 'Fondo:',
 
     // Privacy
