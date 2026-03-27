@@ -1051,16 +1051,23 @@ export class ArApp extends HTMLElement {
     });
 
     // Workspace precision slider — syncs with hero slider
+    let wsSliderDebounce: ReturnType<typeof setTimeout> | null = null;
     this.shadowRoot!.querySelector('#precision-slider-ws')?.addEventListener('input', (e) => {
       const val = parseInt((e.target as HTMLInputElement).value);
-      // Sync hero slider
+      // Sync hero slider and visual effects
       const heroSlider = this.shadowRoot!.querySelector('#precision-slider') as HTMLInputElement;
       if (heroSlider) heroSlider.value = String(val);
-      // Trigger the same handler
       heroSlider?.dispatchEvent(new Event('input'));
-      // Update workspace label
       const wsLabel = this.shadowRoot!.querySelector('#precision-label-ws');
       if (wsLabel) wsLabel.textContent = precisionLabels[val];
+
+      // Auto-reprocess with debounce (500ms wait after last move)
+      if (this.currentImageData && wsSliderDebounce) clearTimeout(wsSliderDebounce);
+      if (this.currentImageData) {
+        wsSliderDebounce = setTimeout(() => {
+          this.processImage(this.currentImageData!, this.currentFileSize);
+        }, 500);
+      }
     });
 
     // Workspace model selector — for reprocessing with a different model
