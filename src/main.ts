@@ -335,13 +335,21 @@ function initTerminalPrompt(): void {
     }, isError ? 1500 : 2000);
   }
 
-  // Hide cursor when typing, show when empty
-  input.addEventListener('input', () => {
-    if (input.value.length > 0) {
-      cursor.classList.add('hidden');
-    } else {
+  // Click on cursor or prompt area focuses input
+  cursor.addEventListener('click', () => input.focus());
+  promptContainer.addEventListener('click', () => input.focus());
+
+  // Hide blinking cursor on focus, show on blur when empty
+  input.addEventListener('focus', () => {
+    cursor.classList.add('hidden');
+  });
+  input.addEventListener('blur', () => {
+    if (input.value.length === 0 && !isShowingResponse) {
       cursor.classList.remove('hidden');
     }
+  });
+  input.addEventListener('input', () => {
+    cursor.classList.add('hidden');
 
     // Buffer overflow: char 11 triggers error
     if (input.value.length >= 11) {

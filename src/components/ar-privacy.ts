@@ -69,9 +69,7 @@ export class ArPrivacy extends HTMLElement {
         .dare-msg.visible {
           display: block;
         }
-        .badge:hover .tooltip {
-          display: block;
-        }
+        /* tooltip on hover disabled — only click easter eggs */
         .tooltip {
           display: none;
           position: absolute;

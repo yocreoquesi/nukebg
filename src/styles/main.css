@@ -300,6 +300,10 @@ body::after {
   font-size: 12px;
   color: var(--color-accent-primary);
   margin-left: var(--space-3);
+  position: relative;
+  cursor: text;
+  min-width: 100px;
+  height: 100%;
 }
 .terminal-prompt-prefix {
   color: var(--color-text-tertiary);
@@ -312,15 +316,14 @@ body::after {
   color: var(--color-accent-primary);
   font-family: inherit;
   font-size: inherit;
-  width: 0;
-  min-width: 2px;
-  max-width: 120px;
-  caret-color: var(--color-accent-primary);
+  width: 120px;
+  caret-color: transparent; /* hide native caret, we use our own */
   padding: 0;
+  position: relative;
+  z-index: 2;
 }
-/* Auto-grow input to fit content */
 .terminal-input:focus {
-  width: auto;
+  caret-color: var(--color-accent-primary);
 }
 .terminal-input::placeholder {
   color: transparent;
@@ -333,7 +336,7 @@ body::after {
 .terminal-response.error {
   color: #cc3333;
 }
-/* Blinking cursor follows the text */
+/* Blinking cursor — only visible when input is empty and not focused */
 @keyframes blink-cursor {
   0%, 100% { opacity: 1; }
   50% { opacity: 0; }
