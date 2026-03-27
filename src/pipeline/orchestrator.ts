@@ -71,7 +71,10 @@ export class PipelineOrchestrator {
       // model-progress events: forward to UI, don't resolve the pending request
       if (msg.type === 'model-progress') {
         const pct = msg.progress ?? 0;
-        this.emit('ml-segmentation', 'running', `Loading AI model... ${pct}% [${pct}%]`);
+        const label = pct >= 96 && pct < 100
+          ? 'Warming up the reactor... [96%]'
+          : `Loading AI model... ${pct}% [${pct}%]`;
+        this.emit('ml-segmentation', 'running', label);
         return;
       }
 

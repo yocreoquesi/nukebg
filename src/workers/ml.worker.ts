@@ -216,6 +216,7 @@ async function loadModel(id: string, modelId: ModelId = DEFAULT_MODEL, emitReady
 
   // Warmup: run a tiny inference to force WASM full compilation
   // This ensures consistent results from the very first real image
+  self.postMessage({ id, type: 'model-progress', progress: 96 });
   try {
     if (RawImageClass) {
       const warmupPixels = new Uint8ClampedArray(16); // 2x2 RGBA
