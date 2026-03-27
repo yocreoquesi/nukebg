@@ -235,6 +235,7 @@ export class ArApp extends HTMLElement {
           display: flex;
           align-items: center;
           flex-wrap: wrap;
+          justify-content: center;
           gap: var(--space-2, 0.5rem) var(--space-3, 0.75rem);
           padding: var(--space-3, 0.75rem) var(--space-4, 1rem);
           border: 1px solid #1a3a1a;
