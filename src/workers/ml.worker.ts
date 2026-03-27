@@ -20,16 +20,11 @@ const segmenters = new Map<string, SegmenterEntry>();
 let currentModelId: ModelId = DEFAULT_MODEL;
 let RawImageClass: (new (data: Uint8ClampedArray, w: number, h: number, channels: number) => unknown) | null = null;
 
-/** Detected compute device — resolved once on first model load */
-let resolvedDevice: 'webgpu' | 'wasm' | null = null;
-
-/** Detect WebGPU availability with safe fallback to WASM */
+/** Detect compute device — currently forced to WASM */
 async function detectDevice(): Promise<'webgpu' | 'wasm'> {
   // Force WASM — WebGPU in Transformers.js is unstable and causes
   // NetworkError on some browsers when loading the WebGPU runtime.
   // Re-enable when Transformers.js WebGPU support is stable.
-  resolvedDevice = 'wasm';
-  console.log('[NukeBG] Using WASM backend');
   return 'wasm';
 }
 
