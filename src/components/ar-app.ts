@@ -23,6 +23,7 @@ export class ArApp extends HTMLElement {
   private lastResultImageData: ImageData | null = null;
   private refineEnabled = false;
   private preRefineResult: ImageData | null = null;
+  private cachedRefineResult: ImageData | null = null;
   private crtFlickerTimers: number[] = [];
   private isProcessing = false;
   private processingAborted = false;
@@ -1047,18 +1048,29 @@ export class ArApp extends HTMLElement {
       if (!btn || !this.lastResultImageData || !this.pipeline) return;
 
       if (this.preRefineResult) {
-        // Currently refined — undo: show pre-refine as result
+        // Currently refined — undo: restore pre-refine, cache the refined
+        this.cachedRefineResult = this.lastResultImageData;
         this.lastResultImageData = this.preRefineResult;
         this.preRefineResult = null;
+    this.cachedRefineResult = null;
         const { exportPng } = await import('../utils/image-io');
         const blob = await exportPng(this.lastResultImageData);
-        // Restore original image in the "Original" panel
         if (this.currentImageData) this.viewer.setOriginal(this.currentImageData, this.currentFileSize);
         this.viewer.setResult(this.lastResultImageData, blob);
         await this.download.setResult(this.lastResultImageData, this.currentFileName, 0, blob);
         this.updateRefineButton();
+      } else if (this.cachedRefineResult) {
+        // Already refined before — use cached result (instant, no reprocessing)
+        this.preRefineResult = this.lastResultImageData;
+        this.lastResultImageData = this.cachedRefineResult;
+        const { exportPng } = await import('../utils/image-io');
+        const blob = await exportPng(this.lastResultImageData);
+        this.viewer.setOriginal(this.preRefineResult!, this.currentFileSize);
+        this.viewer.setResult(this.lastResultImageData, blob);
+        await this.download.setResult(this.lastResultImageData, this.currentFileName, 0, blob);
+        this.updateRefineButton();
       } else {
-        // Not refined — run ViTMatte
+        // First time refining — run ViTMatte
         this.isProcessing = true;
         this.processingAborted = false;
         this.disableWorkspaceButtons();
@@ -1075,13 +1087,13 @@ export class ArApp extends HTMLElement {
           if (this.processingAborted) return;
 
           this.lastResultImageData = refined;
+          this.cachedRefineResult = refined;
           const { exportPng } = await import('../utils/image-io');
           if (this.processingAborted) return;
 
           const blob = await exportPng(refined);
           if (this.processingAborted) return;
 
-          // Compare: pre-refine (RMBG only) as "Original" vs refined (ViTMatte) as "Result"
           this.viewer.setOriginal(this.preRefineResult!, this.currentFileSize);
           this.viewer.setResult(refined, blob);
           await this.download.setResult(refined, this.currentFileName, 0, blob);
@@ -1090,6 +1102,7 @@ export class ArApp extends HTMLElement {
           console.error('Post-process refine failed:', err);
           this.lastResultImageData = this.preRefineResult;
           this.preRefineResult = null;
+    this.cachedRefineResult = null;
         } finally {
           if (!this.processingAborted) {
             this.isProcessing = false;
@@ -1232,6 +1245,7 @@ export class ArApp extends HTMLElement {
     this.currentImageData = imageData;
     this.currentFileSize = fileSize;
     this.preRefineResult = null;
+    this.cachedRefineResult = null;
     this.lastResultImageData = null;
 
     const hero = this.shadowRoot!.querySelector('#hero')!;
@@ -1282,6 +1296,7 @@ export class ArApp extends HTMLElement {
         this.preRefineResult = result.preRefineImageData;
       } else {
         this.preRefineResult = null;
+    this.cachedRefineResult = null;
       }
 
       // Show refine button, update its label
@@ -1316,6 +1331,7 @@ export class ArApp extends HTMLElement {
     hero.classList.remove('hidden');
     this.download.reset();
     this.preRefineResult = null;
+    this.cachedRefineResult = null;
 
     // Hide refine button
     const refineBtn = this.shadowRoot!.querySelector('#refine-btn') as HTMLElement;
