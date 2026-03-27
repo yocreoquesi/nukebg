@@ -502,6 +502,23 @@ export class ArApp extends HTMLElement {
           .feature-desc {
             font-size: 11px;
           }
+          .precision-sep {
+            display: none;
+          }
+          .model-desc {
+            display: none;
+          }
+          .precision-label {
+            min-width: auto;
+            font-size: 11px;
+          }
+          #precision-slider {
+            width: 60px;
+          }
+          .ws-precision {
+            padding: 0;
+            gap: var(--space-1, 0.25rem);
+          }
           .workspace {
             padding: var(--space-2, 0.5rem);
           }
