@@ -331,11 +331,20 @@ function initTerminalPrompt(): void {
   let isShowingResponse = false;
 
   const COMMANDS: Record<string, string> = {
-    'sudo': '> Permission denied. Nice try.',
-    'sudo rm': '> rm: cannot remove \'backgrounds\': already nuked',
+    // sudo combos
+    'sudo': '> sudo what? Try \'sudo nuke\' or \'sudo help\'',
     'sudo nuke': '> LAUNCHING ALL NUKES...',
-    'sudo help': '> man nukebg: Drop. Nuke. Download.',
-    'help': '> Try: sudo, nuke, exit, ls, clear',
+    'sudo rm': '> rm: cannot remove \'backgrounds\': already nuked',
+    'sudo rm -rf': '> rm -rf /backgrounds/* — 100% nuked. You monster.',
+    'sudo help': '> man nukebg: Drop. Nuke. Download. EOF.',
+    'sudo sudo': '> inception mode denied. One sudo is enough.',
+    'sudo exit': '> nice try. There is no escape.',
+    'sudo hack': '> You\'re already root. What more do you want?',
+    'sudo ls': '> drwxr-xr-x your_images/ (local only, we can\'t see them)',
+    'sudo clear': '> Purging cache...',
+    'sudo cat': '> sudo: 🐱: permission denied. Cats obey no one.',
+    'sudo vim': '> Opened vim. Good luck getting out.',
+    // basic commands
     'nuke': '> Nuke what? Drop an image first.',
     'exit': '> There is no escape from NukeBG.',
     'ls': '> backgrounds/ watermarks/ — scheduled for deletion',
@@ -343,11 +352,38 @@ function initTerminalPrompt(): void {
     'hack': '> You\'re already in. What more do you want?',
     'hello': '> Hello, operator. Ready to nuke?',
     'hi': '> Hello, operator. Ready to nuke?',
-    'clear': '> Purging cache... reloading.',
-    'purge': '> Purging cache... reloading.',
+    'clear': '> Purging cache...',
+    'purge': '> Purging cache...',
+    'whoami': '> You\'re the one nuking backgrounds. That\'s who.',
+    'pwd': '> /home/user/images/about-to-be-nuked/',
+    'cat': '> 🐱 meow. Wrong terminal.',
+    'ping': '> pong. But we don\'t do network stuff here.',
+    'cd': '> You\'re already where you need to be.',
+    'vim': '> How do I exit this? Just kidding. Try \'nuke\'.',
+    'man': '> NUKEBG(1) — Drop image, nuke background, download PNG. The end.',
+    'echo': '> echo echo echo... is there an echo in here?',
+    'top': '> PID 1: nukebg — CPU: yes. RAM: some. Status: nuking.',
+    'git': '> git commit -m "nuked another background"',
+    'npm': '> npm run nuke — 1 background destroyed, 0 uploaded.',
   };
 
-  function showResponse(text: string, isError: boolean = false): void {
+  // Rotating help groups — sudo always first, then 4-5 random commands
+  const HELP_POOLS = [
+    ['sudo', 'nuke', 'ls', 'hack', 'exit'],
+    ['sudo', 'whoami', 'cat', 'vim', 'pwd'],
+    ['sudo', 'ping', 'cd', 'clear', 'man'],
+    ['sudo', 'echo', 'top', 'git', 'npm'],
+    ['sudo', 'rm -rf', 'hello', 'purge', 'hack'],
+  ];
+  let helpIndex = 0;
+
+  function getHelpResponse(): string {
+    const group = HELP_POOLS[helpIndex % HELP_POOLS.length];
+    helpIndex++;
+    return `> Commands: ${group.join(', ')}`;
+  }
+
+  function showResponse(text: string, isError: boolean = false, keepFocus: boolean = true): void {
     isShowingResponse = true;
     input!.style.display = 'none';
     cursor!.style.display = 'none';
@@ -362,8 +398,9 @@ function initTerminalPrompt(): void {
       input!.style.display = '';
       input!.value = '';
       cursor!.style.display = '';
-      cursor!.classList.remove('hidden');
+      cursor!.classList.add('hidden');
       isShowingResponse = false;
+      if (keepFocus) input!.focus();
     }, isError ? 1500 : 2000);
   }
 
@@ -396,7 +433,7 @@ function initTerminalPrompt(): void {
     const cmd = input.value.trim().toLowerCase();
     if (!cmd) return;
 
-    // Special case: sudo nuke triggers vibrate on ar-app
+    // Special case: sudo nuke triggers vibrate
     if (cmd === 'sudo nuke') {
       const arApp = document.querySelector('ar-app');
       if (arApp) {
@@ -405,16 +442,29 @@ function initTerminalPrompt(): void {
       }
     }
 
-    // Special case: clear/purge actually clears cache and reloads
-    if (cmd === 'clear' || cmd === 'purge') {
-      showResponse(COMMANDS[cmd]);
+    // Special case: clear/purge/sudo clear — clears cache
+    if (cmd === 'clear' || cmd === 'purge' || cmd === 'sudo clear') {
+      showResponse(COMMANDS[cmd] || '> Purging cache...', false, false);
       setTimeout(() => nukeCache(), 1500);
+      return;
+    }
+
+    // Special case: help — rotating command groups
+    if (cmd === 'help') {
+      showResponse(getHelpResponse());
       return;
     }
 
     const response = COMMANDS[cmd] || `> Command not found: ${input.value.trim()}. Try 'help'`;
     showResponse(response);
   });
+
+  // Subtle hint: show "help" placeholder briefly on load
+  input.placeholder = 'help';
+  input.style.setProperty('--placeholder-opacity', '1');
+  setTimeout(() => {
+    input.placeholder = '';
+  }, 3000);
 }
 
 // === Share Button ===

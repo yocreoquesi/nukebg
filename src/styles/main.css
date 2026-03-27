@@ -333,7 +333,8 @@ body::after {
   margin: 0;
 }
 .terminal-input::placeholder {
-  color: transparent;
+  color: var(--color-text-tertiary);
+  opacity: 0.4;
 }
 .terminal-response {
   color: var(--color-text-secondary);
