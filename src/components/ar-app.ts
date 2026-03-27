@@ -1,66 +1,24 @@
 import { PipelineOrchestrator } from '../pipeline/orchestrator';
 import type { PipelineStage, StageStatus } from '../types/pipeline';
 import type { ModelId } from '../types/worker-messages';
-import { MODEL_OPTIONS } from '../types/worker-messages';
 import { t } from '../i18n';
 import type { ArViewer } from './ar-viewer';
 import type { ArProgress } from './ar-progress';
 import type { ArDownload } from './ar-download';
 import type { ArEditor } from './ar-editor';
-
-/**
- * Detect if an image is an illustration or a photo.
- * Illustrations: fewer unique colors, more flat areas, high saturation uniformity.
- * Photos: many unique colors, smooth gradients, varied saturation.
- */
-function detectImageType(imageData: ImageData): 'illustration' | 'photo' {
-  const { data, width, height } = imageData;
-  // Sample every 4th pixel for speed on large images
-  const step = Math.max(1, Math.floor(Math.sqrt(width * height / 10000)));
-  const colorSet = new Set<number>();
-  let flatPatches = 0;
-  let totalPatches = 0;
-
-  for (let y = 0; y < height - step; y += step) {
-    for (let x = 0; x < width - step; x += step) {
-      const i = (y * width + x) * 4;
-      // Quantize to 6-bit per channel for color counting
-      const key = ((data[i] >> 2) << 12) | ((data[i + 1] >> 2) << 6) | (data[i + 2] >> 2);
-      colorSet.add(key);
-
-      // Check if neighboring pixel is very similar (flat patch)
-      const j = ((y + step) * width + (x + step)) * 4;
-      const diff = Math.abs(data[i] - data[j]) + Math.abs(data[i+1] - data[j+1]) + Math.abs(data[i+2] - data[j+2]);
-      totalPatches++;
-      if (diff < 15) flatPatches++;
-    }
-  }
-
-  const uniqueColors = colorSet.size;
-  const flatRatio = totalPatches > 0 ? flatPatches / totalPatches : 0;
-
-  // Illustrations: fewer colors + more flat areas
-  // Threshold tuned on AI-generated illustrations vs photos
-  if (uniqueColors < 3000 || flatRatio > 0.6) return 'illustration';
-  return 'photo';
-}
-
-/** Recommend best model based on image type */
-function recommendModel(type: 'illustration' | 'photo'): ModelId {
-  if (type === 'photo') return 'Xenova/modnet';
-  return 'briaai/RMBG-1.4';
-}
+import type { ArDropzone } from './ar-dropzone';
 
 export class ArApp extends HTMLElement {
+  private static readonly MODEL_ID: ModelId = 'briaai/RMBG-1.4';
   private pipeline: PipelineOrchestrator | null = null;
   private viewer!: ArViewer;
   private progress!: ArProgress;
   private download!: ArDownload;
   private editor!: ArEditor;
+  private dropzone!: ArDropzone;
   private currentFileName = 'image.png';
   private currentImageData: ImageData | null = null;
   private currentFileSize = 0;
-  private selectedModel: ModelId = MODEL_OPTIONS[0].id;
   private selectedPrecision: 'low-power' | 'keep-more' | 'balanced' | 'clean-more' | 'full-nuke' = 'balanced';
   private lastResultImageData: ImageData | null = null;
   private crtFlickerTimers: number[] = [];
@@ -89,17 +47,23 @@ export class ArApp extends HTMLElement {
     );
 
     const el = statusEl();
-    if (el) el.textContent = 'Downloading AI model...';
+    if (el) el.textContent = 'Loading AI model...';
 
-    this.pipeline.preloadModel(this.selectedModel).then(() => {
+    // Dropzone starts disabled until model is ready
+    this.dropzone.setEnabled(false);
+
+    this.pipeline.preloadModel(ArApp.MODEL_ID).then(() => {
       const s = statusEl();
       if (s) {
         s.textContent = '> reactor online. Ready to nuke.';
         s.classList.add('ready');
       }
+      this.dropzone.setEnabled(true);
     }).catch(() => {
       const s = statusEl();
       if (s) s.textContent = '> model loads on first image';
+      // Enable dropzone anyway so user can still try
+      this.dropzone.setEnabled(true);
     });
   }
 
@@ -258,42 +222,9 @@ export class ArApp extends HTMLElement {
           white-space: nowrap;
           border-width: 0;
         }
-        .model-selector {
-          display: flex;
-          align-items: center;
-          flex-wrap: wrap;
-          justify-content: center;
-          gap: var(--space-2, 0.5rem) var(--space-3, 0.75rem);
-          padding: var(--space-3, 0.75rem) var(--space-4, 1rem);
-          border: 1px solid #1a3a1a;
-          border-radius: 0;
-          background: #000;
-          font-family: 'JetBrains Mono', monospace;
-        }
-        .model-selector label {
-          font-size: var(--text-sm, 0.875rem);
-          color: var(--color-text-tertiary, #006622);
-          white-space: nowrap;
-          font-family: 'JetBrains Mono', monospace;
-        }
-        .model-selector select {
-          background: #0a0a0a;
-          color: var(--color-accent-primary, #00ff41);
-          border: 1px solid #1a3a1a;
-          border-radius: 0;
-          padding: var(--space-1, 0.25rem) var(--space-2, 0.5rem);
-          font-size: var(--text-sm, 0.875rem);
-          font-family: 'JetBrains Mono', monospace;
-          cursor: pointer;
-        }
-        .model-desc {
-          font-size: var(--text-xs, 0.75rem);
-          color: var(--color-text-tertiary, #006622);
-          flex: 1;
-        }
-        .precision-sep {
-          color: #1a3a1a;
-          margin: 0 var(--space-1, 0.25rem);
+        .dropzone-disabled {
+          opacity: 0.4;
+          pointer-events: none;
         }
         #precision-slider {
           width: 80px;
@@ -433,14 +364,11 @@ export class ArApp extends HTMLElement {
         }
         :host(.precision-override) .subline,
         :host(.precision-override) .feature-desc,
-        :host(.precision-override) .model-desc,
-        :host(.precision-override) .model-selector label,
         :host(.precision-override) .model-status {
           color: var(--terminal-color-override, #00cc33);
         }
         :host(.precision-override) .feature-title,
-        :host(.precision-override) .precision-label,
-        :host(.precision-override) .model-selector select {
+        :host(.precision-override) .precision-label {
           color: var(--terminal-color-override, #00ff41);
         }
         :host(.precision-override) .edit-btn {
@@ -470,16 +398,6 @@ export class ArApp extends HTMLElement {
           }
         }
 
-        /* === Layout stability fixes === */
-        .model-desc {
-          min-height: 2.5em;
-        }
-        .model-selector {
-          min-height: 3.5em;
-        }
-        .model-selector select {
-          min-width: 160px;
-        }
 
         /* === Mobile (max-width: 480px) === */
         @media (max-width: 480px) {
@@ -494,22 +412,6 @@ export class ArApp extends HTMLElement {
           .subline {
             font-size: var(--text-xs, 0.75rem);
             margin-bottom: var(--space-3, 0.75rem);
-          }
-          .model-selector {
-            flex-direction: column;
-            align-items: stretch;
-            gap: var(--space-2, 0.5rem);
-            padding: var(--space-2, 0.5rem) var(--space-3, 0.75rem);
-          }
-          .model-selector label {
-            font-size: var(--text-xs, 0.75rem);
-          }
-          .model-selector select {
-            width: 100%;
-            min-height: 44px;
-          }
-          .model-desc {
-            font-size: 10px;
           }
           .reprocess-btn {
             width: 100%;
@@ -528,12 +430,6 @@ export class ArApp extends HTMLElement {
           }
           .feature-desc {
             font-size: 11px;
-          }
-          .precision-sep {
-            display: none;
-          }
-          .model-desc {
-            display: none;
           }
           .precision-label {
             min-width: auto;
@@ -566,12 +462,6 @@ export class ArApp extends HTMLElement {
           .subline {
             font-size: var(--text-xs, 0.75rem);
           }
-          .model-selector {
-            flex-wrap: wrap;
-          }
-          .model-selector select {
-            min-height: 44px;
-          }
           .reprocess-btn {
             min-height: 44px;
           }
@@ -586,8 +476,7 @@ export class ArApp extends HTMLElement {
         /* === Touch targets === */
         @media (pointer: coarse) {
           .reprocess-btn,
-          .edit-btn,
-          .model-selector select {
+          .edit-btn {
             min-height: 44px;
             min-width: 44px;
           }
@@ -831,14 +720,7 @@ export class ArApp extends HTMLElement {
         <p class="subline">
           ${t('hero.subtitle').replace(/\n/g, ' ')}
         </p>
-        <div class="model-selector" id="model-selector-hero">
-          <label for="model-select">${t('model.label')}</label>
-          <select id="model-select" aria-label="${t('model.label')}">
-            ${MODEL_OPTIONS.map(m => `<option value="${m.id}" ${m.id === this.selectedModel ? 'selected' : ''}>${m.label}</option>`).join('')}
-          </select>
-          <span class="model-desc" id="model-desc">${this.getModelDescription(MODEL_OPTIONS[0].id)}</span>
-          <span class="precision-sep">|</span>
-          <label for="precision-slider">Precision:</label>
+        <div class="ws-precision">
           <input type="range" id="precision-slider" min="0" max="4" value="2" step="1" aria-label="Precision level">
           <span class="precision-label" id="precision-label">Balanced</span>
         </div>
@@ -852,16 +734,10 @@ export class ArApp extends HTMLElement {
         <div class="workspace-inner">
           <ar-viewer></ar-viewer>
           <ar-progress></ar-progress>
-          <div class="model-selector" id="model-selector-workspace">
-            <label>${t('model.tryAnother')}</label>
-            <select id="model-select-ws" aria-label="${t('model.label')}">
-              ${MODEL_OPTIONS.map(m => `<option value="${m.id}" ${m.id === this.selectedModel ? 'selected' : ''}>${m.label}</option>`).join('')}
-            </select>
-            <button id="reprocess-btn" class="reprocess-btn" aria-label="${t('model.reprocess')}">${t('model.reprocess')}</button>
-          </div>
           <div class="ws-precision">
             <input type="range" id="precision-slider-ws" min="0" max="4" value="2" step="1" aria-label="Precision level">
             <span class="precision-label" id="precision-label-ws">Balanced</span>
+            <button id="reprocess-btn" class="reprocess-btn" aria-label="${t('model.reprocess')}">${t('model.reprocess')}</button>
           </div>
           <div class="precision-marquee" id="precision-marquee-ws"><span>☢ NUKEBG — DROP. NUKE. DOWNLOAD. → nukebg.app ☢ NUKEBG — DROP. NUKE. DOWNLOAD. → nukebg.app ☢</span></div>
           <ar-download></ar-download>
@@ -909,13 +785,7 @@ export class ArApp extends HTMLElement {
     this.progress = this.shadowRoot!.querySelector('ar-progress')!;
     this.download = this.shadowRoot!.querySelector('ar-download')!;
     this.editor = this.shadowRoot!.querySelector('ar-editor')!;
-  }
-
-  /** Obtiene la descripcion traducida del modelo */
-  private getModelDescription(modelId: string): string {
-    if (modelId === 'briaai/RMBG-1.4') return t('model.rmbg.description');
-    if (modelId === 'Xenova/modnet') return t('model.modnet.description');
-    return '';
+    this.dropzone = this.shadowRoot!.querySelector('ar-dropzone')! as ArDropzone;
   }
 
   /** Actualiza textos sin re-renderizar todo el componente */
@@ -927,12 +797,6 @@ export class ArApp extends HTMLElement {
     if (subline) subline.textContent = t('hero.subtitle').replace(/\n/g, ' ');
     const modelStatus = root.querySelector('#model-status');
     if (modelStatus) modelStatus.textContent = t('hero.modelStatus');
-    const heroLabel = root.querySelector('#model-selector-hero label');
-    if (heroLabel) heroLabel.textContent = t('model.label');
-    const heroDesc = root.querySelector('#model-desc');
-    if (heroDesc) heroDesc.textContent = this.getModelDescription(this.selectedModel);
-    const wsLabel = root.querySelector('#model-selector-workspace label');
-    if (wsLabel) wsLabel.textContent = t('model.tryAnother');
     const reprocessBtn = root.querySelector('#reprocess-btn');
     if (reprocessBtn) reprocessBtn.textContent = t('model.reprocess');
     const editBtn = root.querySelector('#edit-btn');
@@ -960,35 +824,11 @@ export class ArApp extends HTMLElement {
     this.shadowRoot!.addEventListener('ar:image-loaded', async (e: Event) => {
       const detail = (e as CustomEvent).detail;
       this.currentFileName = detail.file.name || 'image.png';
-
-      // Auto-detect image type and recommend model (only if user hasn't manually selected)
-      const heroSelect = this.shadowRoot!.querySelector('#model-select') as HTMLSelectElement;
-      if (heroSelect && this.selectedModel === MODEL_OPTIONS[0].id) {
-        const imgType = detectImageType(detail.imageData);
-        const recommended = recommendModel(imgType);
-        if (recommended !== this.selectedModel) {
-          this.selectedModel = recommended;
-          heroSelect.value = recommended;
-          const desc = MODEL_OPTIONS.find(m => m.id === recommended)?.description || '';
-          const descEl = this.shadowRoot!.querySelector('#model-desc');
-          if (descEl) descEl.textContent = t('model.autoDetected', { type: imgType, desc });
-        }
-      }
-
       await this.processImage(detail.imageData, detail.file.size);
     });
 
     this.shadowRoot!.addEventListener('ar:process-another', () => {
       this.resetToIdle();
-    });
-
-    // Hero model selector — changes default model before processing
-    this.shadowRoot!.querySelector('#model-select')?.addEventListener('change', (e) => {
-      const select = e.target as HTMLSelectElement;
-      this.selectedModel = select.value as ModelId;
-      const desc = this.getModelDescription(this.selectedModel);
-      const descEl = this.shadowRoot!.querySelector('#model-desc');
-      if (descEl) descEl.textContent = desc;
     });
 
     // Precision slider — 5 positions with visual effects at extremes
@@ -1097,18 +937,8 @@ export class ArApp extends HTMLElement {
       }
     });
 
-    // Workspace model selector — for reprocessing with a different model
-    this.shadowRoot!.querySelector('#model-select-ws')?.addEventListener('change', (e) => {
-      const select = e.target as HTMLSelectElement;
-      const desc = this.getModelDescription(select.value);
-      const descEl = this.shadowRoot!.querySelector('#model-desc-ws');
-      if (descEl) descEl.textContent = desc;
-    });
-
     this.shadowRoot!.querySelector('#reprocess-btn')?.addEventListener('click', () => {
-      const wsSelect = this.shadowRoot!.querySelector('#model-select-ws') as HTMLSelectElement;
-      if (wsSelect && this.currentImageData) {
-        this.selectedModel = wsSelect.value as ModelId;
+      if (this.currentImageData) {
         this.processImage(this.currentImageData, this.currentFileSize);
       }
     });
@@ -1210,7 +1040,7 @@ export class ArApp extends HTMLElement {
       // Map precision to threshold: 5 levels from conservative to aggressive
       const thresholdMap = { 'low-power': 0.1, 'keep-more': 0.3, 'balanced': 0.5, 'clean-more': 0.7, 'full-nuke': 0.9 } as const;
       const threshold = thresholdMap[this.selectedPrecision];
-      const result = await this.pipeline.process(imageData, this.selectedModel, threshold);
+      const result = await this.pipeline.process(imageData, ArApp.MODEL_ID, threshold);
       const { exportPng } = await import('../utils/image-io');
       const blob = await exportPng(result.imageData);
       this.viewer.setResult(result.imageData, blob);

@@ -469,7 +469,7 @@ function initTerminalPrompt(): void {
     return `> Commands: ${group.join(', ')}`;
   }
 
-  function showResponse(text: string, isError: boolean = false, keepFocus: boolean = true): void {
+  function showResponse(text: string, isError: boolean = false, keepFocus: boolean = true, durationMs?: number): void {
     isShowingResponse = true;
     input!.style.display = 'none';
     cursor!.style.display = 'none';
@@ -479,6 +479,7 @@ function initTerminalPrompt(): void {
     response.textContent = text;
     promptContainer!.appendChild(response);
 
+    const duration = durationMs ?? (isError ? 1500 : 2000);
     setTimeout(() => {
       response.remove();
       input!.style.display = '';
@@ -487,7 +488,7 @@ function initTerminalPrompt(): void {
       cursor!.classList.add('hidden');
       isShowingResponse = false;
       if (keepFocus) input!.focus();
-    }, isError ? 1500 : 2000);
+    }, duration);
   }
 
   // Click on cursor or prompt area focuses input
@@ -537,8 +538,7 @@ function initTerminalPrompt(): void {
 
     // Special case: help help — show ALL commands
     if (cmd === 'help help') {
-      const allCmds = Object.keys(COMMANDS).filter(k => k !== 'hi').join(', ');
-      showResponse(`> Fine, here's everything: ${allCmds}. Happy now?`);
+      showResponse('> All commands: sudo, nuke, ls, exit, clear, hack, whoami, pwd, cat, ping, cd, vim, man, echo, top, git, npm, help', false, true, 4000);
       return;
     }
 

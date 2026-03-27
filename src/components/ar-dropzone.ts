@@ -105,6 +105,10 @@ export class ArDropzone extends HTMLElement {
         .dropzone.dragover .idle-content { display: none; }
         .dropzone.dragover .dragover-text { display: block; }
         input[type="file"] { display: none; }
+        .dropzone.dropzone-disabled {
+          opacity: 0.4;
+          pointer-events: none;
+        }
         :host(:focus-visible) .dropzone,
         .dropzone:focus-visible {
           outline: none;
@@ -246,6 +250,16 @@ export class ArDropzone extends HTMLElement {
         }
       }
     });
+  }
+
+  /** Enable or disable the dropzone (used to block interaction until model is ready) */
+  setEnabled(enabled: boolean): void {
+    if (!this.dropArea) return;
+    if (enabled) {
+      this.dropArea.classList.remove('dropzone-disabled');
+    } else {
+      this.dropArea.classList.add('dropzone-disabled');
+    }
   }
 
   private async handleFile(file: File): Promise<void> {

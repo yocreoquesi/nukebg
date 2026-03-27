@@ -185,10 +185,7 @@ async function loadModel(id: string, modelId: ModelId = DEFAULT_MODEL, emitReady
   self.postMessage({ id, type: 'model-progress', progress: 5 });
 
   const transformers = await import('@huggingface/transformers');
-  // MODNet (6MB) is self-hosted. RMBG-1.4 (42MB) exceeds Cloudflare 25MB limit → HuggingFace CDN.
-  const isLocalModel = modelId === 'Xenova/modnet';
-  transformers.env.allowLocalModels = isLocalModel;
-  transformers.env.localModelPath = '/models/';
+  transformers.env.allowLocalModels = false;
   transformers.env.allowRemoteModels = true;
   RawImageClass = transformers.RawImage as unknown as typeof RawImageClass;
 
@@ -206,8 +203,9 @@ async function loadModel(id: string, modelId: ModelId = DEFAULT_MODEL, emitReady
   self.postMessage({ id, type: 'model-progress', progress: 96 });
   try {
     if (RawImageClass) {
-      const warmupPixels = new Uint8ClampedArray(16); // 2x2 RGBA
-      const warmupImg = new RawImageClass(warmupPixels, 2, 2, 4);
+      const warmupSize = 256;
+      const warmupPixels = new Uint8ClampedArray(warmupSize * warmupSize * 4);
+      const warmupImg = new RawImageClass(warmupPixels, warmupSize, warmupSize, 4);
       await (seg as unknown as SegmenterEntry['pipeline'])(warmupImg, { threshold: 0.5, return_mask: true });
     }
   } catch { /* warmup failure is non-critical */ }
@@ -255,6 +253,12 @@ async function segment(
       const srcY = Math.min(Math.floor(y * scaleY), maskH - 1);
       rawAlpha[y * width + x] = maskData[srcY * maskW + srcX];
     }
+  }
+
+  // Apply threshold binarization — this is what makes the slider functional
+  const thresholdByte = Math.round(threshold * 255);
+  for (let i = 0; i < rawAlpha.length; i++) {
+    rawAlpha[i] = rawAlpha[i] > thresholdByte ? 255 : 0;
   }
 
   const refinedEdges = refineEdges(rawAlpha, pixels, width, height);

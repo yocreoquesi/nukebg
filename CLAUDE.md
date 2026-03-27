@@ -44,7 +44,7 @@ nukebg/
 │   │   └── constants.ts           # Algorithm thresholds and parameters
 │   ├── workers/
 │   │   ├── cv.worker.ts           # Classical vision Web Worker
-│   │   ├── ml.worker.ts           # ML Web Worker (Transformers.js + RMBG-1.4 / MODNet)
+│   │   ├── ml.worker.ts           # ML Web Worker (Transformers.js + RMBG-1.4)
 │   │   └── cv/                    # Individual CV algorithm modules
 │   │       ├── detect-bg-colors.ts
 │   │       ├── detect-checker-grid.ts
@@ -124,7 +124,7 @@ infra: configure Cloudflare Pages deploy
 - **Runtime**: Vanilla TypeScript + Web Components
 - **Build**: Vite 6
 - **Tests**: Vitest + happy-dom
-- **ML**: Transformers.js with RMBG-1.4 INT8 (~45MB) + MODNet (~25MB), lazy-loaded
+- **ML**: Transformers.js with RMBG-1.4 INT8 (~45MB), lazy-loaded
 - **GPU**: WebGPU with automatic WASM fallback
 - **Styles**: Custom CSS (JetBrains Mono, zero dependencies)
 - **Cache**: Service Worker + Cache API

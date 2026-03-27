@@ -134,13 +134,10 @@ export type CvWorkerResponse =
 
 /** ======== ML Worker Messages ======== */
 
-export type ModelId =
-  | 'briaai/RMBG-1.4'
-  | 'Xenova/modnet';
+export type ModelId = 'briaai/RMBG-1.4';
 
 export const MODEL_OPTIONS: { id: ModelId; label: string; description: string }[] = [
   { id: 'briaai/RMBG-1.4', label: 'RMBG 1.4', description: 'Best for illustrations, icons, and AI art' },
-  { id: 'Xenova/modnet', label: 'MODNet', description: 'Optimized for photos of people' },
 ];
 
 export type MlWorkerRequest =

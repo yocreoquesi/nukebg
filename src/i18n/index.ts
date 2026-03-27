@@ -14,15 +14,8 @@ const translations: Translations = {
     'hero.subtitle': 'Drop any image. Get a clean transparent PNG.\nNo upload. No account. No BS.',
     'hero.modelStatus': 'Ready to nuke',
 
-    // Model selector
-    'model.label': 'AI Model:',
-    'model.tryAnother': 'Not happy? Try another model:',
+    // Model / precision
     'model.reprocess': 'Reprocess',
-    'model.autoDetected': 'Auto-detected {type} \u2192 {desc}',
-
-    // Model descriptions
-    'model.rmbg.description': 'Best for illustrations, icons, and AI art',
-    'model.modnet.description': 'Optimized for photos of people',
 
     // Dropzone
     'dropzone.title': 'Drop your image here',
@@ -112,15 +105,8 @@ const translations: Translations = {
     'hero.subtitle': 'Arrastra una imagen. Obt\u00E9n un PNG transparente.\nSin subidas. Sin cuenta. Sin rollos.',
     'hero.modelStatus': 'Listo para nukear',
 
-    // Model selector
-    'model.label': 'Modelo IA:',
-    'model.tryAnother': '\u00BFNo te convence? Prueba otro modelo:',
+    // Model / precision
     'model.reprocess': 'Reprocesar',
-    'model.autoDetected': 'Auto-detectado {type} \u2192 {desc}',
-
-    // Model descriptions
-    'model.rmbg.description': 'Ideal para ilustraciones, iconos y arte IA',
-    'model.modnet.description': 'Optimizado para fotos de personas',
 
     // Dropzone
     'dropzone.title': 'Arrastra tu imagen aqu\u00ED',

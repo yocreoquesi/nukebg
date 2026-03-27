@@ -32,10 +32,9 @@ describe('ModelId parameter', () => {
     expect(rmbg!.label).toBe('RMBG 1.4');
   });
 
-  it('MODEL_OPTIONS incluye MODNet', () => {
-    const modnet = MODEL_OPTIONS.find(o => o.id === 'Xenova/modnet');
-    expect(modnet).toBeDefined();
-    expect(modnet!.label).toBe('MODNet');
+  it('MODEL_OPTIONS solo contiene RMBG-1.4', () => {
+    expect(MODEL_OPTIONS.length).toBe(1);
+    expect(MODEL_OPTIONS[0].id).toBe('briaai/RMBG-1.4');
   });
 
   it('modelId condicional genera el payload correcto para mlCall', () => {
@@ -53,7 +52,7 @@ describe('ModelId parameter', () => {
   });
 
   it('el mensaje para ml worker se construye correctamente con modelId', () => {
-    const modelId: ModelId = 'Xenova/modnet';
+    const modelId: ModelId = 'briaai/RMBG-1.4';
     const payload = { pixels: new Uint8ClampedArray(100), width: 5, height: 5 };
     const extra = modelId ? { modelId } : undefined;
 
@@ -67,7 +66,7 @@ describe('ModelId parameter', () => {
 
     expect(message.id).toBe('test-uuid');
     expect(message.type).toBe('segment');
-    expect(message.modelId).toBe('Xenova/modnet');
+    expect(message.modelId).toBe('briaai/RMBG-1.4');
     expect(message.payload.pixels).toBeInstanceOf(Uint8ClampedArray);
   });
 
