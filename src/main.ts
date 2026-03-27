@@ -535,6 +535,13 @@ function initTerminalPrompt(): void {
       return;
     }
 
+    // Special case: help help — show ALL commands
+    if (cmd === 'help help') {
+      const allCmds = Object.keys(COMMANDS).filter(k => k !== 'hi').join(', ');
+      showResponse(`> Fine, here's everything: ${allCmds}. Happy now?`);
+      return;
+    }
+
     // Special case: help — rotating command groups
     if (cmd === 'help') {
       showResponse(getHelpResponse());
