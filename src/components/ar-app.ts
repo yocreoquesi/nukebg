@@ -326,13 +326,16 @@ export class ArApp extends HTMLElement {
           animation: nuke-shake 0.4s ease-in-out 3;
         }
 
-        /* === Smoke effect covering feature cards area === */
+        /* === Smoke effect overlays the page from bottom === */
         .smoke-effect {
           display: none;
-          position: relative;
-          width: 100%;
+          position: fixed;
+          bottom: 0;
+          left: 0;
+          right: 0;
           height: 400px;
           pointer-events: none;
+          z-index: 100;
           background: linear-gradient(
             to top,
             rgba(20, 80, 20, 0.6) 0%,
