@@ -4,7 +4,8 @@
   Referrer-Policy: no-referrer
   Permissions-Policy: camera=(), microphone=(), geolocation=()
   Cross-Origin-Opener-Policy: same-origin
-  Cross-Origin-Embedder-Policy: credentialless
+  # COEP removed — was blocking cross-origin fetch to HuggingFace CDN for model download
+  # SharedArrayBuffer (which needs COEP) is not critical for our use case
   # CSP temporarily removed — was blocking WebAssembly.instantiate() in ONNX Runtime
   # despite wasm-unsafe-eval + unsafe-eval being present. Will re-add once confirmed working.
 
