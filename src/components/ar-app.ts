@@ -74,6 +74,33 @@ export class ArApp extends HTMLElement {
     this.render();
     this.setupComponents();
     this.setupEvents();
+    this.preloadModel();
+  }
+
+  /** Pre-load model + warmup as soon as page opens */
+  private preloadModel(): void {
+    const statusEl = () => this.shadowRoot?.querySelector('#model-status');
+
+    this.pipeline = new PipelineOrchestrator(
+      (_stage: PipelineStage, _status: StageStatus, message?: string) => {
+        const el = statusEl();
+        if (el && message) el.textContent = message;
+      }
+    );
+
+    const el = statusEl();
+    if (el) el.textContent = 'Downloading AI model...';
+
+    this.pipeline.preloadModel(this.selectedModel).then(() => {
+      const s = statusEl();
+      if (s) {
+        s.textContent = '> reactor online. Ready to nuke.';
+        s.classList.add('ready');
+      }
+    }).catch(() => {
+      const s = statusEl();
+      if (s) s.textContent = '> model loads on first image';
+    });
   }
 
   disconnectedCallback(): void {
