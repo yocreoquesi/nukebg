@@ -825,7 +825,9 @@ export class ArApp extends HTMLElement {
             <select id="model-select-ws" aria-label="${t('model.label')}">
               ${MODEL_OPTIONS.map(m => `<option value="${m.id}" ${m.id === this.selectedModel ? 'selected' : ''}>${m.label}</option>`).join('')}
             </select>
-            <span class="model-desc" id="model-desc-ws"></span>
+            <span class="precision-sep">|</span>
+            <input type="range" id="precision-slider-ws" min="0" max="4" value="2" step="1" aria-label="Precision level">
+            <span class="precision-label" id="precision-label-ws">Balanced</span>
             <button id="reprocess-btn" class="reprocess-btn" aria-label="${t('model.reprocess')}">${t('model.reprocess')}</button>
           </div>
           <ar-download></ar-download>
@@ -963,6 +965,11 @@ export class ArApp extends HTMLElement {
       this.selectedPrecision = precisionKeys[val];
       const label = this.shadowRoot!.querySelector('#precision-label');
       if (label) label.textContent = precisionLabels[val];
+      // Sync workspace slider
+      const wsSlider = this.shadowRoot!.querySelector('#precision-slider-ws') as HTMLInputElement;
+      if (wsSlider) wsSlider.value = String(val);
+      const wsLabel = this.shadowRoot!.querySelector('#precision-label-ws');
+      if (wsLabel) wsLabel.textContent = precisionLabels[val];
 
       const marquee = this.shadowRoot!.querySelector('#precision-marquee') as HTMLElement;
       const smoke = this.shadowRoot!.querySelector('#smoke-effect') as HTMLElement;
@@ -1033,6 +1040,19 @@ export class ArApp extends HTMLElement {
         // Hide smoke in normal modes
         if (smoke) smoke.classList.remove('active');
       }
+    });
+
+    // Workspace precision slider — syncs with hero slider
+    this.shadowRoot!.querySelector('#precision-slider-ws')?.addEventListener('input', (e) => {
+      const val = parseInt((e.target as HTMLInputElement).value);
+      // Sync hero slider
+      const heroSlider = this.shadowRoot!.querySelector('#precision-slider') as HTMLInputElement;
+      if (heroSlider) heroSlider.value = String(val);
+      // Trigger the same handler
+      heroSlider?.dispatchEvent(new Event('input'));
+      // Update workspace label
+      const wsLabel = this.shadowRoot!.querySelector('#precision-label-ws');
+      if (wsLabel) wsLabel.textContent = precisionLabels[val];
     });
 
     // Workspace model selector — for reprocessing with a different model
