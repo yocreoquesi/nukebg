@@ -27,6 +27,7 @@ export class ArApp extends HTMLElement {
   private crtFlickerTimers: number[] = [];
   private isProcessing = false;
   private processingAborted = false;
+  private hasManualEdits = false;
 
   constructor() {
     super();
@@ -1102,6 +1103,7 @@ export class ArApp extends HTMLElement {
           this.lastResultImageData = this.preRefineResult;
           this.preRefineResult = null;
     this.cachedRefineResult = null;
+    this.hasManualEdits = false;
         } finally {
           if (!this.processingAborted) {
             this.isProcessing = false;
@@ -1133,8 +1135,11 @@ export class ArApp extends HTMLElement {
       const editedData = (e as CustomEvent).detail.imageData as ImageData;
       const { exportPng } = await import('../utils/image-io');
       const blob = await exportPng(editedData);
+      this.lastResultImageData = editedData;
       this.viewer.setResult(editedData, blob);
       await this.download.setResult(editedData, this.currentFileName, 0, blob);
+      this.hasManualEdits = true;
+      this.updateRefineButton();
       // Hide editor, show edit button again
       (this.shadowRoot!.querySelector('#editor-section') as HTMLElement).style.display = 'none';
       (this.shadowRoot!.querySelector('#edit-btn') as HTMLElement).style.display = 'block';
@@ -1179,14 +1184,24 @@ export class ArApp extends HTMLElement {
   private updateRefineButton(): void {
     const btn = this.shadowRoot!.querySelector('#refine-btn') as HTMLButtonElement | null;
     if (!btn) return;
-    if (this.preRefineResult) {
-      // Currently refined — show undo
+
+    if (this.hasManualEdits && this.preRefineResult) {
+      // Manual edits made after refine — disable undo (would lose edits)
+      btn.textContent = t('refine.undo');
+      btn.disabled = true;
+      btn.title = document.documentElement.lang === 'es'
+        ? 'Deshaz la edici\u00F3n manual primero'
+        : 'Discard manual edits first';
+    } else if (this.preRefineResult) {
       btn.textContent = t('refine.undo');
       btn.setAttribute('aria-label', t('refine.undo'));
+      btn.disabled = false;
+      btn.title = '';
     } else {
-      // Not refined — show refine
       btn.textContent = t('refine.btn');
       btn.setAttribute('aria-label', t('refine.btn'));
+      btn.disabled = false;
+      btn.title = '';
     }
   }
 
@@ -1245,6 +1260,7 @@ export class ArApp extends HTMLElement {
     this.currentFileSize = fileSize;
     this.preRefineResult = null;
     this.cachedRefineResult = null;
+    this.hasManualEdits = false;
     this.lastResultImageData = null;
 
     const hero = this.shadowRoot!.querySelector('#hero')!;
@@ -1296,6 +1312,7 @@ export class ArApp extends HTMLElement {
       } else {
         this.preRefineResult = null;
     this.cachedRefineResult = null;
+    this.hasManualEdits = false;
       }
 
       // Show refine button, update its label
@@ -1331,6 +1348,7 @@ export class ArApp extends HTMLElement {
     this.download.reset();
     this.preRefineResult = null;
     this.cachedRefineResult = null;
+    this.hasManualEdits = false;
 
     // Hide refine button
     const refineBtn = this.shadowRoot!.querySelector('#refine-btn') as HTMLElement;
