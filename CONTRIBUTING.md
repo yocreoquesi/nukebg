@@ -104,7 +104,8 @@ nukebg/
 
 - **Pipeline Orchestrator** lives on the main thread. Dispatches work to Web Workers.
 - **CV Worker** runs classical algorithms: checkerboard detection, flood fill, watermark removal, shadow cleanup, alpha refinement.
-- **ML Worker** runs inference via Transformers.js. RMBG-1.4 or MODNet. Lazy-loaded on demand.
+- **ML Worker** runs inference via Transformers.js (RMBG-1.4). Lazy-loaded on demand.
+- **Matting Worker** runs ViTMatte alpha matting for edge refinement. Created per-image, disposed after use.
 - **Web Components** use Shadow DOM + Custom Events on `document` for inter-component communication.
 - Worker communication uses `postMessage` with `Transferable` objects (`ImageData`) for zero-copy transfers.
 
@@ -245,7 +246,7 @@ Modules live in `src/workers/cv/`. Each is a pure function operating on `ImageDa
 
 ### ML pipeline
 
-The ML worker lives in `src/workers/ml.worker.ts`. Uses Transformers.js with RMBG-1.4 INT8 and MODNet. WebGPU preferred; WASM fallback is automatic. Model loads on demand.
+The ML worker lives in `src/workers/ml.worker.ts`. Uses Transformers.js with RMBG-1.4 INT8. WASM runtime. Model loads on demand. Edge refinement uses ViTMatte via a separate matting worker (`src/workers/matting.worker.ts`). Only one ML model is in memory at a time to manage browser memory limits.
 
 ### UI components
 

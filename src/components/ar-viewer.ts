@@ -336,8 +336,8 @@ export class ArViewer extends HTMLElement {
     this.originalCanvas.height = imageData.height;
     ctx.putImageData(imageData, 0, 0);
 
-    // Reset slider to middle
-    this.sliderPos = 50;
+    // Show full original (slider all the way right = result clipped away)
+    this.sliderPos = 100;
     this.updateSlider();
 
     const info = this.shadowRoot!.querySelector('#info-text')!;
@@ -366,7 +366,7 @@ export class ArViewer extends HTMLElement {
     requestAnimationFrame(() => {
       const start = performance.now();
       const animate = (now: number) => {
-        const progress = Math.min((now - start) / 600, 1);
+        const progress = Math.min((now - start) / 800, 1);
         // Ease out
         const eased = 1 - Math.pow(1 - progress, 3);
         this.sliderPos = 100 - eased * 100;

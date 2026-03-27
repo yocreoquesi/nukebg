@@ -27,25 +27,27 @@ Drop. Nuke. Download. That's it.
 ## > features
 
 ```
-[+] BACKGROUND REMOVAL          ML-powered removal for any image: photos, illustrations,
-                                AI art, whatever. RMBG-1.4 + MODNet. WebGPU/WASM.
+[+] DUAL ML PIPELINE             RMBG-1.4 for segmentation + ViTMatte for edge refinement.
+                                  Clean cuts, no halos. Memory-managed: one model at a time.
 
-[+] CHECKERBOARD OBLITERATION   Detects and classifies painted checkerboard backgrounds.
-                                Any grid size, any generator.
+[+] CHECKERBOARD OBLITERATION    Detects and classifies painted checkerboard backgrounds.
+                                  Any grid size, any generator.
 
-[+] GEMINI WATERMARK REMOVAL    Auto-detects and inpaints Gemini's sparkle watermark.
-                                Telea FMM reconstruction -- no blurry patches.
+[+] WATERMARK REMOVAL            Auto-detects Gemini sparkle + DALL-E color bar watermarks.
+                                  Telea FMM reconstruction -- no blurry patches.
 
-[+] 100% CLIENT-SIDE            Zero server uploads. Zero network requests during processing.
-                                Verify it yourself in DevTools.
+[+] 100% CLIENT-SIDE             Zero server uploads. Zero network requests during processing.
+                                  Verify it yourself in DevTools.
 
-[+] DUAL ML MODELS              RMBG-1.4 (~45MB) for illustrations and AI art.
-                                MODNet (~25MB) optimized for photos of people.
+[+] OFFLINE MODE                 After first visit, app + model weights are cached.
+                                  Process images without internet.
 
-[+] OFFLINE MODE                After first visit, app + model weights are cached.
-                                Process images without internet.
+[+] TERMINAL THEME               JetBrains Mono, CRT effects, easter eggs everywhere.
+                                  Slider with 4 visual modes. Type 'help' in the prompt.
 
-[+] OPEN SOURCE (GPL-3.0)       Audit the code. Fork it. Improve it.
+[+] i18n                         English and Spanish. Auto-detects browser language.
+
+[+] OPEN SOURCE (GPL-3.0)        Audit the code. Fork it. Improve it.
 ```
 
 ## > quick_start
@@ -75,22 +77,26 @@ Deploy `dist/` to any static host: Cloudflare Pages, GitHub Pages, Netlify, Verc
   INPUT (PNG, JPG, WebP)
     |
     v
-  [1. DETECT BACKGROUND] ------ corner sampling, brightness analysis
-    |                            classifies: checkerboard / solid / complex
+  [1. SCAN IMAGE] --------------- corner sampling, brightness analysis (CV, instant)
+    |                              classifies: checkerboard / solid / complex
     v
-  [2. WATERMARK SCAN] --------- Gemini sparkle detection (runs on every image)
+  [2. WATERMARK DETECTION] ------ Gemini sparkle + DALL-E color bar (CV, instant)
     |
-    +-- Watermark found? ------> [3. INPAINT] Telea FMM reconstruction
+    +-- Watermark found? -------> [3. INPAINT] Telea FMM reconstruction (CV, instant)
     +-- No watermark? ----------> skip
     |
     v
-  [4. ML SEGMENTATION] -------- RMBG-1.4 or MODNet (user's choice)
-    |                            WebGPU preferred, WASM fallback
+  [4. BACKGROUND REMOVAL] ------- RMBG-1.4 segmentation (ML)
+    |                              WebGPU/WASM via Transformers.js
+    v
+  [5. EDGE REFINEMENT] ---------- ViTMatte alpha matting (ML)  <-- NEW in v2.0
+    |                              trimap generation + guided refinement
+    |                              eliminates halos, preserves hair/fur detail
     v
   CLEAN RGBA PNG w/ REAL TRANSPARENCY
 ```
 
-ML models are lazy-loaded on first use, then cached by the Service Worker for offline access.
+ML models are lazy-loaded on first use, then cached by the Service Worker for offline access. Only one ML model is in memory at a time -- RMBG-1.4 is disposed before loading ViTMatte, and vice versa.
 
 ## > tech_stack
 
@@ -101,11 +107,12 @@ ML models are lazy-loaded on first use, then cached by the Service Worker for of
 | Build | Vite 6 |
 | Testing | Vitest |
 | ML Runtime | Transformers.js (ONNX Runtime Web) |
-| ML Models | RMBG-1.4 INT8 (~45MB) + MODNet (~25MB) |
-| GPU | WebGPU with WASM fallback |
+| ML Models | RMBG-1.4 INT8 (~45MB) + ViTMatte (~25MB) |
+| GPU | WASM (WebGPU reserved for future) |
 | Processing | Canvas API + OffscreenCanvas in Web Workers |
 | Caching | Service Worker + Cache API |
 | Styling | Custom CSS (JetBrains Mono, zero dependencies) |
+| i18n | Lightweight custom system (EN/ES) |
 
 ## > privacy
 
@@ -125,9 +132,10 @@ OPEN SOURCE.             Don't trust us -- verify.
 
 | Feature | NukeBG | remove.bg | backgroundless.io | Photoshop |
 |---------|--------|-----------|-------------------|-----------|
+| Dual ML pipeline (segment + refine) | Yes | No | No | No |
 | Checkerboard detection | Yes | No | No | Manual |
-| Gemini watermark removal | Yes | No | No | Manual |
-| ML background removal | Yes | Yes | Yes | Yes |
+| Watermark removal (Gemini + DALL-E) | Yes | No | No | Manual |
+| Alpha matting (hair/fur detail) | Yes (ViTMatte) | Yes (proprietary) | No | Yes |
 | Client-side (private) | Yes | No | Yes | N/A |
 | Free and unlimited | Yes | No (credits) | Yes | No ($22/mo) |
 | Open source | Yes (GPL-3.0) | No | No | No |

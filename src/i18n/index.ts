@@ -33,6 +33,7 @@ const translations: Translations = {
     'progress.bgRemoval': 'Removing background',
     'progress.bgRemovalCV': 'Removing background [CV]',
     'progress.bgRemovalML': 'Removing background [ML]',
+    'progress.edgeRefine': 'Refining edges',
     'progress.initAI': 'Initializing AI engine...',
     'progress.total': 'Total:',
 
@@ -124,6 +125,7 @@ const translations: Translations = {
     'progress.bgRemoval': 'Eliminando fondo',
     'progress.bgRemovalCV': 'Eliminando fondo [CV]',
     'progress.bgRemovalML': 'Eliminando fondo [ML]',
+    'progress.edgeRefine': 'Refinando bordes',
     'progress.initAI': 'Inicializando motor IA...',
     'progress.total': 'Total:',
 

@@ -89,7 +89,7 @@
 - In `ar-dropzone.ts`, error messages use `textContent`. **SAFE.**
 
 ### No External Requests During Processing
-- Verified: zero network requests during image processing. Models are loaded from HuggingFace CDN (RMBG-1.4) or self-hosted (MODNet) on first use only, then cached.
+- Verified: zero network requests during image processing. Models are loaded from HuggingFace CDN (RMBG-1.4, ViTMatte) on first use only, then cached.
 - No analytics, no tracking pixels, no cookies.
 
 ---
@@ -210,7 +210,7 @@ The WASM file is large but loads lazily (only when processing starts). Fonts are
 
 ### Assets
 - Fonts: 4 JetBrains Mono weights (woff2), self-hosted. **No external CDN.**
-- Models: `Xenova/modnet` self-hosted in `public/models/`, `briaai/RMBG-1.4` from HuggingFace CDN (exceeds Cloudflare 25MB limit). There's also a `u2netp.onnx` in models/ that appears unused by current code.
+- Models: `briaai/RMBG-1.4` and `Xenova/vitmatte-small-composition-1k` from HuggingFace CDN, cached by Service Worker.
 - Open Graph image: `og-image.png` present.
 - PWA manifest: present with favicon.
 
@@ -234,7 +234,7 @@ The codebase is production-quality. TypeScript strict, zero `any`, 144 passing t
 
 ### SHOULD ADD (not blocking, but recommended before heavy promotion)
 1. **Content-Security-Policy header** -- Even a permissive one would harden the app. Suggested: `default-src 'self'; script-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; connect-src 'self' https://huggingface.co; worker-src 'self' blob:;`
-2. **Remove unused `u2netp.onnx`** from `public/models/` -- it's ~4.6MB of dead weight if not referenced.
+2. ~~Remove unused `u2netp.onnx` from `public/models/`~~ **REMOVED in v2.0** (also removed self-hosted MODNet model).
 3. **PWA manifest**: only has SVG favicon icon -- add a 192x192 and 512x512 PNG icon for better PWA install experience on mobile.
 
 ### NICE TO HAVE (not blocking at all)

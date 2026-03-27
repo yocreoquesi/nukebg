@@ -19,7 +19,7 @@ export class ArApp extends HTMLElement {
   private currentFileName = 'image.png';
   private currentImageData: ImageData | null = null;
   private currentFileSize = 0;
-  private selectedPrecision: 'low-power' | 'keep-more' | 'balanced' | 'clean-more' | 'full-nuke' = 'balanced';
+  private selectedPrecision: 'low-power' | 'normal' | 'high-power' | 'full-nuke' = 'normal';
   private lastResultImageData: ImageData | null = null;
   private crtFlickerTimers: number[] = [];
 
@@ -721,8 +721,8 @@ export class ArApp extends HTMLElement {
           ${t('hero.subtitle').replace(/\n/g, ' ')}
         </p>
         <div class="ws-precision">
-          <input type="range" id="precision-slider" min="0" max="4" value="2" step="1" aria-label="Precision level">
-          <span class="precision-label" id="precision-label">Balanced</span>
+          <input type="range" id="precision-slider" min="0" max="3" value="1" step="1" aria-label="Precision level">
+          <span class="precision-label" id="precision-label">Normal</span>
         </div>
         <ar-dropzone></ar-dropzone>
         <p class="model-status" id="model-status">${t('hero.modelStatus')}</p>
@@ -735,13 +735,12 @@ export class ArApp extends HTMLElement {
           <ar-viewer></ar-viewer>
           <ar-progress></ar-progress>
           <div class="ws-precision">
-            <input type="range" id="precision-slider-ws" min="0" max="4" value="2" step="1" aria-label="Precision level">
-            <span class="precision-label" id="precision-label-ws">Balanced</span>
+            <input type="range" id="precision-slider-ws" min="0" max="3" value="1" step="1" aria-label="Precision level">
+            <span class="precision-label" id="precision-label-ws">Normal</span>
             <button id="reprocess-btn" class="reprocess-btn" aria-label="${t('model.reprocess')}">${t('model.reprocess')}</button>
           </div>
           <div class="precision-marquee" id="precision-marquee-ws"><span>☢ NUKEBG — DROP. NUKE. DOWNLOAD. → nukebg.app ☢ NUKEBG — DROP. NUKE. DOWNLOAD. → nukebg.app ☢</span></div>
           <ar-download></ar-download>
-          <button class="edit-btn" id="refine-btn" style="display:none">&#9762; Refine edges (experimental)</button>
           <button class="edit-btn" id="edit-btn" style="display:none">${t('edit.btn')}</button>
           <ar-editor style="display:none" id="editor-section"></ar-editor>
         </div>
@@ -832,9 +831,9 @@ export class ArApp extends HTMLElement {
       this.resetToIdle();
     });
 
-    // Precision slider — 5 positions with visual effects at extremes
-    const precisionKeys = ['low-power', 'keep-more', 'balanced', 'clean-more', 'full-nuke'] as const;
-    const precisionLabels = ['Low Power', 'Keep More', 'Balanced', 'Clean More', 'Full Nuke'];
+    // Precision slider — 4 positions with visual effects at extremes
+    const precisionKeys = ['low-power', 'normal', 'high-power', 'full-nuke'] as const;
+    const precisionLabels = ['Low Power', 'Normal', 'High Power', 'FULL NUKE'];
     this.shadowRoot!.querySelector('#precision-slider')?.addEventListener('input', (e) => {
       const val = parseInt((e.target as HTMLInputElement).value);
       this.selectedPrecision = precisionKeys[val];
@@ -860,7 +859,7 @@ export class ArApp extends HTMLElement {
         });
       };
 
-      if (val === 4) {
+      if (val === 3) {
         // Full Nuke — red override (shadow DOM + global properties)
         document.documentElement.style.setProperty('--terminal-color-override', '#cc3333');
         document.documentElement.style.setProperty('--color-text-primary', '#cc3333');
@@ -933,95 +932,6 @@ export class ArApp extends HTMLElement {
     this.shadowRoot!.querySelector('#reprocess-btn')?.addEventListener('click', () => {
       if (this.currentImageData) {
         this.processImage(this.currentImageData, this.currentFileSize);
-      }
-    });
-
-    // Refine edges button — ViTMatte alpha matting (experimental PoC)
-    this.shadowRoot!.querySelector('#refine-btn')?.addEventListener('click', async () => {
-      if (!this.currentImageData || !this.lastResultImageData) return;
-
-      const refineBtn = this.shadowRoot!.querySelector('#refine-btn') as HTMLElement;
-      if (refineBtn) refineBtn.textContent = '☢ Refining edges...';
-
-      try {
-        // Extract current alpha mask from result
-        const resultData = this.lastResultImageData.data;
-        const w = this.lastResultImageData.width;
-        const h = this.lastResultImageData.height;
-        const mask = new Uint8Array(w * h);
-        for (let i = 0; i < w * h; i++) {
-          mask[i] = resultData[i * 4 + 3];
-        }
-
-        // Create matting worker
-        const mattingWorker = new Worker(
-          new URL('../workers/matting.worker.ts', import.meta.url),
-          { type: 'module' }
-        );
-
-        const refined = await new Promise<Uint8Array>((resolve, reject) => {
-          const timeoutId = setTimeout(() => reject(new Error('Matting timeout')), 120000);
-
-          mattingWorker.onmessage = (e) => {
-            const msg = e.data;
-            if (msg.type === 'matting-progress') {
-              if (refineBtn) refineBtn.textContent = `☢ ${msg.stage}...`;
-            } else if (msg.type === 'matting-result') {
-              clearTimeout(timeoutId);
-              resolve(msg.result);
-            } else if (msg.type === 'error') {
-              clearTimeout(timeoutId);
-              reject(new Error(msg.error));
-            }
-          };
-          mattingWorker.onerror = (e) => {
-            clearTimeout(timeoutId);
-            reject(new Error(e.message));
-          };
-
-          mattingWorker.postMessage({
-            id: 'refine-1',
-            type: 'refine',
-            payload: {
-              pixels: new Uint8ClampedArray(this.currentImageData!.data),
-              mask,
-              width: w,
-              height: h,
-            },
-          });
-        });
-
-        // Compose new result with refined alpha
-        const origPixels = this.currentImageData.data;
-        const newResult = new Uint8ClampedArray(w * h * 4);
-        for (let i = 0; i < w * h; i++) {
-          newResult[i * 4] = origPixels[i * 4];
-          newResult[i * 4 + 1] = origPixels[i * 4 + 1];
-          newResult[i * 4 + 2] = origPixels[i * 4 + 2];
-          newResult[i * 4 + 3] = refined[i];
-        }
-
-        const refinedImageData = new ImageData(newResult, w, h);
-        const { exportPng } = await import('../utils/image-io');
-        const blob = await exportPng(refinedImageData);
-        this.viewer.setResult(refinedImageData, blob);
-        await this.download.setResult(refinedImageData, this.currentFileName, 0, blob);
-        this.lastResultImageData = refinedImageData;
-
-        // Dispose matting worker
-        mattingWorker.postMessage({ id: 'dispose-1', type: 'dispose' });
-        setTimeout(() => mattingWorker.terminate(), 1000);
-
-        if (refineBtn) refineBtn.textContent = '☢ Edges refined!';
-        setTimeout(() => {
-          if (refineBtn) refineBtn.textContent = '☢ Refine edges (experimental)';
-        }, 2000);
-      } catch (err) {
-        console.error('Matting error:', err);
-        if (refineBtn) refineBtn.textContent = `☢ Failed: ${err instanceof Error ? err.message : String(err)}`;
-        setTimeout(() => {
-          if (refineBtn) refineBtn.textContent = '☢ Refine edges (experimental)';
-        }, 3000);
       }
     });
 
@@ -1120,18 +1030,13 @@ export class ArApp extends HTMLElement {
     }
 
     try {
-      // Map precision to threshold: 5 levels from conservative to aggressive
-      const thresholdMap = { 'low-power': 0.1, 'keep-more': 0.3, 'balanced': 0.5, 'clean-more': 0.7, 'full-nuke': 0.9 } as const;
-      const threshold = thresholdMap[this.selectedPrecision];
-      const result = await this.pipeline.process(imageData, ArApp.MODEL_ID, threshold);
+      const result = await this.pipeline.process(imageData, ArApp.MODEL_ID);
       const { exportPng } = await import('../utils/image-io');
       const blob = await exportPng(result.imageData);
       this.viewer.setResult(result.imageData, blob);
       await this.download.setResult(result.imageData, this.currentFileName, result.totalTimeMs, blob);
       this.lastResultImageData = result.imageData;
-      // Show refine + edit buttons
-      const refineBtn = this.shadowRoot!.querySelector('#refine-btn') as HTMLElement;
-      if (refineBtn) refineBtn.style.display = 'block';
+      // Show edit button
       const editBtn = this.shadowRoot!.querySelector('#edit-btn') as HTMLElement;
       if (editBtn) editBtn.style.display = 'block';
       // Hide editor if it was open from a previous edit

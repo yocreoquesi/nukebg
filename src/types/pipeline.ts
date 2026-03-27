@@ -10,7 +10,8 @@ export type PipelineStage =
   | 'watermark-scan'
   | 'inpaint'
   | 'shadow-cleanup'
-  | 'alpha-refine';
+  | 'alpha-refine'
+  | 'edge-refine';
 
 export type StageStatus = 'running' | 'done' | 'skipped' | 'error';
 
