@@ -92,7 +92,7 @@ const translations: Translations = {
     'features.aiArtifacts.desc': 'Painted checkerboards, Gemini watermarks... the stuff other tools pretend doesn\u2019t exist. We see it. We nuke it.',
     'features.private.title': 'Open Source. Verify Everything.',
     'features.private.desc': 'Your images never leave your device. Zero uploads, zero tracking, zero artificial slowdowns. No credit system, no paywall. It\u2019s GPL-3.0, go read the code.',
-    'features.disclaimer': 'We\u2019re <s>perfect</s> honest. And at least we don\u2019t hold your pixels hostage.',
+    'features.disclaimer': 'We\u2019re <s>perfect</s> honest. We mess up and we love it.',
 
     // Header / Footer (index.html)
     'header.skipLink': 'Skip to main content',
@@ -190,7 +190,7 @@ const translations: Translations = {
     'features.aiArtifacts.desc': 'Tableros de ajedrez pintados, marcas de agua de Gemini... eso que otras herramientas fingen que no existe. Nosotros lo vemos. Lo eliminamos.',
     'features.private.title': 'C\u00F3digo abierto. Verifica todo.',
     'features.private.desc': 'Tus im\u00E1genes nunca salen de tu dispositivo. Cero subidas, cero rastreo, cero ralentizaciones artificiales. Sin cr\u00E9ditos, sin muro de pago. Es GPL-3.0, lee el c\u00F3digo.',
-    'features.disclaimer': 'Somos <s>perfectos</s> honestos. Y al menos no secuestramos tus p\u00EDxeles.',
+    'features.disclaimer': 'Somos <s>perfectos</s> honestos. Cometemos errores y nos encanta.',
 
     // Header / Footer (index.html)
     'header.skipLink': 'Saltar al contenido principal',
