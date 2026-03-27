@@ -21,7 +21,7 @@ export class ArApp extends HTMLElement {
   private currentFileSize = 0;
   private selectedPrecision: 'low-power' | 'normal' | 'high-power' | 'full-nuke' = 'normal';
   private lastResultImageData: ImageData | null = null;
-  private refineEnabled = false;
+  private refineEnabled = true;
   private preRefineResult: ImageData | null = null;
   private cachedRefineResult: ImageData | null = null;
   private crtFlickerTimers: number[] = [];
@@ -312,6 +312,24 @@ export class ArApp extends HTMLElement {
             opacity: 0;
             transform: translateY(-80px);
           }
+        }
+        .ws-controls {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: var(--space-4, 1rem);
+          padding: var(--space-2, 0.5rem) 0;
+        }
+        .ws-slider-fixed {
+          display: flex;
+          align-items: center;
+          gap: var(--space-2, 0.5rem);
+          flex: 0 0 auto;
+        }
+        .ws-action-fixed {
+          flex: 0 0 auto;
+          min-width: 180px;
+          text-align: center;
         }
         .ws-precision {
           display: flex;
@@ -818,8 +836,8 @@ export class ArApp extends HTMLElement {
           </div>
           <span class="hero-separator" aria-hidden="true">|</span>
           <label class="refine-toggle" id="refine-toggle">
-            <input type="checkbox" id="refine-checkbox" aria-label="${t('refine.toggle')}">
-            <span id="refine-toggle-label">[_] ${t('refine.toggle')}</span>
+            <input type="checkbox" id="refine-checkbox" checked aria-label="${t('refine.toggle')}">
+            <span id="refine-toggle-label">[x] ${t('refine.toggle')}</span>
           </label>
         </div>
         <ar-dropzone></ar-dropzone>
@@ -832,10 +850,14 @@ export class ArApp extends HTMLElement {
         <div class="workspace-inner">
           <ar-viewer></ar-viewer>
           <ar-progress></ar-progress>
-          <div class="ws-precision">
-            <input type="range" id="precision-slider-ws" min="0" max="3" value="1" step="1" aria-label="Precision level">
-            <span class="precision-label" id="precision-label-ws">Normal</span>
-            <button id="refine-btn" class="refine-btn" style="display:none" aria-label="${t('refine.btn')}">${t('refine.btn')}</button>
+          <div class="ws-controls">
+            <div class="ws-slider-fixed">
+              <input type="range" id="precision-slider-ws" min="0" max="3" value="1" step="1" aria-label="Precision level">
+              <span class="precision-label" id="precision-label-ws">Normal</span>
+            </div>
+            <div class="ws-action-fixed">
+              <button id="refine-btn" class="refine-btn" style="display:none" aria-label="${t('refine.btn')}">${t('refine.btn')}</button>
+            </div>
           </div>
           <div class="precision-marquee" id="precision-marquee-ws"><span>☢ NUKEBG — DROP. NUKE. DOWNLOAD. → nukebg.app ☢ NUKEBG — DROP. NUKE. DOWNLOAD. → nukebg.app ☢</span></div>
           <ar-download></ar-download>

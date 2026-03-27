@@ -237,9 +237,7 @@ export class ArProgress extends HTMLElement {
           font-family: 'JetBrains Mono', monospace;
           font-size: 12px;
           color: var(--color-accent-primary, #00ff41);
-          margin-top: var(--space-2, 0.5rem);
-          padding-top: var(--space-2, 0.5rem);
-          border-top: 1px solid #1a3a1a;
+          margin-top: 2px;
         }
         .total-time .total-label {
           color: var(--color-text-secondary, #00cc33);
