@@ -810,7 +810,6 @@ export class ArApp extends HTMLElement {
           <div class="ws-precision">
             <input type="range" id="precision-slider-ws" min="0" max="3" value="1" step="1" aria-label="Precision level">
             <span class="precision-label" id="precision-label-ws">Normal</span>
-            <button id="reprocess-btn" class="reprocess-btn" aria-label="${t('model.reprocess')}">${t('model.reprocess')}</button>
             <button id="refine-btn" class="refine-btn" style="display:none" aria-label="${t('refine.btn')}">${t('refine.btn')}</button>
           </div>
           <div class="precision-marquee" id="precision-marquee-ws"><span>☢ NUKEBG — DROP. NUKE. DOWNLOAD. → nukebg.app ☢ NUKEBG — DROP. NUKE. DOWNLOAD. → nukebg.app ☢</span></div>
@@ -871,8 +870,6 @@ export class ArApp extends HTMLElement {
     if (subline) subline.textContent = t('hero.subtitle').replace(/\n/g, ' ');
     const modelStatus = root.querySelector('#model-status');
     if (modelStatus) modelStatus.textContent = t('hero.modelStatus');
-    const reprocessBtn = root.querySelector('#reprocess-btn');
-    if (reprocessBtn) reprocessBtn.textContent = t('model.reprocess');
     const editBtn = root.querySelector('#edit-btn');
     if (editBtn) editBtn.textContent = t('edit.btn');
     const refineCheckbox = root.querySelector('#refine-checkbox') as HTMLInputElement | null;
@@ -1015,23 +1012,19 @@ export class ArApp extends HTMLElement {
       if (label) label.textContent = `${this.refineEnabled ? '[x]' : '[_]'} ${t('refine.toggle')}`;
     });
 
-    this.shadowRoot!.querySelector('#reprocess-btn')?.addEventListener('click', () => {
-      if (this.currentImageData) {
-        this.processImage(this.currentImageData, this.currentFileSize);
-      }
-    });
-
     // Refine/Undo button in workspace
     this.shadowRoot!.querySelector('#refine-btn')?.addEventListener('click', async () => {
       const btn = this.shadowRoot!.querySelector('#refine-btn') as HTMLButtonElement;
       if (!btn || !this.lastResultImageData || !this.pipeline) return;
 
       if (this.preRefineResult) {
-        // Currently refined — undo
+        // Currently refined — undo: show pre-refine as result
         this.lastResultImageData = this.preRefineResult;
         this.preRefineResult = null;
         const { exportPng } = await import('../utils/image-io');
         const blob = await exportPng(this.lastResultImageData);
+        // Restore original image in the "Original" panel
+        if (this.currentImageData) this.viewer.setOriginal(this.currentImageData, this.currentFileSize);
         this.viewer.setResult(this.lastResultImageData, blob);
         await this.download.setResult(this.lastResultImageData, this.currentFileName, 0, blob);
         this.updateRefineButton();
@@ -1051,11 +1044,12 @@ export class ArApp extends HTMLElement {
           this.lastResultImageData = refined;
           const { exportPng } = await import('../utils/image-io');
           const blob = await exportPng(refined);
+          // Compare: pre-refine (RMBG only) as "Original" vs refined (ViTMatte) as "Result"
+          this.viewer.setOriginal(this.preRefineResult!, this.currentFileSize);
           this.viewer.setResult(refined, blob);
           await this.download.setResult(refined, this.currentFileName, 0, blob);
         } catch (err) {
           console.error('Post-process refine failed:', err);
-          // Restore pre-refine state
           this.lastResultImageData = this.preRefineResult;
           this.preRefineResult = null;
         }
