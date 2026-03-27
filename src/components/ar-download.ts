@@ -116,12 +116,12 @@ export class ArDownload extends HTMLElement {
         }
         .btn-copy {
           background: transparent;
-          color: var(--color-text-secondary, #00cc33);
+          color: var(--color-text-secondary, #00dd44);
           border: 1px solid #1a3a1a;
           padding: 10px 16px;
           border-radius: 0;
           font-family: 'JetBrains Mono', monospace;
-          font-size: 11px;
+          font-size: 12px;
           cursor: pointer;
           transition: all 0.3s ease;
         }
@@ -165,7 +165,7 @@ export class ArDownload extends HTMLElement {
           }
           .metadata {
             text-align: center;
-            font-size: 10px;
+            font-size: 12px;
           }
         }
 
@@ -206,9 +206,9 @@ export class ArDownload extends HTMLElement {
         }
         .btn-copy.copied { border-color: var(--color-accent-primary, #00ff41); color: var(--color-accent-primary, #00ff41); }
         .metadata {
-          font-size: 11px;
+          font-size: 12px;
           font-family: 'JetBrains Mono', monospace;
-          color: var(--color-text-tertiary, #006622);
+          color: var(--color-text-tertiary, #008830);
         }
         .separator { color: #1a3a1a; margin: 0 4px; }
       </style>

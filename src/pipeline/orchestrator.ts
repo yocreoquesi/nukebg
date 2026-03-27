@@ -389,15 +389,31 @@ export class PipelineOrchestrator {
     }
     const preRefineImageData = new ImageData(preRefinePixels, width, height);
 
+    // ── Auto-decide: should we refine edges with ViTMatte? ──
+    // Count edge pixels (alpha 30-200) — if >3%, borders are fuzzy and ViTMatte helps.
+    // If <=3%, borders are already clean and ViTMatte may add artifacts.
+    let edgePixels = 0;
+    for (let i = 0; i < mlAlpha.length; i++) {
+      if (mlAlpha[i] >= 30 && mlAlpha[i] <= 200) edgePixels++;
+    }
+    const edgePct = edgePixels / (width * height);
+    const shouldRefine = refineEdges && edgePct > 0.03;
+
+    if (shouldRefine) {
+      console.log(`[NukeBG] Edge pixels: ${(edgePct * 100).toFixed(1)}% — refining with ViTMatte`);
+    } else if (refineEdges) {
+      console.log(`[NukeBG] Edge pixels: ${(edgePct * 100).toFixed(1)}% — edges clean, skipping ViTMatte`);
+    }
+
     // Show intermediate result (RMBG-only) while ViTMatte loads
-    if (refineEdges && this.onIntermediateResult) {
+    if (shouldRefine && this.onIntermediateResult) {
       this.onIntermediateResult(preRefineImageData);
     }
 
     // ── Stage 5: Edge refine (ViTMatte alpha matting) — conditional ──
     let finalAlpha: Uint8Array;
 
-    if (refineEdges) {
+    if (shouldRefine) {
       t = performance.now();
       this.emit('edge-refine', 'running', 'Refining edges...');
 

@@ -110,7 +110,7 @@ export class ArApp extends HTMLElement {
         }
         h1::before {
           content: '$ ';
-          color: var(--color-text-tertiary, #006622);
+          color: var(--color-text-tertiary, #008830);
         }
         h1 .accent {
           color: var(--color-accent-primary, #00ff41);
@@ -119,7 +119,7 @@ export class ArApp extends HTMLElement {
         .subline {
           font-family: 'JetBrains Mono', monospace;
           font-size: var(--text-sm, 0.875rem);
-          color: var(--color-text-secondary, #00cc33);
+          color: var(--color-text-secondary, #00dd44);
           max-width: none;
           margin: 0 0 var(--space-4, 1rem);
           text-align: left;
@@ -127,12 +127,12 @@ export class ArApp extends HTMLElement {
         }
         .subline::before {
           content: '# ';
-          color: var(--color-text-tertiary, #006622);
+          color: var(--color-text-tertiary, #008830);
         }
         .model-status {
           font-family: 'JetBrains Mono', monospace;
           font-size: var(--text-xs, 0.75rem);
-          color: var(--color-text-tertiary, #006622);
+          color: var(--color-text-tertiary, #008830);
           margin-top: var(--space-2, 0.5rem);
           min-height: 1.2em;
         }
@@ -198,24 +198,24 @@ export class ArApp extends HTMLElement {
         }
         .feature-title::before {
           content: '> ';
-          color: var(--color-text-tertiary, #006622);
+          color: var(--color-text-tertiary, #008830);
         }
         .feature-desc {
           font-family: 'JetBrains Mono', monospace;
           font-size: 12px;
-          color: var(--color-text-secondary, #00cc33);
+          color: var(--color-text-secondary, #00dd44);
           line-height: 1.5;
         }
         .features-disclaimer {
           text-align: center;
           font-family: 'JetBrains Mono', monospace;
-          font-size: 11px;
-          color: var(--color-text-tertiary, #006622);
+          font-size: 12px;
+          color: var(--color-text-tertiary, #008830);
           margin-top: var(--space-4, 1rem);
           padding: 0 var(--space-4, 1rem);
         }
         .features-disclaimer s {
-          color: var(--color-text-tertiary, #006622);
+          color: var(--color-text-tertiary, #008830);
           text-decoration: line-through;
           opacity: 0.7;
         }
@@ -251,7 +251,7 @@ export class ArApp extends HTMLElement {
           overflow: hidden;
           white-space: nowrap;
           font-family: 'JetBrains Mono', monospace;
-          font-size: 11px;
+          font-size: 12px;
           font-weight: 700;
           letter-spacing: 0.15em;
           text-transform: uppercase;
@@ -259,7 +259,7 @@ export class ArApp extends HTMLElement {
           margin-top: var(--space-1, 0.25rem);
           min-height: 24px;
           position: relative;
-          color: #006622;
+          color: var(--color-text-tertiary, #008830);
         }
         .precision-marquee span {
           display: inline-block;
@@ -344,7 +344,7 @@ export class ArApp extends HTMLElement {
           border: none;
           border-radius: 0;
           padding: var(--space-1, 0.25rem) var(--space-3, 0.75rem);
-          font-size: 11px;
+          font-size: 12px;
           font-weight: var(--font-semibold, 600);
           font-family: 'JetBrains Mono', monospace;
           text-transform: uppercase;
@@ -360,11 +360,11 @@ export class ArApp extends HTMLElement {
         .edit-btn {
           width: 100%;
           background: transparent;
-          color: var(--color-text-secondary, #00cc33);
+          color: var(--color-text-secondary, #00dd44);
           border: 1px solid #1a3a1a;
           border-radius: 0;
           padding: var(--space-3, 0.75rem);
-          font-size: 11px;
+          font-size: 12px;
           font-family: 'JetBrains Mono', monospace;
           text-transform: uppercase;
           letter-spacing: 0.05em;
@@ -386,19 +386,19 @@ export class ArApp extends HTMLElement {
         :host(.precision-override) h1::before,
         :host(.precision-override) .subline::before,
         :host(.precision-override) .feature-title::before {
-          color: var(--terminal-color-override, #006622);
+          color: var(--terminal-color-override, #008830);
         }
         :host(.precision-override) .subline,
         :host(.precision-override) .feature-desc,
         :host(.precision-override) .model-status {
-          color: var(--terminal-color-override, #00cc33);
+          color: var(--terminal-color-override, #00dd44);
         }
         :host(.precision-override) .feature-title,
         :host(.precision-override) .precision-label {
           color: var(--terminal-color-override, #00ff41);
         }
         :host(.precision-override) .edit-btn {
-          color: var(--terminal-color-override, #00cc33);
+          color: var(--terminal-color-override, #00dd44);
           border-color: var(--terminal-color-override, #1a3a1a);
         }
         :host(.precision-override) #precision-slider {
@@ -434,7 +434,7 @@ export class ArApp extends HTMLElement {
           justify-content: center;
         }
         .hero-controls .hero-separator {
-          color: var(--color-text-tertiary, #006622);
+          color: var(--color-text-tertiary, #008830);
           user-select: none;
         }
 
@@ -445,7 +445,7 @@ export class ArApp extends HTMLElement {
           gap: var(--space-2, 0.5rem);
           font-family: 'JetBrains Mono', monospace;
           font-size: 12px;
-          color: var(--color-text-secondary, #00cc33);
+          color: var(--color-text-secondary, #00dd44);
           cursor: pointer;
           user-select: none;
         }
@@ -473,7 +473,7 @@ export class ArApp extends HTMLElement {
           border: 1px solid var(--color-accent-primary, #00ff41);
           border-radius: 0;
           padding: var(--space-1, 0.25rem) var(--space-3, 0.75rem);
-          font-size: 11px;
+          font-size: 12px;
           font-weight: var(--font-semibold, 600);
           font-family: 'JetBrains Mono', monospace;
           text-transform: uppercase;
@@ -526,11 +526,11 @@ export class ArApp extends HTMLElement {
             font-size: var(--text-xs, 0.75rem);
           }
           .feature-desc {
-            font-size: 11px;
+            font-size: 12px;
           }
           .precision-label {
             min-width: auto;
-            font-size: 11px;
+            font-size: 12px;
           }
           #precision-slider {
             width: 60px;
@@ -552,7 +552,7 @@ export class ArApp extends HTMLElement {
             font-size: 12px;
           }
           .refine-toggle {
-            font-size: 11px;
+            font-size: 12px;
           }
         }
 
@@ -631,7 +631,7 @@ export class ArApp extends HTMLElement {
           display: inline;
           font-family: 'JetBrains Mono', monospace;
           font-size: 12px;
-          color: var(--color-text-tertiary, #006622);
+          color: var(--color-text-tertiary, #008830);
           margin-right: 6px;
           flex-shrink: 0;
         }
@@ -652,12 +652,12 @@ export class ArApp extends HTMLElement {
           display: inline;
           font-family: 'JetBrains Mono', monospace;
           font-size: 12px;
-          color: var(--color-text-tertiary, #006622);
+          color: var(--color-text-tertiary, #008830);
         }
         :host .features[data-card-layout="A"] .feature-desc {
           display: inline;
           font-size: 12px;
-          color: var(--color-text-secondary, #00cc33);
+          color: var(--color-text-secondary, #00dd44);
         }
 
         /* Layout A mobile */
@@ -669,7 +669,7 @@ export class ArApp extends HTMLElement {
           :host .features[data-card-layout="A"] .feature-sep,
           :host .features[data-card-layout="A"] .feature-desc,
           :host .features[data-card-layout="A"] .terminal-prefix {
-            font-size: 11px;
+            font-size: 12px;
           }
         }
 
@@ -727,7 +727,7 @@ export class ArApp extends HTMLElement {
           grid-column: 2;
           grid-row: 2;
           font-size: 12px;
-          color: var(--color-text-secondary, #00cc33);
+          color: var(--color-text-secondary, #00dd44);
           line-height: 1.4;
         }
 
@@ -740,7 +740,7 @@ export class ArApp extends HTMLElement {
             font-size: var(--text-xs, 0.75rem);
           }
           :host .features[data-card-layout="B"] .feature-desc {
-            font-size: 11px;
+            font-size: 12px;
           }
         }
 
@@ -785,8 +785,8 @@ export class ArApp extends HTMLElement {
         }
         :host .features[data-card-layout="C"] .feature-desc {
           display: block;
-          font-size: 11px;
-          color: var(--color-text-secondary, #00cc33);
+          font-size: 12px;
+          color: var(--color-text-secondary, #00dd44);
           line-height: 1.4;
           margin-top: var(--space-1, 0.25rem);
         }
@@ -801,7 +801,7 @@ export class ArApp extends HTMLElement {
             font-size: var(--text-xs, 0.75rem);
           }
           :host .features[data-card-layout="C"] .feature-desc {
-            font-size: 10px;
+            font-size: 12px;
           }
         }
         /* Layout C tablet — 2 columns */
@@ -995,11 +995,14 @@ export class ArApp extends HTMLElement {
         document.documentElement.style.setProperty('--terminal-color-override', '#cc3333');
         document.documentElement.style.setProperty('--color-text-primary', '#cc3333');
         document.documentElement.style.setProperty('--color-text-secondary', '#aa2222');
+        document.documentElement.style.setProperty('--color-text-tertiary', '#882222');
         document.documentElement.style.setProperty('--color-accent-primary', '#cc3333');
+        document.documentElement.style.setProperty('--color-accent-glow', 'rgba(204,51,51,0.35)');
         this.classList.add('precision-override');
         // Stop CRT flicker in Full Nuke
         this.stopCrtFlicker();
         updateMarquees('#cc3333', '<span>\u26A0 MAXIMUM POWER \u2192 nukebg.app \u26A0 MAXIMUM POWER \u2192 nukebg.app \u26A0</span>');
+        console.log('%c[NukeBG] Mode: FULL NUKE', 'color: #cc3333; font-family: monospace;');
 
         // Vibration + smoke: trigger once per activation, after random 1-5s delay
         const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -1020,29 +1023,50 @@ export class ArApp extends HTMLElement {
             }
           }, delay);
         }
+      } else if (val === 2) {
+        // High Power — orange/amber override (shadow DOM + global properties)
+        document.documentElement.style.setProperty('--terminal-color-override', '#ff8c00');
+        document.documentElement.style.setProperty('--color-text-primary', '#ff8c00');
+        document.documentElement.style.setProperty('--color-text-secondary', '#cc7000');
+        document.documentElement.style.setProperty('--color-text-tertiary', '#995300');
+        document.documentElement.style.setProperty('--color-accent-primary', '#ff8c00');
+        document.documentElement.style.setProperty('--color-accent-glow', 'rgba(255,140,0,0.35)');
+        this.classList.add('precision-override');
+        // Stop CRT flicker in High Power
+        this.stopCrtFlicker();
+        updateMarquees('#ff8c00', '<span>\u26A1 HIGH POWER \u2192 nukebg.app \u26A1 HIGH POWER \u2192 nukebg.app \u26A1</span>');
+        console.log('%c[NukeBG] Mode: HIGH POWER', 'color: #ff8c00; font-family: monospace;');
+        // Hide smoke in High Power
+        if (smoke) smoke.classList.remove('active');
       } else if (val === 0) {
         // Low Power — yellow override (shadow DOM + global properties)
         document.documentElement.style.setProperty('--terminal-color-override', '#b8a500');
         document.documentElement.style.setProperty('--color-text-primary', '#b8a500');
         document.documentElement.style.setProperty('--color-text-secondary', '#8a7d00');
+        document.documentElement.style.setProperty('--color-text-tertiary', '#6b5e00');
         document.documentElement.style.setProperty('--color-accent-primary', '#b8a500');
+        document.documentElement.style.setProperty('--color-accent-glow', 'rgba(184,165,0,0.35)');
         this.classList.add('precision-override');
         // Start CRT flicker only in Low Power
         this.startCrtFlicker();
         updateMarquees('#b8a500', '<span>\u26A1 LOW POWER MODE \u2192 nukebg.app \u26A1 LOW POWER MODE \u2192 nukebg.app \u26A1</span>');
+        console.log('%c[NukeBG] Mode: LOW POWER', 'color: #b8a500; font-family: monospace;');
         // Hide smoke in Low Power
         if (smoke) smoke.classList.remove('active');
       } else {
-        // Normal levels — restore all overrides
+        // Normal (val === 1) — restore all overrides
         document.documentElement.style.removeProperty('--terminal-color-override');
         document.documentElement.style.removeProperty('--color-text-primary');
         document.documentElement.style.removeProperty('--color-text-secondary');
+        document.documentElement.style.removeProperty('--color-text-tertiary');
         document.documentElement.style.removeProperty('--color-accent-primary');
+        document.documentElement.style.removeProperty('--color-accent-glow');
         this.classList.remove('precision-override');
         // Stop CRT flicker in normal modes
         this.stopCrtFlicker();
-        // Subtle green marquee for normal modes
-        updateMarquees('#006622', '<span>☢ NUKEBG — DROP. NUKE. DOWNLOAD. → nukebg.app ☢ NUKEBG — DROP. NUKE. DOWNLOAD. → nukebg.app ☢</span>');
+        // Subtle green marquee for normal mode
+        updateMarquees('#008830', '<span>☢ NUKEBG \u2014 DROP. NUKE. DOWNLOAD. \u2192 nukebg.app ☢ NUKEBG \u2014 DROP. NUKE. DOWNLOAD. \u2192 nukebg.app ☢</span>');
+        console.log('%c[NukeBG] Mode: NORMAL', 'color: #00ff41; font-family: monospace;');
         // Hide smoke in normal modes
         if (smoke) smoke.classList.remove('active');
       }

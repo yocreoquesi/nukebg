@@ -123,7 +123,7 @@ export class ArViewer extends HTMLElement {
           padding: 2px 10px;
           border-radius: 0;
           font-family: 'JetBrains Mono', monospace;
-          font-size: 10px;
+          font-size: 12px;
           font-weight: 500;
           text-transform: uppercase;
           letter-spacing: 0.1em;
@@ -137,9 +137,9 @@ export class ArViewer extends HTMLElement {
           justify-content: space-between;
           align-items: center;
           padding: 8px 12px;
-          font-size: 11px;
+          font-size: 12px;
           font-family: 'JetBrains Mono', monospace;
-          color: var(--color-text-secondary, #00cc33);
+          color: var(--color-text-secondary, #00dd44);
           background: #000;
           border-top: 1px solid #1a3a1a;
         }
@@ -148,7 +148,7 @@ export class ArViewer extends HTMLElement {
           gap: 6px;
           align-items: center;
         }
-        .bg-options span { font-size: 11px; color: var(--color-text-tertiary, #006622); }
+        .bg-options span { font-size: 12px; color: var(--color-text-tertiary, #008830); }
         .bg-btn {
           width: 20px; height: 20px;
           border-radius: 0;
@@ -185,14 +185,14 @@ export class ArViewer extends HTMLElement {
             font-size: 16px;
           }
           .label {
-            font-size: 9px;
+            font-size: 12px;
             padding: 2px 6px;
           }
           .info-bar {
             flex-direction: column;
             gap: 6px;
             padding: 6px 8px;
-            font-size: 10px;
+            font-size: 12px;
           }
           .bg-btn {
             width: 28px;

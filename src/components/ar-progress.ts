@@ -130,7 +130,7 @@ export class ArProgress extends HTMLElement {
           gap: var(--space-2, 0.5rem);
           font-family: 'JetBrains Mono', monospace;
           font-size: 12px;
-          color: var(--color-text-secondary, #00cc33);
+          color: var(--color-text-secondary, #00dd44);
         }
         .stage-icon {
           width: 18px;
@@ -153,7 +153,7 @@ export class ArProgress extends HTMLElement {
           color: var(--color-accent-primary, #00ff41);
         }
         .stage.skipped .stage-icon {
-          color: var(--color-text-tertiary, #006622);
+          color: var(--color-text-tertiary, #008830);
         }
         .stage.error .stage-icon {
           color: #ff3131;
@@ -167,7 +167,7 @@ export class ArProgress extends HTMLElement {
         }
         .stage-message {
           font-size: var(--text-xs, 0.75rem);
-          color: var(--color-text-tertiary, #006622);
+          color: var(--color-text-tertiary, #008830);
         }
         .progress-bar {
           width: 100%;
@@ -200,7 +200,7 @@ export class ArProgress extends HTMLElement {
             max-width: 100%;
           }
           .stage {
-            font-size: 11px;
+            font-size: 12px;
             gap: var(--space-1, 0.25rem);
           }
           .stage-icon {
@@ -208,13 +208,13 @@ export class ArProgress extends HTMLElement {
             height: 16px;
           }
           .stage-label {
-            font-size: 11px;
+            font-size: 12px;
           }
           .stage-time {
-            font-size: 10px;
+            font-size: 12px;
           }
           .stage-message {
-            font-size: 10px;
+            font-size: 12px;
           }
         }
 
@@ -240,7 +240,7 @@ export class ArProgress extends HTMLElement {
           margin-top: 2px;
         }
         .total-time .total-label {
-          color: var(--color-text-secondary, #00cc33);
+          color: var(--color-text-secondary, #00dd44);
         }
         .total-time .total-value {
           color: var(--color-accent-primary, #00ff41);
