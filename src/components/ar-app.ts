@@ -800,7 +800,7 @@ export class ArApp extends HTMLElement {
         </div>
         <ar-dropzone></ar-dropzone>
         <p class="model-status" id="model-status">${t('hero.modelStatus')}</p>
-        <div class="precision-marquee" id="precision-marquee"><span>\u2622 NUKEBG \u2014 DROP. NUKE. DOWNLOAD. \u2622 NUKEBG \u2014 DROP. NUKE. DOWNLOAD. \u2622</span></div>
+        <div class="precision-marquee" id="precision-marquee"><span>\u2622 NUKEBG \u2014 DROP. NUKE. DOWNLOAD. 2192 nukebg.app \u2622 NUKEBG \u2014 DROP. NUKE. DOWNLOAD. 2192 nukebg.app \u2622</span></div>
         <div class="smoke-effect" id="smoke-effect"></div>
       </section>
 
@@ -819,7 +819,7 @@ export class ArApp extends HTMLElement {
             <input type="range" id="precision-slider-ws" min="0" max="4" value="2" step="1" aria-label="Precision level">
             <span class="precision-label" id="precision-label-ws">Balanced</span>
           </div>
-          <div class="precision-marquee" id="precision-marquee-ws"><span>\u2622 NUKEBG \u2014 DROP. NUKE. DOWNLOAD. \u2622 NUKEBG \u2014 DROP. NUKE. DOWNLOAD. \u2622</span></div>
+          <div class="precision-marquee" id="precision-marquee-ws"><span>\u2622 NUKEBG \u2014 DROP. NUKE. DOWNLOAD. 2192 nukebg.app \u2622 NUKEBG \u2014 DROP. NUKE. DOWNLOAD. 2192 nukebg.app \u2622</span></div>
           <ar-download></ar-download>
           <button class="edit-btn" id="edit-btn" style="display:none">${t('edit.btn')}</button>
           <ar-editor style="display:none" id="editor-section"></ar-editor>
@@ -984,7 +984,7 @@ export class ArApp extends HTMLElement {
         this.classList.add('precision-override');
         // Stop CRT flicker in Full Nuke
         this.stopCrtFlicker();
-        updateMarquees('#cc3333', '<span>\u26A0 MAXIMUM POWER \u26A0 MAXIMUM POWER \u26A0 MAXIMUM POWER \u26A0</span>');
+        updateMarquees('#cc3333', '<span>\u26A0 MAXIMUM POWER \u2192 nukebg.app \u26A0 MAXIMUM POWER \u2192 nukebg.app \u26A0</span>');
 
         // Vibration + smoke: trigger once per activation, after random 1-5s delay
         const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -1014,7 +1014,7 @@ export class ArApp extends HTMLElement {
         this.classList.add('precision-override');
         // Start CRT flicker only in Low Power
         this.startCrtFlicker();
-        updateMarquees('#b8a500', '<span>\u26A1 LOW POWER MODE \u26A1 LOW POWER MODE \u26A1 LOW POWER MODE \u26A1</span>');
+        updateMarquees('#b8a500', '<span>\u26A1 LOW POWER MODE \u2192 nukebg.app \u26A1 LOW POWER MODE \u2192 nukebg.app \u26A1</span>');
         // Hide smoke in Low Power
         if (smoke) smoke.classList.remove('active');
       } else {
@@ -1027,7 +1027,7 @@ export class ArApp extends HTMLElement {
         // Stop CRT flicker in normal modes
         this.stopCrtFlicker();
         // Subtle green marquee for normal modes
-        updateMarquees('#006622', '<span>\u2622 NUKEBG \u2014 DROP. NUKE. DOWNLOAD. \u2622 NUKEBG \u2014 DROP. NUKE. DOWNLOAD. \u2622</span>');
+        updateMarquees('#006622', '<span>\u2622 NUKEBG \u2014 DROP. NUKE. DOWNLOAD. 2192 nukebg.app \u2622 NUKEBG \u2014 DROP. NUKE. DOWNLOAD. 2192 nukebg.app \u2622</span>');
         // Hide smoke in normal modes
         if (smoke) smoke.classList.remove('active');
       }

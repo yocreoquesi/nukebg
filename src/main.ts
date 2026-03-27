@@ -294,13 +294,20 @@ function updateHtmlTexts(): void {
 // === Terminal Prompt Easter Egg ===
 /** Clear all caches, unregister service workers, and reload */
 function nukeCache(): void {
+  // Only clear ML model caches, not the app shell
+  // This prevents the blank page bug in Brave and other strict browsers
   Promise.all([
-    caches.keys().then(keys => Promise.all(keys.map(k => caches.delete(k)))),
-    navigator.serviceWorker?.getRegistrations().then(regs => Promise.all(regs.map(r => r.unregister()))),
+    caches.keys().then(keys => {
+      const modelCaches = keys.filter(k => k.includes('transformers') || k.includes('onnx') || k.includes('model'));
+      return Promise.all(modelCaches.map(k => caches.delete(k)));
+    }),
   ]).then(() => {
-    location.reload();
+    // Use cache-busting URL param to force fresh load
+    const url = new URL(window.location.href);
+    url.searchParams.set('_cb', Date.now().toString());
+    window.location.href = url.toString();
   }).catch(() => {
-    location.reload();
+    window.location.reload();
   });
 }
 
