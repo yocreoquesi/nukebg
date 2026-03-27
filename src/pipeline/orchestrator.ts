@@ -243,7 +243,7 @@ export class PipelineOrchestrator {
     return combined;
   }
 
-  async process(imageData: ImageData, modelId?: ModelId): Promise<PipelineResult> {
+  async process(imageData: ImageData, modelId?: ModelId, refineEdges: boolean = false): Promise<PipelineResult> {
     const startTime = performance.now();
     const { width, height } = imageData;
     const originalPixels = new Uint8ClampedArray(imageData.data);
@@ -350,55 +350,44 @@ export class PipelineOrchestrator {
     stageTiming['ml-segmentation'] = performance.now() - t;
     this.emit('ml-segmentation', 'done', 'Background removed');
 
-    // ── Stage 5: Edge refine (ViTMatte alpha matting) ──
-    t = performance.now();
-    this.emit('edge-refine', 'running', 'Refining edges...');
-
-    // Dispose ML worker first to free memory for ViTMatte
-    this.mlWorker.terminate();
-
-    let refinedAlpha: Uint8Array;
-    try {
-      refinedAlpha = await this.runMattingWorker(originalPixels, mlAlpha, width, height);
-    } catch (err) {
-      // If matting fails, fall back to RMBG alpha
-      console.warn('Edge refine failed, using RMBG alpha:', err);
-      refinedAlpha = mlAlpha;
+    // ── Build pre-refine image (RMBG-only alpha) ──
+    const preRefinePixels = new Uint8ClampedArray(width * height * 4);
+    for (let i = 0; i < width * height; i++) {
+      preRefinePixels[i * 4] = originalPixels[i * 4];
+      preRefinePixels[i * 4 + 1] = originalPixels[i * 4 + 1];
+      preRefinePixels[i * 4 + 2] = originalPixels[i * 4 + 2];
+      preRefinePixels[i * 4 + 3] = mlAlpha[i];
     }
+    const preRefineImageData = new ImageData(preRefinePixels, width, height);
 
-    stageTiming['edge-refine'] = performance.now() - t;
-    this.emit('edge-refine', 'done', 'Edges refined');
+    // ── Stage 5: Edge refine (ViTMatte alpha matting) — conditional ──
+    let finalAlpha: Uint8Array;
 
-    // Recreate ML worker for next image (model will reload on next use)
-    this.mlWorker = new Worker(
-      new URL('../workers/ml.worker.ts', import.meta.url),
-      { type: 'module' }
-    );
-    this.mlWorker.onerror = (e) => this.rejectAllPending(`ML Worker error: ${e.message}`);
-    this.mlWorker.onmessage = (e: MessageEvent<MlWorkerResponse>) => {
-      const msg = e.data;
-      if (msg.type === 'model-progress') {
-        const pct = msg.progress ?? 0;
-        const label = pct >= 96 && pct < 100
-          ? 'Warming up the reactor... [96%]'
-          : `Loading AI model... ${pct}% [${pct}%]`;
-        this.emit('ml-segmentation', 'running', label);
-        return;
+    if (refineEdges) {
+      t = performance.now();
+      this.emit('edge-refine', 'running', 'Refining edges...');
+
+      // Dispose ML worker first to free memory for ViTMatte
+      this.mlWorker.terminate();
+
+      try {
+        finalAlpha = await this.runMattingWorker(originalPixels, mlAlpha, width, height);
+      } catch (err) {
+        // If matting fails, fall back to RMBG alpha
+        console.warn('Edge refine failed, using RMBG alpha:', err);
+        finalAlpha = mlAlpha;
       }
-      const pending = this.pendingRequests.get(msg.id);
-      if (pending) {
-        if (msg.type === 'error') {
-          this.pendingRequests.delete(msg.id);
-          pending.reject(new Error(msg.error));
-        } else if (msg.type === 'segment-result') {
-          this.pendingRequests.delete(msg.id);
-          pending.resolve(msg.result);
-        } else if (msg.type === 'model-ready') {
-          this.pendingRequests.delete(msg.id);
-          pending.resolve(msg);
-        }
-      }
-    };
+
+      stageTiming['edge-refine'] = performance.now() - t;
+      this.emit('edge-refine', 'done', 'Edges refined');
+
+      // Recreate ML worker for next image (model will reload on next use)
+      this.recreateMlWorker();
+    } else {
+      // Skip ViTMatte — use RMBG alpha directly, do NOT terminate ML worker
+      finalAlpha = mlAlpha;
+      this.emit('edge-refine', 'skipped');
+    }
 
     // ── Compose final RGBA ──
     const resultPixels = new Uint8ClampedArray(width * height * 4);
@@ -406,7 +395,7 @@ export class PipelineOrchestrator {
       resultPixels[i * 4] = originalPixels[i * 4];
       resultPixels[i * 4 + 1] = originalPixels[i * 4 + 1];
       resultPixels[i * 4 + 2] = originalPixels[i * 4 + 2];
-      resultPixels[i * 4 + 3] = refinedAlpha[i];
+      resultPixels[i * 4 + 3] = finalAlpha[i];
     }
 
     const resultImageData = new ImageData(resultPixels, width, height);
@@ -418,6 +407,7 @@ export class PipelineOrchestrator {
       backgroundType: bgType,
       watermarkRemoved,
       stageTiming,
+      preRefineImageData: refineEdges ? preRefineImageData : undefined,
     };
   }
 
@@ -473,6 +463,87 @@ export class PipelineOrchestrator {
         },
       });
     });
+  }
+
+  /** Recreate ML worker after ViTMatte terminates it */
+  private recreateMlWorker(): void {
+    this.mlWorker = new Worker(
+      new URL('../workers/ml.worker.ts', import.meta.url),
+      { type: 'module' }
+    );
+    this.mlWorker.onerror = (e) => this.rejectAllPending(`ML Worker error: ${e.message}`);
+    this.mlWorker.onmessage = (e: MessageEvent<MlWorkerResponse>) => {
+      const msg = e.data;
+      if (msg.type === 'model-progress') {
+        const pct = msg.progress ?? 0;
+        const label = pct >= 96 && pct < 100
+          ? 'Warming up the reactor... [96%]'
+          : `Loading AI model... ${pct}% [${pct}%]`;
+        this.emit('ml-segmentation', 'running', label);
+        return;
+      }
+      const pending = this.pendingRequests.get(msg.id);
+      if (pending) {
+        if (msg.type === 'error') {
+          this.pendingRequests.delete(msg.id);
+          pending.reject(new Error(msg.error));
+        } else if (msg.type === 'segment-result') {
+          this.pendingRequests.delete(msg.id);
+          pending.resolve(msg.result);
+        } else if (msg.type === 'model-ready') {
+          this.pendingRequests.delete(msg.id);
+          pending.resolve(msg);
+        }
+      }
+    };
+  }
+
+  /**
+   * Run ViTMatte refinement on an already-processed image.
+   * Used for post-process "Refine edges" button.
+   */
+  async refineOnly(imageData: ImageData): Promise<ImageData> {
+    const { width, height } = imageData;
+    const pixels = imageData.data;
+
+    // Extract the alpha channel as the RMBG mask
+    const mlAlpha = new Uint8Array(width * height);
+    const originalPixels = new Uint8ClampedArray(width * height * 4);
+    for (let i = 0; i < width * height; i++) {
+      originalPixels[i * 4] = pixels[i * 4];
+      originalPixels[i * 4 + 1] = pixels[i * 4 + 1];
+      originalPixels[i * 4 + 2] = pixels[i * 4 + 2];
+      originalPixels[i * 4 + 3] = 255; // full opacity for matting input
+      mlAlpha[i] = pixels[i * 4 + 3];
+    }
+
+    this.emit('edge-refine', 'running', 'Refining edges...');
+
+    // Terminate ML worker to free memory for ViTMatte
+    this.mlWorker.terminate();
+
+    let refinedAlpha: Uint8Array;
+    try {
+      refinedAlpha = await this.runMattingWorker(originalPixels, mlAlpha, width, height);
+    } catch (err) {
+      console.warn('Edge refine failed, using original alpha:', err);
+      this.recreateMlWorker();
+      throw err;
+    }
+
+    this.emit('edge-refine', 'done', 'Edges refined');
+    this.recreateMlWorker();
+
+    // Compose refined result
+    const resultPixels = new Uint8ClampedArray(width * height * 4);
+    for (let i = 0; i < width * height; i++) {
+      resultPixels[i * 4] = pixels[i * 4];
+      resultPixels[i * 4 + 1] = pixels[i * 4 + 1];
+      resultPixels[i * 4 + 2] = pixels[i * 4 + 2];
+      resultPixels[i * 4 + 3] = refinedAlpha[i];
+    }
+
+    return new ImageData(resultPixels, width, height);
   }
 
   destroy(): void {

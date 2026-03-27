@@ -32,6 +32,8 @@ export interface PipelineResult {
   watermarkRemoved: boolean;
   /** Per-stage timing breakdown */
   stageTiming: Partial<Record<PipelineStage, number>>;
+  /** Image after RMBG but before ViTMatte (only present when refineEdges=true) */
+  preRefineImageData?: ImageData;
 }
 
 /** Result from background color detection */

@@ -21,6 +21,8 @@ export class ArApp extends HTMLElement {
   private currentFileSize = 0;
   private selectedPrecision: 'low-power' | 'normal' | 'high-power' | 'full-nuke' = 'normal';
   private lastResultImageData: ImageData | null = null;
+  private refineEnabled = false;
+  private preRefineResult: ImageData | null = null;
   private crtFlickerTimers: number[] = [];
 
   constructor() {
@@ -399,6 +401,61 @@ export class ArApp extends HTMLElement {
         }
 
 
+        /* === Refine edges toggle === */
+        .refine-toggle {
+          display: flex;
+          align-items: center;
+          gap: var(--space-2, 0.5rem);
+          font-family: 'JetBrains Mono', monospace;
+          font-size: 12px;
+          color: var(--color-text-secondary, #00cc33);
+          cursor: pointer;
+          margin-top: var(--space-2, 0.5rem);
+          user-select: none;
+        }
+        .refine-toggle input[type="checkbox"] {
+          appearance: none;
+          -webkit-appearance: none;
+          width: 16px;
+          height: 16px;
+          border: 1px solid var(--color-surface-border, #1a3a1a);
+          background: transparent;
+          cursor: pointer;
+          flex-shrink: 0;
+        }
+        .refine-toggle input[type="checkbox"]:checked {
+          background: var(--color-accent-primary, #00ff41);
+          border-color: var(--color-accent-primary, #00ff41);
+        }
+        .refine-toggle input[type="checkbox"]:focus-visible {
+          outline: 2px solid var(--color-accent-primary, #00ff41);
+          outline-offset: 2px;
+        }
+        .refine-btn {
+          background: transparent;
+          color: var(--color-accent-primary, #00ff41);
+          border: 1px solid var(--color-accent-primary, #00ff41);
+          border-radius: 0;
+          padding: var(--space-1, 0.25rem) var(--space-3, 0.75rem);
+          font-size: 11px;
+          font-weight: var(--font-semibold, 600);
+          font-family: 'JetBrains Mono', monospace;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          cursor: pointer;
+          white-space: nowrap;
+          transition: background 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+        }
+        .refine-btn:hover {
+          background: var(--color-accent-primary, #00ff41);
+          color: #000;
+          box-shadow: var(--shadow-glow);
+        }
+        .refine-btn:disabled {
+          opacity: 0.4;
+          pointer-events: none;
+        }
+
         /* === Mobile (max-width: 480px) === */
         @media (max-width: 480px) {
           .hero {
@@ -449,6 +506,14 @@ export class ArApp extends HTMLElement {
             min-height: 44px;
             font-size: 12px;
           }
+          .refine-btn {
+            width: 100%;
+            min-height: 44px;
+            font-size: 12px;
+          }
+          .refine-toggle {
+            font-size: 11px;
+          }
         }
 
         /* === Tablet (481px - 768px) === */
@@ -471,19 +536,23 @@ export class ArApp extends HTMLElement {
           .edit-btn {
             min-height: 44px;
           }
+          .refine-btn {
+            min-height: 44px;
+          }
         }
 
         /* === Touch targets === */
         @media (pointer: coarse) {
           .reprocess-btn,
-          .edit-btn {
+          .edit-btn,
+          .refine-btn {
             min-height: 44px;
             min-width: 44px;
           }
         }
 
         @media (prefers-reduced-motion: reduce) {
-          .feature-card, .reprocess-btn, .edit-btn {
+          .feature-card, .reprocess-btn, .edit-btn, .refine-btn {
             transition: none !important;
           }
         }
@@ -724,6 +793,10 @@ export class ArApp extends HTMLElement {
           <input type="range" id="precision-slider" min="0" max="3" value="1" step="1" aria-label="Precision level">
           <span class="precision-label" id="precision-label">Normal</span>
         </div>
+        <label class="refine-toggle" id="refine-toggle">
+          <input type="checkbox" id="refine-checkbox" aria-label="${t('refine.toggle')}">
+          <span id="refine-toggle-label">[_] ${t('refine.toggle')}</span>
+        </label>
         <ar-dropzone></ar-dropzone>
         <p class="model-status" id="model-status">${t('hero.modelStatus')}</p>
         <div class="precision-marquee" id="precision-marquee"><span>☢ NUKEBG — DROP. NUKE. DOWNLOAD. → nukebg.app ☢ NUKEBG — DROP. NUKE. DOWNLOAD. → nukebg.app ☢</span></div>
@@ -738,6 +811,7 @@ export class ArApp extends HTMLElement {
             <input type="range" id="precision-slider-ws" min="0" max="3" value="1" step="1" aria-label="Precision level">
             <span class="precision-label" id="precision-label-ws">Normal</span>
             <button id="reprocess-btn" class="reprocess-btn" aria-label="${t('model.reprocess')}">${t('model.reprocess')}</button>
+            <button id="refine-btn" class="refine-btn" style="display:none" aria-label="${t('refine.btn')}">${t('refine.btn')}</button>
           </div>
           <div class="precision-marquee" id="precision-marquee-ws"><span>☢ NUKEBG — DROP. NUKE. DOWNLOAD. → nukebg.app ☢ NUKEBG — DROP. NUKE. DOWNLOAD. → nukebg.app ☢</span></div>
           <ar-download></ar-download>
@@ -801,6 +875,11 @@ export class ArApp extends HTMLElement {
     if (reprocessBtn) reprocessBtn.textContent = t('model.reprocess');
     const editBtn = root.querySelector('#edit-btn');
     if (editBtn) editBtn.textContent = t('edit.btn');
+    const refineCheckbox = root.querySelector('#refine-checkbox') as HTMLInputElement | null;
+    if (refineCheckbox) refineCheckbox.setAttribute('aria-label', t('refine.toggle'));
+    const refineToggleLabel = root.querySelector('#refine-toggle-label');
+    if (refineToggleLabel) refineToggleLabel.textContent = `${this.refineEnabled ? '[x]' : '[_]'} ${t('refine.toggle')}`;
+    this.updateRefineButton();
     const srTitle = root.querySelector('.features .sr-only');
     if (srTitle) srTitle.textContent = t('features.srTitle');
     const featureCards = root.querySelectorAll('.feature-card');
@@ -929,9 +1008,59 @@ export class ArApp extends HTMLElement {
       // No auto-reprocess — user must click Reprocess button
     });
 
+    // Refine edges toggle checkbox
+    this.shadowRoot!.querySelector('#refine-checkbox')?.addEventListener('change', (e) => {
+      this.refineEnabled = (e.target as HTMLInputElement).checked;
+      const label = this.shadowRoot!.querySelector('#refine-toggle-label');
+      if (label) label.textContent = `${this.refineEnabled ? '[x]' : '[_]'} ${t('refine.toggle')}`;
+    });
+
     this.shadowRoot!.querySelector('#reprocess-btn')?.addEventListener('click', () => {
       if (this.currentImageData) {
         this.processImage(this.currentImageData, this.currentFileSize);
+      }
+    });
+
+    // Refine/Undo button in workspace
+    this.shadowRoot!.querySelector('#refine-btn')?.addEventListener('click', async () => {
+      const btn = this.shadowRoot!.querySelector('#refine-btn') as HTMLButtonElement;
+      if (!btn || !this.lastResultImageData || !this.pipeline) return;
+
+      if (this.preRefineResult) {
+        // Currently refined — undo
+        this.lastResultImageData = this.preRefineResult;
+        this.preRefineResult = null;
+        const { exportPng } = await import('../utils/image-io');
+        const blob = await exportPng(this.lastResultImageData);
+        this.viewer.setResult(this.lastResultImageData, blob);
+        await this.download.setResult(this.lastResultImageData, this.currentFileName, 0, blob);
+        this.updateRefineButton();
+      } else {
+        // Not refined — run ViTMatte
+        btn.disabled = true;
+        this.preRefineResult = this.lastResultImageData;
+
+        this.pipeline.setStageCallback(
+          (stage: PipelineStage, status: StageStatus, message?: string) => {
+            this.progress.setStage(stage, status, message);
+          }
+        );
+
+        try {
+          const refined = await this.pipeline.refineOnly(this.lastResultImageData);
+          this.lastResultImageData = refined;
+          const { exportPng } = await import('../utils/image-io');
+          const blob = await exportPng(refined);
+          this.viewer.setResult(refined, blob);
+          await this.download.setResult(refined, this.currentFileName, 0, blob);
+        } catch (err) {
+          console.error('Post-process refine failed:', err);
+          // Restore pre-refine state
+          this.lastResultImageData = this.preRefineResult;
+          this.preRefineResult = null;
+        }
+        btn.disabled = false;
+        this.updateRefineButton();
       }
     });
 
@@ -998,6 +1127,21 @@ export class ArApp extends HTMLElement {
     allCards.forEach(c => c.classList.remove('crt-flicker'));
   }
 
+  /** Update the refine/undo button label based on current state */
+  private updateRefineButton(): void {
+    const btn = this.shadowRoot!.querySelector('#refine-btn') as HTMLButtonElement | null;
+    if (!btn) return;
+    if (this.preRefineResult) {
+      // Currently refined — show undo
+      btn.textContent = t('refine.undo');
+      btn.setAttribute('aria-label', t('refine.undo'));
+    } else {
+      // Not refined — show refine
+      btn.textContent = t('refine.btn');
+      btn.setAttribute('aria-label', t('refine.btn'));
+    }
+  }
+
   private async processImage(imageData: ImageData, fileSize: number): Promise<void> {
     this.currentImageData = imageData;
     this.currentFileSize = fileSize;
@@ -1030,12 +1174,25 @@ export class ArApp extends HTMLElement {
     }
 
     try {
-      const result = await this.pipeline.process(imageData, ArApp.MODEL_ID);
+      const result = await this.pipeline.process(imageData, ArApp.MODEL_ID, this.refineEnabled);
       const { exportPng } = await import('../utils/image-io');
       const blob = await exportPng(result.imageData);
       this.viewer.setResult(result.imageData, blob);
       await this.download.setResult(result.imageData, this.currentFileName, result.totalTimeMs, blob);
       this.lastResultImageData = result.imageData;
+
+      // Cache pre-refine result when processed with refinement
+      if (this.refineEnabled && result.preRefineImageData) {
+        this.preRefineResult = result.preRefineImageData;
+      } else {
+        this.preRefineResult = null;
+      }
+
+      // Show refine button, update its label
+      this.updateRefineButton();
+      const refineBtn = this.shadowRoot!.querySelector('#refine-btn') as HTMLElement;
+      if (refineBtn) refineBtn.style.display = '';
+
       // Show edit button
       const editBtn = this.shadowRoot!.querySelector('#edit-btn') as HTMLElement;
       if (editBtn) editBtn.style.display = 'block';
@@ -1056,6 +1213,11 @@ export class ArApp extends HTMLElement {
     workspace.classList.remove('visible');
     hero.classList.remove('hidden');
     this.download.reset();
+    this.preRefineResult = null;
+
+    // Hide refine button
+    const refineBtn = this.shadowRoot!.querySelector('#refine-btn') as HTMLElement;
+    if (refineBtn) refineBtn.style.display = 'none';
 
     // Keep pipeline alive for next image (model stays loaded)
   }
