@@ -295,19 +295,30 @@ body::after {
 .terminal-prompt {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 0;
   font-family: 'JetBrains Mono', monospace;
-  font-size: 12px;
+  font-size: 11px;
   color: var(--color-accent-primary);
   margin-left: var(--space-3);
-  position: relative;
   cursor: text;
-  min-width: 100px;
-  height: 100%;
 }
 .terminal-prompt-prefix {
   color: var(--color-text-tertiary);
   user-select: none;
+  white-space: nowrap;
+}
+.terminal-cursor {
+  display: inline-block;
+  width: 7px;
+  height: 13px;
+  background: var(--color-accent-primary);
+  animation: blink-cursor 1s step-end infinite;
+  vertical-align: middle;
+  margin: 0;
+  flex-shrink: 0;
+}
+.terminal-cursor.hidden {
+  display: none;
 }
 .terminal-input {
   background: transparent;
@@ -316,14 +327,10 @@ body::after {
   color: var(--color-accent-primary);
   font-family: inherit;
   font-size: inherit;
-  width: 120px;
-  caret-color: transparent; /* hide native caret, we use our own */
-  padding: 0;
-  position: relative;
-  z-index: 2;
-}
-.terminal-input:focus {
+  width: 100px;
   caret-color: var(--color-accent-primary);
+  padding: 0;
+  margin: 0;
 }
 .terminal-input::placeholder {
   color: transparent;
@@ -336,21 +343,9 @@ body::after {
 .terminal-response.error {
   color: #cc3333;
 }
-/* Blinking cursor — only visible when input is empty and not focused */
 @keyframes blink-cursor {
   0%, 100% { opacity: 1; }
   50% { opacity: 0; }
-}
-.terminal-cursor {
-  display: inline-block;
-  width: 7px;
-  height: 14px;
-  background: var(--color-accent-primary);
-  animation: blink-cursor 1s step-end infinite;
-  vertical-align: middle;
-}
-.terminal-cursor.hidden {
-  display: none;
 }
 
 /* === Main === */
