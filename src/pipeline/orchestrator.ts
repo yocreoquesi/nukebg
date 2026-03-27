@@ -71,12 +71,16 @@ export class PipelineOrchestrator {
     this.setupMlWorkerHandler();
   }
 
+  /** Whether to suppress ML progress updates (during background preload) */
+  private suppressMlProgress = false;
+
   /** Attach onmessage handler to the current mlWorker */
   private setupMlWorkerHandler(): void {
     this.mlWorker.onmessage = (e: MessageEvent<MlWorkerResponse>) => {
       const msg = e.data;
       // model-progress events: forward to UI, don't resolve the pending request
       if (msg.type === 'model-progress') {
+        if (this.suppressMlProgress) return; // background preload, don't update UI
         const pct = msg.progress ?? 0;
         const label = pct >= 96 && pct < 100
           ? 'Warming up the reactor... [96%]'
@@ -261,6 +265,7 @@ export class PipelineOrchestrator {
   }
 
   async process(imageData: ImageData, modelId?: ModelId, refineEdges: boolean = false): Promise<PipelineResult> {
+    this.suppressMlProgress = false; // new image = show progress
     const startTime = performance.now();
     const { width, height } = imageData;
     const originalPixels = new Uint8ClampedArray(imageData.data);
@@ -504,7 +509,13 @@ export class PipelineOrchestrator {
     this.setupMlWorkerHandler();
 
     // Pre-load RMBG model in background so next image is instant
-    this.preloadModel().catch(() => { /* preload failure is non-critical */ });
+    // Suppress progress updates to avoid overwriting 'done' status in UI
+    this.suppressMlProgress = true;
+    this.preloadModel().then(() => {
+      this.suppressMlProgress = false;
+    }).catch(() => {
+      this.suppressMlProgress = false;
+    });
   }
 
   /**
