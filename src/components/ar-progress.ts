@@ -88,6 +88,12 @@ export class ArProgress extends HTMLElement {
       }
     }
 
+    // If a stage re-enters 'running' (e.g. post-process refine), reset total timer
+    if (status === 'running' && this.totalTimeMs !== null) {
+      this.totalTimeMs = null;
+      this.pipelineStartTime = performance.now();
+    }
+
     // Check if all stages are complete
     const allDone = this.stages.every(s => s.status === 'done' || s.status === 'skipped' || s.status === 'error');
     if (allDone && this.totalTimeMs === null) {
