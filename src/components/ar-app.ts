@@ -927,14 +927,7 @@ export class ArApp extends HTMLElement {
       heroSlider?.dispatchEvent(new Event('input'));
       const wsLabel = this.shadowRoot!.querySelector('#precision-label-ws');
       if (wsLabel) wsLabel.textContent = precisionLabels[val];
-
-      // Auto-reprocess with debounce (500ms wait after last move)
-      if (this.currentImageData && wsSliderDebounce) clearTimeout(wsSliderDebounce);
-      if (this.currentImageData) {
-        wsSliderDebounce = setTimeout(() => {
-          this.processImage(this.currentImageData!, this.currentFileSize);
-        }, 500);
-      }
+      // No auto-reprocess — user must click Reprocess button
     });
 
     this.shadowRoot!.querySelector('#reprocess-btn')?.addEventListener('click', () => {
@@ -1016,6 +1009,7 @@ export class ArApp extends HTMLElement {
     hero.classList.add('hidden');
     workspace.classList.add('visible');
 
+    this.viewer.clearResult();
     this.viewer.setOriginal(imageData, fileSize);
     this.progress.reset();
     this.download.reset();

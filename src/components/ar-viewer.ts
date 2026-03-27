@@ -345,6 +345,15 @@ export class ArViewer extends HTMLElement {
     info.textContent = `${imageData.width}x${imageData.height}${sizeStr}`;
   }
 
+  clearResult(): void {
+    const ctx = this.resultCanvas.getContext('2d');
+    if (ctx) {
+      ctx.clearRect(0, 0, this.resultCanvas.width, this.resultCanvas.height);
+    }
+    this.sliderPos = 100;
+    this.updateSlider();
+  }
+
   setResult(imageData: ImageData, blob?: Blob): void {
     const ctx = this.resultCanvas.getContext('2d')!;
     this.resultCanvas.width = imageData.width;
