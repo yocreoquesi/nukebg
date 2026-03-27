@@ -347,6 +347,13 @@ export class ArApp extends HTMLElement {
             transform: translateY(-80px);
           }
         }
+        .ws-precision {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: var(--space-2, 0.5rem);
+          padding: var(--space-2, 0.5rem) 0;
+        }
         .reprocess-btn {
           background: var(--color-accent-primary, #00ff41);
           color: #000;
@@ -806,10 +813,11 @@ export class ArApp extends HTMLElement {
             <select id="model-select-ws" aria-label="${t('model.label')}">
               ${MODEL_OPTIONS.map(m => `<option value="${m.id}" ${m.id === this.selectedModel ? 'selected' : ''}>${m.label}</option>`).join('')}
             </select>
-            <span class="precision-sep">|</span>
+            <button id="reprocess-btn" class="reprocess-btn" aria-label="${t('model.reprocess')}">${t('model.reprocess')}</button>
+          </div>
+          <div class="ws-precision">
             <input type="range" id="precision-slider-ws" min="0" max="4" value="2" step="1" aria-label="Precision level">
             <span class="precision-label" id="precision-label-ws">Balanced</span>
-            <button id="reprocess-btn" class="reprocess-btn" aria-label="${t('model.reprocess')}">${t('model.reprocess')}</button>
           </div>
           <ar-download></ar-download>
           <button class="edit-btn" id="edit-btn" style="display:none">${t('edit.btn')}</button>
