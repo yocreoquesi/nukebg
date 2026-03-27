@@ -24,6 +24,8 @@ export class ArApp extends HTMLElement {
   private refineEnabled = false;
   private preRefineResult: ImageData | null = null;
   private crtFlickerTimers: number[] = [];
+  private isProcessing = false;
+  private processingAborted = false;
 
   constructor() {
     super();
@@ -401,6 +403,19 @@ export class ArApp extends HTMLElement {
         }
 
 
+        /* === Hero controls row (slider + refine toggle) === */
+        .hero-controls {
+          display: flex;
+          align-items: center;
+          gap: var(--space-3, 0.75rem);
+          flex-wrap: wrap;
+          justify-content: center;
+        }
+        .hero-controls .hero-separator {
+          color: var(--color-text-tertiary, #006622);
+          user-select: none;
+        }
+
         /* === Refine edges toggle === */
         .refine-toggle {
           display: flex;
@@ -410,7 +425,6 @@ export class ArApp extends HTMLElement {
           font-size: 12px;
           color: var(--color-text-secondary, #00cc33);
           cursor: pointer;
-          margin-top: var(--space-2, 0.5rem);
           user-select: none;
         }
         .refine-toggle input[type="checkbox"] {
@@ -452,6 +466,10 @@ export class ArApp extends HTMLElement {
           box-shadow: var(--shadow-glow);
         }
         .refine-btn:disabled {
+          opacity: 0.4;
+          pointer-events: none;
+        }
+        .edit-btn:disabled {
           opacity: 0.4;
           pointer-events: none;
         }
@@ -789,14 +807,17 @@ export class ArApp extends HTMLElement {
         <p class="subline">
           ${t('hero.subtitle').replace(/\n/g, ' ')}
         </p>
-        <div class="ws-precision">
-          <input type="range" id="precision-slider" min="0" max="3" value="1" step="1" aria-label="Precision level">
-          <span class="precision-label" id="precision-label">Normal</span>
+        <div class="hero-controls">
+          <div class="ws-precision">
+            <input type="range" id="precision-slider" min="0" max="3" value="1" step="1" aria-label="Precision level">
+            <span class="precision-label" id="precision-label">Normal</span>
+          </div>
+          <span class="hero-separator" aria-hidden="true">|</span>
+          <label class="refine-toggle" id="refine-toggle">
+            <input type="checkbox" id="refine-checkbox" aria-label="${t('refine.toggle')}">
+            <span id="refine-toggle-label">[_] ${t('refine.toggle')}</span>
+          </label>
         </div>
-        <label class="refine-toggle" id="refine-toggle">
-          <input type="checkbox" id="refine-checkbox" aria-label="${t('refine.toggle')}">
-          <span id="refine-toggle-label">[_] ${t('refine.toggle')}</span>
-        </label>
         <ar-dropzone></ar-dropzone>
         <p class="model-status" id="model-status">${t('hero.modelStatus')}</p>
         <div class="precision-marquee" id="precision-marquee"><span>☢ NUKEBG — DROP. NUKE. DOWNLOAD. → nukebg.app ☢ NUKEBG — DROP. NUKE. DOWNLOAD. → nukebg.app ☢</span></div>
@@ -900,6 +921,14 @@ export class ArApp extends HTMLElement {
     this.shadowRoot!.addEventListener('ar:image-loaded', async (e: Event) => {
       const detail = (e as CustomEvent).detail;
       this.currentFileName = detail.file.name || 'image.png';
+
+      // If currently processing, abort the in-flight pipeline and reset
+      if (this.isProcessing) {
+        this.processingAborted = true;
+        this.isProcessing = false;
+        this.enableWorkspaceButtons();
+      }
+
       await this.processImage(detail.imageData, detail.file.size);
     });
 
@@ -1030,7 +1059,9 @@ export class ArApp extends HTMLElement {
         this.updateRefineButton();
       } else {
         // Not refined — run ViTMatte
-        btn.disabled = true;
+        this.isProcessing = true;
+        this.processingAborted = false;
+        this.disableWorkspaceButtons();
         this.preRefineResult = this.lastResultImageData;
 
         this.pipeline.setStageCallback(
@@ -1041,19 +1072,30 @@ export class ArApp extends HTMLElement {
 
         try {
           const refined = await this.pipeline.refineOnly(this.lastResultImageData);
+          if (this.processingAborted) return;
+
           this.lastResultImageData = refined;
           const { exportPng } = await import('../utils/image-io');
+          if (this.processingAborted) return;
+
           const blob = await exportPng(refined);
+          if (this.processingAborted) return;
+
           // Compare: pre-refine (RMBG only) as "Original" vs refined (ViTMatte) as "Result"
           this.viewer.setOriginal(this.preRefineResult!, this.currentFileSize);
           this.viewer.setResult(refined, blob);
           await this.download.setResult(refined, this.currentFileName, 0, blob);
         } catch (err) {
+          if (this.processingAborted) return;
           console.error('Post-process refine failed:', err);
           this.lastResultImageData = this.preRefineResult;
           this.preRefineResult = null;
+        } finally {
+          if (!this.processingAborted) {
+            this.isProcessing = false;
+            this.enableWorkspaceButtons();
+          }
         }
-        btn.disabled = false;
         this.updateRefineButton();
       }
     });
@@ -1136,9 +1178,61 @@ export class ArApp extends HTMLElement {
     }
   }
 
+  /** Disable all workspace action buttons during processing */
+  private disableWorkspaceButtons(): void {
+    const root = this.shadowRoot!;
+    const refineBtn = root.querySelector('#refine-btn') as HTMLButtonElement | null;
+    if (refineBtn) refineBtn.disabled = true;
+    const editBtn = root.querySelector('#edit-btn') as HTMLButtonElement | null;
+    if (editBtn) editBtn.disabled = true;
+    // Buttons inside ar-download shadow DOM
+    const downloadRoot = this.download.shadowRoot;
+    if (downloadRoot) {
+      const dlBtn = downloadRoot.querySelector('#download-btn') as HTMLElement | null;
+      if (dlBtn) {
+        dlBtn.setAttribute('aria-disabled', 'true');
+        dlBtn.style.pointerEvents = 'none';
+        dlBtn.style.opacity = '0.4';
+      }
+      const copyBtn = downloadRoot.querySelector('#copy-btn') as HTMLButtonElement | null;
+      if (copyBtn) copyBtn.disabled = true;
+      const anotherBtn = downloadRoot.querySelector('#another-btn') as HTMLButtonElement | null;
+      if (anotherBtn) anotherBtn.disabled = true;
+    }
+  }
+
+  /** Re-enable all workspace action buttons after processing */
+  private enableWorkspaceButtons(): void {
+    const root = this.shadowRoot!;
+    const refineBtn = root.querySelector('#refine-btn') as HTMLButtonElement | null;
+    if (refineBtn) refineBtn.disabled = false;
+    const editBtn = root.querySelector('#edit-btn') as HTMLButtonElement | null;
+    if (editBtn) editBtn.disabled = false;
+    // Buttons inside ar-download shadow DOM
+    const downloadRoot = this.download.shadowRoot;
+    if (downloadRoot) {
+      const dlBtn = downloadRoot.querySelector('#download-btn') as HTMLElement | null;
+      if (dlBtn) {
+        dlBtn.removeAttribute('aria-disabled');
+        dlBtn.style.pointerEvents = '';
+        dlBtn.style.opacity = '';
+      }
+      const copyBtn = downloadRoot.querySelector('#copy-btn') as HTMLButtonElement | null;
+      if (copyBtn) copyBtn.disabled = false;
+      const anotherBtn = downloadRoot.querySelector('#another-btn') as HTMLButtonElement | null;
+      if (anotherBtn) anotherBtn.disabled = false;
+    }
+  }
+
   private async processImage(imageData: ImageData, fileSize: number): Promise<void> {
+    this.processingAborted = false;
+    this.isProcessing = true;
+    this.disableWorkspaceButtons();
+
     this.currentImageData = imageData;
     this.currentFileSize = fileSize;
+    this.preRefineResult = null;
+    this.lastResultImageData = null;
 
     const hero = this.shadowRoot!.querySelector('#hero')!;
     const workspace = this.shadowRoot!.querySelector('#workspace')!;
@@ -1169,10 +1263,18 @@ export class ArApp extends HTMLElement {
 
     try {
       const result = await this.pipeline.process(imageData, ArApp.MODEL_ID, this.refineEnabled);
+      if (this.processingAborted) return;
+
       const { exportPng } = await import('../utils/image-io');
+      if (this.processingAborted) return;
+
       const blob = await exportPng(result.imageData);
+      if (this.processingAborted) return;
+
       this.viewer.setResult(result.imageData, blob);
       await this.download.setResult(result.imageData, this.currentFileName, result.totalTimeMs, blob);
+      if (this.processingAborted) return;
+
       this.lastResultImageData = result.imageData;
 
       // Cache pre-refine result when processed with refinement
@@ -1194,9 +1296,15 @@ export class ArApp extends HTMLElement {
       const editorSection = this.shadowRoot!.querySelector('#editor-section') as HTMLElement;
       if (editorSection) editorSection.style.display = 'none';
     } catch (err) {
+      if (this.processingAborted) return;
       console.error('Pipeline error:', err);
       const msg = err instanceof Error ? err.message : String(err);
       this.progress.setStage('ml-segmentation', 'error', t('pipeline.error', { msg }));
+    } finally {
+      if (!this.processingAborted) {
+        this.isProcessing = false;
+        this.enableWorkspaceButtons();
+      }
     }
   }
 

@@ -196,6 +196,14 @@ export class ArDownload extends HTMLElement {
           }
         }
 
+        .btn-secondary:disabled {
+          opacity: 0.4;
+          pointer-events: none;
+        }
+        .btn-copy:disabled {
+          opacity: 0.4;
+          pointer-events: none;
+        }
         .btn-copy.copied { border-color: var(--color-accent-primary, #00ff41); color: var(--color-accent-primary, #00ff41); }
         .metadata {
           font-size: 11px;
