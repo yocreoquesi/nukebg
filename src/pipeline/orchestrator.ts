@@ -37,7 +37,7 @@ export class PipelineOrchestrator {
   private cvWorker: Worker;
   private mlWorker: Worker;
   private inpaintWorker: Worker | null = null;
-  private pendingRequests = new Map<string, { resolve: (val: unknown) => void; reject: (err: Error) => void }>();
+  private pendingRequests = new Map<string, { resolve: (val: unknown) => void; reject: (err: Error) => void; expectedType: string }>();
   private onStageChange: StageCallback;
 
   constructor(onStageChange: StageCallback) {
@@ -68,6 +68,11 @@ export class PipelineOrchestrator {
       }
     };
 
+    this.setupMlWorkerHandler();
+  }
+
+  /** Attach onmessage handler to the current mlWorker */
+  private setupMlWorkerHandler(): void {
     this.mlWorker.onmessage = (e: MessageEvent<MlWorkerResponse>) => {
       const msg = e.data;
       // model-progress events: forward to UI, don't resolve the pending request
@@ -86,9 +91,21 @@ export class PipelineOrchestrator {
           this.pendingRequests.delete(msg.id);
           pending.reject(new Error(msg.error));
         } else if (msg.type === 'segment-result') {
+          // Only resolve if the request was actually for a segment call
+          if (pending.expectedType !== 'segment') {
+            console.warn(`[NukeBG] segment-result arrived for a '${pending.expectedType}' request — ignoring`);
+            return;
+          }
           this.pendingRequests.delete(msg.id);
           pending.resolve(msg.result);
         } else if (msg.type === 'model-ready') {
+          // Only resolve if the request was for load-model, NOT segment.
+          // This prevents a model-ready message from prematurely resolving
+          // a segment request when the worker auto-loads the model.
+          if (pending.expectedType !== 'load-model') {
+            console.warn(`[NukeBG] model-ready arrived for a '${pending.expectedType}' request — ignoring`);
+            return;
+          }
           this.pendingRequests.delete(msg.id);
           pending.resolve(msg);
         }
@@ -121,7 +138,7 @@ export class PipelineOrchestrator {
   private cvCall<T>(type: string, payload: Record<string, unknown>): Promise<T> {
     return new Promise((resolve, reject) => {
       const id = generateUUID();
-      this.pendingRequests.set(id, { resolve: resolve as (val: unknown) => void, reject });
+      this.pendingRequests.set(id, { resolve: resolve as (val: unknown) => void, reject, expectedType: type });
       const transferables = PipelineOrchestrator.extractTransferables(payload);
       this.cvWorker.postMessage({ id, type, payload }, transferables);
 
@@ -137,7 +154,7 @@ export class PipelineOrchestrator {
   private mlCall<T>(type: string, payload?: Record<string, unknown>, extra?: Record<string, unknown>): Promise<T> {
     return new Promise((resolve, reject) => {
       const id = generateUUID();
-      this.pendingRequests.set(id, { resolve: resolve as (val: unknown) => void, reject });
+      this.pendingRequests.set(id, { resolve: resolve as (val: unknown) => void, reject, expectedType: type });
       const transferables = PipelineOrchestrator.extractTransferables(payload);
       this.mlWorker.postMessage({ id, type, payload, ...extra }, transferables);
 
@@ -188,7 +205,7 @@ export class PipelineOrchestrator {
     if (!this.inpaintWorker) throw new Error('Inpaint worker not created');
     return new Promise((resolve, reject) => {
       const id = generateUUID();
-      this.pendingRequests.set(id, { resolve: resolve as (val: unknown) => void, reject });
+      this.pendingRequests.set(id, { resolve: resolve as (val: unknown) => void, reject, expectedType: type });
       const transferables = PipelineOrchestrator.extractTransferables(payload);
       this.inpaintWorker!.postMessage({ id, type, payload }, transferables);
 
@@ -484,30 +501,10 @@ export class PipelineOrchestrator {
       { type: 'module' }
     );
     this.mlWorker.onerror = (e) => this.rejectAllPending(`ML Worker error: ${e.message}`);
-    this.mlWorker.onmessage = (e: MessageEvent<MlWorkerResponse>) => {
-      const msg = e.data;
-      if (msg.type === 'model-progress') {
-        const pct = msg.progress ?? 0;
-        const label = pct >= 96 && pct < 100
-          ? 'Warming up the reactor... [96%]'
-          : `Loading AI model... ${pct}% [${pct}%]`;
-        this.emit('ml-segmentation', 'running', label);
-        return;
-      }
-      const pending = this.pendingRequests.get(msg.id);
-      if (pending) {
-        if (msg.type === 'error') {
-          this.pendingRequests.delete(msg.id);
-          pending.reject(new Error(msg.error));
-        } else if (msg.type === 'segment-result') {
-          this.pendingRequests.delete(msg.id);
-          pending.resolve(msg.result);
-        } else if (msg.type === 'model-ready') {
-          this.pendingRequests.delete(msg.id);
-          pending.resolve(msg);
-        }
-      }
-    };
+    this.setupMlWorkerHandler();
+
+    // Pre-load RMBG model in background so next image is instant
+    this.preloadModel().catch(() => { /* preload failure is non-critical */ });
   }
 
   /**

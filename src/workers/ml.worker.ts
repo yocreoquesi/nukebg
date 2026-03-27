@@ -226,7 +226,9 @@ async function segment(
   modelId: ModelId = DEFAULT_MODEL,
   threshold = 0.5,
 ): Promise<void> {
-  if (!segmenters.has(modelId)) await loadModel(id, modelId, false);
+  // Use a separate internal ID for auto-loading so that any model-ready
+  // message cannot accidentally resolve the pending segment request.
+  if (!segmenters.has(modelId)) await loadModel(`_autoload_${id}`, modelId, false);
   const entry = segmenters.get(modelId)!;
 
   if (!RawImageClass) throw new Error('RawImage class not loaded');
@@ -255,10 +257,32 @@ async function segment(
     }
   }
 
-  // Apply threshold binarization — this is what makes the slider functional
-  const thresholdByte = Math.round(threshold * 255);
+  // Diagnostic: check raw mask value distribution before binarization.
+  // A healthy mask has a wide range (0 for bg, 255 for fg). A uniform
+  // mask (all values within 5 of each other) indicates corrupt model output.
+  let rawMin = 255;
+  let rawMax = 0;
   for (let i = 0; i < rawAlpha.length; i++) {
-    rawAlpha[i] = rawAlpha[i] > thresholdByte ? 255 : 0;
+    if (rawAlpha[i] < rawMin) rawMin = rawAlpha[i];
+    if (rawAlpha[i] > rawMax) rawMax = rawAlpha[i];
+  }
+
+  const totalPx = rawAlpha.length;
+  const allSameRange = (rawMax - rawMin) < 5;
+  if (allSameRange && totalPx > 100) {
+    console.warn(
+      `[NukeBG ML] Suspicious mask: min=${rawMin} max=${rawMax} range=${rawMax - rawMin} — ` +
+      `model may have returned uniform output. Skipping binarization.`
+    );
+    // Don't binarize — the uniform mask would become all-255 or all-0.
+    // Pass through raw values so the guided filter still has something
+    // meaningful to work with.
+  } else {
+    // Apply threshold binarization — this is what makes the slider functional
+    const thresholdByte = Math.round(threshold * 255);
+    for (let i = 0; i < rawAlpha.length; i++) {
+      rawAlpha[i] = rawAlpha[i] > thresholdByte ? 255 : 0;
+    }
   }
 
   const refinedEdges = refineEdges(rawAlpha, pixels, width, height);
