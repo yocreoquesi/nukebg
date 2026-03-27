@@ -398,6 +398,17 @@ export class PipelineOrchestrator {
       resultPixels[i * 4 + 3] = finalAlpha[i];
     }
 
+    // Stats: verify background was actually removed
+    let opaquePixels = 0;
+    let transparentPixels = 0;
+    for (let i = 0; i < finalAlpha.length; i++) {
+      if (finalAlpha[i] > 200) opaquePixels++;
+      else if (finalAlpha[i] < 30) transparentPixels++;
+    }
+    const totalPixels = width * height;
+    const nukedPct = Math.round(100 * transparentPixels / totalPixels);
+    console.log(`[NukeBG] Result: ${nukedPct}% nuked, ${Math.round(100 * opaquePixels / totalPixels)}% kept, ${totalPixels - opaquePixels - transparentPixels} edge pixels`);
+
     const resultImageData = new ImageData(resultPixels, width, height);
     const totalTimeMs = performance.now() - startTime;
 
@@ -406,6 +417,7 @@ export class PipelineOrchestrator {
       totalTimeMs,
       backgroundType: bgType,
       watermarkRemoved,
+      nukedPct,
       stageTiming,
       preRefineImageData: refineEdges ? preRefineImageData : undefined,
     };

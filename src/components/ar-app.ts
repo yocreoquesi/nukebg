@@ -1304,6 +1304,11 @@ export class ArApp extends HTMLElement {
       await this.download.setResult(result.imageData, this.currentFileName, result.totalTimeMs, blob);
       if (this.processingAborted) return;
 
+      // Show nuke percentage if background was removed
+      if (result.nukedPct > 0) {
+        this.progress.setStage('ml-segmentation', 'done', `${result.nukedPct}% nuked`);
+      }
+
       this.lastResultImageData = result.imageData;
 
       // Cache pre-refine result when processed with refinement

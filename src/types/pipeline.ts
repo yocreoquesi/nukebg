@@ -30,6 +30,8 @@ export interface PipelineResult {
   backgroundType: BackgroundType;
   /** Whether watermark was found and removed */
   watermarkRemoved: boolean;
+  /** Percentage of pixels made transparent */
+  nukedPct: number;
   /** Per-stage timing breakdown */
   stageTiming: Partial<Record<PipelineStage, number>>;
   /** Image after RMBG but before ViTMatte (only present when refineEdges=true) */
