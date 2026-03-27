@@ -264,6 +264,13 @@ export class PipelineOrchestrator {
     return combined;
   }
 
+  /** Optional callback for intermediate result (post-RMBG, pre-ViTMatte) */
+  private onIntermediateResult: ((imageData: ImageData) => void) | null = null;
+
+  setIntermediateCallback(cb: ((imageData: ImageData) => void) | null): void {
+    this.onIntermediateResult = cb;
+  }
+
   async process(imageData: ImageData, modelId?: ModelId, refineEdges: boolean = false): Promise<PipelineResult> {
     this.suppressMlProgress = false; // new image = show progress
     const startTime = performance.now();
@@ -381,6 +388,11 @@ export class PipelineOrchestrator {
       preRefinePixels[i * 4 + 3] = mlAlpha[i];
     }
     const preRefineImageData = new ImageData(preRefinePixels, width, height);
+
+    // Show intermediate result (RMBG-only) while ViTMatte loads
+    if (refineEdges && this.onIntermediateResult) {
+      this.onIntermediateResult(preRefineImageData);
+    }
 
     // ── Stage 5: Edge refine (ViTMatte alpha matting) — conditional ──
     let finalAlpha: Uint8Array;

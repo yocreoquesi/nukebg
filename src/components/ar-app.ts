@@ -1350,6 +1350,14 @@ export class ArApp extends HTMLElement {
     }
 
     try {
+      // Show intermediate result (post-RMBG, pre-ViTMatte) while refining
+      this.pipeline.setIntermediateCallback(this.refineEnabled ? async (intermediate: ImageData) => {
+        if (this.processingAborted) return;
+        const { exportPng } = await import('../utils/image-io');
+        const blob = await exportPng(intermediate);
+        this.viewer.setResult(intermediate, blob);
+      } : null);
+
       const result = await this.pipeline.process(imageData, ArApp.MODEL_ID, this.refineEnabled);
       if (this.processingAborted) return;
 
