@@ -262,7 +262,9 @@ async function segment(
   const refinedEdges = refineEdges(rawAlpha, pixels, width, height);
 
   // Apply guided filter for smooth alpha matting at edges
-  const alphaMask = guidedFilter(refinedEdges, pixels, width, height, 15, 1e-4);
+  // Adaptive radius: ~1.5% of smallest dimension, clamped 3-15
+  const adaptiveRadius = Math.max(3, Math.min(15, Math.round(Math.min(width, height) * 0.015)));
+  const alphaMask = guidedFilter(refinedEdges, pixels, width, height, adaptiveRadius, 1e-4);
 
   self.postMessage(
     { id, type: 'segment-result', result: alphaMask },
