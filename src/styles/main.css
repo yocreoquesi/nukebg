@@ -282,13 +282,17 @@ body::after {
 .logo-whisper {
   position: absolute;
   left: 0;
-  top: calc(100% + 4px);
+  top: calc(100% + 2px);
   font-family: var(--font-mono);
   font-size: 10px;
   color: var(--color-text-tertiary);
+  background: #000;
+  padding: 2px 6px;
+  border: 1px solid #1a3a1a;
   opacity: 0;
   transition: opacity 0.3s ease;
   pointer-events: none;
+  z-index: 30;
   white-space: nowrap;
 }
 .logo-whisper.visible {

@@ -214,6 +214,16 @@ async function loadModel(id: string, modelId: ModelId = DEFAULT_MODEL, emitReady
   });
   segmenters.set(modelId, { pipeline: seg as unknown as SegmenterEntry['pipeline'], type: 'pipeline' });
 
+  // Warmup: run a tiny inference to force WASM full compilation
+  // This ensures consistent results from the very first real image
+  try {
+    if (RawImageClass) {
+      const warmupPixels = new Uint8ClampedArray(16); // 2x2 RGBA
+      const warmupImg = new RawImageClass(warmupPixels, 2, 2, 4);
+      await (seg as unknown as SegmenterEntry['pipeline'])(warmupImg, { threshold: 0.5, return_mask: true });
+    }
+  } catch { /* warmup failure is non-critical */ }
+
   currentModelId = modelId;
 
   if (emitReady) {
