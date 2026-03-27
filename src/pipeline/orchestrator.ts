@@ -469,7 +469,7 @@ export class PipelineOrchestrator {
       watermarkRemoved,
       nukedPct,
       stageTiming,
-      preRefineImageData: refineEdges ? preRefineImageData : undefined,
+      preRefineImageData: shouldRefine ? preRefineImageData : undefined,
     };
   }
 

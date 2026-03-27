@@ -834,11 +834,6 @@ export class ArApp extends HTMLElement {
             <input type="range" id="precision-slider" min="0" max="3" value="1" step="1" aria-label="Precision level">
             <span class="precision-label" id="precision-label">Normal</span>
           </div>
-          <span class="hero-separator" aria-hidden="true">|</span>
-          <label class="refine-toggle" id="refine-toggle">
-            <input type="checkbox" id="refine-checkbox" checked aria-label="${t('refine.toggle')}">
-            <span id="refine-toggle-label">[x] ${t('refine.toggle')}</span>
-          </label>
         </div>
         <ar-dropzone></ar-dropzone>
         <p class="model-status" id="model-status">${t('hero.modelStatus')}</p>
