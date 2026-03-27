@@ -55,6 +55,13 @@ export const ALPHA_PARAMS = {
   THRESHOLD_LOW: 30,
 } as const;
 
+export const GUIDED_FILTER_PARAMS = {
+  /** Box filter radius for alpha matting guided filter */
+  RADIUS: 15,
+  /** Regularization to prevent division by zero in flat regions */
+  EPSILON: 1e-4,
+} as const;
+
 export const INPAINT_PARAMS = {
   /** Radio de busqueda de vecinos para Telea FMM.
    *  Debe ser >= al grosor de la zona a reconstruir.

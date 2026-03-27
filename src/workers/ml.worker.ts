@@ -5,6 +5,7 @@
  * model download, caching — all internally.
  */
 import type { MlWorkerRequest, ModelId } from '../types/worker-messages';
+import { guidedFilter } from './cv/alpha-matting';
 
 const DEFAULT_MODEL: ModelId = 'briaai/RMBG-1.4';
 
@@ -18,6 +19,27 @@ interface SegmenterEntry {
 const segmenters = new Map<string, SegmenterEntry>();
 let currentModelId: ModelId = DEFAULT_MODEL;
 let RawImageClass: (new (data: Uint8ClampedArray, w: number, h: number, channels: number) => unknown) | null = null;
+
+/** Detected compute device — resolved once on first model load */
+let resolvedDevice: 'webgpu' | 'wasm' | null = null;
+
+/** Detect WebGPU availability with safe fallback to WASM */
+async function detectDevice(): Promise<'webgpu' | 'wasm'> {
+  if (resolvedDevice) return resolvedDevice;
+  try {
+    if (typeof navigator !== 'undefined' && 'gpu' in navigator) {
+      const adapter = await (navigator as unknown as { gpu: { requestAdapter(): Promise<unknown | null> } }).gpu?.requestAdapter();
+      if (adapter) {
+        resolvedDevice = 'webgpu';
+        console.log('[NukeBG] Using WebGPU backend');
+        return 'webgpu';
+      }
+    }
+  } catch { /* WebGPU not available — fall through to WASM */ }
+  resolvedDevice = 'wasm';
+  console.log('[NukeBG] Using WASM backend');
+  return 'wasm';
+}
 
 /**
  * Spatial context edge refinement.
@@ -151,11 +173,13 @@ const progressCb = (id: string) => (progress: { status: string; progress?: numbe
 };
 
 async function loadModel(id: string, modelId: ModelId = DEFAULT_MODEL, emitReady = true): Promise<void> {
+  const device = await detectDevice();
+
   if (segmenters.has(modelId)) {
     currentModelId = modelId;
     if (emitReady) {
       self.postMessage({ id, type: 'model-progress', progress: 100 });
-      self.postMessage({ id, type: 'model-ready', device: 'wasm' as const });
+      self.postMessage({ id, type: 'model-ready', device });
     }
     return;
   }
@@ -184,7 +208,7 @@ async function loadModel(id: string, modelId: ModelId = DEFAULT_MODEL, emitReady
   self.postMessage({ id, type: 'model-progress', progress: 10 });
 
   const seg = await transformers.pipeline('image-segmentation', modelId, {
-    device: 'wasm',
+    device,
     dtype: 'q8',
     progress_callback: progressCb(id),
   });
@@ -194,7 +218,7 @@ async function loadModel(id: string, modelId: ModelId = DEFAULT_MODEL, emitReady
 
   if (emitReady) {
     self.postMessage({ id, type: 'model-progress', progress: 100 });
-    self.postMessage({ id, type: 'model-ready', device: 'wasm' as const });
+    self.postMessage({ id, type: 'model-ready', device });
   }
 }
 
@@ -235,7 +259,10 @@ async function segment(
     }
   }
 
-  const alphaMask = refineEdges(rawAlpha, pixels, width, height);
+  const refinedEdges = refineEdges(rawAlpha, pixels, width, height);
+
+  // Apply guided filter for smooth alpha matting at edges
+  const alphaMask = guidedFilter(refinedEdges, pixels, width, height, 15, 1e-4);
 
   self.postMessage(
     { id, type: 'segment-result', result: alphaMask },
