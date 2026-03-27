@@ -207,6 +207,19 @@ export class ArApp extends HTMLElement {
           color: var(--color-text-secondary, #00cc33);
           line-height: 1.5;
         }
+        .features-disclaimer {
+          text-align: center;
+          font-family: 'JetBrains Mono', monospace;
+          font-size: 11px;
+          color: var(--color-text-tertiary, #006622);
+          margin-top: var(--space-4, 1rem);
+          padding: 0 var(--space-4, 1rem);
+        }
+        .features-disclaimer s {
+          color: var(--color-text-tertiary, #006622);
+          text-decoration: line-through;
+          opacity: 0.7;
+        }
         .sr-only {
           position: absolute;
           width: 1px;
@@ -847,6 +860,7 @@ export class ArApp extends HTMLElement {
             ${t('features.private.desc')}
           </p>
         </article>
+        <p class="features-disclaimer" id="features-disclaimer">${t('features.disclaimer')}</p>
       </section>
     `;
   }
@@ -894,6 +908,8 @@ export class ArApp extends HTMLElement {
       if (titleEl && featureKeys[i]) titleEl.textContent = t(`${featureKeys[i]}.title`);
       if (descEl && featureKeys[i]) descEl.textContent = t(`${featureKeys[i]}.desc`);
     });
+    const disclaimer = root.querySelector('#features-disclaimer');
+    if (disclaimer) disclaimer.innerHTML = t('features.disclaimer');
   }
 
   private setupEvents(): void {

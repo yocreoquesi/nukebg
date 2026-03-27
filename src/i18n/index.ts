@@ -87,12 +87,12 @@ const translations: Translations = {
     // Features
     'features.srTitle': 'Background Removal That Actually Works',
     'features.bgRemoval.title': 'No Upload. No Wait.',
-    'features.bgRemoval.desc': 'Drop any image \u2014 photo, illustration, screenshot \u2014 and get a transparent PNG in seconds. No watermark on output, no usage limits, no account required.',
+    'features.bgRemoval.desc': 'Drop any image and get a transparent PNG in seconds. Photos, illustrations, screenshots, whatever. No watermark, no limits, no account needed.',
     'features.aiArtifacts.title': 'AI Garbage? Gone.',
-    'features.aiArtifacts.desc': 'Painted checkerboards, Gemini watermarks \u2014 the junk that standard background removers miss. NukeBG detects it. NukeBG kills it.',
+    'features.aiArtifacts.desc': 'Painted checkerboards, Gemini watermarks... the stuff other tools pretend doesn\u2019t exist. We see it. We nuke it.',
     'features.private.title': 'Open Source. Verify Everything.',
-    'features.private.desc': 'Your images never leave your device \u2014 zero server uploads, zero tracking. No artificial slowdowns, no credit system, no paywall. GPL-3.0 \u2014 verify it yourself.',
-    'features.disclaimer': 'We\u2019re not perfect \u2014 but at least we won\u2019t hold your pixels hostage.',
+    'features.private.desc': 'Your images never leave your device. Zero uploads, zero tracking, zero artificial slowdowns. No credit system, no paywall. It\u2019s GPL-3.0, go read the code.',
+    'features.disclaimer': 'We\u2019re <s>perfect</s> honest. And at least we don\u2019t hold your pixels hostage.',
 
     // Header / Footer (index.html)
     'header.skipLink': 'Skip to main content',
@@ -185,12 +185,12 @@ const translations: Translations = {
     // Features
     'features.srTitle': 'Eliminaci\u00F3n de fondos que realmente funciona',
     'features.bgRemoval.title': 'Sin subidas. Sin esperas.',
-    'features.bgRemoval.desc': 'Arrastra cualquier imagen \u2014 foto, ilustraci\u00F3n, captura \u2014 y obt\u00E9n un PNG transparente en segundos. Sin marca de agua, sin l\u00EDmites de uso, sin cuenta.',
+    'features.bgRemoval.desc': 'Arrastra cualquier imagen y obt\u00E9n un PNG transparente en segundos. Fotos, ilustraciones, capturas, lo que sea. Sin marca de agua, sin l\u00EDmites, sin cuenta.',
     'features.aiArtifacts.title': '\u00BFBasura de IA? Eliminada.',
-    'features.aiArtifacts.desc': 'Tableros de ajedrez pintados, marcas de agua de Gemini \u2014 la basura que los eliminadores de fondo est\u00E1ndar ni detectan. NukeBG la ve. NukeBG la destruye.',
+    'features.aiArtifacts.desc': 'Tableros de ajedrez pintados, marcas de agua de Gemini... eso que otras herramientas fingen que no existe. Nosotros lo vemos. Lo eliminamos.',
     'features.private.title': 'C\u00F3digo abierto. Verifica todo.',
-    'features.private.desc': 'Tus im\u00E1genes nunca salen de tu dispositivo \u2014 cero subidas al servidor, cero rastreo. Sin ralentizaciones artificiales, sin sistema de cr\u00E9ditos, sin muro de pago. GPL-3.0 \u2014 verif\u00EDcalo t\u00FA mismo.',
-    'features.disclaimer': 'No somos perfectos \u2014 pero al menos no secuestramos tus p\u00EDxeles.',
+    'features.private.desc': 'Tus im\u00E1genes nunca salen de tu dispositivo. Cero subidas, cero rastreo, cero ralentizaciones artificiales. Sin cr\u00E9ditos, sin muro de pago. Es GPL-3.0, lee el c\u00F3digo.',
+    'features.disclaimer': 'Somos <s>perfectos</s> honestos. Y al menos no secuestramos tus p\u00EDxeles.',
 
     // Header / Footer (index.html)
     'header.skipLink': 'Saltar al contenido principal',
