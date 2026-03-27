@@ -386,6 +386,17 @@ body::after {
   color: #1a3a1a;
 }
 
+.footer-cache-btn {
+  color: var(--color-text-tertiary);
+  text-decoration: none;
+  cursor: pointer;
+  transition: color var(--duration-normal), text-shadow var(--duration-normal);
+}
+.footer-cache-btn:hover {
+  color: var(--color-accent-primary);
+  text-shadow: 0 0 6px var(--color-accent-glow);
+}
+
 .footer-privacy {
   display: block;
   margin-top: var(--space-3);

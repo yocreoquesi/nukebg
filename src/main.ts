@@ -292,6 +292,29 @@ function updateHtmlTexts(): void {
 }
 
 // === Terminal Prompt Easter Egg ===
+/** Clear all caches, unregister service workers, and reload */
+function nukeCache(): void {
+  Promise.all([
+    caches.keys().then(keys => Promise.all(keys.map(k => caches.delete(k)))),
+    navigator.serviceWorker?.getRegistrations().then(regs => Promise.all(regs.map(r => r.unregister()))),
+  ]).then(() => {
+    location.reload();
+  }).catch(() => {
+    location.reload();
+  });
+}
+
+/** Footer clear cache button */
+function initClearCacheButton(): void {
+  const btn = document.getElementById('clear-cache-btn');
+  if (!btn) return;
+  btn.addEventListener('click', (e) => {
+    e.preventDefault();
+    btn.textContent = '☢ Purging...';
+    setTimeout(() => nukeCache(), 500);
+  });
+}
+
 function initTerminalPrompt(): void {
   const input = document.getElementById('terminal-input') as HTMLInputElement | null;
   const cursor = document.getElementById('terminal-cursor');
@@ -305,7 +328,7 @@ function initTerminalPrompt(): void {
     'sudo rm': '> rm: cannot remove \'backgrounds\': already nuked',
     'sudo nuke': '> LAUNCHING ALL NUKES...',
     'sudo help': '> man nukebg: Drop. Nuke. Download.',
-    'help': '> Try: sudo, nuke, exit, ls',
+    'help': '> Try: sudo, nuke, exit, ls, clear',
     'nuke': '> Nuke what? Drop an image first.',
     'exit': '> There is no escape from NukeBG.',
     'ls': '> backgrounds/ watermarks/ — scheduled for deletion',
@@ -313,6 +336,8 @@ function initTerminalPrompt(): void {
     'hack': '> You\'re already in. What more do you want?',
     'hello': '> Hello, operator. Ready to nuke?',
     'hi': '> Hello, operator. Ready to nuke?',
+    'clear': '> Purging cache... reloading.',
+    'purge': '> Purging cache... reloading.',
   };
 
   function showResponse(text: string, isError: boolean = false): void {
@@ -373,6 +398,13 @@ function initTerminalPrompt(): void {
       }
     }
 
+    // Special case: clear/purge actually clears cache and reloads
+    if (cmd === 'clear' || cmd === 'purge') {
+      showResponse(COMMANDS[cmd]);
+      setTimeout(() => nukeCache(), 1500);
+      return;
+    }
+
     const response = COMMANDS[cmd] || `> Command not found: ${input.value.trim()}. Try 'help'`;
     showResponse(response);
   });
@@ -383,6 +415,7 @@ function init(): void {
   initI18n();
   initKeyboardShortcuts();
   initTerminalPrompt();
+  initClearCacheButton();
   showConsoleLogo();
   initHolidayEasterEgg();
   initKonamiCode();
