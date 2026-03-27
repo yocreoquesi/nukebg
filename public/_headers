@@ -5,7 +5,8 @@
   Permissions-Policy: camera=(), microphone=(), geolocation=()
   Cross-Origin-Opener-Policy: same-origin
   Cross-Origin-Embedder-Policy: credentialless
-  Content-Security-Policy: default-src 'self'; script-src 'self' blob: 'wasm-unsafe-eval' 'unsafe-eval' https://cdn.jsdelivr.net; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://huggingface.co https://cdn-lfs.huggingface.co https://cdn-lfs-us-1.huggingface.co https://cdn.jsdelivr.net; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'
+  # CSP temporarily removed — was blocking WebAssembly.instantiate() in ONNX Runtime
+  # despite wasm-unsafe-eval + unsafe-eval being present. Will re-add once confirmed working.
 
 /assets/*
   Cache-Control: public, max-age=31536000, immutable
