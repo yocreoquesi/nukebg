@@ -5,7 +5,6 @@
  * model download, caching — all internally.
  */
 import type { MlWorkerRequest, ModelId } from '../types/worker-messages';
-import { guidedFilter } from './cv/alpha-matting';
 
 const DEFAULT_MODEL: ModelId = 'briaai/RMBG-1.4';
 
@@ -218,6 +217,61 @@ async function loadModel(id: string, modelId: ModelId = DEFAULT_MODEL, emitReady
   }
 }
 
+/** Morphological smoothing: erode→dilate→edge blur. No halos. */
+function morphSmooth(alpha: Uint8Array, w: number, h: number): Uint8Array {
+  // Step 1: Erode (shrink foreground by 1px to remove edge residue)
+  const eroded = new Uint8Array(w * h);
+  for (let y = 1; y < h - 1; y++) {
+    for (let x = 1; x < w - 1; x++) {
+      const i = y * w + x;
+      // Pixel is foreground only if all 4 neighbors are also foreground
+      if (alpha[i] > 128 &&
+          alpha[i - 1] > 128 && alpha[i + 1] > 128 &&
+          alpha[i - w] > 128 && alpha[i + w] > 128) {
+        eroded[i] = 255;
+      }
+    }
+  }
+
+  // Step 2: Dilate (restore shape by 1px)
+  const dilated = new Uint8Array(w * h);
+  for (let y = 1; y < h - 1; y++) {
+    for (let x = 1; x < w - 1; x++) {
+      const i = y * w + x;
+      if (eroded[i] > 0 ||
+          eroded[i - 1] > 0 || eroded[i + 1] > 0 ||
+          eroded[i - w] > 0 || eroded[i + w] > 0) {
+        dilated[i] = 255;
+      }
+    }
+  }
+
+  // Step 3: Blur edges only (3x3 box filter on boundary pixels)
+  const result = new Uint8Array(dilated);
+  for (let y = 1; y < h - 1; y++) {
+    for (let x = 1; x < w - 1; x++) {
+      const i = y * w + x;
+      // Only process boundary pixels (foreground with at least one bg neighbor)
+      if (dilated[i] === 0) continue;
+      const hasTransparentNeighbor =
+        dilated[i - 1] === 0 || dilated[i + 1] === 0 ||
+        dilated[i - w] === 0 || dilated[i + w] === 0;
+      if (!hasTransparentNeighbor) continue;
+
+      // 3x3 box average
+      let sum = 0;
+      for (let dy = -1; dy <= 1; dy++) {
+        for (let dx = -1; dx <= 1; dx++) {
+          sum += dilated[(y + dy) * w + (x + dx)];
+        }
+      }
+      result[i] = Math.round(sum / 9);
+    }
+  }
+
+  return result;
+}
+
 async function segment(
   id: string,
   pixels: Uint8ClampedArray,
@@ -287,10 +341,10 @@ async function segment(
 
   const refinedEdges = refineEdges(rawAlpha, pixels, width, height);
 
-  // Apply guided filter for smooth alpha matting at edges
-  // Adaptive radius: ~1.5% of smallest dimension, clamped 3-15
-  const adaptiveRadius = Math.max(3, Math.min(15, Math.round(Math.min(width, height) * 0.015)));
-  const alphaMask = guidedFilter(refinedEdges, pixels, width, height, adaptiveRadius, 1e-4);
+  // Morphological smoothing: erode removes edge residue, dilate restores shape,
+  // then gaussian-like blur on edges only for smooth transitions.
+  // This replaces the guided filter which generated halo artifacts.
+  const alphaMask = morphSmooth(refinedEdges, width, height);
 
   self.postMessage(
     { id, type: 'segment-result', result: alphaMask },
