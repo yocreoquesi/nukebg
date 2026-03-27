@@ -115,10 +115,14 @@ export class ArProgress extends HTMLElement {
         .stages {
           display: flex;
           flex-direction: column;
-          gap: var(--space-2, 0.5rem);
-          max-height: 120px;
-          min-height: 120px;
+          gap: 4px;
+          max-height: 80px;
+          min-height: 80px;
           overflow-y: auto;
+          scrollbar-width: none;
+        }
+        .stages::-webkit-scrollbar {
+          display: none;
         }
         .stage {
           display: flex;
