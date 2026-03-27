@@ -6,7 +6,7 @@
 [![Client-Side](https://img.shields.io/badge/Processing-100%25%20Client--Side-green.svg)](#-privacy)
 [![Ko-fi](https://img.shields.io/badge/Ko--fi-Support%20NukeBG-FF5E5B?logo=ko-fi&logoColor=white)](https://ko-fi.com/yocreoquesi)
 
-[Live Demo](https://nukebg.app) | [GitHub](https://github.com/yocreoquesi/nukebg) | [Support on Ko-fi](https://ko-fi.com/yocreoquesi)
+[Use NukeBG](https://nukebg.app) | [GitHub](https://github.com/yocreoquesi/nukebg) | [Support on Ko-fi](https://ko-fi.com/yocreoquesi)
 
 ---
 
@@ -50,7 +50,7 @@ Drop. Nuke. Download. That's it.
 
 ## > quick_start
 
-**Use online -- no install needed:**
+**Use it now at [nukebg.app](https://nukebg.app) -- no install needed.**
 
 ```
 $ open https://nukebg.app

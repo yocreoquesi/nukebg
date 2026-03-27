@@ -536,9 +536,15 @@ function initTerminalPrompt(): void {
       return;
     }
 
-    // Special case: help help — show ALL commands
+    // Special case: help help — show all commands via toast (doesn't displace elements)
     if (cmd === 'help help') {
-      showResponse('> All commands: sudo, nuke, ls, exit, clear, hack, whoami, pwd, cat, ping, cd, vim, man, echo, top, git, npm, help', false, true, 4000);
+      showResponse('> Fine, showing all commands...', false, true, 1500);
+      const toast = document.getElementById('kbd-toast');
+      if (toast) {
+        toast.textContent = 'sudo | nuke | ls | exit | clear | hack | whoami | pwd | cat | ping | cd | vim | man | echo | top | git | npm | help';
+        toast.classList.add('visible');
+        setTimeout(() => toast.classList.remove('visible'), 6000);
+      }
       return;
     }
 

@@ -741,6 +741,7 @@ export class ArApp extends HTMLElement {
           </div>
           <div class="precision-marquee" id="precision-marquee-ws"><span>☢ NUKEBG — DROP. NUKE. DOWNLOAD. → nukebg.app ☢ NUKEBG — DROP. NUKE. DOWNLOAD. → nukebg.app ☢</span></div>
           <ar-download></ar-download>
+          <button class="edit-btn" id="refine-btn" style="display:none">&#9762; Refine edges (experimental)</button>
           <button class="edit-btn" id="edit-btn" style="display:none">${t('edit.btn')}</button>
           <ar-editor style="display:none" id="editor-section"></ar-editor>
         </div>
@@ -918,7 +919,6 @@ export class ArApp extends HTMLElement {
     });
 
     // Workspace precision slider — syncs with hero slider
-    let wsSliderDebounce: ReturnType<typeof setTimeout> | null = null;
     this.shadowRoot!.querySelector('#precision-slider-ws')?.addEventListener('input', (e) => {
       const val = parseInt((e.target as HTMLInputElement).value);
       // Sync hero slider and visual effects
@@ -933,6 +933,95 @@ export class ArApp extends HTMLElement {
     this.shadowRoot!.querySelector('#reprocess-btn')?.addEventListener('click', () => {
       if (this.currentImageData) {
         this.processImage(this.currentImageData, this.currentFileSize);
+      }
+    });
+
+    // Refine edges button — ViTMatte alpha matting (experimental PoC)
+    this.shadowRoot!.querySelector('#refine-btn')?.addEventListener('click', async () => {
+      if (!this.currentImageData || !this.lastResultImageData) return;
+
+      const refineBtn = this.shadowRoot!.querySelector('#refine-btn') as HTMLElement;
+      if (refineBtn) refineBtn.textContent = '☢ Refining edges...';
+
+      try {
+        // Extract current alpha mask from result
+        const resultData = this.lastResultImageData.data;
+        const w = this.lastResultImageData.width;
+        const h = this.lastResultImageData.height;
+        const mask = new Uint8Array(w * h);
+        for (let i = 0; i < w * h; i++) {
+          mask[i] = resultData[i * 4 + 3];
+        }
+
+        // Create matting worker
+        const mattingWorker = new Worker(
+          new URL('../workers/matting.worker.ts', import.meta.url),
+          { type: 'module' }
+        );
+
+        const refined = await new Promise<Uint8Array>((resolve, reject) => {
+          const timeoutId = setTimeout(() => reject(new Error('Matting timeout')), 120000);
+
+          mattingWorker.onmessage = (e) => {
+            const msg = e.data;
+            if (msg.type === 'matting-progress') {
+              if (refineBtn) refineBtn.textContent = `☢ ${msg.stage}...`;
+            } else if (msg.type === 'matting-result') {
+              clearTimeout(timeoutId);
+              resolve(msg.result);
+            } else if (msg.type === 'error') {
+              clearTimeout(timeoutId);
+              reject(new Error(msg.error));
+            }
+          };
+          mattingWorker.onerror = (e) => {
+            clearTimeout(timeoutId);
+            reject(new Error(e.message));
+          };
+
+          mattingWorker.postMessage({
+            id: 'refine-1',
+            type: 'refine',
+            payload: {
+              pixels: new Uint8ClampedArray(this.currentImageData!.data),
+              mask,
+              width: w,
+              height: h,
+            },
+          });
+        });
+
+        // Compose new result with refined alpha
+        const origPixels = this.currentImageData.data;
+        const newResult = new Uint8ClampedArray(w * h * 4);
+        for (let i = 0; i < w * h; i++) {
+          newResult[i * 4] = origPixels[i * 4];
+          newResult[i * 4 + 1] = origPixels[i * 4 + 1];
+          newResult[i * 4 + 2] = origPixels[i * 4 + 2];
+          newResult[i * 4 + 3] = refined[i];
+        }
+
+        const refinedImageData = new ImageData(newResult, w, h);
+        const { exportPng } = await import('../utils/image-io');
+        const blob = await exportPng(refinedImageData);
+        this.viewer.setResult(refinedImageData, blob);
+        await this.download.setResult(refinedImageData, this.currentFileName, 0, blob);
+        this.lastResultImageData = refinedImageData;
+
+        // Dispose matting worker
+        mattingWorker.postMessage({ id: 'dispose-1', type: 'dispose' });
+        setTimeout(() => mattingWorker.terminate(), 1000);
+
+        if (refineBtn) refineBtn.textContent = '☢ Edges refined!';
+        setTimeout(() => {
+          if (refineBtn) refineBtn.textContent = '☢ Refine edges (experimental)';
+        }, 2000);
+      } catch (err) {
+        console.error('Matting error:', err);
+        if (refineBtn) refineBtn.textContent = `☢ Failed: ${err instanceof Error ? err.message : String(err)}`;
+        setTimeout(() => {
+          if (refineBtn) refineBtn.textContent = '☢ Refine edges (experimental)';
+        }, 3000);
       }
     });
 
@@ -1040,7 +1129,9 @@ export class ArApp extends HTMLElement {
       this.viewer.setResult(result.imageData, blob);
       await this.download.setResult(result.imageData, this.currentFileName, result.totalTimeMs, blob);
       this.lastResultImageData = result.imageData;
-      // Show the edit button
+      // Show refine + edit buttons
+      const refineBtn = this.shadowRoot!.querySelector('#refine-btn') as HTMLElement;
+      if (refineBtn) refineBtn.style.display = 'block';
       const editBtn = this.shadowRoot!.querySelector('#edit-btn') as HTMLElement;
       if (editBtn) editBtn.style.display = 'block';
       // Hide editor if it was open from a previous edit
