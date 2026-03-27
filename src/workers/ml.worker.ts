@@ -326,25 +326,15 @@ async function segment(
   if (allSameRange && totalPx > 100) {
     console.warn(
       `[NukeBG ML] Suspicious mask: min=${rawMin} max=${rawMax} range=${rawMax - rawMin} — ` +
-      `model may have returned uniform output. Skipping binarization.`
+      `model may have returned uniform output.`
     );
-    // Don't binarize — the uniform mask would become all-255 or all-0.
-    // Pass through raw values so the guided filter still has something
-    // meaningful to work with.
-  } else {
-    // Apply threshold binarization — this is what makes the slider functional
-    const thresholdByte = Math.round(threshold * 255);
-    for (let i = 0; i < rawAlpha.length; i++) {
-      rawAlpha[i] = rawAlpha[i] > thresholdByte ? 255 : 0;
-    }
   }
 
-  const refinedEdges = refineEdges(rawAlpha, pixels, width, height);
-
-  // Morphological smoothing: erode removes edge residue, dilate restores shape,
-  // then gaussian-like blur on edges only for smooth transitions.
-  // This replaces the guided filter which generated halo artifacts.
-  const alphaMask = morphSmooth(refinedEdges, width, height);
+  // Use the model's soft alpha directly — no binarization.
+  // The model produces smooth edges (1-2% edge pixels) that look natural.
+  // Binarization was creating artificial contour lines.
+  // Light edge cleanup: remove isolated residue pixels only.
+  const alphaMask = refineEdges(rawAlpha, pixels, width, height);
 
   self.postMessage(
     { id, type: 'segment-result', result: alphaMask },
