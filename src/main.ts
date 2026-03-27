@@ -255,6 +255,92 @@ function initLogoClickCounter(): void {
   });
 }
 
+// === Easter Egg: Double-tap logo whisper ===
+function initLogoDoubleTap(): void {
+  const logo = document.getElementById('logo');
+  const whisper = document.getElementById('logo-whisper');
+  if (!logo || !whisper) return;
+
+  const messagesEN = [
+    'You called?', 'Still here. Still nuking.', 'That tickles.',
+    'Stop poking me.', "I'm working, I'm working...", 'Beep boop. Nuke ready.',
+    'Yes, I\'m open source. Yes, really.', 'Your backgrounds fear me.',
+    'Fun fact: your image never left this device.', 'Powered by radiation and good vibes.',
+  ];
+  const messagesES = [
+    '\u00BFMe llamaste?', 'Sigo aqu\u00ED. Sigo nukeando.', 'Eso hace cosquillas.',
+    'Deja de tocarme.', 'Estoy trabajando, estoy trabajando...', 'Beep boop. Nuke listo.',
+    'S\u00ED, soy open source. S\u00ED, de verdad.', 'Tus fondos me temen.',
+    'Dato curioso: tu imagen nunca sali\u00F3 de este dispositivo.', 'Impulsado por radiaci\u00F3n y buenas vibras.',
+  ];
+
+  let lastTap = 0;
+  let whisperTimer: ReturnType<typeof setTimeout> | null = null;
+
+  logo.addEventListener('touchend', (e: TouchEvent) => {
+    const now = Date.now();
+    if (now - lastTap < 400) {
+      e.preventDefault();
+      const msgs = document.documentElement.lang === 'es' ? messagesES : messagesEN;
+      whisper.textContent = msgs[Math.floor(Math.random() * msgs.length)];
+      whisper.classList.add('visible');
+      if (whisperTimer) clearTimeout(whisperTimer);
+      whisperTimer = setTimeout(() => whisper.classList.remove('visible'), 2000);
+    }
+    lastTap = now;
+  });
+
+  // Also support double-click on desktop
+  logo.addEventListener('dblclick', (e: MouseEvent) => {
+    e.preventDefault();
+    const msgs = document.documentElement.lang === 'es' ? messagesES : messagesEN;
+    whisper.textContent = msgs[Math.floor(Math.random() * msgs.length)];
+    whisper.classList.add('visible');
+    if (whisperTimer) clearTimeout(whisperTimer);
+    whisperTimer = setTimeout(() => whisper.classList.remove('visible'), 2000);
+  });
+}
+
+// === Easter Egg: Shake to nuke (mobile) ===
+function initShakeDetection(): void {
+  if (typeof DeviceMotionEvent === 'undefined') return;
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+  let lastShake = 0;
+  let shakeCount = 0;
+  let shakeTimer: ReturnType<typeof setTimeout> | null = null;
+
+  window.addEventListener('devicemotion', (e: DeviceMotionEvent) => {
+    const acc = e.accelerationIncludingGravity;
+    if (!acc) return;
+    const force = Math.abs(acc.x || 0) + Math.abs(acc.y || 0) + Math.abs(acc.z || 0);
+
+    if (force > 30) {
+      const now = Date.now();
+      if (now - lastShake > 300) {
+        shakeCount++;
+        lastShake = now;
+
+        if (shakeTimer) clearTimeout(shakeTimer);
+        shakeTimer = setTimeout(() => { shakeCount = 0; }, 1500);
+
+        if (shakeCount >= 3) {
+          shakeCount = 0;
+          const toast = document.getElementById('kbd-toast');
+          if (toast) {
+            const msg = document.documentElement.lang === 'es'
+              ? '> SACUDIDA DETECTADA. Nukeando m\u00E1s fuerte.'
+              : '> SHAKE DETECTED. Nuking harder.';
+            toast.textContent = msg;
+            toast.classList.add('visible');
+            setTimeout(() => toast.classList.remove('visible'), 2500);
+          }
+        }
+      }
+    }
+  });
+}
+
 // === i18n: Language Selector + HTML text updates ===
 function initI18n(): void {
   const locale = getLocale();
@@ -537,6 +623,8 @@ function init(): void {
   initHolidayEasterEgg();
   initKonamiCode();
   initLogoClickCounter();
+  initLogoDoubleTap();
+  initShakeDetection();
 }
 
 if (document.readyState === 'loading') {

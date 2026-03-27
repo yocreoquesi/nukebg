@@ -278,6 +278,19 @@ body::after {
   letter-spacing: 0.05em;
 }
 
+.logo-whisper {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--color-text-tertiary);
+  margin-left: var(--space-2);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  white-space: nowrap;
+}
+.logo-whisper.visible {
+  opacity: 1;
+}
+
 .header-nav {
   display: flex;
   align-items: center;
