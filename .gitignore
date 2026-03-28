@@ -29,3 +29,6 @@ public/models/*.onnx
 
 # Claude Code agents (internal tooling)
 .claude/
+
+# Claude Code config (internal)
+CLAUDE.md
