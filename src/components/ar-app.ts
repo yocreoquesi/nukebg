@@ -1422,10 +1422,10 @@ export class ArApp extends HTMLElement {
     this.hasManualEdits = false;
       }
 
-      // Show refine button, update its label
+      // Show refine button ONLY if refinement was applied (for undo)
       this.updateRefineButton();
       const refineBtn = this.shadowRoot!.querySelector('#refine-btn') as HTMLElement;
-      if (refineBtn) refineBtn.style.display = '';
+      if (refineBtn) refineBtn.style.display = this.preRefineResult ? '' : 'none';
 
       // Show edit button
       const editBtn = this.shadowRoot!.querySelector('#edit-btn') as HTMLElement;
