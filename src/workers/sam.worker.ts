@@ -105,8 +105,15 @@ async function refine(
   // input_boxes: [batch_size, num_boxes, 4] where 4 = [x1, y1, x2, y2]
   const input_boxes = [[[minX, minY, maxX, maxY]]];
 
-  // Process with SAM — bounding box tells it "segment everything in this rectangle"
-  const inputs = await processor(image, { input_boxes });
+  // SAM model requires input_points even when using boxes (Transformers.js bug)
+  // Pass center point as anchor alongside the bounding box
+  const cx = Math.round((minX + maxX) / 2);
+  const cy = Math.round((minY + maxY) / 2);
+  const input_points = [[[[cx, cy]]]];
+  const input_labels = [[[1]]];
+
+  // Process with SAM — bounding box + center point
+  const inputs = await processor(image, { input_points, input_labels, input_boxes });
   const outputs = await model(inputs);
 
   // Post-process masks
