@@ -20,7 +20,7 @@ function generateTrimap(
   mask: Uint8Array,
   width: number,
   height: number,
-  edgeWidth: number = 10,
+  edgeWidth: number = 5,
 ): Uint8ClampedArray {
   const trimap = new Uint8ClampedArray(width * height);
 
