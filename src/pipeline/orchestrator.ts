@@ -31,8 +31,6 @@ const CV_TIMEOUT_MS = 60_000;
 const ML_TIMEOUT_MS = 300_000;
 /** Inpaint timeout: Telea CV es instantaneo, 30s es mas que suficiente */
 const INPAINT_TIMEOUT_MS = 30_000;
-/** Matting timeout: ViTMatte model download + inference */
-const MATTING_TIMEOUT_MS = 120_000;
 
 export class PipelineOrchestrator {
   private cvWorker: Worker;
@@ -265,14 +263,7 @@ export class PipelineOrchestrator {
     return combined;
   }
 
-  /** Optional callback for intermediate result (post-RMBG, pre-ViTMatte) */
-  private onIntermediateResult: ((imageData: ImageData) => void) | null = null;
-
-  setIntermediateCallback(cb: ((imageData: ImageData) => void) | null): void {
-    this.onIntermediateResult = cb;
-  }
-
-  async process(imageData: ImageData, modelId?: ModelId, refineEdges: boolean = false): Promise<PipelineResult> {
+  async process(imageData: ImageData, modelId?: ModelId): Promise<PipelineResult> {
     this.suppressMlProgress = false; // new image = show progress
     const startTime = performance.now();
     const { width, height } = imageData;
@@ -322,7 +313,6 @@ export class PipelineOrchestrator {
 
       stageTiming['ml-segmentation'] = performance.now() - t;
       this.emit('ml-segmentation', 'done', 'Signature extracted');
-      this.emit('edge-refine', 'skipped');
 
       return this.composeResult(originalPixels, sigAlpha, width, height, bgType, contentType, false, startTime, stageTiming);
     }
@@ -420,78 +410,9 @@ export class PipelineOrchestrator {
     stageTiming['ml-segmentation'] = performance.now() - t;
     this.emit('ml-segmentation', 'done', 'Background removed');
 
-    // ── Build pre-refine image (RMBG-only alpha) ──
-    const preRefinePixels = new Uint8ClampedArray(width * height * 4);
-    for (let i = 0; i < width * height; i++) {
-      preRefinePixels[i * 4] = originalPixels[i * 4];
-      preRefinePixels[i * 4 + 1] = originalPixels[i * 4 + 1];
-      preRefinePixels[i * 4 + 2] = originalPixels[i * 4 + 2];
-      preRefinePixels[i * 4 + 3] = mlAlpha[i];
-    }
-    const preRefineImageData = new ImageData(preRefinePixels, width, height);
-
-    // ── Auto-decide: should we refine edges with ViTMatte? ──
-    // ICON and ILLUSTRATION: skip ViTMatte (clean edges, would add artifacts)
-    // PHOTO: refine if edges are fuzzy
-    const skipViTMatte = contentType === 'ICON' || contentType === 'ILLUSTRATION';
-
-    let shouldRefine = false;
-    if (!skipViTMatte) {
-      // Count edge pixels (alpha 30-200) — if >3%, borders are fuzzy and ViTMatte helps.
-      let edgePixels = 0;
-      for (let i = 0; i < mlAlpha.length; i++) {
-        if (mlAlpha[i] >= 30 && mlAlpha[i] <= 200) edgePixels++;
-      }
-      const edgePct = edgePixels / (width * height);
-      shouldRefine = refineEdges && edgePct > 0.02;
-
-      if (shouldRefine) {
-        console.log(`[NukeBG] Edge pixels: ${(edgePct * 100).toFixed(1)}% — refining with ViTMatte`);
-      } else if (refineEdges) {
-        console.log(`[NukeBG] Edge pixels: ${(edgePct * 100).toFixed(1)}% — edges clean, skipping ViTMatte`);
-      }
-    } else {
-      console.log(`[NukeBG] Content type ${contentType} — skipping ViTMatte`);
-    }
-
-    // Show intermediate result (RMBG-only) while ViTMatte loads
-    if (shouldRefine && this.onIntermediateResult) {
-      this.onIntermediateResult(preRefineImageData);
-    }
-
-    // ── Stage 5: Edge refine (ViTMatte alpha matting) — conditional ──
-    let finalAlpha: Uint8Array;
-
-    if (shouldRefine) {
-      t = performance.now();
-      this.emit('edge-refine', 'running', 'Refining edges...');
-
-      // Dispose ML worker first to free memory for ViTMatte
-      this.mlWorker.terminate();
-
-      try {
-        finalAlpha = await this.runMattingWorker(originalPixels, mlAlpha, width, height);
-      } catch (err) {
-        // If matting fails, fall back to RMBG alpha
-        console.warn('Edge refine failed, using RMBG alpha:', err);
-        finalAlpha = mlAlpha;
-      }
-
-      stageTiming['edge-refine'] = performance.now() - t;
-      this.emit('edge-refine', 'done', 'Edges refined');
-
-      // Recreate ML worker for next image (model will reload on next use)
-      this.recreateMlWorker();
-    } else {
-      // Skip ViTMatte — use RMBG alpha directly, do NOT terminate ML worker
-      finalAlpha = mlAlpha;
-      this.emit('edge-refine', 'skipped');
-    }
-
     return this.composeResult(
-      originalPixels, finalAlpha, width, height, bgType, contentType,
+      originalPixels, mlAlpha, width, height, bgType, contentType,
       watermarkRemoved, startTime, stageTiming,
-      shouldRefine ? preRefineImageData : undefined,
     );
   }
 
@@ -506,7 +427,6 @@ export class PipelineOrchestrator {
     watermarkRemoved: boolean,
     startTime: number,
     stageTiming: Partial<Record<PipelineStage, number>>,
-    preRefineImageData?: ImageData,
   ): PipelineResult {
     // ── Compose final RGBA ──
     const resultPixels = new Uint8ClampedArray(width * height * 4);
@@ -538,130 +458,8 @@ export class PipelineOrchestrator {
       watermarkRemoved,
       nukedPct,
       stageTiming,
-      preRefineImageData,
       contentType,
     };
-  }
-
-  /** Run ViTMatte matting worker: create, run, dispose */
-  private runMattingWorker(
-    originalPixels: Uint8ClampedArray,
-    mask: Uint8Array,
-    width: number,
-    height: number,
-  ): Promise<Uint8Array> {
-    return new Promise((resolve, reject) => {
-      const mattingWorker = new Worker(
-        new URL('../workers/matting.worker.ts', import.meta.url),
-        { type: 'module' }
-      );
-
-      const timeoutId = setTimeout(() => {
-        mattingWorker.terminate();
-        reject(new Error(`Matting Worker timeout after ${MATTING_TIMEOUT_MS}ms`));
-      }, MATTING_TIMEOUT_MS);
-
-      mattingWorker.onerror = (e) => {
-        clearTimeout(timeoutId);
-        mattingWorker.terminate();
-        reject(new Error(`Matting Worker error: ${e.message}`));
-      };
-
-      mattingWorker.onmessage = (e: MessageEvent) => {
-        const msg = e.data;
-        if (msg.type === 'matting-progress') {
-          this.emit('edge-refine', 'running', `Refining edges... [${msg.stage}]`);
-        } else if (msg.type === 'matting-result') {
-          clearTimeout(timeoutId);
-          // Dispose and terminate
-          mattingWorker.postMessage({ id: 'dispose-final', type: 'dispose' });
-          setTimeout(() => mattingWorker.terminate(), 500);
-          resolve(msg.result);
-        } else if (msg.type === 'error') {
-          clearTimeout(timeoutId);
-          mattingWorker.terminate();
-          reject(new Error(msg.error));
-        }
-      };
-
-      mattingWorker.postMessage({
-        id: generateUUID(),
-        type: 'refine',
-        payload: {
-          pixels: new Uint8ClampedArray(originalPixels),
-          mask: new Uint8Array(mask),
-          width,
-          height,
-        },
-      });
-    });
-  }
-
-  /** Recreate ML worker after ViTMatte terminates it */
-  private recreateMlWorker(): void {
-    this.mlWorker = new Worker(
-      new URL('../workers/ml.worker.ts', import.meta.url),
-      { type: 'module' }
-    );
-    this.mlWorker.onerror = (e) => this.rejectAllPending(`ML Worker error: ${e.message}`);
-    this.setupMlWorkerHandler();
-
-    // Pre-load RMBG model in background so next image is instant
-    // Suppress progress updates to avoid overwriting 'done' status in UI
-    this.suppressMlProgress = true;
-    this.preloadModel().then(() => {
-      this.suppressMlProgress = false;
-    }).catch(() => {
-      this.suppressMlProgress = false;
-    });
-  }
-
-  /**
-   * Run ViTMatte refinement on an already-processed image.
-   * Used for post-process "Refine edges" button.
-   */
-  async refineOnly(imageData: ImageData): Promise<ImageData> {
-    const { width, height } = imageData;
-    const pixels = imageData.data;
-
-    // Extract the alpha channel as the RMBG mask
-    const mlAlpha = new Uint8Array(width * height);
-    const originalPixels = new Uint8ClampedArray(width * height * 4);
-    for (let i = 0; i < width * height; i++) {
-      originalPixels[i * 4] = pixels[i * 4];
-      originalPixels[i * 4 + 1] = pixels[i * 4 + 1];
-      originalPixels[i * 4 + 2] = pixels[i * 4 + 2];
-      originalPixels[i * 4 + 3] = 255; // full opacity for matting input
-      mlAlpha[i] = pixels[i * 4 + 3];
-    }
-
-    this.emit('edge-refine', 'running', 'Refining edges...');
-
-    // Terminate ML worker to free memory for ViTMatte
-    this.mlWorker.terminate();
-
-    let refinedAlpha: Uint8Array;
-    try {
-      refinedAlpha = await this.runMattingWorker(originalPixels, mlAlpha, width, height);
-    } catch (err) {
-      console.warn('Edge refine failed, using original alpha:', err);
-      this.recreateMlWorker();
-      throw err;
-    }
-
-    this.emit('edge-refine', 'done', 'Edges refined');
-    this.recreateMlWorker();
-
-    // Compose refined result
-    const resultPixels = new Uint8ClampedArray(width * height * 4);
-    for (let i = 0; i < width * height; i++) {
-      resultPixels[i * 4] = pixels[i * 4];
-      resultPixels[i * 4 + 1] = pixels[i * 4 + 1];
-      resultPixels[i * 4 + 2] = pixels[i * 4 + 2];
-      resultPixels[i * 4 + 3] = refinedAlpha[i];
-    }
-
-    return new ImageData(resultPixels, width, height);
   }
 
   destroy(): void {

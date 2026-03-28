@@ -27,8 +27,8 @@ Drop. Nuke. Download. That's it.
 ## > features
 
 ```
-[+] DUAL ML PIPELINE             RMBG-1.4 for segmentation + ViTMatte for edge refinement.
-                                  Clean cuts, no halos. Memory-managed: one model at a time.
+[+] ML BACKGROUND REMOVAL       RMBG-1.4 for segmentation with auto-classification.
+                                  Photos, illustrations, signatures, icons — each optimized.
 
 [+] CHECKERBOARD OBLITERATION    Detects and classifies painted checkerboard backgrounds.
                                   Any grid size, any generator.
@@ -77,8 +77,15 @@ Deploy `dist/` to any static host: Cloudflare Pages, GitHub Pages, Netlify, Verc
   INPUT (PNG, JPG, WebP)
     |
     v
-  [1. SCAN IMAGE] --------------- corner sampling, brightness analysis (CV, instant)
-    |                              classifies: checkerboard / solid / complex
+  [1. CLASSIFY + SCAN] ---------- auto-detect content type + background (CV, instant)
+    |                              PHOTO / ILLUSTRATION / SIGNATURE / ICON
+    |
+    +-- SIGNATURE? -------------> [CV threshold] Otsu + Sauvola (<50ms) --> DONE
+    |
+    +-- ICON? ------------------> [RMBG threshold 0.3] skip watermark --> DONE
+    |
+    +-- PHOTO / ILLUSTRATION? --> continue
+    |
     v
   [2. WATERMARK DETECTION] ------ Gemini sparkle + DALL-E color bar (CV, instant)
     |
@@ -89,14 +96,10 @@ Deploy `dist/` to any static host: Cloudflare Pages, GitHub Pages, Netlify, Verc
   [4. BACKGROUND REMOVAL] ------- RMBG-1.4 segmentation (ML)
     |                              WebGPU/WASM via Transformers.js
     v
-  [5. EDGE REFINEMENT] ---------- ViTMatte alpha matting (ML)  <-- NEW in v2.0
-    |                              trimap generation + guided refinement
-    |                              eliminates halos, preserves hair/fur detail
-    v
   CLEAN RGBA PNG w/ REAL TRANSPARENCY
 ```
 
-ML models are lazy-loaded on first use, then cached by the Service Worker for offline access. Only one ML model is in memory at a time -- RMBG-1.4 is disposed before loading ViTMatte, and vice versa.
+The ML model is lazy-loaded on first use, then cached by the Service Worker for offline access.
 
 ## > tech_stack
 
@@ -107,7 +110,7 @@ ML models are lazy-loaded on first use, then cached by the Service Worker for of
 | Build | Vite 6 |
 | Testing | Vitest |
 | ML Runtime | Transformers.js (ONNX Runtime Web) |
-| ML Models | RMBG-1.4 INT8 (~45MB) + ViTMatte (~25MB) |
+| ML Models | RMBG-1.4 INT8 (~45MB) |
 | GPU | WASM (WebGPU reserved for future) |
 | Processing | Canvas API + OffscreenCanvas in Web Workers |
 | Caching | Service Worker + Cache API |
@@ -132,10 +135,10 @@ OPEN SOURCE.             Don't trust us -- verify.
 
 | Feature | NukeBG | remove.bg | backgroundless.io | Photoshop |
 |---------|--------|-----------|-------------------|-----------|
-| Dual ML pipeline (segment + refine) | Yes | No | No | No |
+| ML background removal (RMBG-1.4) | Yes | Yes (proprietary) | Yes | Yes |
+| Auto content-type detection | Yes | No | No | No |
 | Checkerboard detection | Yes | No | No | Manual |
 | Watermark removal (Gemini + DALL-E) | Yes | No | No | Manual |
-| Alpha matting (hair/fur detail) | Yes (ViTMatte) | Yes (proprietary) | No | Yes |
 | Client-side (private) | Yes | No | Yes | N/A |
 | Free and unlimited | Yes | No (credits) | Yes | No ($22/mo) |
 | Open source | Yes (GPL-3.0) | No | No | No |

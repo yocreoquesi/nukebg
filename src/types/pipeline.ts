@@ -13,8 +13,7 @@ export type PipelineStage =
   | 'watermark-scan'
   | 'inpaint'
   | 'shadow-cleanup'
-  | 'alpha-refine'
-  | 'edge-refine';
+  | 'alpha-refine';
 
 export type StageStatus = 'running' | 'done' | 'skipped' | 'error';
 
@@ -37,8 +36,6 @@ export interface PipelineResult {
   nukedPct: number;
   /** Per-stage timing breakdown */
   stageTiming: Partial<Record<PipelineStage, number>>;
-  /** Image after RMBG but before ViTMatte (only present when refineEdges=true) */
-  preRefineImageData?: ImageData;
   /** Detected content type for auto-algorithm selection */
   contentType: ImageContentType;
 }

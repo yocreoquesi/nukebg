@@ -32,7 +32,6 @@ export class ArProgress extends HTMLElement {
         else if (s.stage === 'background-removal') s.label = t('progress.bgRemoval');
         else if (s.stage === 'checkerboard-removal') s.label = t('progress.bgRemovalCV');
         else if (s.stage === 'ml-segmentation') s.label = t('progress.bgRemovalML');
-        else if (s.stage === 'edge-refine') s.label = t('progress.edgeRefine');
       });
       this.update();
     });
@@ -44,7 +43,6 @@ export class ArProgress extends HTMLElement {
       { stage: 'watermark-scan', label: t('progress.watermarkScan'), status: 'pending' },
       { stage: 'inpaint', label: t('progress.inpaint'), status: 'pending' },
       { stage: 'background-removal', label: t('progress.bgRemoval'), status: 'pending' },
-      { stage: 'edge-refine', label: t('progress.edgeRefine'), status: 'pending' },
     ];
     this.detectedContentType = null;
     this.startTimes.clear();
@@ -283,8 +281,6 @@ export class ArProgress extends HTMLElement {
     const visibleStages = this.stages.filter(s => {
       // Hide inpaint if skipped (no watermark)
       if (s.stage === 'inpaint' && s.status === 'skipped') return false;
-      // Hide edge-refine if skipped or pending (not enabled)
-      if (s.stage === 'edge-refine' && (s.status === 'skipped' || s.status === 'pending')) return false;
       return true;
     });
 

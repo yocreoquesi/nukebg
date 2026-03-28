@@ -33,7 +33,6 @@ const translations: Translations = {
     'progress.bgRemoval': 'Removing background',
     'progress.bgRemovalCV': 'Removing background [CV]',
     'progress.bgRemovalML': 'Removing background [ML]',
-    'progress.edgeRefine': 'Refining edges',
     'progress.initAI': 'Initializing AI engine...',
     'progress.total': 'Total:',
 
@@ -94,11 +93,6 @@ const translations: Translations = {
     'footer.kofi': '\u2615 Support on Ko-fi',
     'footer.privacy': 'Your images never leave your device. Zero uploads. Zero BS.',
 
-    // Refine edges
-    'refine.toggle': 'Refine edges',
-    'refine.btn': '\u2622 REFINE EDGES',
-    'refine.undo': '\u21A9 UNDO REFINE',
-
     // Pipeline error
     'pipeline.error': 'Processing failed: {msg}',
 
@@ -131,7 +125,6 @@ const translations: Translations = {
     'progress.bgRemoval': 'Eliminando fondo',
     'progress.bgRemovalCV': 'Eliminando fondo [CV]',
     'progress.bgRemovalML': 'Eliminando fondo [ML]',
-    'progress.edgeRefine': 'Refinando bordes',
     'progress.initAI': 'Inicializando motor IA...',
     'progress.total': 'Total:',
 
@@ -191,11 +184,6 @@ const translations: Translations = {
     'header.skipLink': 'Saltar al contenido principal',
     'footer.kofi': '\u2615 Apoyar en Ko-fi',
     'footer.privacy': 'Tus im\u00E1genes nunca salen de tu dispositivo. Cero subidas. Cero rollos.',
-
-    // Refine edges
-    'refine.toggle': 'Refinar bordes',
-    'refine.btn': '\u2622 REFINAR BORDES',
-    'refine.undo': '\u21A9 DESHACER REFINADO',
 
     // Pipeline error
     'pipeline.error': 'Procesamiento fallido: {msg}',

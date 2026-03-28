@@ -86,7 +86,7 @@ export async function exportPng(imageData: ImageData): Promise<Blob> {
     });
   }
   return injectPngMetadata(rawBlob, {
-    'Software': 'NukeBG v2.2.0',
+    'Software': 'NukeBG v2.3.0',
     'Source': 'https://nukebg.app',
   });
 }
