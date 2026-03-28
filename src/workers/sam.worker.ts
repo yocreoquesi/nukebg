@@ -78,15 +78,12 @@ async function refine(
   // Create RawImage from pixels
   const image = new RawImageClass!(pixels, width, height, 4);
 
-  // Convert RMBG mask to point prompts for SAM
-  // Find centroid + bounding box of foreground
-  let sumX = 0, sumY = 0, count = 0;
+  // Extract bounding box from RMBG mask
+  let count = 0;
   let minX = width, maxX = 0, minY = height, maxY = 0;
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
       if (mask[y * width + x] > 128) {
-        sumX += x;
-        sumY += y;
         count++;
         if (x < minX) minX = x;
         if (x > maxX) maxX = x;
@@ -104,15 +101,12 @@ async function refine(
     return;
   }
 
-  const centerX = Math.round(sumX / count);
-  const centerY = Math.round(sumY / count);
+  // Use bounding box from RMBG mask as SAM prompt
+  // input_boxes: [batch_size, num_boxes, 4] where 4 = [x1, y1, x2, y2]
+  const input_boxes = [[[minX, minY, maxX, maxY]]];
 
-  // input_points must be 4D: [batch_size, point_batch_size, num_points, 2]
-  const input_points = [[[[centerX, centerY]]]];
-  const input_labels = [[[1]]]; // 1 = positive (foreground)
-
-  // Process with SAM — input_points as named parameter
-  const inputs = await processor(image, { input_points, input_labels });
+  // Process with SAM — bounding box tells it "segment everything in this rectangle"
+  const inputs = await processor(image, { input_boxes });
   const outputs = await model(inputs);
 
   // Post-process masks
