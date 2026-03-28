@@ -102,7 +102,7 @@ async function refine(
   }
 
   // Use bounding box from RMBG mask as SAM prompt with padding for context
-  const pad = 15;
+  const pad = 30;
   const bx1 = Math.max(0, minX - pad);
   const by1 = Math.max(0, minY - pad);
   const bx2 = Math.min(width - 1, maxX + pad);
