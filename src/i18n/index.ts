@@ -111,6 +111,7 @@ const translations: Translations = {
 
     // Experimental SAM refinement
     'experimental.btn': '[EXPERIMENTAL] Optimize edges automatically',
+    'experimental.undo': '\u21A9 Undo edge optimization',
     'experimental.processing': 'Optimizing edges...',
     'experimental.done': 'Edges optimized',
 
@@ -221,6 +222,7 @@ const translations: Translations = {
 
     // Experimental SAM refinement
     'experimental.btn': '[EXPERIMENTAL] Optimizar bordes autom\u00E1ticamente',
+    'experimental.undo': '\u21A9 Deshacer optimizaci\u00F3n de bordes',
     'experimental.processing': 'Optimizando bordes...',
     'experimental.done': 'Bordes optimizados',
 

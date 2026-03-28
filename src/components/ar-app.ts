@@ -28,6 +28,7 @@ export class ArApp extends HTMLElement {
   private preEditResult: ImageData | null = null;
   private cachedEditResult: ImageData | null = null;
   private lastRmbgAlpha: Uint8Array | null = null;
+  private preOptimizeResult: ImageData | null = null;
 
   constructor() {
     super();
@@ -1237,11 +1238,30 @@ export class ArApp extends HTMLElement {
       }
     });
 
-    // Experimental SAM refinement
+    // Experimental SAM refinement (toggle: optimize / undo)
     this.shadowRoot!.querySelector('#experimental-btn')?.addEventListener('click', async () => {
+      const experimentalBtn = this.shadowRoot!.querySelector('#experimental-btn') as HTMLButtonElement;
+      const editBtn = this.shadowRoot!.querySelector('#edit-btn') as HTMLButtonElement;
+
+      // UNDO mode: revert to pre-optimization result
+      if (this.preOptimizeResult) {
+        this.lastResultImageData = this.preOptimizeResult;
+        this.preOptimizeResult = null;
+
+        const { exportPng } = await import('../utils/image-io');
+        const blob = await exportPng(this.lastResultImageData);
+        if (this.currentImageData) this.viewer.setOriginal(this.currentImageData, this.currentFileSize);
+        this.viewer.setResult(this.lastResultImageData, blob);
+        await this.download.setResult(this.lastResultImageData, this.currentFileName, 0, blob);
+
+        experimentalBtn.textContent = t('experimental.btn');
+        if (editBtn) editBtn.disabled = false;
+        return;
+      }
+
+      // OPTIMIZE mode
       if (!this.currentImageData || !this.lastRmbgAlpha || !this.pipeline) return;
 
-      const experimentalBtn = this.shadowRoot!.querySelector('#experimental-btn') as HTMLButtonElement;
       experimentalBtn.disabled = true;
       experimentalBtn.textContent = t('experimental.processing');
 
@@ -1256,13 +1276,19 @@ export class ArApp extends HTMLElement {
 
         const { exportPng } = await import('../utils/image-io');
         const blob = await exportPng(result.imageData);
+
+        // Store pre-optimization result and show RMBG as "before"
+        this.preOptimizeResult = this.lastResultImageData;
+        if (this.preOptimizeResult) this.viewer.setOriginal(this.preOptimizeResult);
         this.viewer.setResult(result.imageData, blob);
         await this.download.setResult(result.imageData, this.currentFileName, result.totalTimeMs, blob);
         this.lastResultImageData = result.imageData;
         this.progress.setStage('ml-segmentation', 'done', t('experimental.done'));
 
-        // Hide the button after use
-        experimentalBtn.style.display = 'none';
+        // Switch to undo mode, disable manual editor
+        experimentalBtn.disabled = false;
+        experimentalBtn.textContent = t('experimental.undo');
+        if (editBtn) editBtn.disabled = true;
       } catch (err) {
         console.error('SAM refinement error:', err);
         experimentalBtn.disabled = false;
@@ -1391,6 +1417,7 @@ export class ArApp extends HTMLElement {
     this.cachedEditResult = null;
     this.lastResultImageData = null;
     this.lastRmbgAlpha = null;
+    this.preOptimizeResult = null;
     // Hide experimental button on new image
     const expBtn = this.shadowRoot!.querySelector('#experimental-btn') as HTMLElement;
     if (expBtn) { expBtn.style.display = 'none'; (expBtn as HTMLButtonElement).disabled = false; expBtn.textContent = t('experimental.btn'); }
