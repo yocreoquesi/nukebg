@@ -74,19 +74,6 @@ export const DIAGONAL_WATERMARK_PARAMS = {
   MASK_DILATE_RADIUS: 3,
 } as const;
 
-export const CORNER_WATERMARK_PARAMS = {
-  MIN_SCAN_SIZE: 80,
-  SCAN_FRACTION: 8,
-  BORDER_STRIP_WIDTH: 5,
-  DEVIATION_THRESHOLD: 50,
-  MIN_CLUSTER_PIXELS: 40,
-  MAX_CLUSTER_RATIO: 0.01,
-  MIN_ASPECT_RATIO: 0.6,
-  MAX_ASPECT_RATIO: 1.8,
-  MASK_PADDING: 10,
-  MASK_HALO_MULTIPLIER: 1.5,
-} as const;
-
 export const INPAINT_PARAMS = {
   /** Radio de busqueda de vecinos para Telea FMM.
    *  Debe ser >= al grosor de la zona a reconstruir.
