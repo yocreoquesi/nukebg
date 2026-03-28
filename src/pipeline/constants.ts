@@ -62,6 +62,31 @@ export const GUIDED_FILTER_PARAMS = {
   EPSILON: 1e-4,
 } as const;
 
+export const DIAGONAL_WATERMARK_PARAMS = {
+  DOWNSAMPLE_FACTOR: 2,
+  SOBEL_THRESHOLD: 30,
+  NUM_STRIPS: 40,
+  MIN_PERIODICITY_PEAKS: 3,
+  MIN_IMAGE_COVERAGE: 0.20,
+  MAX_EDGE_CONTRAST: 180,
+  AUTOCORR_PEAK_THRESHOLD: 0.3,
+  PEAK_SPACING_CV_MAX: 0.45,
+  MASK_DILATE_RADIUS: 3,
+} as const;
+
+export const CORNER_WATERMARK_PARAMS = {
+  MIN_SCAN_SIZE: 60,
+  SCAN_FRACTION: 6,
+  BORDER_STRIP_WIDTH: 5,
+  DEVIATION_THRESHOLD: 35,
+  MIN_CLUSTER_PIXELS: 20,
+  MAX_CLUSTER_RATIO: 0.02,
+  MIN_ASPECT_RATIO: 0.3,
+  MAX_ASPECT_RATIO: 3.0,
+  MASK_PADDING: 10,
+  MASK_HALO_MULTIPLIER: 1.5,
+} as const;
+
 export const INPAINT_PARAMS = {
   /** Radio de busqueda de vecinos para Telea FMM.
    *  Debe ser >= al grosor de la zona a reconstruir.

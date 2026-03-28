@@ -244,21 +244,25 @@ export class PipelineOrchestrator {
   }
 
   /**
-   * Combinar dos mascaras de watermark con OR logico.
-   * Si ambas son null, devuelve null.
+   * Combinar N mascaras de watermark con OR logico.
+   * Si todas son null, devuelve null.
    */
   private static combineMasks(
-    maskA: Uint8Array | null,
-    maskB: Uint8Array | null,
+    masks: Array<Uint8Array | null>,
     size: number,
   ): Uint8Array | null {
-    if (!maskA && !maskB) return null;
-    if (!maskA) return maskB;
-    if (!maskB) return maskA;
+    const validMasks = masks.filter((m): m is Uint8Array => m !== null);
+    if (validMasks.length === 0) return null;
+    if (validMasks.length === 1) return validMasks[0];
 
     const combined = new Uint8Array(size);
     for (let i = 0; i < size; i++) {
-      combined[i] = maskA[i] || maskB[i] ? 1 : 0;
+      for (const m of validMasks) {
+        if (m[i]) {
+          combined[i] = 1;
+          break;
+        }
+      }
     }
     return combined;
   }
@@ -324,7 +328,7 @@ export class PipelineOrchestrator {
       t = performance.now();
       this.emit('watermark-scan', 'running', 'Checking for watermarks...');
 
-      const [wmGemini, wmDalle] = await Promise.all([
+      const [wmGemini, wmDalle, wmDiagonal, wmCorner] = await Promise.all([
         this.cvCall<WatermarkResult>('watermark-detect', {
           pixels: new Uint8ClampedArray(imageData.data),
           width,
@@ -337,12 +341,21 @@ export class PipelineOrchestrator {
           width,
           height,
         }),
+        this.cvCall<WatermarkResult>('watermark-detect-diagonal', {
+          pixels: new Uint8ClampedArray(imageData.data),
+          width,
+          height,
+        }),
+        this.cvCall<WatermarkResult>('watermark-detect-corner', {
+          pixels: new Uint8ClampedArray(imageData.data),
+          width,
+          height,
+        }),
       ]);
 
-      const anyWatermark = wmGemini.detected || wmDalle.detected;
+      const anyWatermark = wmGemini.detected || wmDalle.detected || wmDiagonal.detected || wmCorner.detected;
       const combinedMask = PipelineOrchestrator.combineMasks(
-        wmGemini.mask,
-        wmDalle.mask,
+        [wmGemini.mask, wmDalle.mask, wmDiagonal.mask, wmCorner.mask],
         width * height,
       );
 

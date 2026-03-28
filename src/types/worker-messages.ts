@@ -11,6 +11,8 @@ export type CvWorkerRequest =
   | CvSimpleFloodFillRequest
   | CvWatermarkDetectRequest
   | CvWatermarkDetectDalleRequest
+  | CvWatermarkDetectDiagonalRequest
+  | CvWatermarkDetectCornerRequest
   | CvShadowCleanupRequest
   | CvAlphaRefineRequest
   | CvClassifyImageRequest
@@ -101,6 +103,24 @@ export interface CvWatermarkDetectDalleRequest extends CvBaseRequest {
   };
 }
 
+export interface CvWatermarkDetectDiagonalRequest extends CvBaseRequest {
+  type: 'watermark-detect-diagonal';
+  payload: {
+    pixels: Uint8ClampedArray;
+    width: number;
+    height: number;
+  };
+}
+
+export interface CvWatermarkDetectCornerRequest extends CvBaseRequest {
+  type: 'watermark-detect-corner';
+  payload: {
+    pixels: Uint8ClampedArray;
+    width: number;
+    height: number;
+  };
+}
+
 export interface CvShadowCleanupRequest extends CvBaseRequest {
   type: 'shadow-cleanup';
   payload: {
@@ -154,6 +174,8 @@ export type CvWorkerResponse =
   | { id: string; type: 'simple-flood-fill'; result: Uint8Array }
   | { id: string; type: 'watermark-detect'; result: WatermarkResult }
   | { id: string; type: 'watermark-detect-dalle'; result: WatermarkResult }
+  | { id: string; type: 'watermark-detect-diagonal'; result: WatermarkResult }
+  | { id: string; type: 'watermark-detect-corner'; result: WatermarkResult }
   | { id: string; type: 'shadow-cleanup'; result: Uint8Array }
   | { id: string; type: 'alpha-refine'; result: Uint8Array }
   | { id: string; type: 'classify-image'; result: ClassifyImageResult }

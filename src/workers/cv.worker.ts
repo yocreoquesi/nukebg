@@ -5,6 +5,8 @@ import { subjectExclusion } from './cv/subject-exclusion';
 import { simpleFloodFill } from './cv/simple-flood-fill';
 import { watermarkDetect } from './cv/watermark-detect';
 import { watermarkDetectDalle } from './cv/watermark-dalle';
+import { watermarkDetectDiagonal } from './cv/watermark-diagonal';
+import { watermarkDetectCorner } from './cv/watermark-corner';
 import { shadowCleanup } from './cv/shadow-cleanup';
 import { alphaRefine } from './cv/alpha-refine';
 import { extractImageFeatures, classifyImage } from './cv/classify-image';
@@ -68,6 +70,22 @@ self.onmessage = (e: MessageEvent<CvWorkerRequest>) => {
       }
       case 'watermark-detect-dalle': {
         const result = watermarkDetectDalle(
+          payload.pixels, payload.width, payload.height
+        );
+        const transferables: Transferable[] = result.mask ? [result.mask.buffer] : [];
+        self.postMessage({ id, type, result }, transferables);
+        break;
+      }
+      case 'watermark-detect-diagonal': {
+        const result = watermarkDetectDiagonal(
+          payload.pixels, payload.width, payload.height
+        );
+        const transferables: Transferable[] = result.mask ? [result.mask.buffer] : [];
+        self.postMessage({ id, type, result }, transferables);
+        break;
+      }
+      case 'watermark-detect-corner': {
+        const result = watermarkDetectCorner(
           payload.pixels, payload.width, payload.height
         );
         const transferables: Transferable[] = result.mask ? [result.mask.buffer] : [];

@@ -2,6 +2,7 @@ import { PipelineOrchestrator } from '../pipeline/orchestrator';
 import type { PipelineStage, StageStatus } from '../types/pipeline';
 import type { ModelId } from '../types/worker-messages';
 import { t } from '../i18n';
+import { installApp, isAppInstalled } from '../sw-register';
 import type { ArViewer } from './ar-viewer';
 import type { ArProgress } from './ar-progress';
 import type { ArDownload } from './ar-download';
@@ -138,6 +139,26 @@ export class ArApp extends HTMLElement {
         .model-status.ready {
           color: var(--color-success, #00ff41);
         }
+        .install-btn {
+          display: none;
+          font-family: 'JetBrains Mono', monospace;
+          font-size: var(--text-xs, 0.75rem);
+          color: var(--color-text-tertiary, #008830);
+          background: transparent;
+          border: none;
+          border-radius: 0;
+          padding: var(--space-1, 0.25rem) 0;
+          cursor: pointer;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          transition: color 0.2s ease;
+        }
+        .install-btn:hover {
+          color: var(--color-accent-primary, #00ff41);
+        }
+        .install-btn.visible {
+          display: inline-block;
+        }
         .workspace {
           display: none;
           padding: var(--space-4, 1rem);
@@ -214,6 +235,23 @@ export class ArApp extends HTMLElement {
           color: var(--color-text-tertiary, #008830);
           text-decoration: line-through;
           opacity: 0.7;
+        }
+        .features-kofi {
+          text-align: center;
+          font-family: 'JetBrains Mono', monospace;
+          font-size: 12px;
+          color: var(--color-text-tertiary, #008830);
+          margin-top: var(--space-2, 0.5rem);
+          padding: 0 var(--space-4, 1rem);
+        }
+        .features-kofi a {
+          color: var(--color-accent-primary, #00ff41);
+          text-decoration: none;
+          transition: opacity 0.2s ease;
+        }
+        .features-kofi a:hover {
+          opacity: 0.8;
+          text-decoration: underline;
         }
         .sr-only {
           position: absolute;
@@ -310,9 +348,9 @@ export class ArApp extends HTMLElement {
           }
         }
         .ws-controls {
-          display: flex;
+          display: grid;
+          grid-template-columns: 1fr auto 1fr;
           align-items: center;
-          justify-content: center;
           gap: var(--space-4, 1rem);
           padding: var(--space-2, 0.5rem) 0;
         }
@@ -320,12 +358,10 @@ export class ArApp extends HTMLElement {
           display: flex;
           align-items: center;
           gap: var(--space-2, 0.5rem);
-          flex: 0 0 auto;
+          justify-self: end;
         }
         .ws-action-fixed {
-          flex: 0 0 auto;
-          min-width: 180px;
-          text-align: center;
+          justify-self: center;
         }
         .ws-precision {
           display: flex;
@@ -472,6 +508,15 @@ export class ArApp extends HTMLElement {
           }
           #precision-slider {
             width: 60px;
+          }
+          .ws-controls {
+            grid-template-columns: 1fr;
+          }
+          .ws-slider-fixed {
+            justify-self: center;
+          }
+          .ws-action-fixed {
+            justify-self: center;
           }
           .ws-precision {
             padding: 0;
@@ -763,6 +808,7 @@ export class ArApp extends HTMLElement {
         </div>
         <ar-dropzone></ar-dropzone>
         <p class="model-status" id="model-status">${t('hero.modelStatus')}</p>
+        <button class="install-btn" id="install-btn" aria-label="${t('pwa.install')}">${isAppInstalled() ? t('pwa.installed') : t('pwa.install')}</button>
         <div class="precision-marquee" id="precision-marquee"><span>☢ NUKEBG — DROP. NUKE. DOWNLOAD. → nukebg.app ☢ NUKEBG — DROP. NUKE. DOWNLOAD. → nukebg.app ☢</span></div>
         <div class="smoke-effect" id="smoke-effect"></div>
       </section>
@@ -788,7 +834,7 @@ export class ArApp extends HTMLElement {
         <h2 class="sr-only">${t('features.srTitle')}</h2>
         <article class="feature-card">
           <span class="terminal-prefix" aria-hidden="true">[+]</span>
-          <div class="feature-icon" aria-hidden="true">&#9889;</div>
+          <div class="feature-icon" aria-hidden="true">&#129504;</div>
           <h3 class="feature-title">${t('features.bgRemoval.title')}</h3>
           <span class="feature-sep" aria-hidden="true"> — </span>
           <p class="feature-desc">
@@ -797,7 +843,7 @@ export class ArApp extends HTMLElement {
         </article>
         <article class="feature-card">
           <span class="terminal-prefix" aria-hidden="true">[+]</span>
-          <div class="feature-icon" aria-hidden="true">&#9762;</div>
+          <div class="feature-icon" aria-hidden="true">&#128274;</div>
           <h3 class="feature-title">${t('features.aiArtifacts.title')}</h3>
           <span class="feature-sep" aria-hidden="true"> — </span>
           <p class="feature-desc">
@@ -806,7 +852,7 @@ export class ArApp extends HTMLElement {
         </article>
         <article class="feature-card">
           <span class="terminal-prefix" aria-hidden="true">[+]</span>
-          <div class="feature-icon" aria-hidden="true">&#128274;</div>
+          <div class="feature-icon" aria-hidden="true">&#9762;</div>
           <h3 class="feature-title">${t('features.private.title')}</h3>
           <span class="feature-sep" aria-hidden="true"> — </span>
           <p class="feature-desc">
@@ -814,6 +860,7 @@ export class ArApp extends HTMLElement {
           </p>
         </article>
         <p class="features-disclaimer" id="features-disclaimer">${t('features.disclaimer')}</p>
+        <p class="features-kofi" id="features-kofi">${t('features.kofi')} <a href="https://ko-fi.com/yocreoquesi" target="_blank" rel="noopener noreferrer">\u2615 Ko-fi</a></p>
       </section>
     `;
   }
@@ -849,12 +896,46 @@ export class ArApp extends HTMLElement {
     });
     const disclaimer = root.querySelector('#features-disclaimer');
     if (disclaimer) disclaimer.innerHTML = t('features.disclaimer');
+    const kofi = root.querySelector('#features-kofi');
+    if (kofi) kofi.innerHTML = `${t('features.kofi')} <a href="https://ko-fi.com/yocreoquesi" target="_blank" rel="noopener noreferrer">\u2615 Ko-fi</a>`;
+    const installBtnEl = root.querySelector('#install-btn') as HTMLButtonElement;
+    if (installBtnEl) {
+      installBtnEl.textContent = isAppInstalled() ? t('pwa.installed') : t('pwa.install');
+      installBtnEl.setAttribute('aria-label', t('pwa.install'));
+    }
   }
 
   private setupEvents(): void {
     // Escuchar cambio de idioma
     document.addEventListener('nukebg:locale-changed', () => {
       this.updateTexts();
+    });
+
+    // PWA install button
+    const installBtn = this.shadowRoot!.querySelector('#install-btn') as HTMLButtonElement;
+
+    // If already installed, show the installed state
+    if (isAppInstalled()) {
+      installBtn.textContent = t('pwa.installed');
+      installBtn.classList.add('visible');
+      installBtn.disabled = true;
+    }
+
+    // Show install button when PWA is installable
+    document.addEventListener('nukebg:pwa-installable', () => {
+      if (!isAppInstalled()) {
+        installBtn.textContent = t('pwa.install');
+        installBtn.classList.add('visible');
+        installBtn.disabled = false;
+      }
+    });
+
+    installBtn.addEventListener('click', async () => {
+      const accepted = await installApp();
+      if (accepted) {
+        installBtn.textContent = t('pwa.installed');
+        installBtn.disabled = true;
+      }
     });
 
     this.shadowRoot!.addEventListener('ar:image-loaded', async (e: Event) => {

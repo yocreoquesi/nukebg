@@ -1,4 +1,4 @@
-import type { SupportedFormat, ImageLoadResult } from '../types/image';
+import type { SupportedFormat, ImageLoadResult, ExportFormat } from '../types/image';
 import { MAX_DIMENSION } from '../types/image';
 
 const SUPPORTED_FORMATS: SupportedFormat[] = ['image/png', 'image/jpeg', 'image/webp'];
@@ -86,8 +86,33 @@ export async function exportPng(imageData: ImageData): Promise<Blob> {
     });
   }
   return injectPngMetadata(rawBlob, {
-    'Software': 'NukeBG v2.3.0',
+    'Software': 'NukeBG v2.4.0',
     'Source': 'https://nukebg.app',
+  });
+}
+
+/**
+ * Export ImageData as a WebP Blob.
+ * No metadata injection for WebP (XMP/EXIF too complex, skip for now).
+ */
+export async function exportWebp(imageData: ImageData, quality = 0.95): Promise<Blob> {
+  if (typeof OffscreenCanvas !== 'undefined') {
+    const canvas = new OffscreenCanvas(imageData.width, imageData.height);
+    const ctx = canvas.getContext('2d')!;
+    ctx.putImageData(imageData, 0, 0);
+    return canvas.convertToBlob({ type: 'image/webp', quality });
+  }
+  // Safari fallback using HTMLCanvasElement
+  const canvas = document.createElement('canvas');
+  canvas.width = imageData.width;
+  canvas.height = imageData.height;
+  const ctx = canvas.getContext('2d')!;
+  ctx.putImageData(imageData, 0, 0);
+  return new Promise<Blob>((resolve, reject) => {
+    canvas.toBlob((blob) => {
+      if (blob) resolve(blob);
+      else reject(new Error('Canvas toBlob failed for WebP'));
+    }, 'image/webp', quality);
   });
 }
 
@@ -182,15 +207,57 @@ function crc32(data: Uint8Array): number {
   return (crc ^ 0xFFFFFFFF) >>> 0;
 }
 
-/** Nuclear-themed prefixes that rotate randomly */
-const NUKE_PREFIXES = [
-  'nuked', 'decontaminated', 'defused', 'irradiated', 'fallout-free',
-  'meltdown', 'reactor-clean', 'half-life', 'chain-reaction',
-  'ground-zero', 'critical-mass', 'blast-zone', 'warhead', 'enriched',
-  'fission', 'fusion', 'plutonium', 'uranium', 'chernobyl', 'geiger',
-  'containment', 'bunker', 'hazmat', 'atomic', 'thermonuclear',
-  'payload', 'detonated', 'vaporized', 'obliterated',
-];
+/** Nuclear-themed prefixes that rotate randomly, keyed by locale */
+const NUKE_PREFIXES: Record<string, string[]> = {
+  en: [
+    'nuked', 'decontaminated', 'defused', 'irradiated', 'fallout-free',
+    'meltdown', 'reactor-clean', 'half-life', 'chain-reaction',
+    'ground-zero', 'critical-mass', 'blast-zone', 'warhead', 'enriched',
+    'fission', 'fusion', 'plutonium', 'uranium', 'chernobyl', 'geiger',
+    'containment', 'bunker', 'hazmat', 'atomic', 'thermonuclear',
+    'payload', 'detonated', 'vaporized', 'obliterated',
+  ],
+  es: [
+    'nukeado', 'descontaminado', 'desactivado', 'irradiado', 'sin-radiacion',
+    'fusion-nuclear', 'reactor-limpio', 'vida-media', 'reaccion-en-cadena',
+    'zona-cero', 'masa-critica', 'zona-de-impacto', 'ojiva', 'enriquecido',
+    'fision', 'plutonio', 'uranio', 'chernobyl', 'geiger',
+    'contencion', 'bunker', 'atomico', 'termonuclear',
+    'detonado', 'vaporizado', 'obliterado',
+  ],
+  fr: [
+    'atomise', 'decontamine', 'desactive', 'irradie', 'sans-retombees',
+    'fusion-nucleaire', 'reacteur-propre', 'demi-vie', 'reaction-en-chaine',
+    'point-zero', 'masse-critique', 'zone-de-tir', 'ogive', 'enrichi',
+    'fission', 'plutonium', 'uranium', 'tchernobyl', 'geiger',
+    'confinement', 'bunker', 'atomique', 'thermonucleaire',
+    'detone', 'vaporise', 'pulverise',
+  ],
+  de: [
+    'genuked', 'dekontaminiert', 'entschaerft', 'bestrahlt', 'fallout-frei',
+    'kernschmelze', 'reaktor-sauber', 'halbwertszeit', 'kettenreaktion',
+    'ground-zero', 'kritische-masse', 'sprengzone', 'sprengkopf', 'angereichert',
+    'spaltung', 'fusion', 'plutonium', 'uran', 'tschernobyl', 'geiger',
+    'sicherheitsbehaelter', 'bunker', 'gefahrgut', 'atomar', 'thermonuklear',
+    'gezuendet', 'verdampft', 'ausgeloescht',
+  ],
+  pt: [
+    'nukeado', 'descontaminado', 'desarmado', 'irradiado', 'sem-fallout',
+    'fusao-nuclear', 'reator-limpo', 'meia-vida', 'reacao-em-cadeia',
+    'marco-zero', 'massa-critica', 'zona-de-impacto', 'ogiva', 'enriquecido',
+    'fissao', 'plutonio', 'uranio', 'chernobyl', 'geiger',
+    'contencao', 'bunker', 'atomico', 'termonuclear',
+    'detonado', 'vaporizado', 'obliterado',
+  ],
+  zh: [
+    'hebao', 'jinghua', 'paishe', 'fushe', 'ling-wuran',
+    'ronghe', 'fanying-qingjie', 'ban-shuaiqi', 'lianshi-fanying',
+    'yuanbao-zhongxin', 'linjie-zhiliang', 'baozha-quyu', 'dantou', 'nongsu',
+    'liebian', 'jubian', 'bu', 'you', 'qieernobeili', 'gaige',
+    'anquan-ke', 'yanbi', 'yuanzi', 'renhe',
+    'yinbao', 'zhengfa', 'huimie',
+  ],
+};
 
 /** Holiday-specific prefixes by month-day */
 const HOLIDAY_PREFIXES: Record<string, string> = {
@@ -209,7 +276,7 @@ const HOLIDAY_PREFIXES: Record<string, string> = {
  */
 let holidayUsed = false;
 
-export function generateOutputFilename(inputName: string): string {
+export function generateOutputFilename(inputName: string, format: ExportFormat = 'png', locale = 'en'): string {
   const base = inputName.replace(/\.[^.]+$/, '');
   const now = new Date();
   const monthDay = `${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
@@ -221,8 +288,10 @@ export function generateOutputFilename(inputName: string): string {
     prefix = holidayPrefix;
     holidayUsed = true;
   } else {
-    prefix = NUKE_PREFIXES[Math.floor(Math.random() * NUKE_PREFIXES.length)];
+    const prefixes = NUKE_PREFIXES[locale] ?? NUKE_PREFIXES['en'];
+    prefix = prefixes[Math.floor(Math.random() * prefixes.length)];
   }
 
-  return `${prefix}-${base}.png`;
+  const ext = format === 'webp' ? 'webp' : 'png';
+  return `${prefix}-${base}.${ext}`;
 }

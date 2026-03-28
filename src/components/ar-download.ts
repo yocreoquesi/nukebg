@@ -1,9 +1,14 @@
 import { generateOutputFilename } from '../utils/image-io';
-import { t } from '../i18n';
+import { t, getLocale } from '../i18n';
+import type { ExportFormat } from '../types/image';
 
 export class ArDownload extends HTMLElement {
   private blobUrl: string | null = null;
   private resultBlob: Blob | null = null;
+  private pngBlob: Blob | null = null;
+  private currentImageData: ImageData | null = null;
+  private inputFilename = '';
+  private selectedFormat: ExportFormat = 'png';
   private filename = 'image-clean.png';
   private timeMs = 0;
   private imgWidth = 0;
@@ -24,11 +29,20 @@ export class ArDownload extends HTMLElement {
   private updateTexts(): void {
     const root = this.shadowRoot!;
     const dlBtn = root.querySelector('#download-btn');
-    if (dlBtn) dlBtn.textContent = t('download.btn');
+    if (dlBtn) dlBtn.textContent = this.selectedFormat === 'webp' ? t('download.btnWebp') : t('download.btn');
     const copyBtn = root.querySelector('#copy-btn');
     if (copyBtn && !copyBtn.classList.contains('copied')) copyBtn.textContent = t('download.copy');
     const anotherBtn = root.querySelector('#another-btn');
     if (anotherBtn) anotherBtn.textContent = t('download.another');
+    this.updateFormatToggleLabels();
+  }
+
+  private updateFormatToggleLabels(): void {
+    const root = this.shadowRoot!;
+    const pngLabel = root.querySelector('#format-png-label');
+    if (pngLabel) pngLabel.textContent = t('download.formatPng');
+    const webpLabel = root.querySelector('#format-webp-label');
+    if (webpLabel) webpLabel.textContent = t('download.formatWebp');
   }
 
   disconnectedCallback(): void {
@@ -36,25 +50,69 @@ export class ArDownload extends HTMLElement {
   }
 
   async setResult(imageData: ImageData, inputFilename: string, totalTimeMs: number, blob?: Blob): Promise<void> {
+    this.currentImageData = imageData;
+    this.inputFilename = inputFilename;
     this.imgWidth = imageData.width;
     this.imgHeight = imageData.height;
     this.timeMs = totalTimeMs;
-    this.filename = generateOutputFilename(inputFilename);
+    this.selectedFormat = 'png';
+    this.filename = generateOutputFilename(inputFilename, 'png', getLocale());
 
     if (!blob) {
       const { exportPng } = await import('../utils/image-io');
       blob = await exportPng(imageData);
     }
     this.resultBlob = blob;
+    this.pngBlob = blob;
 
     if (this.blobUrl) URL.revokeObjectURL(this.blobUrl);
     this.blobUrl = URL.createObjectURL(blob);
 
     this.update();
+    this.updateFormatToggleState();
   }
 
   getBlob(): Blob | null {
     return this.resultBlob;
+  }
+
+  private async switchFormat(format: ExportFormat): Promise<void> {
+    if (format === this.selectedFormat || !this.currentImageData) return;
+    this.selectedFormat = format;
+    this.filename = generateOutputFilename(this.inputFilename, format, getLocale());
+
+    if (format === 'webp') {
+      const { exportWebp } = await import('../utils/image-io');
+      this.resultBlob = await exportWebp(this.currentImageData);
+    } else {
+      // Reuse cached PNG blob if available
+      if (this.pngBlob) {
+        this.resultBlob = this.pngBlob;
+      } else {
+        const { exportPng } = await import('../utils/image-io');
+        this.resultBlob = await exportPng(this.currentImageData);
+        this.pngBlob = this.resultBlob;
+      }
+    }
+
+    if (this.blobUrl) URL.revokeObjectURL(this.blobUrl);
+    this.blobUrl = URL.createObjectURL(this.resultBlob);
+    this.update();
+    this.updateFormatToggleState();
+  }
+
+  private updateFormatToggleState(): void {
+    const root = this.shadowRoot!;
+    const pngBtn = root.querySelector('#format-png') as HTMLButtonElement | null;
+    const webpBtn = root.querySelector('#format-webp') as HTMLButtonElement | null;
+    if (pngBtn) {
+      pngBtn.classList.toggle('active', this.selectedFormat === 'png');
+      pngBtn.setAttribute('aria-pressed', String(this.selectedFormat === 'png'));
+    }
+    if (webpBtn) {
+      webpBtn.classList.toggle('active', this.selectedFormat === 'webp');
+      webpBtn.setAttribute('aria-pressed', String(this.selectedFormat === 'webp'));
+    }
   }
 
   private render(): void {
@@ -211,8 +269,60 @@ export class ArDownload extends HTMLElement {
           color: var(--color-text-tertiary, #008830);
         }
         .separator { color: #1a3a1a; margin: 0 4px; }
+        .format-toggle {
+          display: inline-flex;
+          border: 1px solid var(--color-surface-border, #1a3a1a);
+          border-radius: 0;
+          overflow: hidden;
+        }
+        .format-toggle button {
+          background: transparent;
+          color: var(--color-text-tertiary, #008830);
+          border: none;
+          border-radius: 0;
+          padding: 6px 12px;
+          font-family: 'JetBrains Mono', monospace;
+          font-size: 11px;
+          font-weight: 500;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          cursor: pointer;
+          transition: background 0.2s ease, color 0.2s ease;
+        }
+        .format-toggle button:not(:last-child) {
+          border-right: 1px solid var(--color-surface-border, #1a3a1a);
+        }
+        .format-toggle button:hover {
+          background: var(--color-accent-muted, rgba(0, 255, 65, 0.05));
+          color: var(--color-text-secondary, #00dd44);
+        }
+        .format-toggle button.active {
+          background: var(--color-accent-primary, #00ff41);
+          color: var(--color-text-inverse, #000000);
+          font-weight: 700;
+        }
+        @media (max-width: 480px) {
+          .format-toggle {
+            width: 100%;
+            justify-content: center;
+          }
+          .format-toggle button {
+            flex: 1;
+            min-height: 44px;
+          }
+        }
+        @media (pointer: coarse) {
+          .format-toggle button {
+            min-height: 44px;
+            min-width: 44px;
+          }
+        }
       </style>
       <div class="download-bar" id="bar">
+        <div class="format-toggle" role="group" aria-label="Export format">
+          <button id="format-png" class="active" aria-pressed="true"><span id="format-png-label">${t('download.formatPng')}</span></button>
+          <button id="format-webp" aria-pressed="false"><span id="format-webp-label">${t('download.formatWebp')}</span></button>
+        </div>
         <a class="btn-primary" id="download-btn">${t('download.btn')}</a>
         <button class="btn-copy" id="copy-btn" title="Copy to clipboard">${t('download.copy')}</button>
         <button class="btn-secondary" id="another-btn">${t('download.another')}</button>
@@ -220,15 +330,29 @@ export class ArDownload extends HTMLElement {
       </div>
     `;
 
+    this.shadowRoot!.querySelector('#format-png')!.addEventListener('click', () => {
+      this.switchFormat('png');
+    });
+    this.shadowRoot!.querySelector('#format-webp')!.addEventListener('click', () => {
+      this.switchFormat('webp');
+    });
+
     this.shadowRoot!.querySelector('#another-btn')!.addEventListener('click', () => {
       this.dispatchEvent(new CustomEvent('ar:process-another', { bubbles: true, composed: true }));
     });
 
     this.shadowRoot!.querySelector('#copy-btn')!.addEventListener('click', async () => {
-      if (!this.resultBlob) return;
+      if (!this.currentImageData) return;
+      // Always copy as PNG for browser compatibility
+      let pngBlob = this.pngBlob;
+      if (!pngBlob) {
+        const { exportPng } = await import('../utils/image-io');
+        pngBlob = await exportPng(this.currentImageData);
+        this.pngBlob = pngBlob;
+      }
       try {
         await navigator.clipboard.write([
-          new ClipboardItem({ 'image/png': this.resultBlob }),
+          new ClipboardItem({ 'image/png': pngBlob }),
         ]);
         const btn = this.shadowRoot!.querySelector('#copy-btn')!;
         btn.classList.add('copied');
@@ -255,6 +379,8 @@ export class ArDownload extends HTMLElement {
 
     bar.classList.add('visible');
 
+    btn.textContent = this.selectedFormat === 'webp' ? t('download.btnWebp') : t('download.btn');
+
     if (this.blobUrl) {
       btn.setAttribute('href', this.blobUrl);
       btn.setAttribute('download', this.filename);
@@ -272,6 +398,10 @@ export class ArDownload extends HTMLElement {
     if (bar) bar.classList.remove('visible');
     if (this.blobUrl) { URL.revokeObjectURL(this.blobUrl); this.blobUrl = null; }
     this.resultBlob = null;
+    this.pngBlob = null;
+    this.currentImageData = null;
+    this.inputFilename = '';
+    this.selectedFormat = 'png';
   }
 }
 
