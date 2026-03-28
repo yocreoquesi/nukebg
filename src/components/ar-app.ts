@@ -861,7 +861,7 @@ export class ArApp extends HTMLElement {
         </div>
       </section>
 
-      <section class="features" aria-label="Key features" data-card-layout="A">
+      <section class="features" aria-label="Key features" data-card-layout="A" style="display:none">
         <h2 class="sr-only">${t('features.srTitle')}</h2>
         <article class="feature-card">
           <span class="terminal-prefix" aria-hidden="true">[+]</span>
@@ -1018,6 +1018,9 @@ export class ArApp extends HTMLElement {
             }
           }, delay);
         }
+        // Show features in Full Nuke
+        const featuresFN = this.shadowRoot!.querySelector('.features') as HTMLElement;
+        if (featuresFN) featuresFN.style.display = '';
       } else if (val === 2) {
         // High Power — orange/amber override (shadow DOM + global properties)
         document.documentElement.style.setProperty('--terminal-color-override', '#ff8c00');
@@ -1033,6 +1036,9 @@ export class ArApp extends HTMLElement {
         console.log('%c[NukeBG] Mode: HIGH POWER', 'color: #ff8c00; font-family: monospace;');
         // Hide smoke in High Power
         if (smoke) smoke.classList.remove('active');
+        // Show features in non-Normal modes
+        const featuresHP = this.shadowRoot!.querySelector('.features') as HTMLElement;
+        if (featuresHP) featuresHP.style.display = '';
       } else if (val === 0) {
         // Low Power — yellow override (shadow DOM + global properties)
         document.documentElement.style.setProperty('--terminal-color-override', '#b8a500');
@@ -1044,6 +1050,9 @@ export class ArApp extends HTMLElement {
         this.classList.add('precision-override');
         // Start CRT flicker only in Low Power
         this.startCrtFlicker();
+        // Show features in non-Normal modes
+        const featuresLP = this.shadowRoot!.querySelector('.features') as HTMLElement;
+        if (featuresLP) featuresLP.style.display = '';
         updateMarquees('#b8a500', '<span>\u26A1 LOW POWER MODE \u2192 nukebg.app \u26A1 LOW POWER MODE \u2192 nukebg.app \u26A1</span>');
         console.log('%c[NukeBG] Mode: LOW POWER', 'color: #b8a500; font-family: monospace;');
         // Hide smoke in Low Power
@@ -1064,6 +1073,9 @@ export class ArApp extends HTMLElement {
         console.log('%c[NukeBG] Mode: NORMAL', 'color: #00ff41; font-family: monospace;');
         // Hide smoke in normal modes
         if (smoke) smoke.classList.remove('active');
+        // Hide features in Normal mode — clean minimal view
+        const featuresSection = this.shadowRoot!.querySelector('.features') as HTMLElement;
+        if (featuresSection) featuresSection.style.display = 'none';
       }
     });
 
