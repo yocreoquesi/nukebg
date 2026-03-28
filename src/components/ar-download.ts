@@ -145,7 +145,9 @@ export class ArDownload extends HTMLElement {
           text-decoration: none;
           display: inline-flex;
           align-items: center;
+          justify-content: center;
           gap: 8px;
+          min-width: 240px;
           transition: background 0.3s ease, box-shadow 0.3s ease;
           box-shadow: 0 0 8px var(--color-accent-glow, rgba(0, 255, 65, 0.2));
         }
