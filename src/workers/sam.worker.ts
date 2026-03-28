@@ -15,7 +15,7 @@ export type SamWorkerResponse =
   | { id: string; type: 'refine-result'; result: Uint8Array }
   | { id: string; type: 'error'; error: string };
 
-const SAM_MODEL_ID = 'Xenova/sam-vit-base';
+const SAM_MODEL_ID = 'Xenova/slimsam-77-uniform';
 
 /** Cached model + processor */
 let samModel: unknown = null;
@@ -101,9 +101,13 @@ async function refine(
     return;
   }
 
-  // Use bounding box from RMBG mask as SAM prompt
-  // input_boxes: [batch_size, num_boxes, 4] where 4 = [x1, y1, x2, y2]
-  const input_boxes = [[[minX, minY, maxX, maxY]]];
+  // Use bounding box from RMBG mask as SAM prompt with padding for context
+  const pad = 15;
+  const bx1 = Math.max(0, minX - pad);
+  const by1 = Math.max(0, minY - pad);
+  const bx2 = Math.min(width - 1, maxX + pad);
+  const by2 = Math.min(height - 1, maxY + pad);
+  const input_boxes = [[[bx1, by1, bx2, by2]]];
 
   // SAM model requires input_points even when using boxes (Transformers.js bug)
   // Pass center point as anchor alongside the bounding box
