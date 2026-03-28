@@ -388,7 +388,6 @@ body::after {
   margin: 0 auto;
   border-left: 1px solid #0d1a0d;
   border-right: 1px solid #0d1a0d;
-  min-height: calc(100vh - 48px - 80px);
   flex: 1 0 auto;
   width: 100%;
 }
