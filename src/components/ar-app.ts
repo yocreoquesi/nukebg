@@ -157,7 +157,9 @@ export class ArApp extends HTMLElement {
           color: var(--color-accent-primary, #00ff41);
         }
         .install-btn.visible {
-          display: inline-block;
+          display: block;
+          margin: var(--space-2, 0.5rem) auto 0;
+          text-align: center;
         }
         /* Only show install on mobile/touch devices, never on desktop */
         @media (hover: hover) and (pointer: fine) {
@@ -170,28 +172,42 @@ export class ArApp extends HTMLElement {
           font-family: 'JetBrains Mono', monospace;
           font-size: 12px;
           color: var(--color-text-secondary, #00dd44);
-          background: rgba(0, 0, 0, 0.9);
+          background: rgba(0, 0, 0, 0.95);
           border: 1px solid #1a3a1a;
           border-radius: 0;
-          padding: var(--space-3, 0.75rem);
-          margin-top: var(--space-2, 0.5rem);
+          padding: var(--space-4, 1rem);
+          margin: var(--space-2, 0.5rem) auto 0;
           max-width: 320px;
           text-align: left;
-          line-height: 1.6;
+          line-height: 1.8;
         }
         .install-guide.visible {
           display: block;
         }
+        .guide-motivation {
+          color: var(--color-accent-primary, #00ff41);
+          font-weight: 700;
+          text-align: center;
+          margin-bottom: var(--space-3, 0.75rem);
+          letter-spacing: 0.03em;
+        }
         .install-guide-close {
+          display: block;
+          margin: var(--space-3, 0.75rem) auto 0;
           background: transparent;
-          border: none;
+          border: 1px solid #1a3a1a;
           color: var(--color-text-tertiary, #008830);
           font-family: 'JetBrains Mono', monospace;
           font-size: 12px;
           cursor: pointer;
-          padding: var(--space-1, 0.25rem) 0;
-          margin-top: var(--space-2, 0.5rem);
+          padding: var(--space-1, 0.25rem) var(--space-3, 0.75rem);
           text-transform: uppercase;
+          letter-spacing: 0.05em;
+          transition: color 0.2s ease, border-color 0.2s ease;
+        }
+        .install-guide-close:hover {
+          color: var(--color-accent-primary, #00ff41);
+          border-color: var(--color-accent-primary, #00ff41);
         }
         .workspace {
           display: none;
@@ -950,7 +966,7 @@ export class ArApp extends HTMLElement {
     } else {
       steps = t('pwa.guideGeneric');
     }
-    return `${steps}<br><button class="install-guide-close">${t('pwa.guideDismiss')}</button>`;
+    return `<div class="guide-motivation">${t('pwa.guideMotivation')}</div>${steps}<br><button class="install-guide-close">${t('pwa.guideDismiss')}</button>`;
   }
 
   private setupEvents(): void {
