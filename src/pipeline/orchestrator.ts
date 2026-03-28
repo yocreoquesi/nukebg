@@ -360,7 +360,12 @@ export class PipelineOrchestrator {
       );
 
       if (anyWatermark && combinedMask) {
-        this.emit('watermark-scan', 'done', 'Watermark detected');
+        const sources: string[] = [];
+        if (wmGemini.detected) sources.push('Gemini');
+        if (wmDalle.detected) sources.push('DALL-E');
+        if (wmDiagonal.detected) sources.push('diagonal');
+        if (wmCorner.detected) sources.push('corner');
+        this.emit('watermark-scan', 'done', `Watermark detected [${sources.join(', ')}]`);
         stageTiming['watermark-scan'] = performance.now() - t;
 
         // ── Stage 3: Inpaint watermark (Telea FMM, puro CV) ──

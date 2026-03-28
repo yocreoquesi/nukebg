@@ -62,7 +62,6 @@ describe('watermarkDetectDiagonal', () => {
     expect(result.mask).not.toBeNull();
 
     if (result.mask) {
-      // Mask should cover a meaningful portion of the image
       let maskCount = 0;
       for (let i = 0; i < result.mask.length; i++) {
         if (result.mask[i]) maskCount++;
