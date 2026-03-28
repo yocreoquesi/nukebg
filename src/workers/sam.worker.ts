@@ -15,7 +15,7 @@ export type SamWorkerResponse =
   | { id: string; type: 'refine-result'; result: Uint8Array }
   | { id: string; type: 'error'; error: string };
 
-const SAM_MODEL_ID = 'Xenova/slimsam-77-uniform';
+const SAM_MODEL_ID = 'Xenova/sam-vit-base';
 
 /** Cached model + processor */
 let samModel: unknown = null;
@@ -40,7 +40,7 @@ async function loadModel(id: string): Promise<void> {
 
   // Load SAM model
   samModel = await transformers.SamModel.from_pretrained(SAM_MODEL_ID, {
-    dtype: 'fp32',
+    dtype: 'q8',
     progress_callback: (p: { status: string; progress?: number }) => {
       if (p.status === 'progress' && p.progress != null) {
         const pct = 15 + Math.round(p.progress * 0.7);

@@ -152,6 +152,7 @@ export class ArProgress extends HTMLElement {
           align-items: center;
           justify-content: center;
           flex-shrink: 0;
+          font-family: 'Segoe UI Symbol', 'Apple Symbols', 'Noto Sans Symbols', sans-serif;
         }
         .stage.pending .stage-icon {
           border: 1.5px solid #1a3a1a;

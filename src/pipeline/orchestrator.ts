@@ -330,7 +330,7 @@ export class PipelineOrchestrator {
       t = performance.now();
       this.emit('watermark-scan', 'running', 'Checking for watermarks...');
 
-      const [wmGemini, wmDalle, wmDiagonal] = await Promise.all([
+      const [wmGemini, wmDalle] = await Promise.all([
         this.cvCall<WatermarkResult>('watermark-detect', {
           pixels: new Uint8ClampedArray(imageData.data),
           width,
@@ -343,16 +343,11 @@ export class PipelineOrchestrator {
           width,
           height,
         }),
-        this.cvCall<WatermarkResult>('watermark-detect-diagonal', {
-          pixels: new Uint8ClampedArray(imageData.data),
-          width,
-          height,
-        }),
       ]);
 
-      const anyWatermark = wmGemini.detected || wmDalle.detected || wmDiagonal.detected;
+      const anyWatermark = wmGemini.detected || wmDalle.detected;
       const combinedMask = PipelineOrchestrator.combineMasks(
-        [wmGemini.mask, wmDalle.mask, wmDiagonal.mask],
+        [wmGemini.mask, wmDalle.mask],
         width * height,
       );
 
@@ -360,7 +355,6 @@ export class PipelineOrchestrator {
         const sources: string[] = [];
         if (wmGemini.detected) sources.push('Gemini');
         if (wmDalle.detected) sources.push('DALL-E');
-        if (wmDiagonal.detected) sources.push('diagonal');
         this.emit('watermark-scan', 'done', `Watermark detected [${sources.join(', ')}]`);
         stageTiming['watermark-scan'] = performance.now() - t;
 
