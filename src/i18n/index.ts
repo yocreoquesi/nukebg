@@ -109,6 +109,11 @@ const translations: Translations = {
     'pwa.guideGeneric': '1. Open your browser menu (\u22EE or \u22EF)<br>2. Look for "Install" or "Add to Home Screen"',
     'pwa.guideDismiss': '[ROGER]',
 
+    // Experimental SAM refinement
+    'experimental.btn': '[EXPERIMENTAL] Refine edges with SAM',
+    'experimental.processing': 'Refining edges with SAM...',
+    'experimental.done': 'Edges refined with SAM',
+
     // Language selector
     'lang.label': 'Language',
   },
@@ -213,6 +218,11 @@ const translations: Translations = {
     'pwa.guideSafari': '1. Toca el bot\u00F3n Compartir (\u2B06) en la barra inferior<br>2. Baja \u2192 toca "A\u00F1adir a pantalla de inicio"',
     'pwa.guideGeneric': '1. Abre el men\u00FA del navegador (\u22EE o \u22EF)<br>2. Busca "Instalar" o "A\u00F1adir a inicio"',
     'pwa.guideDismiss': '[ENTENDIDO]',
+
+    // Experimental SAM refinement
+    'experimental.btn': '[EXPERIMENTAL] Refinar bordes con SAM',
+    'experimental.processing': 'Refinando bordes con SAM...',
+    'experimental.done': 'Bordes refinados con SAM',
 
     // Language selector
     'lang.label': 'Idioma',

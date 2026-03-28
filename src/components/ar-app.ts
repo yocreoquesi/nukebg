@@ -27,6 +27,7 @@ export class ArApp extends HTMLElement {
   private processingAborted = false;
   private preEditResult: ImageData | null = null;
   private cachedEditResult: ImageData | null = null;
+  private lastRmbgAlpha: Uint8Array | null = null;
 
   constructor() {
     super();
@@ -458,6 +459,29 @@ export class ArApp extends HTMLElement {
           border-color: var(--color-accent-primary, #00ff41);
           box-shadow: 0 0 10px rgba(0, 255, 65, 0.1);
         }
+        .experimental-btn {
+          width: 100%;
+          background: transparent;
+          color: #b8a500;
+          border: 1px solid #3a3a1a;
+          border-radius: 0;
+          padding: var(--space-3, 0.75rem);
+          font-size: 12px;
+          font-family: 'JetBrains Mono', monospace;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          cursor: pointer;
+          transition: color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+        }
+        .experimental-btn:hover {
+          color: #e0cc00;
+          border-color: #b8a500;
+          box-shadow: 0 0 10px rgba(184, 165, 0, 0.15);
+        }
+        .experimental-btn:disabled {
+          opacity: 0.4;
+          pointer-events: none;
+        }
 
         /* === Color override for extreme precision levels === */
         :host(.precision-override) h1,
@@ -877,6 +901,7 @@ export class ArApp extends HTMLElement {
           <div class="precision-marquee" id="precision-marquee-ws"><span>☢ NUKEBG — DROP. NUKE. DOWNLOAD. → nukebg.app ☢ NUKEBG — DROP. NUKE. DOWNLOAD. → nukebg.app ☢</span></div>
           <ar-download></ar-download>
           <button class="edit-btn" id="edit-btn" style="display:none">${t('edit.btn')}</button>
+          <button class="experimental-btn" id="experimental-btn" style="display:none">${t('experimental.btn')}</button>
           <ar-editor style="display:none" id="editor-section"></ar-editor>
         </div>
       </section>
@@ -1212,6 +1237,41 @@ export class ArApp extends HTMLElement {
       }
     });
 
+    // Experimental SAM refinement
+    this.shadowRoot!.querySelector('#experimental-btn')?.addEventListener('click', async () => {
+      if (!this.currentImageData || !this.lastRmbgAlpha || !this.pipeline) return;
+
+      const experimentalBtn = this.shadowRoot!.querySelector('#experimental-btn') as HTMLButtonElement;
+      experimentalBtn.disabled = true;
+      experimentalBtn.textContent = t('experimental.processing');
+
+      try {
+        this.progress.reset();
+        this.progress.setStage('ml-segmentation', 'running', t('experimental.processing'));
+
+        const result = await this.pipeline.experimentalRefine(
+          this.currentImageData,
+          this.lastRmbgAlpha,
+        );
+
+        const { exportPng } = await import('../utils/image-io');
+        const blob = await exportPng(result.imageData);
+        this.viewer.setResult(result.imageData, blob);
+        await this.download.setResult(result.imageData, this.currentFileName, result.totalTimeMs, blob);
+        this.lastResultImageData = result.imageData;
+        this.progress.setStage('ml-segmentation', 'done', t('experimental.done'));
+
+        // Hide the button after use
+        experimentalBtn.style.display = 'none';
+      } catch (err) {
+        console.error('SAM refinement error:', err);
+        experimentalBtn.disabled = false;
+        experimentalBtn.textContent = t('experimental.btn');
+        const msg = err instanceof Error ? err.message : String(err);
+        this.progress.setStage('ml-segmentation', 'error', `SAM error: ${msg}`);
+      }
+    });
+
     // Editor cancel — discard edits, close editor
     this.shadowRoot!.addEventListener('ar:editor-cancel', () => {
       (this.shadowRoot!.querySelector('#editor-section') as HTMLElement).style.display = 'none';
@@ -1330,6 +1390,10 @@ export class ArApp extends HTMLElement {
     this.preEditResult = null;
     this.cachedEditResult = null;
     this.lastResultImageData = null;
+    this.lastRmbgAlpha = null;
+    // Hide experimental button on new image
+    const expBtn = this.shadowRoot!.querySelector('#experimental-btn') as HTMLElement;
+    if (expBtn) { expBtn.style.display = 'none'; (expBtn as HTMLButtonElement).disabled = false; expBtn.textContent = t('experimental.btn'); }
 
     const hero = this.shadowRoot!.querySelector('#hero')!;
     const workspace = this.shadowRoot!.querySelector('#workspace')!;
@@ -1379,9 +1443,21 @@ export class ArApp extends HTMLElement {
 
       this.lastResultImageData = result.imageData;
 
+      // Extract alpha channel from result for SAM refinement
+      const alphaData = new Uint8Array(result.imageData.width * result.imageData.height);
+      for (let i = 0; i < alphaData.length; i++) {
+        alphaData[i] = result.imageData.data[i * 4 + 3];
+      }
+      this.lastRmbgAlpha = alphaData;
+
       // Show edit button
       const editBtn = this.shadowRoot!.querySelector('#edit-btn') as HTMLElement;
       if (editBtn) editBtn.style.display = 'block';
+      // Show experimental button (only for PHOTO/ILLUSTRATION processed with ML)
+      const experimentalBtn = this.shadowRoot!.querySelector('#experimental-btn') as HTMLElement;
+      if (experimentalBtn && result.contentType !== 'SIGNATURE') {
+        experimentalBtn.style.display = 'block';
+      }
       // Hide editor if it was open from a previous edit
       const editorSection = this.shadowRoot!.querySelector('#editor-section') as HTMLElement;
       if (editorSection) editorSection.style.display = 'none';

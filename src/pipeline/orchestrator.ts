@@ -8,6 +8,7 @@ import type {
   ImageContentType,
 } from '../types/pipeline';
 import type { CvWorkerResponse, MlWorkerResponse, InpaintWorkerResponse, ModelId, ClassifyImageResult } from '../types/worker-messages';
+import type { SamWorkerResponse } from '../workers/sam.worker';
 import { CV_PARAMS, IMAGE_CLASSIFY_PARAMS } from './constants';
 
 type StageCallback = (stage: PipelineStage, status: StageStatus, message?: string) => void;
@@ -36,6 +37,7 @@ export class PipelineOrchestrator {
   private cvWorker: Worker;
   private mlWorker: Worker;
   private inpaintWorker: Worker | null = null;
+  private samWorker: Worker | null = null;
   private pendingRequests = new Map<string, { resolve: (val: unknown) => void; reject: (err: Error) => void; expectedType: string }>();
   private onStageChange: StageCallback;
 
@@ -474,9 +476,95 @@ export class PipelineOrchestrator {
     };
   }
 
+  /** Create SAM worker lazily (only when experimental refine is requested) */
+  private createSamWorker(): void {
+    if (this.samWorker) return;
+    this.samWorker = new Worker(
+      new URL('../workers/sam.worker.ts', import.meta.url),
+      { type: 'module' }
+    );
+    this.samWorker.onerror = (e) => this.rejectAllPending(`SAM Worker error: ${e.message}`);
+    this.samWorker.onmessage = (e: MessageEvent<SamWorkerResponse>) => {
+      const msg = e.data;
+      if (msg.type === 'sam-progress') {
+        const pct = msg.progress ?? 0;
+        const label = pct < 90
+          ? `Loading SAM model... ${pct}%`
+          : 'SAM ready';
+        this.emit('ml-segmentation', 'running', label);
+        return;
+      }
+      if (msg.type === 'sam-ready') return;
+      const pending = this.pendingRequests.get(msg.id);
+      if (pending) {
+        this.pendingRequests.delete(msg.id);
+        if (msg.type === 'error') {
+          pending.reject(new Error(msg.error));
+        } else if (msg.type === 'refine-result') {
+          pending.resolve(msg.result);
+        }
+      }
+    };
+  }
+
+  private samCall<T>(type: string, payload: Record<string, unknown>): Promise<T> {
+    this.createSamWorker();
+    return new Promise<T>((resolve, reject) => {
+      const id = generateUUID();
+      const timeout = setTimeout(() => {
+        this.pendingRequests.delete(id);
+        reject(new Error(`SAM call ${type} timed out`));
+      }, 120_000); // 2 min timeout for SAM
+      this.pendingRequests.set(id, {
+        resolve: (val) => { clearTimeout(timeout); resolve(val as T); },
+        reject: (err) => { clearTimeout(timeout); reject(err); },
+        expectedType: type,
+      });
+      const transferables: Transferable[] = [];
+      if (payload.pixels instanceof Uint8ClampedArray) transferables.push(payload.pixels.buffer);
+      if (payload.mask instanceof Uint8Array) transferables.push(payload.mask.buffer);
+      this.samWorker!.postMessage({ id, type, payload }, transferables);
+    });
+  }
+
+  /**
+   * Experimental: refine an existing RMBG result using SAM.
+   * Takes the original image + RMBG mask, feeds to SAM for edge refinement.
+   */
+  async experimentalRefine(
+    imageData: ImageData,
+    rmbgAlpha: Uint8Array,
+  ): Promise<PipelineResult> {
+    const startTime = performance.now();
+    const { width, height } = imageData;
+    const stageTiming: Partial<Record<PipelineStage, number>> = {};
+
+    this.emit('ml-segmentation', 'running', 'Loading SAM model...');
+    const t = performance.now();
+
+    const refinedAlpha = await this.samCall<Uint8Array>('refine', {
+      pixels: new Uint8ClampedArray(imageData.data),
+      mask: new Uint8Array(rmbgAlpha),
+      width,
+      height,
+    });
+
+    stageTiming['ml-segmentation'] = performance.now() - t;
+    this.emit('ml-segmentation', 'done', 'Edges refined with SAM');
+
+    return this.composeResult(
+      new Uint8ClampedArray(imageData.data), refinedAlpha, width, height,
+      'complex', 'PHOTO', false, startTime, stageTiming,
+    );
+  }
+
   destroy(): void {
     this.cvWorker.terminate();
     this.mlWorker.terminate();
     this.disposeInpaintWorker();
+    if (this.samWorker) {
+      this.samWorker.terminate();
+      this.samWorker = null;
+    }
   }
 }
