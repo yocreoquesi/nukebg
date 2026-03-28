@@ -25,20 +25,9 @@ export function signatureThreshold(
     gray[i] = 0.299 * pixels[off] + 0.587 * pixels[off + 1] + 0.114 * pixels[off + 2];
   }
 
-  // Decide between Otsu (small images / uniform bg) and Sauvola (large / irregular bg)
-  const useOtsu = width < P.SAUVOLA_MIN_SIZE || height < P.SAUVOLA_MIN_SIZE;
-
-  let thresholdMap: Float32Array;
-
-  if (useOtsu) {
-    // Global Otsu threshold
-    const otsuT = computeOtsu(gray);
-    thresholdMap = new Float32Array(totalPixels);
-    thresholdMap.fill(otsuT);
-  } else {
-    // Sauvola adaptive threshold
-    thresholdMap = computeSauvola(gray, width, height, P.SAUVOLA_WINDOW, P.SAUVOLA_K);
-  }
+  // Always use Sauvola adaptive threshold — better for all signature types
+  // including low-quality scans with uneven lighting
+  const thresholdMap = computeSauvola(gray, width, height, P.SAUVOLA_WINDOW, P.SAUVOLA_K);
 
   // Apply threshold with anti-aliasing transition band
   const halfBand = P.AA_BAND_SIZE / 2;

@@ -443,7 +443,7 @@ export class PipelineOrchestrator {
         if (mlAlpha[i] >= 30 && mlAlpha[i] <= 200) edgePixels++;
       }
       const edgePct = edgePixels / (width * height);
-      shouldRefine = refineEdges && edgePct > 0.03;
+      shouldRefine = refineEdges && edgePct > 0.02;
 
       if (shouldRefine) {
         console.log(`[NukeBG] Edge pixels: ${(edgePct * 100).toFixed(1)}% — refining with ViTMatte`);
