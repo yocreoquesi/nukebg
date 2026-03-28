@@ -68,3 +68,61 @@ export const INPAINT_PARAMS = {
    *  Para watermarks tipicos (sparkle, barra DALL-E) 5-8px basta. */
   TELEA_RADIUS: 7,
 } as const;
+
+export const IMAGE_CLASSIFY_PARAMS = {
+  /** Pixel count threshold for sampling unique colors (avoid full scan on large images) */
+  SAMPLE_THRESHOLD: 100_000,
+
+  /** Saturation above this is considered "colored" */
+  COLORED_SATURATION_THRESHOLD: 0.15,
+  /** Brightness above this is considered "near white" */
+  NEAR_WHITE_BRIGHTNESS: 200,
+  /** Brightness below this is considered "dark" */
+  DARK_PIXEL_BRIGHTNESS: 80,
+
+  // SIGNATURE thresholds
+  /** Min brightness mean to consider signature */
+  SIGNATURE_BRIGHTNESS_MIN: 150,
+  /** Max saturation mean for signature (very low color) */
+  SIGNATURE_SATURATION_MAX: 0.08,
+  /** Min near-white ratio for signature background */
+  SIGNATURE_NEAR_WHITE_MIN: 0.50,
+  /** Min dark pixel ratio (ink strokes) */
+  SIGNATURE_DARK_PIXEL_MIN: 0.01,
+  /** Max dark pixel ratio (not too much ink) */
+  SIGNATURE_DARK_PIXEL_MAX: 0.40,
+
+  // ICON thresholds
+  /** Max total pixels for icon classification */
+  ICON_MAX_PIXELS: 250_000,
+  /** Max unique colors (quantized) for icon */
+  ICON_MAX_UNIQUE_COLORS: 200,
+  /** Min aspect ratio for ~square icon */
+  ICON_ASPECT_MIN: 0.7,
+  /** Max aspect ratio for ~square icon */
+  ICON_ASPECT_MAX: 1.43,
+
+  // ILLUSTRATION thresholds
+  /** Min unique colors for illustration */
+  ILLUSTRATION_UNIQUE_COLORS_MIN: 50,
+  /** Max unique colors for illustration */
+  ILLUSTRATION_UNIQUE_COLORS_MAX: 800,
+  /** Max brightness std for illustration (uniform lighting) */
+  ILLUSTRATION_BRIGHTNESS_STD_MAX: 70,
+
+  // ICON RMBG threshold
+  /** RMBG confidence threshold for icons (lower = more aggressive) */
+  ICON_RMBG_THRESHOLD: 0.3,
+
+  // Signature threshold algorithm params
+  /** Min dimension to use Sauvola (below this, fall back to Otsu) */
+  SAUVOLA_MIN_SIZE: 200,
+  /** Sauvola window size (must be odd) */
+  SAUVOLA_WINDOW: 15,
+  /** Sauvola sensitivity parameter */
+  SAUVOLA_K: 0.2,
+  /** Anti-aliasing band width (levels around threshold) */
+  AA_BAND_SIZE: 20,
+  /** Morphological close radius for filling stroke gaps */
+  MORPH_RADIUS: 1,
+} as const;

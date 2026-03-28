@@ -1,6 +1,9 @@
 /** Background type classification */
 export type BackgroundType = 'checkerboard' | 'solid' | 'complex';
 
+/** Image content type for auto-algorithm selection */
+export type ImageContentType = 'PHOTO' | 'ILLUSTRATION' | 'SIGNATURE' | 'ICON';
+
 /** Stage identifiers for progress reporting */
 export type PipelineStage =
   | 'detect-background'
@@ -36,6 +39,8 @@ export interface PipelineResult {
   stageTiming: Partial<Record<PipelineStage, number>>;
   /** Image after RMBG but before ViTMatte (only present when refineEdges=true) */
   preRefineImageData?: ImageData;
+  /** Detected content type for auto-algorithm selection */
+  contentType: ImageContentType;
 }
 
 /** Result from background color detection */

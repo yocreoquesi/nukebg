@@ -14,6 +14,7 @@ export class ArProgress extends HTMLElement {
   private startTimes = new Map<PipelineStage, number>();
   private pipelineStartTime = 0;
   private totalTimeMs: number | null = null;
+  private detectedContentType: string | null = null;
 
   constructor() {
     super();
@@ -45,6 +46,7 @@ export class ArProgress extends HTMLElement {
       { stage: 'background-removal', label: t('progress.bgRemoval'), status: 'pending' },
       { stage: 'edge-refine', label: t('progress.edgeRefine'), status: 'pending' },
     ];
+    this.detectedContentType = null;
     this.startTimes.clear();
     this.pipelineStartTime = performance.now();
     this.totalTimeMs = null;
@@ -52,6 +54,19 @@ export class ArProgress extends HTMLElement {
   }
 
   setStage(stage: PipelineStage, status: StageStatus, message?: string): void {
+    // Extract content type from detect-background done message (e.g. "solid detected [signature]")
+    if (stage === 'detect-background' && status === 'done' && message) {
+      const typeMatch = message.match(/\[(\w+)\]/);
+      if (typeMatch) {
+        this.detectedContentType = typeMatch[1];
+        // Enrich the stage 1 label with the detected content type
+        const detectStage = this.stages.find(s => s.stage === 'detect-background');
+        if (detectStage) {
+          detectStage.label = `${t('progress.detectBg')} [${this.detectedContentType}]`;
+        }
+      }
+    }
+
     // Handle dynamic stages (checkerboard-removal, ml-segmentation replace background-removal)
     if (stage === 'checkerboard-removal' || stage === 'ml-segmentation') {
       const bgIdx = this.stages.findIndex(s => s.stage === 'background-removal' ||

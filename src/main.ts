@@ -53,7 +53,7 @@ function initKeyboardShortcuts(): void {
 function showConsoleLogo(): void {
   const logo = `
 %c    ☢ NUKEBG ☢
-    v2.1.0 — Terminal Edition
+    v2.2.0 — Terminal Edition
 
     Your images never leave this machine.
     Don't believe us? Read the source:

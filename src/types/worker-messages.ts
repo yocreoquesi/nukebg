@@ -1,4 +1,5 @@
-import type { BgColorResult, GridResult, WatermarkResult } from './pipeline';
+import type { BgColorResult, GridResult, WatermarkResult, ImageContentType } from './pipeline';
+import type { ImageFeatures } from '../workers/cv/classify-image';
 
 /** ======== CV Worker Messages ======== */
 
@@ -11,7 +12,9 @@ export type CvWorkerRequest =
   | CvWatermarkDetectRequest
   | CvWatermarkDetectDalleRequest
   | CvShadowCleanupRequest
-  | CvAlphaRefineRequest;
+  | CvAlphaRefineRequest
+  | CvClassifyImageRequest
+  | CvSignatureThresholdRequest;
 
 interface CvBaseRequest {
   id: string;
@@ -118,6 +121,30 @@ export interface CvAlphaRefineRequest extends CvBaseRequest {
   };
 }
 
+export interface CvClassifyImageRequest extends CvBaseRequest {
+  type: 'classify-image';
+  payload: {
+    pixels: Uint8ClampedArray;
+    width: number;
+    height: number;
+  };
+}
+
+export interface CvSignatureThresholdRequest extends CvBaseRequest {
+  type: 'signature-threshold';
+  payload: {
+    pixels: Uint8ClampedArray;
+    width: number;
+    height: number;
+  };
+}
+
+/** Result from image classification */
+export interface ClassifyImageResult {
+  type: ImageContentType;
+  features: ImageFeatures;
+}
+
 /** CV Worker response */
 export type CvWorkerResponse =
   | { id: string; type: 'detect-bg-colors'; result: BgColorResult }
@@ -129,6 +156,8 @@ export type CvWorkerResponse =
   | { id: string; type: 'watermark-detect-dalle'; result: WatermarkResult }
   | { id: string; type: 'shadow-cleanup'; result: Uint8Array }
   | { id: string; type: 'alpha-refine'; result: Uint8Array }
+  | { id: string; type: 'classify-image'; result: ClassifyImageResult }
+  | { id: string; type: 'signature-threshold'; result: Uint8Array }
   | { id: string; type: 'error'; error: string };
 
 

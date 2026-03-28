@@ -5,9 +5,10 @@ import type {
   BackgroundType,
   BgColorResult,
   WatermarkResult,
+  ImageContentType,
 } from '../types/pipeline';
-import type { CvWorkerResponse, MlWorkerResponse, InpaintWorkerResponse, ModelId } from '../types/worker-messages';
-import { CV_PARAMS } from './constants';
+import type { CvWorkerResponse, MlWorkerResponse, InpaintWorkerResponse, ModelId, ClassifyImageResult } from '../types/worker-messages';
+import { CV_PARAMS, IMAGE_CLASSIFY_PARAMS } from './constants';
 
 type StageCallback = (stage: PipelineStage, status: StageStatus, message?: string) => void;
 
@@ -278,97 +279,137 @@ export class PipelineOrchestrator {
     const originalPixels = new Uint8ClampedArray(imageData.data);
     const stageTiming: Partial<Record<PipelineStage, number>> = {};
 
-    // ── Stage 1: Scan image (CV, no ML, instant) ──
+    // ── Stage 1: Scan image + classify content type (CV, no ML, instant) ──
     let t = performance.now();
-    this.emit('detect-background', 'running', 'Scanning image...');
-    const bgInfo = await this.cvCall<BgColorResult>('detect-bg-colors', {
-      pixels: new Uint8ClampedArray(imageData.data),
-      width,
-      height,
-    });
-    const bgType: BackgroundType = bgInfo.isCheckerboard
-      ? 'checkerboard'
-      : bgInfo.cornerVariance < CV_PARAMS.SOLID_BG_VARIANCE
-        ? 'solid'
-        : 'complex';
-    stageTiming['detect-background'] = performance.now() - t;
-    this.emit('detect-background', 'done', `${bgType} detected`);
+    this.emit('detect-background', 'running', 'Analyzing image...');
 
-    // ── Stage 2: Watermark detection (CV, no ML, instant) ──
-    t = performance.now();
-    this.emit('watermark-scan', 'running', 'Checking for watermarks...');
-
-    const [wmGemini, wmDalle] = await Promise.all([
-      this.cvCall<WatermarkResult>('watermark-detect', {
+    // Run bg detection and content classification in parallel
+    const [bgInfo, classifyResult] = await Promise.all([
+      this.cvCall<BgColorResult>('detect-bg-colors', {
         pixels: new Uint8ClampedArray(imageData.data),
         width,
         height,
-        colorA: bgInfo.colorA,
-        colorB: bgInfo.colorB,
       }),
-      this.cvCall<WatermarkResult>('watermark-detect-dalle', {
+      this.cvCall<ClassifyImageResult>('classify-image', {
         pixels: new Uint8ClampedArray(imageData.data),
         width,
         height,
       }),
     ]);
 
-    const anyWatermark = wmGemini.detected || wmDalle.detected;
-    const combinedMask = PipelineOrchestrator.combineMasks(
-      wmGemini.mask,
-      wmDalle.mask,
-      width * height,
-    );
+    const contentType: ImageContentType = classifyResult.type;
+    const bgType: BackgroundType = bgInfo.isCheckerboard
+      ? 'checkerboard'
+      : bgInfo.cornerVariance < CV_PARAMS.SOLID_BG_VARIANCE
+        ? 'solid'
+        : 'complex';
+    stageTiming['detect-background'] = performance.now() - t;
+    this.emit('detect-background', 'done', `${bgType} detected [${contentType.toLowerCase()}]`);
+    console.log(`[NukeBG] Content type: ${contentType}, bg: ${bgType}`);
 
+    // ── SIGNATURE path: skip ML entirely, use threshold-based extraction ──
+    if (contentType === 'SIGNATURE') {
+      t = performance.now();
+      this.emit('watermark-scan', 'skipped');
+      this.emit('inpaint', 'skipped');
+      this.emit('ml-segmentation', 'running', 'Extracting signature...');
+
+      const sigAlpha = await this.cvCall<Uint8Array>('signature-threshold', {
+        pixels: new Uint8ClampedArray(originalPixels),
+        width,
+        height,
+      });
+
+      stageTiming['ml-segmentation'] = performance.now() - t;
+      this.emit('ml-segmentation', 'done', 'Signature extracted');
+      this.emit('edge-refine', 'skipped');
+
+      return this.composeResult(originalPixels, sigAlpha, width, height, bgType, contentType, false, startTime, stageTiming);
+    }
+
+    // ── Stage 2: Watermark detection (CV, no ML, instant) — skip for ICON ──
     let watermarkRemoved = false;
 
-    if (anyWatermark && combinedMask) {
-      this.emit('watermark-scan', 'done', 'Watermark detected');
-      stageTiming['watermark-scan'] = performance.now() - t;
-
-      // ── Stage 3: Inpaint watermark (Telea FMM, puro CV) ──
+    if (contentType !== 'ICON') {
       t = performance.now();
-      this.emit('inpaint', 'running', 'Reconstructing watermark area...');
+      this.emit('watermark-scan', 'running', 'Checking for watermarks...');
 
-      this.createInpaintWorker();
-      try {
-        const inpaintedPixels = await this.inpaintCall<Uint8ClampedArray>('inpaint', {
-          pixels: new Uint8ClampedArray(originalPixels),
+      const [wmGemini, wmDalle] = await Promise.all([
+        this.cvCall<WatermarkResult>('watermark-detect', {
+          pixels: new Uint8ClampedArray(imageData.data),
           width,
           height,
-          mask: new Uint8Array(combinedMask),
-        });
+          colorA: bgInfo.colorA,
+          colorB: bgInfo.colorB,
+        }),
+        this.cvCall<WatermarkResult>('watermark-detect-dalle', {
+          pixels: new Uint8ClampedArray(imageData.data),
+          width,
+          height,
+        }),
+      ]);
 
-        // Replace watermark pixels in our working copy
-        for (let i = 0; i < width * height; i++) {
-          if (combinedMask[i]) {
-            originalPixels[i * 4] = inpaintedPixels[i * 4];
-            originalPixels[i * 4 + 1] = inpaintedPixels[i * 4 + 1];
-            originalPixels[i * 4 + 2] = inpaintedPixels[i * 4 + 2];
-            originalPixels[i * 4 + 3] = inpaintedPixels[i * 4 + 3];
+      const anyWatermark = wmGemini.detected || wmDalle.detected;
+      const combinedMask = PipelineOrchestrator.combineMasks(
+        wmGemini.mask,
+        wmDalle.mask,
+        width * height,
+      );
+
+      if (anyWatermark && combinedMask) {
+        this.emit('watermark-scan', 'done', 'Watermark detected');
+        stageTiming['watermark-scan'] = performance.now() - t;
+
+        // ── Stage 3: Inpaint watermark (Telea FMM, puro CV) ──
+        t = performance.now();
+        this.emit('inpaint', 'running', 'Reconstructing watermark area...');
+
+        this.createInpaintWorker();
+        try {
+          const inpaintedPixels = await this.inpaintCall<Uint8ClampedArray>('inpaint', {
+            pixels: new Uint8ClampedArray(originalPixels),
+            width,
+            height,
+            mask: new Uint8Array(combinedMask),
+          });
+
+          // Replace watermark pixels in our working copy
+          for (let i = 0; i < width * height; i++) {
+            if (combinedMask[i]) {
+              originalPixels[i * 4] = inpaintedPixels[i * 4];
+              originalPixels[i * 4 + 1] = inpaintedPixels[i * 4 + 1];
+              originalPixels[i * 4 + 2] = inpaintedPixels[i * 4 + 2];
+              originalPixels[i * 4 + 3] = inpaintedPixels[i * 4 + 3];
+            }
           }
-        }
 
-        watermarkRemoved = true;
-        stageTiming['inpaint'] = performance.now() - t;
-        this.emit('inpaint', 'done', 'Watermark reconstructed');
-      } finally {
-        // Liberar el worker de inpaint
-        this.disposeInpaintWorker();
+          watermarkRemoved = true;
+          stageTiming['inpaint'] = performance.now() - t;
+          this.emit('inpaint', 'done', 'Watermark reconstructed');
+        } finally {
+          // Liberar el worker de inpaint
+          this.disposeInpaintWorker();
+        }
+      } else {
+        this.emit('watermark-scan', 'done', 'No watermarks found');
+        stageTiming['watermark-scan'] = performance.now() - t;
+        this.emit('inpaint', 'skipped');
       }
     } else {
-      this.emit('watermark-scan', 'done', 'No watermarks found');
-      stageTiming['watermark-scan'] = performance.now() - t;
+      // ICON: skip watermark scan
+      this.emit('watermark-scan', 'skipped');
       this.emit('inpaint', 'skipped');
     }
 
-    // ── Stage 4: Background removal (RMBG, second ML model) ──
+    // ── Stage 4: Background removal (RMBG) ──
     t = performance.now();
     this.emit('ml-segmentation', 'running', 'Loading background removal model...');
 
     // Use the (possibly inpainted) pixels for segmentation
     const extra: Record<string, unknown> = {};
     if (modelId) extra.modelId = modelId;
+    // ICON: use lower threshold for more aggressive removal
+    if (contentType === 'ICON') extra.threshold = IMAGE_CLASSIFY_PARAMS.ICON_RMBG_THRESHOLD;
 
     const mlAlpha = await this.mlCall<Uint8Array>('segment', {
       pixels: new Uint8ClampedArray(originalPixels),
@@ -390,19 +431,27 @@ export class PipelineOrchestrator {
     const preRefineImageData = new ImageData(preRefinePixels, width, height);
 
     // ── Auto-decide: should we refine edges with ViTMatte? ──
-    // Count edge pixels (alpha 30-200) — if >3%, borders are fuzzy and ViTMatte helps.
-    // If <=3%, borders are already clean and ViTMatte may add artifacts.
-    let edgePixels = 0;
-    for (let i = 0; i < mlAlpha.length; i++) {
-      if (mlAlpha[i] >= 30 && mlAlpha[i] <= 200) edgePixels++;
-    }
-    const edgePct = edgePixels / (width * height);
-    const shouldRefine = refineEdges && edgePct > 0.03;
+    // ICON and ILLUSTRATION: skip ViTMatte (clean edges, would add artifacts)
+    // PHOTO: refine if edges are fuzzy
+    const skipViTMatte = contentType === 'ICON' || contentType === 'ILLUSTRATION';
 
-    if (shouldRefine) {
-      console.log(`[NukeBG] Edge pixels: ${(edgePct * 100).toFixed(1)}% — refining with ViTMatte`);
-    } else if (refineEdges) {
-      console.log(`[NukeBG] Edge pixels: ${(edgePct * 100).toFixed(1)}% — edges clean, skipping ViTMatte`);
+    let shouldRefine = false;
+    if (!skipViTMatte) {
+      // Count edge pixels (alpha 30-200) — if >3%, borders are fuzzy and ViTMatte helps.
+      let edgePixels = 0;
+      for (let i = 0; i < mlAlpha.length; i++) {
+        if (mlAlpha[i] >= 30 && mlAlpha[i] <= 200) edgePixels++;
+      }
+      const edgePct = edgePixels / (width * height);
+      shouldRefine = refineEdges && edgePct > 0.03;
+
+      if (shouldRefine) {
+        console.log(`[NukeBG] Edge pixels: ${(edgePct * 100).toFixed(1)}% — refining with ViTMatte`);
+      } else if (refineEdges) {
+        console.log(`[NukeBG] Edge pixels: ${(edgePct * 100).toFixed(1)}% — edges clean, skipping ViTMatte`);
+      }
+    } else {
+      console.log(`[NukeBG] Content type ${contentType} — skipping ViTMatte`);
     }
 
     // Show intermediate result (RMBG-only) while ViTMatte loads
@@ -439,6 +488,26 @@ export class PipelineOrchestrator {
       this.emit('edge-refine', 'skipped');
     }
 
+    return this.composeResult(
+      originalPixels, finalAlpha, width, height, bgType, contentType,
+      watermarkRemoved, startTime, stageTiming,
+      shouldRefine ? preRefineImageData : undefined,
+    );
+  }
+
+  /** Compose final RGBA result and compute stats */
+  private composeResult(
+    originalPixels: Uint8ClampedArray,
+    finalAlpha: Uint8Array,
+    width: number,
+    height: number,
+    bgType: BackgroundType,
+    contentType: ImageContentType,
+    watermarkRemoved: boolean,
+    startTime: number,
+    stageTiming: Partial<Record<PipelineStage, number>>,
+    preRefineImageData?: ImageData,
+  ): PipelineResult {
     // ── Compose final RGBA ──
     const resultPixels = new Uint8ClampedArray(width * height * 4);
     for (let i = 0; i < width * height; i++) {
@@ -469,7 +538,8 @@ export class PipelineOrchestrator {
       watermarkRemoved,
       nukedPct,
       stageTiming,
-      preRefineImageData: shouldRefine ? preRefineImageData : undefined,
+      preRefineImageData,
+      contentType,
     };
   }
 
