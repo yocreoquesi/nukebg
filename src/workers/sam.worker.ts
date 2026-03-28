@@ -69,30 +69,34 @@ async function refine(
     await loadModel(`_autoload_${id}`);
   }
 
-  const model = samModel as { (inputs: unknown): Promise<{ pred_masks: unknown; iou_scores: unknown }> };
+  const model = samModel as { (inputs: Record<string, unknown>): Promise<{ pred_masks: unknown; iou_scores: { data: Float32Array } }> };
   const processor = samProcessor as {
-    (image: unknown, input_points?: number[][][], options?: Record<string, unknown>): Promise<Record<string, unknown>>;
-    post_process_masks(masks: unknown, originalSizes: unknown, reshapedInputSizes: unknown, maskThreshold?: number): Promise<unknown>;
+    (image: unknown, options?: Record<string, unknown>): Promise<Record<string, unknown>>;
+    post_process_masks(masks: unknown, originalSizes: unknown, reshapedInputSizes: unknown, options?: Record<string, unknown>): Promise<unknown[]>;
   };
 
   // Create RawImage from pixels
   const image = new RawImageClass!(pixels, width, height, 4);
 
-  // Convert RMBG mask to a center point for SAM
-  // Find the centroid of the foreground mask as a positive point prompt
+  // Convert RMBG mask to point prompts for SAM
+  // Find centroid + bounding box of foreground
   let sumX = 0, sumY = 0, count = 0;
+  let minX = width, maxX = 0, minY = height, maxY = 0;
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
       if (mask[y * width + x] > 128) {
         sumX += x;
         sumY += y;
         count++;
+        if (x < minX) minX = x;
+        if (x > maxX) maxX = x;
+        if (y < minY) minY = y;
+        if (y > maxY) maxY = y;
       }
     }
   }
 
   if (count === 0) {
-    // No foreground found in RMBG mask, return the original mask
     self.postMessage(
       { id, type: 'refine-result', result: mask } satisfies SamWorkerResponse,
       [mask.buffer],
@@ -103,28 +107,12 @@ async function refine(
   const centerX = Math.round(sumX / count);
   const centerY = Math.round(sumY / count);
 
-  // Also find additional points: top, bottom, left, right of the mask bounding box center
-  // This helps SAM understand the full extent of the subject
-  let minX = width, maxX = 0, minY = height, maxY = 0;
-  for (let y = 0; y < height; y++) {
-    for (let x = 0; x < width; x++) {
-      if (mask[y * width + x] > 128) {
-        if (x < minX) minX = x;
-        if (x > maxX) maxX = x;
-        if (y < minY) minY = y;
-        if (y > maxY) maxY = y;
-      }
-    }
-  }
+  // input_points must be 4D: [batch_size, point_batch_size, num_points, 2]
+  const input_points = [[[[centerX, centerY]]]];
+  const input_labels = [[[1]]]; // 1 = positive (foreground)
 
-  // Use multiple positive points: center + top/bottom of mask
-  const midX = Math.round((minX + maxX) / 2);
-  const topY = minY + Math.round((maxY - minY) * 0.2);
-  const bottomY = maxY - Math.round((maxY - minY) * 0.2);
-  const input_points = [[[centerX, centerY], [midX, topY], [midX, bottomY]]];
-
-  // Process with SAM
-  const inputs = await processor(image, input_points);
+  // Process with SAM — input_points as named parameter
+  const inputs = await processor(image, { input_points, input_labels });
   const outputs = await model(inputs);
 
   // Post-process masks
@@ -132,13 +120,11 @@ async function refine(
     outputs.pred_masks,
     (inputs as Record<string, unknown>).original_sizes,
     (inputs as Record<string, unknown>).reshaped_input_sizes,
-    0.5,
   );
 
-  // Extract best mask (highest IoU score)
-  const maskTensor = masks as unknown as { data: Float32Array | Uint8Array; dims: number[] }[][];
-  if (!maskTensor || !maskTensor[0] || !maskTensor[0][0]) {
-    // Fallback to original mask
+  // masks is an array of Tensors, one per batch item
+  const maskTensor = masks[0] as unknown as { data: Float32Array | Uint8Array; dims: number[] };
+  if (!maskTensor || !maskTensor.data) {
     self.postMessage(
       { id, type: 'refine-result', result: mask } satisfies SamWorkerResponse,
       [mask.buffer],
@@ -146,12 +132,11 @@ async function refine(
     return;
   }
 
-  const bestMask = maskTensor[0][0];
-  const maskData = bestMask.data;
+  const maskData = maskTensor.data;
   const resultAlpha = new Uint8Array(width * height);
 
-  // Find best mask index from IoU scores
-  const iouData = (outputs.iou_scores as { data: Float32Array }).data;
+  // Find best mask index from IoU scores (SAM returns 3 masks)
+  const iouData = outputs.iou_scores.data;
   let bestIdx = 0;
   let bestIou = -1;
   for (let i = 0; i < iouData.length; i++) {
@@ -161,19 +146,18 @@ async function refine(
     }
   }
 
-  // Extract the best mask plane
-  const maskW = bestMask.dims[bestMask.dims.length - 1];
-  const maskH = bestMask.dims[bestMask.dims.length - 2];
+  // Tensor dims: [1, 3, H, W] — extract the best mask plane
+  const maskH = maskTensor.dims[maskTensor.dims.length - 2];
+  const maskW = maskTensor.dims[maskTensor.dims.length - 1];
   const planeSize = maskW * maskH;
-  const offset = bestIdx * planeSize;
+  const planeOffset = bestIdx * planeSize;
 
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
       const srcX = Math.min(Math.floor(x * maskW / width), maskW - 1);
       const srcY = Math.min(Math.floor(y * maskH / height), maskH - 1);
-      const val = maskData[offset + srcY * maskW + srcX];
-      // SAM outputs binary-ish values after post_process_masks
-      resultAlpha[y * width + x] = val > 0.5 ? 255 : 0;
+      const val = maskData[planeOffset + srcY * maskW + srcX];
+      resultAlpha[y * width + x] = val > 0 ? 255 : 0;
     }
   }
 

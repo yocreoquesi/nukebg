@@ -489,8 +489,8 @@ export class PipelineOrchestrator {
       if (msg.type === 'sam-progress') {
         const pct = msg.progress ?? 0;
         const label = pct < 90
-          ? `Loading SAM model... ${pct}%`
-          : 'SAM ready';
+          ? `Loading edge optimizer... ${pct}%`
+          : 'Optimizer ready';
         this.emit('ml-segmentation', 'running', label);
         return;
       }
@@ -539,7 +539,7 @@ export class PipelineOrchestrator {
     const { width, height } = imageData;
     const stageTiming: Partial<Record<PipelineStage, number>> = {};
 
-    this.emit('ml-segmentation', 'running', 'Loading SAM model...');
+    this.emit('ml-segmentation', 'running', 'Loading edge optimizer...');
     const t = performance.now();
 
     const refinedAlpha = await this.samCall<Uint8Array>('refine', {
@@ -550,7 +550,7 @@ export class PipelineOrchestrator {
     });
 
     stageTiming['ml-segmentation'] = performance.now() - t;
-    this.emit('ml-segmentation', 'done', 'Edges refined with SAM');
+    this.emit('ml-segmentation', 'done', 'Edges optimized');
 
     return this.composeResult(
       new Uint8ClampedArray(imageData.data), refinedAlpha, width, height,

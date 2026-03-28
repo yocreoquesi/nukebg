@@ -1268,7 +1268,7 @@ export class ArApp extends HTMLElement {
         experimentalBtn.disabled = false;
         experimentalBtn.textContent = t('experimental.btn');
         const msg = err instanceof Error ? err.message : String(err);
-        this.progress.setStage('ml-segmentation', 'error', `SAM error: ${msg}`);
+        this.progress.setStage('ml-segmentation', 'error', `Optimization error: ${msg}`);
       }
     });
 

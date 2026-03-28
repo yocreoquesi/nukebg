@@ -110,9 +110,9 @@ const translations: Translations = {
     'pwa.guideDismiss': '[ROGER]',
 
     // Experimental SAM refinement
-    'experimental.btn': '[EXPERIMENTAL] Refine edges with SAM',
-    'experimental.processing': 'Refining edges with SAM...',
-    'experimental.done': 'Edges refined with SAM',
+    'experimental.btn': '[EXPERIMENTAL] Optimize edges automatically',
+    'experimental.processing': 'Optimizing edges...',
+    'experimental.done': 'Edges optimized',
 
     // Language selector
     'lang.label': 'Language',
@@ -220,9 +220,9 @@ const translations: Translations = {
     'pwa.guideDismiss': '[ENTENDIDO]',
 
     // Experimental SAM refinement
-    'experimental.btn': '[EXPERIMENTAL] Refinar bordes con SAM',
-    'experimental.processing': 'Refinando bordes con SAM...',
-    'experimental.done': 'Bordes refinados con SAM',
+    'experimental.btn': '[EXPERIMENTAL] Optimizar bordes autom\u00E1ticamente',
+    'experimental.processing': 'Optimizando bordes...',
+    'experimental.done': 'Bordes optimizados',
 
     // Language selector
     'lang.label': 'Idioma',
