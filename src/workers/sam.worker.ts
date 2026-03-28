@@ -157,12 +157,31 @@ async function refine(
   const planeSize = maskW * maskH;
   const planeOffset = bestIdx * planeSize;
 
+  // Build SAM's raw binary mask at original resolution
+  const samMask = new Uint8Array(width * height);
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
       const srcX = Math.min(Math.floor(x * maskW / width), maskW - 1);
       const srcY = Math.min(Math.floor(y * maskH / height), maskH - 1);
       const val = maskData[planeOffset + srcY * maskW + srcX];
-      resultAlpha[y * width + x] = val > 0 ? 255 : 0;
+      samMask[y * width + x] = val > 0 ? 255 : 0;
+    }
+  }
+
+  // Combine RMBG + SAM: RMBG defines the shape, SAM refines edges
+  for (let i = 0; i < width * height; i++) {
+    const rmbg = mask[i];
+    const sam = samMask[i];
+
+    if (rmbg > 200) {
+      // RMBG confident foreground → trust RMBG (keep interior solid)
+      resultAlpha[i] = 255;
+    } else if (rmbg < 30) {
+      // RMBG confident background → stay transparent (unless SAM strongly disagrees)
+      resultAlpha[i] = 0;
+    } else {
+      // Edge zone (RMBG uncertain) → trust SAM for edge precision
+      resultAlpha[i] = sam;
     }
   }
 
