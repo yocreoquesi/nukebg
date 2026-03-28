@@ -15,7 +15,7 @@ export type SamWorkerResponse =
   | { id: string; type: 'refine-result'; result: Uint8Array }
   | { id: string; type: 'error'; error: string };
 
-const SAM_MODEL_ID = 'Xenova/slimsam-77-uniform';
+const SAM_MODEL_ID = 'Xenova/sam-vit-base';
 
 /** Cached model + processor */
 let samModel: unknown = null;
