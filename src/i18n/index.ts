@@ -103,6 +103,10 @@ const translations: Translations = {
     // PWA
     'pwa.install': '[INSTALL] Run locally',
     'pwa.installed': 'Running locally',
+    'pwa.guideFirefox': '1. Tap the menu (\u22EE)<br>2. Tap "Install"',
+    'pwa.guideSafari': '1. Tap Share (\u2B06)<br>2. Tap "Add to Home Screen"',
+    'pwa.guideGeneric': '1. Open your browser menu<br>2. Tap "Install" or "Add to Home Screen"',
+    'pwa.guideDismiss': '[OK]',
 
     // Language selector
     'lang.label': 'Language',
@@ -203,6 +207,10 @@ const translations: Translations = {
     // PWA
     'pwa.install': '[INSTALAR] Ejecutar local',
     'pwa.installed': 'Ejecutando localmente',
+    'pwa.guideFirefox': '1. Toca el men\u00FA (\u22EE)<br>2. Toca "Instalar"',
+    'pwa.guideSafari': '1. Toca Compartir (\u2B06)<br>2. Toca "A\u00F1adir a inicio"',
+    'pwa.guideGeneric': '1. Abre el men\u00FA del navegador<br>2. Toca "Instalar" o "A\u00F1adir a inicio"',
+    'pwa.guideDismiss': '[OK]',
 
     // Language selector
     'lang.label': 'Idioma',
@@ -303,6 +311,10 @@ const translations: Translations = {
     // PWA
     'pwa.install': '[INSTALLER] Ex\u00E9cuter en local',
     'pwa.installed': 'Ex\u00E9cution locale',
+    'pwa.guideFirefox': '1. Appuie sur le menu (\u22EE)<br>2. Appuie sur "Installer"',
+    'pwa.guideSafari': '1. Appuie sur Partager (\u2B06)<br>2. Appuie sur "Sur l\u2019\u00E9cran d\u2019accueil"',
+    'pwa.guideGeneric': '1. Ouvre le menu du navigateur<br>2. Appuie sur "Installer" ou "Ajouter \u00E0 l\u2019\u00E9cran d\u2019accueil"',
+    'pwa.guideDismiss': '[OK]',
 
     // Language selector
     'lang.label': 'Langue',
@@ -403,6 +415,10 @@ const translations: Translations = {
     // PWA
     'pwa.install': '[INSTALLIEREN] Lokal ausf\u00FChren',
     'pwa.installed': 'L\u00E4uft lokal',
+    'pwa.guideFirefox': '1. Tippe auf das Men\u00FC (\u22EE)<br>2. Tippe auf "Installieren"',
+    'pwa.guideSafari': '1. Tippe auf Teilen (\u2B06)<br>2. Tippe auf "Zum Home-Bildschirm"',
+    'pwa.guideGeneric': '1. \u00D6ffne das Browser-Men\u00FC<br>2. Tippe auf "Installieren" oder "Zum Startbildschirm"',
+    'pwa.guideDismiss': '[OK]',
 
     // Language selector
     'lang.label': 'Sprache',
@@ -503,6 +519,10 @@ const translations: Translations = {
     // PWA
     'pwa.install': '[INSTALAR] Rodar local',
     'pwa.installed': 'Rodando localmente',
+    'pwa.guideFirefox': '1. Toca o menu (\u22EE)<br>2. Toca "Instalar"',
+    'pwa.guideSafari': '1. Toca Compartilhar (\u2B06)<br>2. Toca "Adicionar \u00E0 Tela de In\u00EDcio"',
+    'pwa.guideGeneric': '1. Abra o menu do navegador<br>2. Toca "Instalar" ou "Adicionar \u00E0 tela inicial"',
+    'pwa.guideDismiss': '[OK]',
 
     // Language selector
     'lang.label': 'Idioma',
@@ -603,6 +623,10 @@ const translations: Translations = {
     // PWA
     'pwa.install': '[\u5B89\u88C5] \u672C\u5730\u8FD0\u884C',
     'pwa.installed': '\u5DF2\u672C\u5730\u8FD0\u884C',
+    'pwa.guideFirefox': '1. \u70B9\u51FB\u83DC\u5355 (\u22EE)<br>2. \u70B9\u51FB\u201C\u5B89\u88C5\u201D',
+    'pwa.guideSafari': '1. \u70B9\u51FB\u5206\u4EAB (\u2B06)<br>2. \u70B9\u51FB\u201C\u6DFB\u52A0\u5230\u4E3B\u5C4F\u5E55\u201D',
+    'pwa.guideGeneric': '1. \u6253\u5F00\u6D4F\u89C8\u5668\u83DC\u5355<br>2. \u70B9\u51FB\u201C\u5B89\u88C5\u201D\u6216\u201C\u6DFB\u52A0\u5230\u4E3B\u5C4F\u5E55\u201D',
+    'pwa.guideDismiss': '[\u786E\u5B9A]',
 
     // Language selector
     'lang.label': '\u8BED\u8A00',

@@ -159,6 +159,40 @@ export class ArApp extends HTMLElement {
         .install-btn.visible {
           display: inline-block;
         }
+        /* Only show install on mobile/touch devices, never on desktop */
+        @media (hover: hover) and (pointer: fine) {
+          .install-btn.visible {
+            display: none !important;
+          }
+        }
+        .install-guide {
+          display: none;
+          font-family: 'JetBrains Mono', monospace;
+          font-size: 12px;
+          color: var(--color-text-secondary, #00dd44);
+          background: rgba(0, 0, 0, 0.9);
+          border: 1px solid #1a3a1a;
+          border-radius: 0;
+          padding: var(--space-3, 0.75rem);
+          margin-top: var(--space-2, 0.5rem);
+          max-width: 320px;
+          text-align: left;
+          line-height: 1.6;
+        }
+        .install-guide.visible {
+          display: block;
+        }
+        .install-guide-close {
+          background: transparent;
+          border: none;
+          color: var(--color-text-tertiary, #008830);
+          font-family: 'JetBrains Mono', monospace;
+          font-size: 12px;
+          cursor: pointer;
+          padding: var(--space-1, 0.25rem) 0;
+          margin-top: var(--space-2, 0.5rem);
+          text-transform: uppercase;
+        }
         .workspace {
           display: none;
           padding: var(--space-4, 1rem);
@@ -809,6 +843,7 @@ export class ArApp extends HTMLElement {
         <ar-dropzone></ar-dropzone>
         <p class="model-status" id="model-status">${t('hero.modelStatus')}</p>
         <button class="install-btn" id="install-btn" aria-label="${t('pwa.install')}">${isAppInstalled() ? t('pwa.installed') : t('pwa.install')}</button>
+        <div class="install-guide" id="install-guide"></div>
         <div class="precision-marquee" id="precision-marquee"><span>☢ NUKEBG — DROP. NUKE. DOWNLOAD. → nukebg.app ☢ NUKEBG — DROP. NUKE. DOWNLOAD. → nukebg.app ☢</span></div>
         <div class="smoke-effect" id="smoke-effect"></div>
       </section>
@@ -905,14 +940,29 @@ export class ArApp extends HTMLElement {
     }
   }
 
+  private getInstallGuide(): string {
+    const ua = navigator.userAgent.toLowerCase();
+    let steps: string;
+    if (/firefox/i.test(ua)) {
+      steps = t('pwa.guideFirefox');
+    } else if (/iphone|ipad|ipod/i.test(ua)) {
+      steps = t('pwa.guideSafari');
+    } else {
+      steps = t('pwa.guideGeneric');
+    }
+    return `${steps}<br><button class="install-guide-close">${t('pwa.guideDismiss')}</button>`;
+  }
+
   private setupEvents(): void {
     // Escuchar cambio de idioma
     document.addEventListener('nukebg:locale-changed', () => {
       this.updateTexts();
     });
 
-    // PWA install button
+    // PWA install button — mobile only
     const installBtn = this.shadowRoot!.querySelector('#install-btn') as HTMLButtonElement;
+    const installGuide = this.shadowRoot!.querySelector('#install-guide') as HTMLDivElement;
+    let hasNativePrompt = false;
 
     // If already installed, show the installed state
     if (isAppInstalled()) {
@@ -921,8 +971,9 @@ export class ArApp extends HTMLElement {
       installBtn.disabled = true;
     }
 
-    // Show install button when PWA is installable
+    // Show install button when PWA native prompt is available (Chromium)
     document.addEventListener('nukebg:pwa-installable', () => {
+      hasNativePrompt = true;
       if (!isAppInstalled()) {
         installBtn.textContent = t('pwa.install');
         installBtn.classList.add('visible');
@@ -930,11 +981,37 @@ export class ArApp extends HTMLElement {
       }
     });
 
+    // On mobile without native prompt, show install button after a delay
+    // (Firefox, Safari — they can install but need manual steps)
+    const isMobile = window.matchMedia('(hover: none), (pointer: coarse)').matches;
+    if (isMobile && !isAppInstalled()) {
+      setTimeout(() => {
+        if (!hasNativePrompt) {
+          installBtn.textContent = t('pwa.install');
+          installBtn.classList.add('visible');
+          installBtn.disabled = false;
+        }
+      }, 2000);
+    }
+
     installBtn.addEventListener('click', async () => {
-      const accepted = await installApp();
-      if (accepted) {
-        installBtn.textContent = t('pwa.installed');
-        installBtn.disabled = true;
+      // If native prompt available (Chromium), use it
+      if (hasNativePrompt) {
+        const accepted = await installApp();
+        if (accepted) {
+          installBtn.textContent = t('pwa.installed');
+          installBtn.disabled = true;
+          installGuide.classList.remove('visible');
+        }
+        return;
+      }
+      // Otherwise show browser-specific instructions
+      const guide = this.getInstallGuide();
+      installGuide.innerHTML = guide;
+      installGuide.classList.toggle('visible');
+      const closeBtn = installGuide.querySelector('.install-guide-close');
+      if (closeBtn) {
+        closeBtn.addEventListener('click', () => installGuide.classList.remove('visible'));
       }
     });
 
