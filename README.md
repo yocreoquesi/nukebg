@@ -166,3 +166,5 @@ If NukeBG saves you time, consider keeping the reactor running:
 ---
 
 **Built for creators who are done dealing with garbage backgrounds. Open source forever.**
+
+*Built with the assistance of AI agents ([Claude](https://www.anthropic.com/claude) by Anthropic).*
