@@ -289,6 +289,13 @@ export class ArApp extends HTMLElement {
         .features-disclaimer:hover {
           color: var(--color-text-secondary, #00dd44);
         }
+        .features-disclaimer a {
+          color: var(--color-accent-primary, #00ff41);
+          text-decoration: none;
+        }
+        .features-disclaimer a:hover {
+          text-decoration: underline;
+        }
         .features-disclaimer s {
           color: var(--color-text-tertiary, #008830);
           text-decoration: line-through;
@@ -505,6 +512,9 @@ export class ArApp extends HTMLElement {
         }
         :host(.precision-override) .feature-sep {
           color: var(--terminal-color-override, #008830);
+        }
+        :host(.precision-override) .features-disclaimer a {
+          color: var(--terminal-color-override, #00ff41);
         }
         :host(.precision-override) .features-disclaimer s {
           color: var(--terminal-color-override, #008830);
