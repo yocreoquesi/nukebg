@@ -346,7 +346,7 @@ export class ArApp extends HTMLElement {
           display: none;
           text-align: center;
           font-family: 'JetBrains Mono', monospace;
-          font-size: 11px;
+          font-size: 12px;
           color: var(--color-text-tertiary, #008830);
           margin-top: var(--space-2, 0.5rem);
           padding: 0 var(--space-4, 1rem);
@@ -482,10 +482,13 @@ export class ArApp extends HTMLElement {
           color: var(--terminal-color-override, #008830);
         }
         :host(.precision-override) .subline,
-        :host(.precision-override) .feature-desc,
         :host(.precision-override) .model-status,
         :host(.precision-override) .features-disclaimer {
           color: var(--terminal-color-override, #00dd44);
+        }
+        :host(.precision-override) .feature-desc {
+          color: var(--terminal-color-override, #00dd44);
+          opacity: 0.7;
         }
         :host(.precision-override) .feature-title,
         :host(.precision-override) .precision-label,
