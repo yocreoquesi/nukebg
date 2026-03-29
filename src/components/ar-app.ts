@@ -10,7 +10,7 @@ import type { ArEditor } from './ar-editor';
 import type { ArDropzone } from './ar-dropzone';
 
 export class ArApp extends HTMLElement {
-  private static readonly MODEL_ID: ModelId = 'briaai/RMBG-1.4';
+  private static readonly MODEL_ID: ModelId = 'onnx-community/BiRefNet_lite-ONNX';
   private pipeline: PipelineOrchestrator | null = null;
   private viewer!: ArViewer;
   private progress!: ArProgress;

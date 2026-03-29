@@ -6,7 +6,7 @@
  */
 import type { MlWorkerRequest, ModelId } from '../types/worker-messages';
 
-const DEFAULT_MODEL: ModelId = 'briaai/RMBG-1.4';
+const DEFAULT_MODEL: ModelId = 'onnx-community/BiRefNet_lite-ONNX';
 
 /** Transformers.js pipeline entry - shape is dynamic from the library */
 interface SegmenterEntry {
@@ -190,9 +190,12 @@ async function loadModel(id: string, modelId: ModelId = DEFAULT_MODEL, emitReady
 
   self.postMessage({ id, type: 'model-progress', progress: 10 });
 
+  // RMBG-1.4 has q8 (~45MB), BiRefNet-lite only has fp16 (~115MB)
+  const dtype = modelId === 'briaai/RMBG-1.4' ? 'q8' : 'fp16';
+
   const seg = await transformers.pipeline('image-segmentation', modelId, {
     device,
-    dtype: 'q8',
+    dtype,
     progress_callback: progressCb(id),
   });
   segmenters.set(modelId, { pipeline: seg as unknown as SegmenterEntry['pipeline'], type: 'pipeline' });

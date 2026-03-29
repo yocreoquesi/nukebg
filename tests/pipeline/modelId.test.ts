@@ -32,9 +32,10 @@ describe('ModelId parameter', () => {
     expect(rmbg!.label).toBe('RMBG 1.4');
   });
 
-  it('MODEL_OPTIONS solo contiene RMBG-1.4', () => {
-    expect(MODEL_OPTIONS.length).toBe(1);
-    expect(MODEL_OPTIONS[0].id).toBe('briaai/RMBG-1.4');
+  it('MODEL_OPTIONS contains BiRefNet-lite as default and RMBG-1.4 as fallback', () => {
+    expect(MODEL_OPTIONS.length).toBe(2);
+    expect(MODEL_OPTIONS[0].id).toBe('onnx-community/BiRefNet_lite-ONNX');
+    expect(MODEL_OPTIONS[1].id).toBe('briaai/RMBG-1.4');
   });
 
   it('modelId condicional genera el payload correcto para mlCall', () => {

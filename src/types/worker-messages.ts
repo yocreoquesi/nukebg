@@ -91,10 +91,11 @@ export type CvWorkerResponse =
 
 /** ======== ML Worker Messages ======== */
 
-export type ModelId = 'briaai/RMBG-1.4';
+export type ModelId = 'briaai/RMBG-1.4' | 'onnx-community/BiRefNet_lite-ONNX';
 
 export const MODEL_OPTIONS: { id: ModelId; label: string; description: string }[] = [
-  { id: 'briaai/RMBG-1.4', label: 'RMBG 1.4', description: 'Best for illustrations, icons, and AI art' },
+  { id: 'onnx-community/BiRefNet_lite-ONNX', label: 'BiRefNet Lite', description: 'MIT license, sharper edges on photos' },
+  { id: 'briaai/RMBG-1.4', label: 'RMBG 1.4', description: 'Non-commercial license, good for illustrations' },
 ];
 
 export type MlWorkerRequest =
