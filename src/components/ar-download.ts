@@ -33,7 +33,7 @@ export class ArDownload extends HTMLElement {
     const dlBtn = root.querySelector('#download-btn');
     if (dlBtn) dlBtn.textContent = this.selectedFormat === 'webp' ? t('download.btnWebp') : t('download.btn');
     const copyBtn = root.querySelector('#copy-btn');
-    if (copyBtn && !copyBtn.classList.contains('copied')) copyBtn.textContent = t('download.copy');
+    if (copyBtn && !copyBtn.classList.contains('copied')) copyBtn.innerHTML = `${t('download.copy')}<br><small>PNG</small>`;
     const anotherBtn = root.querySelector('#another-btn');
     if (anotherBtn) anotherBtn.textContent = t('download.another');
     this.updateFormatToggleLabels();
@@ -188,6 +188,11 @@ export class ArDownload extends HTMLElement {
           cursor: pointer;
           transition: all 0.3s ease;
         }
+        .btn-copy small {
+          font-size: 9px;
+          opacity: 0.6;
+          letter-spacing: 0.1em;
+        }
         .btn-copy:hover {
           border-color: var(--color-accent-primary, #00ff41);
           color: var(--color-accent-primary, #00ff41);
@@ -329,7 +334,7 @@ export class ArDownload extends HTMLElement {
           <button id="format-webp" aria-pressed="false"><span id="format-webp-label">${t('download.formatWebp')}</span></button>
         </div>
         <a class="btn-primary" id="download-btn">${t('download.btn')}</a>
-        <button class="btn-copy" id="copy-btn" title="Copy to clipboard" aria-live="polite">${t('download.copy')}</button>
+        <button class="btn-copy" id="copy-btn" title="Copy to clipboard" aria-live="polite">${t('download.copy')}<br><small>PNG</small></button>
         <button class="btn-secondary" id="another-btn">${t('download.another')}</button>
         <span class="metadata" id="meta"></span>
       </div>
@@ -361,17 +366,17 @@ export class ArDownload extends HTMLElement {
         ]);
         const btn = this.shadowRoot!.querySelector('#copy-btn')!;
         btn.classList.add('copied');
-        btn.textContent = t('download.copied');
+        btn.innerHTML = `${t('download.copied')}<br><small>PNG</small>`;
         setTimeout(() => {
           btn.classList.remove('copied');
-          btn.textContent = t('download.copy');
+          btn.innerHTML = `${t('download.copy')}<br><small>PNG</small>`;
         }, 2000);
       } catch {
         // Clipboard API not supported or permission denied - show feedback
         const btn = this.shadowRoot!.querySelector('#copy-btn')!;
-        btn.textContent = t('download.copyFailed') || 'Copy not supported';
+        btn.innerHTML = `${t('download.copyFailed') || 'Copy not supported'}`;
         setTimeout(() => {
-          btn.textContent = t('download.copy');
+          btn.innerHTML = `${t('download.copy')}<br><small>PNG</small>`;
         }, 2000);
       }
     });

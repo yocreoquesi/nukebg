@@ -264,7 +264,7 @@ export class ArApp extends HTMLElement {
           font-weight: var(--font-semibold, 600);
           text-transform: uppercase;
           letter-spacing: 0.05em;
-          color: var(--color-accent-primary, #00ff41);
+          color: var(--color-text-tertiary, #008830);
           margin-bottom: var(--space-2, 0.5rem);
         }
         .feature-title::before {
@@ -274,7 +274,7 @@ export class ArApp extends HTMLElement {
         .feature-desc {
           font-family: 'JetBrains Mono', monospace;
           font-size: 12px;
-          color: var(--color-text-secondary, #00dd44);
+          color: var(--color-text-tertiary, #008830);
           line-height: 1.5;
         }
         .features-disclaimer {
