@@ -7,13 +7,9 @@ export type ImageContentType = 'PHOTO' | 'ILLUSTRATION' | 'SIGNATURE' | 'ICON';
 /** Stage identifiers for progress reporting */
 export type PipelineStage =
   | 'detect-background'
-  | 'checkerboard-removal'
-  | 'background-removal'
   | 'ml-segmentation'
   | 'watermark-scan'
-  | 'inpaint'
-  | 'shadow-cleanup'
-  | 'alpha-refine';
+  | 'inpaint';
 
 export type StageStatus = 'running' | 'done' | 'skipped' | 'error';
 

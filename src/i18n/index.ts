@@ -14,9 +14,6 @@ const translations: Translations = {
     'hero.subtitle': 'Drop any image. Get a clean transparent PNG.\nNo upload. No account. No BS.',
     'hero.modelStatus': 'Ready to nuke',
 
-    // Model / precision
-    'model.reprocess': 'Reprocess',
-
     // Dropzone
     'dropzone.title': 'Drop your image here',
     'dropzone.subtitle': "or click to browse \u2014 we'll nuke the background",
@@ -124,9 +121,6 @@ const translations: Translations = {
     'hero.title.rest': 'Cualquier Fondo',
     'hero.subtitle': 'Arrastra una imagen. Obt\u00E9n un PNG transparente.\nSin subidas. Sin cuenta. Sin rollos.',
     'hero.modelStatus': 'Listo para nukear',
-
-    // Model / precision
-    'model.reprocess': 'Reprocesar',
 
     // Dropzone
     'dropzone.title': 'Arrastra tu imagen aqu\u00ED',
@@ -236,9 +230,6 @@ const translations: Translations = {
     'hero.subtitle': "Balance ton image. R\u00E9cup\u00E8re un PNG transparent.\nZ\u00E9ro upload. Z\u00E9ro compte. Z\u00E9ro baratin.",
     'hero.modelStatus': 'Pr\u00EAt \u00E0 atomiser',
 
-    // Model / precision
-    'model.reprocess': 'Retraiter',
-
     // Dropzone
     'dropzone.title': 'D\u00E9pose ton image ici',
     'dropzone.subtitle': 'ou clique pour parcourir \u2014 on atomise le fond',
@@ -346,9 +337,6 @@ const translations: Translations = {
     'hero.title.rest': 'Jeden Hintergrund',
     'hero.subtitle': 'Bild reinwerfen. Transparentes PNG kriegen.\nKein Upload. Kein Konto. Kein Bullshit.',
     'hero.modelStatus': 'Bereit zum Nuken',
-
-    // Model / precision
-    'model.reprocess': 'Neu verarbeiten',
 
     // Dropzone
     'dropzone.title': 'Bild hier ablegen',
@@ -458,9 +446,6 @@ const translations: Translations = {
     'hero.subtitle': 'Joga a imagem. Pega o PNG transparente.\nSem upload. Sem conta. Sem frescura.',
     'hero.modelStatus': 'Pronto pra nukear',
 
-    // Model / precision
-    'model.reprocess': 'Reprocessar',
-
     // Dropzone
     'dropzone.title': 'Solta a imagem aqui',
     'dropzone.subtitle': 'ou clica pra escolher \u2014 a gente nukeia o fundo',
@@ -568,9 +553,6 @@ const translations: Translations = {
     'hero.title.rest': '\u4EFB\u4F55\u80CC\u666F',
     'hero.subtitle': '\u4E22\u5F20\u56FE\u7247\u8FDB\u6765\u3002\u62FF\u8D70\u900F\u660E PNG\u3002\n\u96F6\u4E0A\u4F20\u3002\u96F6\u6CE8\u518C\u3002\u96F6\u5E9F\u8BDD\u3002',
     'hero.modelStatus': '\u51C6\u5907\u6838\u7206',
-
-    // Model / precision
-    'model.reprocess': '\u91CD\u65B0\u5904\u7406',
 
     // Dropzone
     'dropzone.title': '\u628A\u56FE\u7247\u4E22\u8FD9\u91CC',

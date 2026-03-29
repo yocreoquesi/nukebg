@@ -426,25 +426,6 @@ export class ArApp extends HTMLElement {
           gap: var(--space-2, 0.5rem);
           padding: var(--space-2, 0.5rem) 0;
         }
-        .reprocess-btn {
-          background: var(--color-accent-primary, #00ff41);
-          color: #000;
-          border: none;
-          border-radius: 0;
-          padding: var(--space-1, 0.25rem) var(--space-3, 0.75rem);
-          font-size: 12px;
-          font-weight: var(--font-semibold, 600);
-          font-family: 'JetBrains Mono', monospace;
-          text-transform: uppercase;
-          letter-spacing: 0.05em;
-          cursor: pointer;
-          white-space: nowrap;
-          transition: background 0.2s ease, box-shadow 0.2s ease;
-        }
-        .reprocess-btn:hover {
-          background: var(--color-accent-hover, #33ff66);
-          box-shadow: var(--shadow-glow);
-        }
         .edit-btn {
           width: 100%;
           background: transparent;
@@ -563,12 +544,6 @@ export class ArApp extends HTMLElement {
             font-size: var(--text-xs, 0.75rem);
             margin-bottom: var(--space-3, 0.75rem);
           }
-          .reprocess-btn {
-            width: 100%;
-            min-height: 44px;
-            padding: var(--space-2, 0.5rem) var(--space-3, 0.75rem);
-            font-size: 12px;
-          }
           .features {
             padding: var(--space-3, 0.75rem);
           }
@@ -621,9 +596,6 @@ export class ArApp extends HTMLElement {
           .subline {
             font-size: var(--text-xs, 0.75rem);
           }
-          .reprocess-btn {
-            min-height: 44px;
-          }
           .features {
             padding: var(--space-3, 0.75rem) var(--space-4, 1rem);
           }
@@ -634,7 +606,6 @@ export class ArApp extends HTMLElement {
 
         /* === Touch targets === */
         @media (pointer: coarse) {
-          .reprocess-btn,
           .edit-btn {
             min-height: 44px;
             min-width: 44px;
@@ -642,7 +613,7 @@ export class ArApp extends HTMLElement {
         }
 
         @media (prefers-reduced-motion: reduce) {
-          .feature-card, .reprocess-btn, .edit-btn {
+          .feature-card, .edit-btn {
             transition: none !important;
           }
         }

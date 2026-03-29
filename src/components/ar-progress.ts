@@ -30,8 +30,6 @@ export class ArProgress extends HTMLElement {
         if (s.stage === 'detect-background') s.label = t('progress.detectBg');
         else if (s.stage === 'watermark-scan') s.label = t('progress.watermarkScan');
         else if (s.stage === 'inpaint') s.label = t('progress.inpaint');
-        else if (s.stage === 'background-removal') s.label = t('progress.bgRemoval');
-        else if (s.stage === 'checkerboard-removal') s.label = t('progress.bgRemovalCV');
         else if (s.stage === 'ml-segmentation') s.label = t('progress.bgRemovalML');
       });
       this.update();
@@ -48,7 +46,7 @@ export class ArProgress extends HTMLElement {
       { stage: 'detect-background', label: t('progress.detectBg'), status: 'pending' },
       { stage: 'watermark-scan', label: t('progress.watermarkScan'), status: 'pending' },
       { stage: 'inpaint', label: t('progress.inpaint'), status: 'pending' },
-      { stage: 'background-removal', label: t('progress.bgRemoval'), status: 'pending' },
+      { stage: 'ml-segmentation', label: t('progress.bgRemovalML'), status: 'pending' },
     ];
     this.detectedContentType = null;
     this.startTimes.clear();
@@ -71,28 +69,10 @@ export class ArProgress extends HTMLElement {
       }
     }
 
-    // Handle dynamic stages (checkerboard-removal, ml-segmentation replace background-removal)
-    if (stage === 'checkerboard-removal' || stage === 'ml-segmentation') {
-      const bgIdx = this.stages.findIndex(s => s.stage === 'background-removal' ||
-                                                 s.stage === 'checkerboard-removal' ||
-                                                 s.stage === 'ml-segmentation');
-      if (bgIdx >= 0) {
-        this.stages[bgIdx].stage = stage;
-        this.stages[bgIdx].label = stage === 'checkerboard-removal'
-          ? t('progress.bgRemovalCV')
-          : t('progress.bgRemovalML');
-        this.stages[bgIdx].status = status;
-        this.stages[bgIdx].message = message;
-      }
-    } else if (stage === 'shadow-cleanup') {
-      // Shadow cleanup is internal, skip in UI
-      return;
-    } else {
-      const existing = this.stages.find(s => s.stage === stage);
-      if (existing) {
-        existing.status = status;
-        existing.message = message;
-      }
+    const existing = this.stages.find(s => s.stage === stage);
+    if (existing) {
+      existing.status = status;
+      existing.message = message;
     }
 
     if (status === 'running') {

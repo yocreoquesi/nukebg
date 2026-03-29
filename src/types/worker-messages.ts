@@ -1,17 +1,12 @@
-import type { BgColorResult, GridResult, WatermarkResult, ImageContentType } from './pipeline';
+import type { BgColorResult, WatermarkResult, ImageContentType } from './pipeline';
 import type { ImageFeatures } from '../workers/cv/classify-image';
 
 /** ======== CV Worker Messages ======== */
 
 export type CvWorkerRequest =
   | CvDetectBgColorsRequest
-  | CvDetectCheckerGridRequest
-  | CvGridFloodFillRequest
-  | CvSubjectExclusionRequest
-  | CvSimpleFloodFillRequest
   | CvWatermarkDetectRequest
   | CvWatermarkDetectDalleRequest
-  | CvShadowCleanupRequest
   | CvAlphaRefineRequest
   | CvClassifyImageRequest
   | CvSignatureThresholdRequest;
@@ -27,57 +22,6 @@ export interface CvDetectBgColorsRequest extends CvBaseRequest {
     width: number;
     height: number;
     sampleSize?: number;
-  };
-}
-
-export interface CvDetectCheckerGridRequest extends CvBaseRequest {
-  type: 'detect-checker-grid';
-  payload: {
-    pixels: Uint8ClampedArray;
-    width: number;
-    height: number;
-    colorDark: number[];
-    colorLight: number[];
-  };
-}
-
-export interface CvGridFloodFillRequest extends CvBaseRequest {
-  type: 'grid-flood-fill';
-  payload: {
-    pixels: Uint8ClampedArray;
-    width: number;
-    height: number;
-    colorDark: number[];
-    colorLight: number[];
-    gridSize: number;
-    phase: number;
-    tolerance?: number;
-  };
-}
-
-export interface CvSubjectExclusionRequest extends CvBaseRequest {
-  type: 'subject-exclusion';
-  payload: {
-    pixels: Uint8ClampedArray;
-    width: number;
-    height: number;
-    colorDark: number[];
-    colorLight: number[];
-    gridSize: number;
-    phase: number;
-    tolerance?: number;
-  };
-}
-
-export interface CvSimpleFloodFillRequest extends CvBaseRequest {
-  type: 'simple-flood-fill';
-  payload: {
-    pixels: Uint8ClampedArray;
-    width: number;
-    height: number;
-    colorA: number[];
-    colorB: number[];
-    tolerance?: number;
   };
 }
 
@@ -98,17 +42,6 @@ export interface CvWatermarkDetectDalleRequest extends CvBaseRequest {
     pixels: Uint8ClampedArray;
     width: number;
     height: number;
-  };
-}
-
-export interface CvShadowCleanupRequest extends CvBaseRequest {
-  type: 'shadow-cleanup';
-  payload: {
-    pixels: Uint8ClampedArray;
-    width: number;
-    height: number;
-    mask: Uint8Array;
-    maxBlobSize?: number;
   };
 }
 
@@ -148,13 +81,8 @@ export interface ClassifyImageResult {
 /** CV Worker response */
 export type CvWorkerResponse =
   | { id: string; type: 'detect-bg-colors'; result: BgColorResult }
-  | { id: string; type: 'detect-checker-grid'; result: GridResult }
-  | { id: string; type: 'grid-flood-fill'; result: Uint8Array }
-  | { id: string; type: 'subject-exclusion'; result: Uint8Array }
-  | { id: string; type: 'simple-flood-fill'; result: Uint8Array }
   | { id: string; type: 'watermark-detect'; result: WatermarkResult }
   | { id: string; type: 'watermark-detect-dalle'; result: WatermarkResult }
-  | { id: string; type: 'shadow-cleanup'; result: Uint8Array }
   | { id: string; type: 'alpha-refine'; result: Uint8Array }
   | { id: string; type: 'classify-image'; result: ClassifyImageResult }
   | { id: string; type: 'signature-threshold'; result: Uint8Array }
