@@ -168,20 +168,21 @@ async function refine(
     }
   }
 
-  // Combine RMBG + SAM: RMBG defines the shape, SAM refines edges
+  // Combine RMBG + SAM with AND: pixel is foreground only if BOTH agree
+  // This fixes interior errors (RMBG artifacts) that SAM correctly identifies as background
   for (let i = 0; i < width * height; i++) {
     const rmbg = mask[i];
     const sam = samMask[i];
 
-    if (rmbg > 200) {
-      // RMBG confident foreground → trust RMBG (keep interior solid)
-      resultAlpha[i] = 255;
-    } else if (rmbg < 30) {
-      // RMBG confident background → stay transparent (unless SAM strongly disagrees)
-      resultAlpha[i] = 0;
+    if (rmbg > 128 && sam > 0) {
+      // Both agree: foreground → use RMBG's alpha for soft edges
+      resultAlpha[i] = rmbg;
+    } else if (rmbg > 30 && sam > 0) {
+      // RMBG edge zone, SAM agrees → keep with RMBG alpha
+      resultAlpha[i] = rmbg;
     } else {
-      // Edge zone (RMBG uncertain) → trust SAM for edge precision
-      resultAlpha[i] = sam;
+      // Either says background → transparent
+      resultAlpha[i] = 0;
     }
   }
 
