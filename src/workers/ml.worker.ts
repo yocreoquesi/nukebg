@@ -190,8 +190,9 @@ async function loadModel(id: string, modelId: ModelId = DEFAULT_MODEL, emitReady
 
   self.postMessage({ id, type: 'model-progress', progress: 10 });
 
-  // RMBG-1.4 has q8 (~45MB), BiRefNet-lite only has fp16 (~115MB)
-  const dtype = modelId === 'briaai/RMBG-1.4' ? 'q8' : 'fp16';
+  // RMBG-1.4 has q8 (~45MB), BiRefNet-lite needs fp32 on WASM (~224MB)
+  // TODO: quantize BiRefNet-lite to q8 (~56MB) and upload to HuggingFace fork
+  const dtype = modelId === 'briaai/RMBG-1.4' ? 'q8' : 'fp32';
 
   const seg = await transformers.pipeline('image-segmentation', modelId, {
     device,
