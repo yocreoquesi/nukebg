@@ -5,11 +5,11 @@
  * refines the raw alpha mask using the original image as guidance.
  * This eliminates halos and produces smooth edge transitions.
  *
- * Reference: He, Sun, Tang — "Guided Image Filtering" (2010/2013)
+ * Reference: He, Sun, Tang - "Guided Image Filtering" (2010/2013)
  */
 
 /**
- * Compute box mean via separable sliding window — O(1) per pixel.
+ * Compute box mean via separable sliding window - O(1) per pixel.
  * Two passes: horizontal then vertical, each using a running sum.
  */
 function boxMean(

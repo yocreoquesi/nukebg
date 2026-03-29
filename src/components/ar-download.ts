@@ -367,7 +367,7 @@ export class ArDownload extends HTMLElement {
           btn.textContent = t('download.copy');
         }, 2000);
       } catch {
-        // Clipboard API not supported or permission denied — show feedback
+        // Clipboard API not supported or permission denied - show feedback
         const btn = this.shadowRoot!.querySelector('#copy-btn')!;
         btn.textContent = t('download.copyFailed') || 'Copy not supported';
         setTimeout(() => {

@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
 
   <!-- Primary Meta Tags -->
-  <title>NukeBG — Free Background Remover Online | Transparent PNG, No Upload</title>
-  <meta name="description" content="Remove background from any image for free — get a transparent PNG in seconds. 100% client-side background removal, zero uploads. Also removes painted checkerboard patterns and Gemini watermarks from AI images. No Photoshop needed." />
+  <title>NukeBG | Background Remover That Never Uploads Your Images</title>
+  <meta name="description" content="Remove backgrounds from any image for free. 100% in your browser, your images never leave your device. No account, no watermarks on output, no limits." />
   <meta name="keywords" content="remove background free, background remover online, transparent png, client-side background removal, remove checkerboard AI, remove gemini watermark, checkerboard background removal, ai image cleanup, private background removal, background eraser online, remove background without photoshop, free transparent background, remove background from screenshot, nukebg" />
   <meta name="robots" content="index, follow" />
   <meta name="author" content="NukeBG" />
@@ -14,30 +14,31 @@
   <meta name="theme-color" content="#000000" />
   <meta name="color-scheme" content="dark" />
   <link rel="canonical" href="https://nukebg.app/" />
-  <link rel="alternate" hreflang="en" href="https://nukebg.app/?lang=en" />
-  <link rel="alternate" hreflang="es" href="https://nukebg.app/?lang=es" />
-  <link rel="alternate" hreflang="fr" href="https://nukebg.app/?lang=fr" />
-  <link rel="alternate" hreflang="de" href="https://nukebg.app/?lang=de" />
-  <link rel="alternate" hreflang="pt" href="https://nukebg.app/?lang=pt" />
-  <link rel="alternate" hreflang="zh" href="https://nukebg.app/?lang=zh" />
+  <link rel="alternate" hreflang="en" href="https://nukebg.app/" />
   <link rel="alternate" hreflang="x-default" href="https://nukebg.app/" />
 
   <!-- Open Graph -->
   <meta property="og:type" content="website" />
   <meta property="og:url" content="https://nukebg.app/" />
-  <meta property="og:title" content="NukeBG — Free Background Remover | No Upload, No BS" />
-  <meta property="og:description" content="Remove backgrounds from any image. Get a clean PNG in seconds. No upload, no account, no BS. Also handles AI artifacts and watermarks that other tools can't touch." />
+  <meta property="og:title" content="NukeBG | Remove Backgrounds Without Uploading a Single Pixel" />
+  <meta property="og:description" content="Remove backgrounds 100% in your browser. Your images never touch a server. Free, open source, no account needed." />
   <meta property="og:image" content="https://nukebg.app/og-image.png" />
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
   <meta property="og:image:alt" content="NukeBG: before and after nuking checkerboard background from an AI-generated image" />
+  <meta property="og:image:type" content="image/png" />
   <meta property="og:site_name" content="NukeBG" />
   <meta property="og:locale" content="en_US" />
+  <meta property="og:locale:alternate" content="es_ES" />
+  <meta property="og:locale:alternate" content="fr_FR" />
+  <meta property="og:locale:alternate" content="de_DE" />
+  <meta property="og:locale:alternate" content="pt_BR" />
+  <meta property="og:locale:alternate" content="zh_CN" />
 
   <!-- Twitter Card -->
   <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="NukeBG — Free Background Remover | No Upload, No BS" />
-  <meta name="twitter:description" content="Drop. Nuke. Download. Remove backgrounds from any image, 100% private. Also handles AI checkerboard patterns and Gemini watermarks." />
+  <meta name="twitter:title" content="NukeBG | Remove Backgrounds Without Uploading a Single Pixel" />
+  <meta name="twitter:description" content="Drop. Nuke. Download. Backgrounds gone, images never uploaded. Free. Open source. No account." />
   <meta name="twitter:image" content="https://nukebg.app/og-image.png" />
   <meta name="twitter:image:alt" content="NukeBG: before and after nuking checkerboard background from an AI-generated image" />
 
@@ -46,6 +47,10 @@
   <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png" />
   <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
   <link rel="manifest" href="/manifest.webmanifest" />
+  <link rel="preload" href="/fonts/JetBrainsMono-Regular.woff2" as="font" type="font/woff2" crossorigin />
+  <link rel="preload" href="/fonts/JetBrainsMono-Bold.woff2" as="font" type="font/woff2" crossorigin />
+  <link rel="dns-prefetch" href="https://huggingface.co" />
+  <link rel="preconnect" href="https://cdn-lfs.huggingface.co" crossorigin />
 
   <!-- Fonts: self-hosted, zero external requests -->
   <style>
@@ -62,8 +67,8 @@
     "@type": "WebApplication",
     "name": "NukeBG",
     "alternateName": "Nuke Background",
-    "description": "Free client-side background remover. Nuke backgrounds from any image — photos, illustrations, AI-generated art. Also handles painted checkerboard patterns and Gemini watermarks from AI-generated images. 100% private — images never leave your browser.",
-    "url": "https://nukebg.app",
+    "description": "Free client-side background remover. Nuke backgrounds from any image: photos, illustrations, AI-generated art. Also handles painted checkerboard patterns and Gemini watermarks from AI-generated images. 100% private, images never leave your browser.",
+    "url": "https://nukebg.app/",
     "applicationCategory": "DesignApplication",
     "applicationSubCategory": "Image Editing",
     "operatingSystem": "Any (Web Browser)",
@@ -95,7 +100,7 @@
     },
     "potentialAction": {
       "@type": "UseAction",
-      "target": "https://nukebg.app",
+      "target": "https://nukebg.app/",
       "name": "Nuke Background"
     }
   }
@@ -112,7 +117,7 @@
         "name": "How do I remove the checkerboard background from AI-generated images?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Drop your image into NukeBG. It automatically detects painted checkerboard patterns from AI generators and replaces them with real transparency. Gemini watermark detection included. No upload needed — processing happens in your browser."
+          "text": "Drop your image into NukeBG. It automatically detects painted checkerboard patterns from AI generators and replaces them with real transparency. Gemini watermark detection included. No upload needed. Processing happens in your browser."
         }
       },
       {
@@ -144,7 +149,7 @@
         "name": "What AI generators does NukeBG support?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "NukeBG removes backgrounds from any image — photos, illustrations, or AI-generated art. It includes specific detection for Gemini watermarks and painted checkerboard patterns."
+          "text": "NukeBG removes backgrounds from any image, including photos, illustrations, and AI-generated art. It includes specific detection for Gemini watermarks and painted checkerboard patterns."
         }
       },
       {
@@ -168,7 +173,7 @@
         "name": "Is NukeBG safe to use with private photos?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Yes. NukeBG is 100% client-side — your images are processed locally in your browser and never uploaded anywhere. There are no analytics, no cookies, and no tracking. The source code is open under GPL-3.0 so anyone can audit it."
+          "text": "Yes. NukeBG is 100% client-side. Your images are processed locally in your browser and never uploaded anywhere. There are no analytics, no cookies, and no tracking. The source code is open under GPL-3.0 so anyone can audit it."
         }
       },
       {
@@ -200,7 +205,7 @@
         "name": "How to remove background from a screenshot?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Drop or paste your screenshot directly into NukeBG. It works with screenshots from any device — desktop, phone, or tablet. The ML model isolates the subject and produces a transparent PNG you can use anywhere."
+          "text": "Drop or paste your screenshot directly into NukeBG. It works with screenshots from any device, including desktop, phone, and tablet. The ML model isolates the subject and produces a transparent PNG you can use anywhere."
         }
       },
       {
@@ -208,7 +213,7 @@
         "name": "Does NukeBG work on mobile?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Yes. NukeBG works in any modern mobile browser — Chrome, Safari, Firefox. The interface is responsive and you can upload images from your camera roll or files app. Processing may be slower on older phones since the ML model runs on-device."
+          "text": "Yes. NukeBG works in any modern mobile browser including Chrome, Safari, and Firefox. The interface is responsive and you can upload images from your camera roll or files app. Processing may be slower on older phones since the ML model runs on-device."
         }
       },
       {
@@ -216,7 +221,7 @@
         "name": "Why does the model take time to load the first time?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "The ML model (RMBG-1.4) is approximately 45 MB and needs to download on your first visit. After that, it is cached by the Service Worker so subsequent visits load instantly — even offline. The initial download is a one-time cost."
+          "text": "The ML model (RMBG-1.4) is approximately 45 MB and needs to download on your first visit. After that, it is cached by the Service Worker so subsequent visits load instantly, even offline. The initial download is a one-time cost."
         }
       },
       {
@@ -224,7 +229,7 @@
         "name": "Is NukeBG really free? What is the catch?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "NukeBG is genuinely free and open source under GPL-3.0. There is no catch — no premium tier, no watermarks on output, no account required. It runs entirely in your browser so there are no server costs to recoup. You can support the project on Ko-fi if you want to."
+          "text": "NukeBG is genuinely free and open source under GPL-3.0. There is no catch: no premium tier, no watermarks on output, no account required. It runs entirely in your browser so there are no server costs to recoup. You can support the project on Ko-fi if you want to."
         }
       },
       {
@@ -232,7 +237,7 @@
         "name": "Can I use the resulting images commercially?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "The tool itself is GPL-3.0, but the images you process are yours. NukeBG does not add watermarks or impose restrictions on your output. You can use the resulting transparent PNGs for any purpose — personal, commercial, or otherwise."
+          "text": "The tool itself is GPL-3.0, but the images you process are yours. NukeBG does not add watermarks or impose restrictions on your output. You can use the resulting transparent PNGs for any purpose, whether personal, commercial, or otherwise."
         }
       }
     ]
@@ -249,7 +254,7 @@
     "totalTime": "PT30S",
     "tool": {
       "@type": "HowToTool",
-      "name": "NukeBG — Free Online Background Remover"
+      "name": "NukeBG: Free Online Background Remover"
     },
     "supply": [],
     "step": [
@@ -275,7 +280,7 @@
         "@type": "HowToStep",
         "position": 4,
         "name": "Download the transparent PNG",
-        "text": "Preview the result using the before/after comparison view. When satisfied, download the image as a PNG with true alpha transparency. Your image was never uploaded — everything happened on your device."
+        "text": "Preview the result using the before/after comparison view. When satisfied, download the image as a PNG with true alpha transparency. Your image was never uploaded. Everything happened on your device."
       }
     ]
   }
@@ -312,11 +317,50 @@
   </header>
 
   <main class="main-content" id="main" role="main">
+    <div id="seo-content" style="display:block;max-width:720px;margin:0 auto;padding:2rem 1rem;color:#ccc;font-family:'JetBrains Mono',monospace;font-size:14px;line-height:1.7;">
+      <h1 style="color:#00ff41;font-size:1.5rem;margin:0 0 0.5rem;">NukeBG. Background Remover That Never Uploads Your Images</h1>
+      <p>Remove backgrounds from any image, 100% in your browser. Your images never leave your device. No upload, no account, no tracking. Free and open source.</p>
+
+      <h2 style="color:#00ff41;font-size:1.1rem;margin:1.5rem 0 0.5rem;">How It Works</h2>
+      <ol>
+        <li>Open <strong>nukebg.app</strong> in any modern browser.</li>
+        <li>Drop, paste, or pick your image (PNG, JPG, WebP).</li>
+        <li>NukeBG processes everything locally using an ML model in your browser.</li>
+        <li>Download your clean transparent PNG. Your image was never uploaded.</li>
+      </ol>
+
+      <h2 style="color:#00ff41;font-size:1.1rem;margin:1.5rem 0 0.5rem;">Features</h2>
+      <ul>
+        <li>100% client-side processing. Your images never touch a server.</li>
+        <li>ML-powered background removal (RMBG-1.4 via WebAssembly)</li>
+        <li>Auto-detects image type: photo, illustration, signature, icon</li>
+        <li>Before/after comparison view and manual editor</li>
+        <li>Works offline after first visit (PWA)</li>
+        <li>No account, no watermarks on output, no limits</li>
+        <li>Open source (GPL-3.0)</li>
+      </ul>
+
+      <h2 style="color:#00ff41;font-size:1.1rem;margin:1.5rem 0 0.5rem;">FAQ</h2>
+      <dl>
+        <dt><strong>Are my images uploaded?</strong></dt>
+        <dd>No. Everything runs in your browser using WebAssembly. Your images never leave your device. Verify it yourself: open DevTools and check the Network tab.</dd>
+        <dt><strong>Is it really free?</strong></dt>
+        <dd>Yes. No premium tier, no watermarks on output, no account required. The code is open source under GPL-3.0.</dd>
+        <dt><strong>Does it work offline?</strong></dt>
+        <dd>Yes. After your first visit, all assets including the ML model are cached via Service Worker.</dd>
+        <dt><strong>What formats are supported?</strong></dt>
+        <dd>PNG, JPEG, and WebP input up to 4096x4096. Output is always a transparent PNG or WebP.</dd>
+      </dl>
+
+      <noscript>
+        <p><strong>NukeBG requires JavaScript to run.</strong> Please enable JavaScript in your browser to use the background remover.</p>
+      </noscript>
+    </div>
     <ar-app></ar-app>
   </main>
 
   <footer class="footer hazard-border-top" role="contentinfo">
-    <span>NukeBG <span style="color:var(--color-text-tertiary)">v2.4.0</span></span>
+    <span>NukeBG <span style="color:var(--color-text-tertiary)">v2.5.0</span></span>
     <span class="footer-sep">|</span>
     <span>GPL-3.0</span>
     <span class="footer-sep">|</span>

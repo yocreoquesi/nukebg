@@ -2,13 +2,13 @@
  * ML Worker - Background removal via Transformers.js
  * Uses briaai/RMBG-1.4 through the high-level pipeline API.
  * Transformers.js handles ONNX Runtime, WebGPU/WASM detection,
- * model download, caching — all internally.
+ * model download, caching - all internally.
  */
 import type { MlWorkerRequest, ModelId } from '../types/worker-messages';
 
 const DEFAULT_MODEL: ModelId = 'briaai/RMBG-1.4';
 
-/** Transformers.js pipeline entry — shape is dynamic from the library */
+/** Transformers.js pipeline entry - shape is dynamic from the library */
 interface SegmenterEntry {
   pipeline: { dispose?: () => void; (image: unknown, opts: unknown): Promise<Array<{ mask?: { data: Uint8Array; width: number; height: number } }>>; };
   type: string;
@@ -19,9 +19,9 @@ const segmenters = new Map<string, SegmenterEntry>();
 let currentModelId: ModelId = DEFAULT_MODEL;
 let RawImageClass: (new (data: Uint8ClampedArray, w: number, h: number, channels: number) => unknown) | null = null;
 
-/** Detect compute device — currently forced to WASM */
+/** Detect compute device - currently forced to WASM */
 async function detectDevice(): Promise<'webgpu' | 'wasm'> {
-  // Force WASM — WebGPU in Transformers.js is unstable and causes
+  // Force WASM - WebGPU in Transformers.js is unstable and causes
   // NetworkError on some browsers when loading the WebGPU runtime.
   // Re-enable when Transformers.js WebGPU support is stable.
   return 'wasm';
@@ -170,7 +170,7 @@ async function loadModel(id: string, modelId: ModelId = DEFAULT_MODEL, emitReady
     return;
   }
 
-  // Free previous model to avoid OOM — WASM can't hold multiple models
+  // Free previous model to avoid OOM - WASM can't hold multiple models
   for (const [key, entry] of segmenters) {
     if (key !== modelId) {
       // Free previous model to avoid OOM
@@ -270,12 +270,12 @@ async function segment(
   const allSameRange = (rawMax - rawMin) < 5;
   if (allSameRange && totalPx > 100) {
     console.warn(
-      `[NukeBG ML] Suspicious mask: min=${rawMin} max=${rawMax} range=${rawMax - rawMin} — ` +
+      `[NukeBG ML] Suspicious mask: min=${rawMin} max=${rawMax} range=${rawMax - rawMin} - ` +
       `model may have returned uniform output.`
     );
   }
 
-  // Use the model's soft alpha directly — no binarization.
+  // Use the model's soft alpha directly - no binarization.
   // The model produces smooth edges (1-2% edge pixels) that look natural.
   // Binarization was creating artificial contour lines.
   // Light edge cleanup: remove isolated residue pixels only.

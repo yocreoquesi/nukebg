@@ -1,6 +1,6 @@
-/* === Design Tokens (CSS Custom Properties) — Terminal Edition === */
+/* === Design Tokens (CSS Custom Properties) - Terminal Edition === */
 :root {
-  /* Base (Terminal dark — pure black) */
+  /* Base (Terminal dark - pure black) */
   --color-bg-primary: #000000;
   --color-bg-secondary: #0a0a0a;
   --color-bg-tertiary: #0d0d0d;
@@ -37,17 +37,12 @@
   --color-info: #00ff41;
   --color-info-muted: rgba(0, 255, 65, 0.10);
 
-  /* Experimental (yellow accent for SAM refinement) */
-  --color-experimental: #b8a500;
-  --color-experimental-hover: #e0cc00;
-  --color-experimental-border: #3a3a1a;
-
   /* Checkerboard Preview */
   --color-checker-light: #0a0a0a;
   --color-checker-dark: #050505;
   --color-checker-size: 12px;
 
-  /* Typography — JetBrains Mono everywhere */
+  /* Typography - JetBrains Mono everywhere */
   --font-sans: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
   --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
 
@@ -89,7 +84,7 @@
   --space-20: 5rem;
   --space-24: 6rem;
 
-  /* Radius — 0 everywhere for Terminal */
+  /* Radius - 0 everywhere for Terminal */
   --radius-sm: 0px;
   --radius-md: 0px;
   --radius-lg: 0px;

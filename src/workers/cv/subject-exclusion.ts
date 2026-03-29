@@ -87,7 +87,7 @@ export function subjectExclusion(
   }
 
   if (bestLabel === 0) {
-    // No colored blob found — mark everything as background
+    // No colored blob found - mark everything as background
     return new Uint8Array(totalPixels).fill(1);
   }
 
@@ -148,7 +148,7 @@ export function subjectExclusion(
     mask = next;
   }
 
-  // Step 6: Invert — mask=1 means subject, we need mask=1 means background
+  // Step 6: Invert - mask=1 means subject, we need mask=1 means background
   const isBg = new Uint8Array(totalPixels);
   for (let i = 0; i < totalPixels; i++) {
     isBg[i] = mask[i] ? 0 : 1;

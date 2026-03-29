@@ -12,8 +12,6 @@ interface StageInfo {
 export class ArProgress extends HTMLElement {
   private stages: StageInfo[] = [];
   private startTimes = new Map<PipelineStage, number>();
-  private pipelineStartTime = 0;
-  private totalTimeMs: number | null = null;
   private detectedContentType: string | null = null;
   private boundLocaleHandler: (() => void) | null = null;
 
@@ -50,8 +48,6 @@ export class ArProgress extends HTMLElement {
     ];
     this.detectedContentType = null;
     this.startTimes.clear();
-    this.pipelineStartTime = performance.now();
-    this.totalTimeMs = null;
     this.update();
   }
 
@@ -85,18 +81,6 @@ export class ArProgress extends HTMLElement {
           stageInfo.timeMs = performance.now() - start;
         }
       }
-    }
-
-    // If a stage re-enters 'running' (e.g. post-process refine), reset total timer
-    if (status === 'running' && this.totalTimeMs !== null) {
-      this.totalTimeMs = null;
-      this.pipelineStartTime = performance.now();
-    }
-
-    // Check if all stages are complete
-    const allDone = this.stages.every(s => s.status === 'done' || s.status === 'skipped' || s.status === 'error');
-    if (allDone && this.totalTimeMs === null) {
-      this.totalTimeMs = performance.now() - this.pipelineStartTime;
     }
 
     this.update();
@@ -230,22 +214,6 @@ export class ArProgress extends HTMLElement {
           .progress-fill.parsing { animation: none !important; }
         }
 
-        .total-time {
-          display: flex;
-          align-items: center;
-          gap: var(--space-2, 0.5rem);
-          font-family: 'JetBrains Mono', monospace;
-          font-size: 12px;
-          color: var(--color-accent-primary, #00ff41);
-          margin-top: 2px;
-        }
-        .total-time .total-label {
-          color: var(--color-text-secondary, #00dd44);
-        }
-        .total-time .total-value {
-          color: var(--color-accent-primary, #00ff41);
-          text-shadow: 0 0 6px rgba(0, 255, 65, 0.4);
-        }
       </style>
       <div class="stages" role="log" aria-live="polite"></div>
     `;
@@ -283,7 +251,7 @@ export class ArProgress extends HTMLElement {
       let progressBar = '';
       if (s.status === 'running' && pctMatch) {
         const pct = parseInt(pctMatch[1]);
-        // At 85% the model is being initialized (WASM compilation) — show pulsing bar
+        // At 85% the model is being initialized (WASM compilation) - show pulsing bar
         const isParsing = pct >= 80 && pct < 100;
         const barClass = isParsing ? 'progress-fill parsing' : 'progress-fill';
         const label = isParsing ? t('progress.initAI') : safeMessage;
@@ -313,16 +281,6 @@ export class ArProgress extends HTMLElement {
         ${progressBar}
       `;
     }).join('');
-
-    // Show total time when pipeline is complete
-    if (this.totalTimeMs !== null) {
-      container.innerHTML += `
-        <div class="total-time">
-          <span class="total-label">&gt; ${t('progress.total')}</span>
-          <span class="total-value">${(this.totalTimeMs / 1000).toFixed(1)}s</span>
-        </div>
-      `;
-    }
 
     // Auto-scroll to bottom (terminal console behavior)
     container.scrollTop = container.scrollHeight;

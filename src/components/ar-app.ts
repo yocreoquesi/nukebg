@@ -27,8 +27,6 @@ export class ArApp extends HTMLElement {
   private processingAborted = false;
   private preEditResult: ImageData | null = null;
   private cachedEditResult: ImageData | null = null;
-  private lastRmbgAlpha: Uint8Array | null = null;
-  private preOptimizeResult: ImageData | null = null;
   private boundLocaleHandler: (() => void) | null = null;
   private boundPwaInstallableHandler: (() => void) | null = null;
 
@@ -286,11 +284,29 @@ export class ArApp extends HTMLElement {
           color: var(--color-text-tertiary, #008830);
           margin-top: var(--space-4, 1rem);
           padding: 0 var(--space-4, 1rem);
+          cursor: pointer;
+        }
+        .features-disclaimer:hover {
+          color: var(--color-text-secondary, #00dd44);
         }
         .features-disclaimer s {
           color: var(--color-text-tertiary, #008830);
           text-decoration: line-through;
           opacity: 0.7;
+        }
+        .limitations-detail {
+          display: none;
+          text-align: left;
+          font-family: 'JetBrains Mono', monospace;
+          font-size: 11px;
+          color: var(--color-text-tertiary, #008830);
+          margin-top: var(--space-2, 0.5rem);
+          padding: var(--space-3, 0.75rem);
+          border: 1px solid var(--color-surface-border, #1a3a1a);
+          line-height: 1.6;
+        }
+        .limitations-detail.visible {
+          display: block;
         }
         .sr-only {
           position: absolute;
@@ -312,12 +328,38 @@ export class ArApp extends HTMLElement {
           accent-color: var(--color-accent-primary, #00ff41);
           cursor: pointer;
         }
+        .reactor-label {
+          font-size: 10px;
+          color: var(--color-text-tertiary, #008830);
+          text-transform: uppercase;
+          letter-spacing: 0.1em;
+          font-family: 'JetBrains Mono', monospace;
+        }
         .precision-label {
           font-size: var(--text-xs, 0.75rem);
           color: var(--color-accent-primary, #00ff41);
           min-width: 90px;
           text-align: center;
           transition: color 0.3s ease;
+        }
+        .reactor-support {
+          display: none;
+          text-align: center;
+          font-family: 'JetBrains Mono', monospace;
+          font-size: 11px;
+          color: var(--color-text-tertiary, #008830);
+          margin-top: var(--space-2, 0.5rem);
+          padding: 0 var(--space-4, 1rem);
+        }
+        .reactor-support a {
+          color: var(--color-accent-primary, #00ff41);
+          text-decoration: none;
+        }
+        .reactor-support a:hover {
+          text-decoration: underline;
+        }
+        .reactor-support.visible {
+          display: block;
         }
         .precision-marquee {
           display: block;
@@ -367,7 +409,7 @@ export class ArApp extends HTMLElement {
           animation: nuke-shake 0.4s ease-in-out 3;
         }
 
-        /* Smoke is rendered outside shadow DOM — see main thread */
+        /* Smoke is rendered outside shadow DOM - see main thread */
         @keyframes smoke-rise {
           0% {
             opacity: 0;
@@ -428,30 +470,6 @@ export class ArApp extends HTMLElement {
           border-color: var(--color-accent-primary, #00ff41);
           box-shadow: 0 0 10px rgba(0, 255, 65, 0.1);
         }
-        .experimental-btn {
-          width: 100%;
-          background: transparent;
-          color: var(--color-experimental, #b8a500);
-          border: 1px solid var(--color-experimental-border, #3a3a1a);
-          border-radius: 0;
-          padding: var(--space-3, 0.75rem);
-          font-size: 12px;
-          font-family: 'JetBrains Mono', monospace;
-          text-transform: uppercase;
-          letter-spacing: 0.05em;
-          cursor: pointer;
-          transition: color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
-        }
-        .experimental-btn:hover {
-          color: var(--color-experimental-hover, #e0cc00);
-          border-color: var(--color-experimental, #b8a500);
-          box-shadow: 0 0 10px rgba(184, 165, 0, 0.15);
-        }
-        .experimental-btn:disabled {
-          opacity: 0.4;
-          pointer-events: none;
-        }
-
         /* === Color override for extreme precision levels === */
         :host(.precision-override) h1,
         :host(.precision-override) h1 .accent {
@@ -475,6 +493,13 @@ export class ArApp extends HTMLElement {
         :host(.precision-override) .feature-icon {
           color: var(--terminal-color-override, #00ff41);
         }
+        :host(.precision-override) .reactor-label,
+        :host(.precision-override) .reactor-support {
+          color: var(--terminal-color-override, #008830);
+        }
+        :host(.precision-override) .reactor-support a {
+          color: var(--terminal-color-override, #00ff41);
+        }
         :host(.precision-override) .feature-sep {
           color: var(--terminal-color-override, #008830);
         }
@@ -484,10 +509,6 @@ export class ArApp extends HTMLElement {
         :host(.precision-override) .edit-btn {
           color: var(--terminal-color-override, #00dd44);
           border-color: var(--terminal-color-override, #1a3a1a);
-        }
-        :host(.precision-override) .experimental-btn {
-          color: var(--terminal-color-override, #b8a500);
-          border-color: var(--terminal-color-override, #3a3a1a);
         }
         :host(.precision-override) .model-status::before {
           color: var(--terminal-color-override, #008830);
@@ -620,7 +641,7 @@ export class ArApp extends HTMLElement {
 
         /* === Layout variants via data-card-layout === */
 
-        /* Hidden by default — shown per-layout */
+        /* Hidden by default - shown per-layout */
         .terminal-prefix,
         .feature-sep {
           display: none;
@@ -812,7 +833,7 @@ export class ArApp extends HTMLElement {
           margin-top: var(--space-1, 0.25rem);
         }
 
-        /* Layout C mobile — stack to 1 column */
+        /* Layout C mobile - stack to 1 column */
         @media (max-width: 480px) {
           :host .features[data-card-layout="C"] {
             grid-template-columns: 1fr;
@@ -825,7 +846,7 @@ export class ArApp extends HTMLElement {
             font-size: 12px;
           }
         }
-        /* Layout C tablet — 2 columns */
+        /* Layout C tablet - 2 columns */
         @media (min-width: 481px) and (max-width: 768px) {
           :host .features[data-card-layout="C"] {
             grid-template-columns: repeat(2, 1fr);
@@ -852,7 +873,8 @@ export class ArApp extends HTMLElement {
         </p>
         <div class="hero-controls">
           <div class="ws-precision">
-            <input type="range" id="precision-slider" min="0" max="3" value="1" step="1" aria-label="Precision level">
+            <span class="reactor-label">Reactor Power</span>
+            <input type="range" id="precision-slider" min="0" max="3" value="1" step="1" aria-label="Reactor power level">
             <span class="precision-label" id="precision-label">Normal</span>
           </div>
         </div>
@@ -860,7 +882,7 @@ export class ArApp extends HTMLElement {
         <p class="model-status" id="model-status">${t('hero.modelStatus')}</p>
         <button class="install-btn" id="install-btn" aria-label="${t('pwa.install')}">${isAppInstalled() ? t('pwa.installed') : t('pwa.install')}</button>
         <div class="install-guide" id="install-guide"></div>
-        <div class="precision-marquee" id="precision-marquee"><span>☢ NUKEBG — DROP. NUKE. DOWNLOAD. → nukebg.app ☢ NUKEBG — DROP. NUKE. DOWNLOAD. → nukebg.app ☢</span></div>
+        <div class="precision-marquee" id="precision-marquee"><span>☢ NUKEBG | DROP. NUKE. DOWNLOAD. | Your images never leave your device | nukebg.app ☢ NUKEBG | DROP. NUKE. DOWNLOAD. | Your images never leave your device | nukebg.app ☢</span></div>
         <div class="smoke-effect" id="smoke-effect"></div>
       </section>
 
@@ -870,14 +892,14 @@ export class ArApp extends HTMLElement {
           <ar-progress></ar-progress>
           <div class="ws-controls">
             <div class="ws-slider-fixed">
-              <input type="range" id="precision-slider-ws" min="0" max="3" value="1" step="1" aria-label="Precision level">
+              <span class="reactor-label">Reactor Power</span>
+              <input type="range" id="precision-slider-ws" min="0" max="3" value="1" step="1" aria-label="Reactor power level">
               <span class="precision-label" id="precision-label-ws">Normal</span>
             </div>
           </div>
-          <div class="precision-marquee" id="precision-marquee-ws"><span>☢ NUKEBG — DROP. NUKE. DOWNLOAD. → nukebg.app ☢ NUKEBG — DROP. NUKE. DOWNLOAD. → nukebg.app ☢</span></div>
+          <div class="precision-marquee" id="precision-marquee-ws"><span>☢ NUKEBG | DROP. NUKE. DOWNLOAD. | Your images never leave your device | nukebg.app ☢ NUKEBG | DROP. NUKE. DOWNLOAD. | Your images never leave your device | nukebg.app ☢</span></div>
           <ar-download></ar-download>
           <button class="edit-btn" id="edit-btn" style="display:none">${t('edit.btn')}</button>
-          <button class="experimental-btn" id="experimental-btn" style="display:none">${t('experimental.btn')}</button>
           <ar-editor style="display:none" id="editor-section"></ar-editor>
         </div>
       </section>
@@ -888,7 +910,7 @@ export class ArApp extends HTMLElement {
           <span class="terminal-prefix" aria-hidden="true">[+]</span>
           <div class="feature-icon" aria-hidden="true">&#129504;</div>
           <h3 class="feature-title">${t('features.bgRemoval.title')}</h3>
-          <span class="feature-sep" aria-hidden="true"> — </span>
+          <span class="feature-sep" aria-hidden="true"> | </span>
           <p class="feature-desc">
             ${t('features.bgRemoval.desc')}
           </p>
@@ -897,7 +919,7 @@ export class ArApp extends HTMLElement {
           <span class="terminal-prefix" aria-hidden="true">[+]</span>
           <div class="feature-icon" aria-hidden="true">&#128274;</div>
           <h3 class="feature-title">${t('features.aiArtifacts.title')}</h3>
-          <span class="feature-sep" aria-hidden="true"> — </span>
+          <span class="feature-sep" aria-hidden="true"> | </span>
           <p class="feature-desc">
             ${t('features.aiArtifacts.desc')}
           </p>
@@ -906,12 +928,14 @@ export class ArApp extends HTMLElement {
           <span class="terminal-prefix" aria-hidden="true">[+]</span>
           <div class="feature-icon" aria-hidden="true">&#9762;</div>
           <h3 class="feature-title">${t('features.private.title')}</h3>
-          <span class="feature-sep" aria-hidden="true"> — </span>
+          <span class="feature-sep" aria-hidden="true"> | </span>
           <p class="feature-desc">
             ${t('features.private.desc')}
           </p>
         </article>
         <p class="features-disclaimer" id="features-disclaimer">${t('features.disclaimer')}</p>
+        <div class="limitations-detail" id="limitations-detail">${t('features.limitations')}</div>
+        <p class="reactor-support" id="reactor-support"></p>
       </section>
     `;
   }
@@ -947,6 +971,8 @@ export class ArApp extends HTMLElement {
     });
     const disclaimer = root.querySelector('#features-disclaimer');
     if (disclaimer) disclaimer.innerHTML = t('features.disclaimer');
+    const limDetail = root.querySelector('#limitations-detail');
+    if (limDetail) limDetail.innerHTML = t('features.limitations');
     const installBtnEl = root.querySelector('#install-btn') as HTMLButtonElement;
     if (installBtnEl) {
       installBtnEl.textContent = isAppInstalled() ? t('pwa.installed') : t('pwa.install');
@@ -974,7 +1000,7 @@ export class ArApp extends HTMLElement {
     };
     document.addEventListener('nukebg:locale-changed', this.boundLocaleHandler);
 
-    // PWA install button — mobile only
+    // PWA install button - mobile only
     const installBtn = this.shadowRoot!.querySelector('#install-btn') as HTMLButtonElement;
     const installGuide = this.shadowRoot!.querySelector('#install-guide') as HTMLDivElement;
     let hasNativePrompt = false;
@@ -998,7 +1024,7 @@ export class ArApp extends HTMLElement {
     document.addEventListener('nukebg:pwa-installable', this.boundPwaInstallableHandler);
 
     // On mobile without native prompt, show install button after a delay
-    // (Firefox, Safari — they can install but need manual steps)
+    // (Firefox, Safari - they can install but need manual steps)
     const isMobile = window.matchMedia('(hover: none), (pointer: coarse)').matches;
     if (isMobile && !isAppInstalled()) {
       setTimeout(() => {
@@ -1049,7 +1075,7 @@ export class ArApp extends HTMLElement {
       this.resetToIdle();
     });
 
-    // Precision slider — 4 positions with visual effects at extremes
+    // Precision slider - 4 positions with visual effects at extremes
     const precisionKeys = ['low-power', 'normal', 'high-power', 'full-nuke'] as const;
     const precisionLabels = ['Low Power', 'Normal', 'High Power', 'FULL NUKE'];
     this.shadowRoot!.querySelector('#precision-slider')?.addEventListener('input', (e) => {
@@ -1066,6 +1092,32 @@ export class ArApp extends HTMLElement {
       const marquee = this.shadowRoot!.querySelector('#precision-marquee') as HTMLElement;
       const marqueeWs = this.shadowRoot!.querySelector('#precision-marquee-ws') as HTMLElement;
       const smoke = document.getElementById('smoke-overlay');
+      const reactorSupport = this.shadowRoot!.querySelector('#reactor-support') as HTMLElement;
+
+      // Ko-fi messages per power mode (not shown in Normal)
+      const supportMessages: Record<string, Record<number, string>> = {
+        en: { 0: 'The reactor is running cold. <a href="https://ko-fi.com/yocreoquesi" target="_blank" rel="noopener">Feed it on Ko-fi</a> to keep it alive.', 2: 'High power consumes more fuel. <a href="https://ko-fi.com/yocreoquesi" target="_blank" rel="noopener">Refuel on Ko-fi</a>.', 3: 'FULL NUKE MODE drains the core. <a href="https://ko-fi.com/yocreoquesi" target="_blank" rel="noopener">Prevent meltdown on Ko-fi</a>.' },
+        es: { 0: 'El reactor va fr\u00EDo. <a href="https://ko-fi.com/yocreoquesi" target="_blank" rel="noopener">Al\u00EDmentalo en Ko-fi</a> para mantenerlo vivo.', 2: 'Alta potencia consume m\u00E1s combustible. <a href="https://ko-fi.com/yocreoquesi" target="_blank" rel="noopener">Recarga en Ko-fi</a>.', 3: 'MODO NUKE TOTAL agota el n\u00FAcleo. <a href="https://ko-fi.com/yocreoquesi" target="_blank" rel="noopener">Evita el colapso en Ko-fi</a>.' },
+        fr: { 0: 'Le r\u00E9acteur tourne \u00E0 froid. <a href="https://ko-fi.com/yocreoquesi" target="_blank" rel="noopener">Alimente-le sur Ko-fi</a>.', 2: 'Haute puissance consomme plus. <a href="https://ko-fi.com/yocreoquesi" target="_blank" rel="noopener">Ravitaille sur Ko-fi</a>.', 3: 'MODE NUKE TOTAL \u00E9puise le noyau. <a href="https://ko-fi.com/yocreoquesi" target="_blank" rel="noopener">\u00C9vite la fusion sur Ko-fi</a>.' },
+        de: { 0: 'Der Reaktor l\u00E4uft kalt. <a href="https://ko-fi.com/yocreoquesi" target="_blank" rel="noopener">F\u00FCttere ihn auf Ko-fi</a>.', 2: 'Hohe Leistung braucht mehr Treibstoff. <a href="https://ko-fi.com/yocreoquesi" target="_blank" rel="noopener">Nachtanken auf Ko-fi</a>.', 3: 'VOLLE NUKE-KRAFT leert den Kern. <a href="https://ko-fi.com/yocreoquesi" target="_blank" rel="noopener">Kernschmelze verhindern auf Ko-fi</a>.' },
+        pt: { 0: 'O reator t\u00E1 frio. <a href="https://ko-fi.com/yocreoquesi" target="_blank" rel="noopener">Alimenta ele no Ko-fi</a>.', 2: 'Alta pot\u00EAncia consome mais combust\u00EDvel. <a href="https://ko-fi.com/yocreoquesi" target="_blank" rel="noopener">Reabastece no Ko-fi</a>.', 3: 'MODO NUKE TOTAL esgota o n\u00FAcleo. <a href="https://ko-fi.com/yocreoquesi" target="_blank" rel="noopener">Evita o colapso no Ko-fi</a>.' },
+        zh: { 0: '\u53CD\u5E94\u5806\u8FD0\u884C\u4F4E\u6E29\u3002<a href="https://ko-fi.com/yocreoquesi" target="_blank" rel="noopener">\u5728 Ko-fi \u4E0A\u7ED9\u5B83\u52A0\u71C3\u6599</a>\u3002', 2: '\u9AD8\u529F\u7387\u6D88\u8017\u66F4\u591A\u71C3\u6599\u3002<a href="https://ko-fi.com/yocreoquesi" target="_blank" rel="noopener">\u5728 Ko-fi \u4E0A\u8865\u5145\u80FD\u91CF</a>\u3002', 3: '\u5168\u529B\u6838\u7206\u6A21\u5F0F\u6D88\u8017\u6838\u5FC3\u3002<a href="https://ko-fi.com/yocreoquesi" target="_blank" rel="noopener">\u5728 Ko-fi \u4E0A\u9632\u6B62\u7194\u6BC1</a>\u3002' },
+      };
+
+      const updateReactorSupport = (modeVal: number): void => {
+        if (!reactorSupport) return;
+        if (modeVal === 1) {
+          reactorSupport.classList.remove('visible');
+          return;
+        }
+        const lang = document.documentElement.lang || 'en';
+        const msgs = supportMessages[lang] || supportMessages['en'];
+        const msg = msgs[modeVal];
+        if (msg) {
+          reactorSupport.innerHTML = msg;
+          reactorSupport.classList.add('visible');
+        }
+      };
 
       // Helper to update both marquees (hero + workspace)
       const updateMarquees = (color: string, html: string): void => {
@@ -1078,7 +1130,7 @@ export class ArApp extends HTMLElement {
       };
 
       if (val === 3) {
-        // Full Nuke — red override (shadow DOM + global properties)
+        // Full Nuke - red override (shadow DOM + global properties)
         document.documentElement.style.setProperty('--terminal-color-override', '#cc3333');
         document.documentElement.style.setProperty('--color-text-primary', '#cc3333');
         document.documentElement.style.setProperty('--color-text-secondary', '#aa2222');
@@ -1088,8 +1140,9 @@ export class ArApp extends HTMLElement {
         this.classList.add('precision-override');
         // Stop CRT flicker in Full Nuke
         this.stopCrtFlicker();
-        updateMarquees('#cc3333', '<span>\u26A0 MAXIMUM POWER \u2192 nukebg.app \u26A0 MAXIMUM POWER \u2192 nukebg.app \u26A0</span>');
+        updateMarquees('#cc3333', '<span>\u26A0 MAXIMUM POWER | Your images never leave your device | 100% local processing | nukebg.app \u26A0 MAXIMUM POWER | Your images never leave your device | 100% local processing | nukebg.app \u26A0</span>');
         console.log('%c[NukeBG] Mode: FULL NUKE', 'color: #cc3333; font-family: monospace;');
+        updateReactorSupport(3);
 
         // Vibration + smoke: trigger once per activation, after random 1-5s delay
         const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -1114,7 +1167,7 @@ export class ArApp extends HTMLElement {
         const featuresFN = this.shadowRoot!.querySelector('.features') as HTMLElement;
         if (featuresFN) featuresFN.style.display = '';
       } else if (val === 2) {
-        // High Power — orange/amber override (shadow DOM + global properties)
+        // High Power - orange/amber override (shadow DOM + global properties)
         document.documentElement.style.setProperty('--terminal-color-override', '#ff8c00');
         document.documentElement.style.setProperty('--color-text-primary', '#ff8c00');
         document.documentElement.style.setProperty('--color-text-secondary', '#cc7000');
@@ -1124,15 +1177,16 @@ export class ArApp extends HTMLElement {
         this.classList.add('precision-override');
         // Stop CRT flicker in High Power
         this.stopCrtFlicker();
-        updateMarquees('#ff8c00', '<span>\u26A1 HIGH POWER \u2192 nukebg.app \u26A1 HIGH POWER \u2192 nukebg.app \u26A1</span>');
+        updateMarquees('#ff8c00', '<span>\u26A1 HIGH POWER | Zero uploads, zero tracking | Free and open source | nukebg.app \u26A1 HIGH POWER | Zero uploads, zero tracking | Free and open source | nukebg.app \u26A1</span>');
         console.log('%c[NukeBG] Mode: HIGH POWER', 'color: #ff8c00; font-family: monospace;');
+        updateReactorSupport(2);
         // Hide smoke in High Power
         if (smoke) smoke.classList.remove('active');
         // Show features in non-Normal modes
         const featuresHP = this.shadowRoot!.querySelector('.features') as HTMLElement;
         if (featuresHP) featuresHP.style.display = '';
       } else if (val === 0) {
-        // Low Power — yellow override (shadow DOM + global properties)
+        // Low Power - yellow override (shadow DOM + global properties)
         document.documentElement.style.setProperty('--terminal-color-override', '#b8a500');
         document.documentElement.style.setProperty('--color-text-primary', '#b8a500');
         document.documentElement.style.setProperty('--color-text-secondary', '#8a7d00');
@@ -1145,12 +1199,13 @@ export class ArApp extends HTMLElement {
         // Show features in non-Normal modes
         const featuresLP = this.shadowRoot!.querySelector('.features') as HTMLElement;
         if (featuresLP) featuresLP.style.display = '';
-        updateMarquees('#b8a500', '<span>\u26A1 LOW POWER MODE \u2192 nukebg.app \u26A1 LOW POWER MODE \u2192 nukebg.app \u26A1</span>');
+        updateMarquees('#b8a500', '<span>\u26A1 LOW POWER | Works offline after first visit | No account needed | nukebg.app \u26A1 LOW POWER | Works offline after first visit | No account needed | nukebg.app \u26A1</span>');
         console.log('%c[NukeBG] Mode: LOW POWER', 'color: #b8a500; font-family: monospace;');
+        updateReactorSupport(0);
         // Hide smoke in Low Power
         if (smoke) smoke.classList.remove('active');
       } else {
-        // Normal (val === 1) — restore all overrides
+        // Normal (val === 1) - restore all overrides
         document.documentElement.style.removeProperty('--terminal-color-override');
         document.documentElement.style.removeProperty('--color-text-primary');
         document.documentElement.style.removeProperty('--color-text-secondary');
@@ -1161,17 +1216,18 @@ export class ArApp extends HTMLElement {
         // Stop CRT flicker in normal modes
         this.stopCrtFlicker();
         // Subtle green marquee for normal mode
-        updateMarquees('#008830', '<span>☢ NUKEBG \u2014 DROP. NUKE. DOWNLOAD. \u2192 nukebg.app ☢ NUKEBG \u2014 DROP. NUKE. DOWNLOAD. \u2192 nukebg.app ☢</span>');
+        updateMarquees('#008830', '<span>☢ NUKEBG | DROP. NUKE. DOWNLOAD. | Your images never leave your device | nukebg.app ☢ NUKEBG | DROP. NUKE. DOWNLOAD. | Your images never leave your device | nukebg.app ☢</span>');
         console.log('%c[NukeBG] Mode: NORMAL', 'color: #00ff41; font-family: monospace;');
+        updateReactorSupport(1);
         // Hide smoke in normal modes
         if (smoke) smoke.classList.remove('active');
-        // Hide features in Normal mode — clean minimal view
+        // Hide features in Normal mode - clean minimal view
         const featuresSection = this.shadowRoot!.querySelector('.features') as HTMLElement;
         if (featuresSection) featuresSection.style.display = 'none';
       }
     });
 
-    // Workspace precision slider — syncs with hero slider
+    // Workspace precision slider - syncs with hero slider
     this.shadowRoot!.querySelector('#precision-slider-ws')?.addEventListener('input', (e) => {
       const val = parseInt((e.target as HTMLInputElement).value);
       // Sync hero slider and visual effects
@@ -1180,10 +1236,16 @@ export class ArApp extends HTMLElement {
       heroSlider?.dispatchEvent(new Event('input'));
       const wsLabel = this.shadowRoot!.querySelector('#precision-label-ws');
       if (wsLabel) wsLabel.textContent = precisionLabels[val];
-      // No auto-reprocess — user must click Reprocess button
+      // No auto-reprocess - user must click Reprocess button
     });
 
-    // Edit button — opens editor or discards edits
+    // Disclaimer click - toggle limitations detail
+    this.shadowRoot!.querySelector('#features-disclaimer')?.addEventListener('click', () => {
+      const detail = this.shadowRoot!.querySelector('#limitations-detail');
+      if (detail) detail.classList.toggle('visible');
+    });
+
+    // Edit button - opens editor or discards edits
     this.shadowRoot!.querySelector('#edit-btn')?.addEventListener('click', async () => {
       if (!this.lastResultImageData) return;
 
@@ -1212,73 +1274,15 @@ export class ArApp extends HTMLElement {
       }
     });
 
-    // Experimental SAM refinement (toggle: optimize / undo)
-    this.shadowRoot!.querySelector('#experimental-btn')?.addEventListener('click', async () => {
-      const experimentalBtn = this.shadowRoot!.querySelector('#experimental-btn') as HTMLButtonElement;
-      const editBtn = this.shadowRoot!.querySelector('#edit-btn') as HTMLButtonElement;
 
-      // UNDO mode: revert to pre-optimization result
-      if (this.preOptimizeResult) {
-        this.lastResultImageData = this.preOptimizeResult;
-        this.preOptimizeResult = null;
 
-        const { exportPng } = await import('../utils/image-io');
-        const blob = await exportPng(this.lastResultImageData);
-        if (this.currentImageData) this.viewer.setOriginal(this.currentImageData, this.currentFileSize);
-        this.viewer.setResult(this.lastResultImageData, blob);
-        await this.download.setResult(this.lastResultImageData, this.currentFileName, 0, blob);
-
-        experimentalBtn.textContent = t('experimental.btn');
-        if (editBtn) editBtn.disabled = false;
-        return;
-      }
-
-      // OPTIMIZE mode
-      if (!this.currentImageData || !this.lastRmbgAlpha || !this.pipeline) return;
-
-      experimentalBtn.disabled = true;
-      experimentalBtn.textContent = t('experimental.processing');
-
-      try {
-        this.progress.reset();
-        this.progress.setStage('ml-segmentation', 'running', t('experimental.processing'));
-
-        const result = await this.pipeline.experimentalRefine(
-          this.currentImageData,
-          this.lastRmbgAlpha,
-        );
-
-        const { exportPng } = await import('../utils/image-io');
-        const blob = await exportPng(result.imageData);
-
-        // Store pre-optimization result and show RMBG as "before"
-        this.preOptimizeResult = this.lastResultImageData;
-        if (this.preOptimizeResult) this.viewer.setOriginal(this.preOptimizeResult);
-        this.viewer.setResult(result.imageData, blob);
-        await this.download.setResult(result.imageData, this.currentFileName, result.totalTimeMs, blob);
-        this.lastResultImageData = result.imageData;
-        this.progress.setStage('ml-segmentation', 'done', t('experimental.done'));
-
-        // Switch to undo mode, disable manual editor
-        experimentalBtn.disabled = false;
-        experimentalBtn.textContent = t('experimental.undo');
-        if (editBtn) editBtn.disabled = true;
-      } catch (err) {
-        console.error('SAM refinement error:', err);
-        experimentalBtn.disabled = false;
-        experimentalBtn.textContent = t('experimental.btn');
-        const msg = err instanceof Error ? err.message : String(err);
-        this.progress.setStage('ml-segmentation', 'error', `Optimization error: ${msg}`);
-      }
-    });
-
-    // Editor cancel — discard edits, close editor
+    // Editor cancel - discard edits, close editor
     this.shadowRoot!.addEventListener('ar:editor-cancel', () => {
       (this.shadowRoot!.querySelector('#editor-section') as HTMLElement).style.display = 'none';
       (this.shadowRoot!.querySelector('#edit-btn') as HTMLElement).style.display = 'block';
     });
 
-    // Editor done — update viewer and download with edited result
+    // Editor done - update viewer and download with edited result
     this.shadowRoot!.addEventListener('ar:editor-done', async (e: Event) => {
       const editedData = (e as CustomEvent).detail.imageData as ImageData;
       const { exportPng } = await import('../utils/image-io');
@@ -1390,12 +1394,6 @@ export class ArApp extends HTMLElement {
     this.preEditResult = null;
     this.cachedEditResult = null;
     this.lastResultImageData = null;
-    this.lastRmbgAlpha = null;
-    this.preOptimizeResult = null;
-    // Hide experimental button on new image
-    const expBtn = this.shadowRoot!.querySelector('#experimental-btn') as HTMLElement;
-    if (expBtn) { expBtn.style.display = 'none'; (expBtn as HTMLButtonElement).disabled = false; expBtn.textContent = t('experimental.btn'); }
-
     const hero = this.shadowRoot!.querySelector('#hero')!;
     const workspace = this.shadowRoot!.querySelector('#workspace')!;
 
@@ -1444,21 +1442,9 @@ export class ArApp extends HTMLElement {
 
       this.lastResultImageData = result.imageData;
 
-      // Extract alpha channel from result for SAM refinement
-      const alphaData = new Uint8Array(result.imageData.width * result.imageData.height);
-      for (let i = 0; i < alphaData.length; i++) {
-        alphaData[i] = result.imageData.data[i * 4 + 3];
-      }
-      this.lastRmbgAlpha = alphaData;
-
       // Show edit button
       const editBtn = this.shadowRoot!.querySelector('#edit-btn') as HTMLElement;
       if (editBtn) editBtn.style.display = 'block';
-      // Show experimental button (only for PHOTO/ILLUSTRATION processed with ML)
-      const experimentalBtn = this.shadowRoot!.querySelector('#experimental-btn') as HTMLElement;
-      if (experimentalBtn && result.contentType !== 'SIGNATURE') {
-        experimentalBtn.style.display = 'block';
-      }
       // Hide editor if it was open from a previous edit
       const editorSection = this.shadowRoot!.querySelector('#editor-section') as HTMLElement;
       if (editorSection) editorSection.style.display = 'none';
@@ -1486,9 +1472,6 @@ export class ArApp extends HTMLElement {
     this.cachedEditResult = null;
     this.lastResultImageData = null;
     this.currentImageData = null;
-    this.lastRmbgAlpha = null;
-    this.preOptimizeResult = null;
-
     // Keep pipeline alive for next image (model stays loaded)
   }
 }

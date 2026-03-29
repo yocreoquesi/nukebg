@@ -1,7 +1,10 @@
+// Remove static SEO content before app hydrates
+document.getElementById('seo-content')?.remove();
+
 // Import styles
 import './styles/main.css';
 
-// i18n — importar antes de los componentes para que detecte el locale
+// i18n - importar antes de los componentes para que detecte el locale
 import { getLocale, setLocale, t } from './i18n';
 
 // Register Web Components
@@ -53,7 +56,7 @@ function initKeyboardShortcuts(): void {
 function showConsoleLogo(): void {
   const logo = `
 %c    ☢ NUKEBG ☢
-    v2.4.0 — Terminal Edition
+    v2.5.0 | Terminal Edition
 
     Your images never leave this machine.
     Don't believe us? Read the source:
@@ -261,31 +264,62 @@ function initLogoDoubleTap(): void {
   const whisper = document.getElementById('logo-whisper');
   if (!logo || !whisper) return;
 
-  const messagesEN = [
-    'You called?', 'Still here. Still nuking.', 'That tickles.',
-    'Stop poking me.', "I'm working, I'm working...", 'Beep boop. Nuke ready.',
-    'Yes, I\'m open source. Yes, really.', 'Your backgrounds fear me.',
-    'Fun fact: your image never left this device.', 'Powered by radiation and good vibes.',
-  ];
-  const messagesES = [
-    '\u00BFMe llamaste?', 'Sigo aqu\u00ED. Sigo nukeando.', 'Eso hace cosquillas.',
-    'Deja de tocarme.', 'Estoy trabajando, estoy trabajando...', 'Beep boop. Nuke listo.',
-    'S\u00ED, soy open source. S\u00ED, de verdad.', 'Tus fondos me temen.',
-    'Dato curioso: tu imagen nunca sali\u00F3 de este dispositivo.', 'Impulsado por radiaci\u00F3n y buenas vibras.',
-  ];
+  const whisperMessages: Record<string, string[]> = {
+    en: [
+      'You called?', 'Still here. Still nuking.', 'That tickles.',
+      'Stop poking me.', "I'm working, I'm working...", 'Beep boop. Nuke ready.',
+      'Yes, I\'m open source. Yes, really.', 'Your backgrounds fear me.',
+      'Fun fact: your image never left this device.', 'Powered by radiation and good vibes.',
+    ],
+    es: [
+      '\u00BFMe llamaste?', 'Sigo aqu\u00ED. Sigo nukeando.', 'Eso hace cosquillas.',
+      'Deja de tocarme.', 'Estoy trabajando, estoy trabajando...', 'Beep boop. Nuke listo.',
+      'S\u00ED, soy open source. S\u00ED, de verdad.', 'Tus fondos me temen.',
+      'Dato curioso: tu imagen nunca sali\u00F3 de este dispositivo.', 'Impulsado por radiaci\u00F3n y buenas vibras.',
+    ],
+    fr: [
+      'Tu m\'as appel\u00E9?', 'Toujours l\u00E0. Toujours en train d\'atomiser.', '\u00C7a chatouille.',
+      'Arr\u00EAte de me toucher.', 'Je bosse, je bosse...', 'Bip boup. Nuke pr\u00EAt.',
+      'Oui, je suis open source. Oui, pour de vrai.', 'Tes fonds me craignent.',
+      'Fun fact: ton image n\'a jamais quitt\u00E9 cet appareil.', 'Aliment\u00E9 par la radiation et la bonne humeur.',
+    ],
+    de: [
+      'Gerufen?', 'Immer noch da. Immer noch am Nuken.', 'Das kitzelt.',
+      'H\u00F6r auf mich anzustupsen.', 'Ich arbeite, ich arbeite...', 'Piep piep. Nuke bereit.',
+      'Ja, ich bin Open Source. Ja, wirklich.', 'Deine Hintergr\u00FCnde f\u00FCrchten mich.',
+      'Fun Fact: Dein Bild hat dieses Ger\u00E4t nie verlassen.', 'Betrieben mit Strahlung und guter Laune.',
+    ],
+    pt: [
+      'Me chamou?', 'Ainda aqui. Ainda nukeando.', 'Isso faz c\u00F3cegas.',
+      'Para de me cutucar.', 'To trabalhando, to trabalhando...', 'Bip bop. Nuke pronto.',
+      'Sim, sou open source. Sim, de verdade.', 'Seus fundos me temem.',
+      'Curiosidade: sua imagem nunca saiu deste dispositivo.', 'Movido a radia\u00E7\u00E3o e boas vibras.',
+    ],
+    zh: [
+      '\u4F60\u53EB\u6211\uFF1F', '\u8FD8\u5728\u3002\u8FD8\u5728\u6838\u7206\u3002', '\u597D\u75D2\u3002',
+      '\u522B\u6233\u6211\u4E86\u3002', '\u5728\u5E72\u6D3B\u5462\uFF0C\u5728\u5E72\u6D3B\u5462...', '\u6EF4\u6EF4\u3002\u6838\u5F39\u5C31\u7EEA\u3002',
+      '\u5BF9\uFF0C\u6211\u662F\u5F00\u6E90\u7684\u3002\u5BF9\uFF0C\u771F\u7684\u3002', '\u4F60\u7684\u80CC\u666F\u6015\u6211\u3002',
+      '\u51B7\u77E5\u8BC6\uFF1A\u4F60\u7684\u56FE\u7247\u4ECE\u672A\u79BB\u5F00\u8FC7\u8FD9\u53F0\u8BBE\u5907\u3002', '\u9760\u8F90\u5C04\u548C\u597D\u5FC3\u60C5\u9A71\u52A8\u3002',
+    ],
+  };
 
   let lastTap = 0;
   let whisperTimer: ReturnType<typeof setTimeout> | null = null;
+
+  const showWhisper = (): void => {
+    const lang = document.documentElement.lang || 'en';
+    const msgs = whisperMessages[lang] || whisperMessages['en'];
+    whisper.textContent = msgs[Math.floor(Math.random() * msgs.length)];
+    whisper.classList.add('visible');
+    if (whisperTimer) clearTimeout(whisperTimer);
+    whisperTimer = setTimeout(() => whisper.classList.remove('visible'), 2000);
+  };
 
   logo.addEventListener('touchend', (e: TouchEvent) => {
     const now = Date.now();
     if (now - lastTap < 400) {
       e.preventDefault();
-      const msgs = document.documentElement.lang === 'es' ? messagesES : messagesEN;
-      whisper.textContent = msgs[Math.floor(Math.random() * msgs.length)];
-      whisper.classList.add('visible');
-      if (whisperTimer) clearTimeout(whisperTimer);
-      whisperTimer = setTimeout(() => whisper.classList.remove('visible'), 2000);
+      showWhisper();
     }
     lastTap = now;
   });
@@ -293,11 +327,7 @@ function initLogoDoubleTap(): void {
   // Also support double-click on desktop
   logo.addEventListener('dblclick', (e: MouseEvent) => {
     e.preventDefault();
-    const msgs = document.documentElement.lang === 'es' ? messagesES : messagesEN;
-    whisper.textContent = msgs[Math.floor(Math.random() * msgs.length)];
-    whisper.classList.add('visible');
-    if (whisperTimer) clearTimeout(whisperTimer);
-    whisperTimer = setTimeout(() => whisper.classList.remove('visible'), 2000);
+    showWhisper();
   });
 }
 
@@ -306,39 +336,108 @@ function initShakeDetection(): void {
   if (typeof DeviceMotionEvent === 'undefined') return;
   if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 
+  const shakeMessages: Record<string, string[]> = {
+    en: [
+      '> Not safe to shake radioactive material.',
+      '> SHAKE DETECTED. Nuking harder.',
+      '> Careful. This thing is nuclear.',
+      '> The reactor is unstable enough already.',
+      '> You break it, you buy it. Wait, it\'s free.',
+      '> Shaking won\'t fix your background. Dropping the image will.',
+    ],
+    es: [
+      '> No es seguro agitar material radiactivo.',
+      '> SACUDIDA DETECTADA. Nukeando con m\u00E1s fuerza.',
+      '> Cuidado. Esto es nuclear.',
+      '> El reactor ya es bastante inestable.',
+      '> Si lo rompes, lo pagas. Espera, es gratis.',
+      '> Agitar no arregla tu fondo. Soltar la imagen s\u00ED.',
+    ],
+    fr: [
+      '> Pas prudent de secouer du mat\u00E9riel radioactif.',
+      '> SECOUSSE D\u00C9TECT\u00C9E. Atomisation renforc\u00E9e.',
+      '> Doucement. C\'est nucl\u00E9aire.',
+      '> Le r\u00E9acteur est d\u00E9j\u00E0 assez instable.',
+      '> Tu casses, tu paies. Ah non, c\'est gratuit.',
+      '> Secouer ne r\u00E9pare pas ton fond. D\u00E9pose l\'image plut\u00F4t.',
+    ],
+    de: [
+      '> Radioaktives Material sch\u00FCtteln: keine gute Idee.',
+      '> ERSCH\u00DCTTERUNG ERKANNT. Nuke-Intensit\u00E4t erh\u00F6ht.',
+      '> Vorsicht. Das Ding ist nuklear.',
+      '> Der Reaktor ist schon instabil genug.',
+      '> Kaputt? Musst du zahlen. Ach ne, ist gratis.',
+      '> Sch\u00FCtteln repariert deinen Hintergrund nicht. Bild reinwerfen schon.',
+    ],
+    pt: [
+      '> N\u00E3o \u00E9 seguro sacudir material radioativo.',
+      '> TREMOR DETECTADO. Nukeando mais forte.',
+      '> Cuidado. Isso aqui \u00E9 nuclear.',
+      '> O reator j\u00E1 \u00E9 inst\u00E1vel o suficiente.',
+      '> Quebrou, paga. P\u00E9ra, \u00E9 de gra\u00E7a.',
+      '> Sacudir n\u00E3o arruma o fundo. Soltar a imagem sim.',
+    ],
+    zh: [
+      '> \u6447\u6643\u653E\u5C04\u6027\u7269\u8D28\u4E0D\u5B89\u5168\u3002',
+      '> \u68C0\u6D4B\u5230\u6447\u6643\u3002\u6838\u7206\u529B\u5EA6\u52A0\u5927\u3002',
+      '> \u5C0F\u5FC3\u3002\u8FD9\u4E1C\u897F\u662F\u6838\u52A8\u529B\u7684\u3002',
+      '> \u53CD\u5E94\u5806\u5DF2\u7ECF\u591F\u4E0D\u7A33\u5B9A\u4E86\u3002',
+      '> \u6447\u574F\u4E86\u4F60\u8D54\u3002\u7B49\u7B49\uFF0C\u8FD9\u662F\u514D\u8D39\u7684\u3002',
+      '> \u6447\u6643\u4FEE\u4E0D\u597D\u80CC\u666F\u3002\u4E22\u56FE\u7247\u8FDB\u6765\u624D\u884C\u3002',
+    ],
+  };
+
+  let shakeIndex = 0;
   let lastShake = 0;
   let shakeCount = 0;
   let shakeTimer: ReturnType<typeof setTimeout> | null = null;
 
-  window.addEventListener('devicemotion', (e: DeviceMotionEvent) => {
-    const acc = e.accelerationIncludingGravity;
-    if (!acc) return;
-    const force = Math.abs(acc.x || 0) + Math.abs(acc.y || 0) + Math.abs(acc.z || 0);
+  function startListening(): void {
+    window.addEventListener('devicemotion', (e: DeviceMotionEvent) => {
+      const acc = e.accelerationIncludingGravity;
+      if (!acc) return;
+      const force = Math.abs(acc.x || 0) + Math.abs(acc.y || 0) + Math.abs(acc.z || 0);
 
-    if (force > 30) {
-      const now = Date.now();
-      if (now - lastShake > 300) {
-        shakeCount++;
-        lastShake = now;
+      if (force > 30) {
+        const now = Date.now();
+        if (now - lastShake > 300) {
+          shakeCount++;
+          lastShake = now;
 
-        if (shakeTimer) clearTimeout(shakeTimer);
-        shakeTimer = setTimeout(() => { shakeCount = 0; }, 1500);
+          if (shakeTimer) clearTimeout(shakeTimer);
+          shakeTimer = setTimeout(() => { shakeCount = 0; }, 1500);
 
-        if (shakeCount >= 3) {
-          shakeCount = 0;
-          const toast = document.getElementById('kbd-toast');
-          if (toast) {
-            const msg = document.documentElement.lang === 'es'
-              ? '> SACUDIDA DETECTADA. Nukeando m\u00E1s fuerte.'
-              : '> SHAKE DETECTED. Nuking harder.';
-            toast.textContent = msg;
-            toast.classList.add('visible');
-            setTimeout(() => toast.classList.remove('visible'), 2500);
+          if (shakeCount >= 3) {
+            shakeCount = 0;
+            const toast = document.getElementById('kbd-toast');
+            if (toast) {
+              const lang = document.documentElement.lang || 'en';
+              const msgs = shakeMessages[lang] || shakeMessages['en'];
+              toast.textContent = msgs[shakeIndex % msgs.length];
+              shakeIndex++;
+              toast.classList.add('visible');
+              setTimeout(() => toast.classList.remove('visible'), 2500);
+            }
           }
         }
       }
-    }
-  });
+    });
+  }
+
+  // Firefox/Safari mobile require explicit permission for DeviceMotionEvent
+  const dme = DeviceMotionEvent as unknown as { requestPermission?: () => Promise<string> };
+  if (typeof dme.requestPermission === 'function') {
+    // Request on first user interaction (touch)
+    const requestOnce = (): void => {
+      dme.requestPermission!().then((state: string) => {
+        if (state === 'granted') startListening();
+      }).catch(() => { /* permission denied, silent */ });
+      document.removeEventListener('touchstart', requestOnce);
+    };
+    document.addEventListener('touchstart', requestOnce, { once: true });
+  } else {
+    startListening();
+  }
 }
 
 // === i18n: Language Selector + HTML text updates ===
@@ -421,7 +520,7 @@ function initTerminalPrompt(): void {
     'sudo': '> sudo what? Try \'sudo nuke\' or \'sudo help\'',
     'sudo nuke': '> LAUNCHING ALL NUKES...',
     'sudo rm': '> rm: cannot remove \'backgrounds\': already nuked',
-    'sudo rm -rf': '> rm -rf /backgrounds/* — 100% nuked. You monster.',
+    'sudo rm -rf': '> rm -rf /backgrounds/* | 100% nuked. You monster.',
     'sudo help': '> man nukebg: Drop. Nuke. Download. EOF.',
     'sudo sudo': '> inception mode denied. One sudo is enough.',
     'sudo exit': '> nice try. There is no escape.',
@@ -433,7 +532,7 @@ function initTerminalPrompt(): void {
     // basic commands
     'nuke': '> Nuke what? Drop an image first.',
     'exit': '> There is no escape from NukeBG.',
-    'ls': '> backgrounds/ watermarks/ — scheduled for deletion',
+    'ls': '> backgrounds/ watermarks/ [scheduled for deletion]',
     'rm -rf': '> whoa whoa whoa. Not that kind of terminal.',
     'hack': '> You\'re already in. What more do you want?',
     'hello': '> Hello, operator. Ready to nuke?',
@@ -446,14 +545,14 @@ function initTerminalPrompt(): void {
     'ping': '> pong. But we don\'t do network stuff here.',
     'cd': '> You\'re already where you need to be.',
     'vim': '> How do I exit this? Just kidding. Try \'nuke\'.',
-    'man': '> NUKEBG(1) — Drop image, nuke background, download PNG. The end.',
+    'man': '> NUKEBG(1) Drop image, nuke background, download PNG. The end.',
     'echo': '> echo echo echo... is there an echo in here?',
-    'top': '> PID 1: nukebg — CPU: yes. RAM: some. Status: nuking.',
+    'top': '> PID 1: nukebg | CPU: yes. RAM: some. Status: nuking.',
     'git': '> git commit -m "nuked another background"',
-    'npm': '> npm run nuke — 1 background destroyed, 0 uploaded.',
+    'npm': '> npm run nuke | 1 background destroyed, 0 uploaded.',
   };
 
-  // Rotating help groups — sudo always first, then 4-5 random commands
+  // Rotating help groups - sudo always first, then 4-5 random commands
   const HELP_POOLS = [
     ['sudo', 'nuke', 'ls', 'hack', 'exit'],
     ['sudo', 'whoami', 'cat', 'vim', 'pwd'],
@@ -529,14 +628,14 @@ function initTerminalPrompt(): void {
       }
     }
 
-    // Special case: clear/purge/sudo clear — clears cache
+    // Special case: clear/purge/sudo clear - clears cache
     if (cmd === 'clear' || cmd === 'purge' || cmd === 'sudo clear') {
       showResponse(COMMANDS[cmd] || '> Purging cache...', false, false);
       setTimeout(() => nukeCache(), 1500);
       return;
     }
 
-    // Special case: help help — show all commands via toast (doesn't displace elements)
+    // Special case: help help - show all commands via toast (doesn't displace elements)
     if (cmd === 'help help') {
       showResponse('> Fine, showing all commands...', false, true, 1500);
       const toast = document.getElementById('kbd-toast');
@@ -548,7 +647,7 @@ function initTerminalPrompt(): void {
       return;
     }
 
-    // Special case: help — rotating command groups
+    // Special case: help - rotating command groups
     if (cmd === 'help') {
       showResponse(getHelpResponse());
       return;
@@ -571,29 +670,55 @@ function initShareButton(): void {
   const btn = document.getElementById('share-btn');
   if (!btn) return;
 
-  const messagesEN = [
-    'Just nuked a background in 3 seconds. No upload, no account, no BS \u2192 https://nukebg.app',
-    'Found a background remover that actually respects your privacy \u2192 https://nukebg.app',
-    'Drop. Nuke. Download. That\'s it. \u2192 https://nukebg.app',
-    'My backgrounds didn\'t stand a chance \u2192 https://nukebg.app',
-    'Open source background remover that runs in your browser \u2192 https://nukebg.app',
-    'Zero uploads, zero tracking, zero BS. Just clean PNGs \u2192 https://nukebg.app',
-    'https://nukebg.app \u2014 because your pixels deserve freedom',
-    'Other tools upload your images. This one doesn\'t even know you exist \u2192 https://nukebg.app',
-  ];
+  const shareMessages: Record<string, string[]> = {
+    en: [
+      'Other tools upload your images. This one doesn\'t even know you exist \u2192 https://nukebg.app',
+      'Found a background remover that never uploads your images \u2192 https://nukebg.app',
+      'Drop. Nuke. Download. Your images never leave your device \u2192 https://nukebg.app',
+      'Zero uploads, zero tracking, zero BS. Just clean PNGs \u2192 https://nukebg.app',
+      'Open source background remover that runs 100% in your browser \u2192 https://nukebg.app',
+      'https://nukebg.app | because uploading images to remove a background is insane',
+    ],
+    es: [
+      'Otras herramientas suben tus im\u00E1genes. Esta ni sabe que existes \u2192 https://nukebg.app',
+      'Un eliminador de fondos que nunca sube tus im\u00E1genes \u2192 https://nukebg.app',
+      'Arrastra. Nukea. Descarga. Tus im\u00E1genes nunca salen de tu dispositivo \u2192 https://nukebg.app',
+      'Cero subidas, cero rastreo, cero rollos. Solo PNGs limpios \u2192 https://nukebg.app',
+      'Eliminador de fondos open source que corre 100% en tu navegador \u2192 https://nukebg.app',
+      'https://nukebg.app | porque subir tus im\u00E1genes para quitarles el fondo no tiene sentido',
+    ],
+    fr: [
+      'Les autres outils uploadent tes images. Celui-ci ne sait m\u00EAme pas que tu existes \u2192 https://nukebg.app',
+      'Un d\u00E9toureur qui n\'uploade jamais tes images \u2192 https://nukebg.app',
+      'D\u00E9pose. Atomise. T\u00E9l\u00E9charge. Tes images ne quittent jamais ton appareil \u2192 https://nukebg.app',
+      'Z\u00E9ro upload, z\u00E9ro tracking, z\u00E9ro baratin \u2192 https://nukebg.app',
+      'https://nukebg.app | parce qu\'uploader ses images pour retirer un fond, c\'est absurde',
+    ],
+    de: [
+      'Andere Tools laden deine Bilder hoch. Dieses kennt dich nichtmal \u2192 https://nukebg.app',
+      'Hintergrund-Entferner, der deine Bilder nie hochl\u00E4dt \u2192 https://nukebg.app',
+      'Reinwerfen. Nuken. Runterladen. Deine Bilder verlassen nie dein Ger\u00E4t \u2192 https://nukebg.app',
+      'Null Uploads, null Tracking, null Bullshit \u2192 https://nukebg.app',
+      'https://nukebg.app | weil Bilder hochladen um den Hintergrund zu entfernen Irrsinn ist',
+    ],
+    pt: [
+      'Outras ferramentas sobem suas imagens. Essa nem sabe que voc\u00EA existe \u2192 https://nukebg.app',
+      'Removedor de fundo que nunca sobe suas imagens \u2192 https://nukebg.app',
+      'Joga. Nukeia. Baixa. Suas imagens nunca saem do seu dispositivo \u2192 https://nukebg.app',
+      'Zero uploads, zero rastreamento, zero frescura \u2192 https://nukebg.app',
+      'https://nukebg.app | porque subir imagem pra tirar fundo n\u00E3o faz sentido',
+    ],
+    zh: [
+      '\u5176\u4ED6\u5DE5\u5177\u4F1A\u4E0A\u4F20\u4F60\u7684\u56FE\u7247\u3002\u8FD9\u4E2A\u8FDE\u4F60\u662F\u8C01\u90FD\u4E0D\u77E5\u9053 \u2192 https://nukebg.app',
+      '\u627E\u5230\u4E00\u4E2A\u6C38\u8FDC\u4E0D\u4F1A\u4E0A\u4F20\u4F60\u56FE\u7247\u7684\u53BB\u80CC\u666F\u5DE5\u5177 \u2192 https://nukebg.app',
+      '\u4E22\u56FE\u3002\u6838\u7206\u3002\u4E0B\u8F7D\u3002\u4F60\u7684\u56FE\u7247\u6C38\u8FDC\u4E0D\u4F1A\u79BB\u5F00\u4F60\u7684\u8BBE\u5907 \u2192 https://nukebg.app',
+      '\u96F6\u4E0A\u4F20\uFF0C\u96F6\u8FFD\u8E2A\uFF0C\u96F6\u5E9F\u8BDD \u2192 https://nukebg.app',
+      'https://nukebg.app | \u56E0\u4E3A\u4E3A\u4E86\u53BB\u80CC\u666F\u800C\u4E0A\u4F20\u56FE\u7247\u592A\u79BB\u8C31\u4E86',
+    ],
+  };
 
-  const messagesES = [
-    'Acabo de nukear un fondo en 3 segundos. Sin subidas, sin cuenta, sin rollos \u2192 https://nukebg.app',
-    'Un eliminador de fondos que respeta tu privacidad de verdad \u2192 https://nukebg.app',
-    'Arrastra. Nukea. Descarga. Fin. \u2192 https://nukebg.app',
-    'Mis fondos no tuvieron oportunidad \u2192 https://nukebg.app',
-    'Eliminador de fondos open source que corre en tu navegador \u2192 https://nukebg.app',
-    'Cero subidas, cero rastreo, cero rollos. Solo PNGs limpios \u2192 https://nukebg.app',
-    'https://nukebg.app \u2014 porque tus p\u00EDxeles merecen libertad',
-    'Otras herramientas suben tus im\u00E1genes. Esta ni sabe que existes \u2192 https://nukebg.app',
-  ];
-
-  const messages = document.documentElement.lang === 'es' ? messagesES : messagesEN;
+  const lang = document.documentElement.lang || 'en';
+  const messages = shareMessages[lang] || shareMessages['en'];
 
   btn.addEventListener('click', async () => {
     const msg = messages[Math.floor(Math.random() * messages.length)];

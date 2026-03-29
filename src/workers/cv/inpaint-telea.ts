@@ -1,5 +1,5 @@
 /**
- * Inpainting Telea — Algoritmo Fast Marching Method para reconstruir
+ * Inpainting Telea - Algoritmo Fast Marching Method para reconstruir
  * zonas enmascaradas usando pixeles vecinos.
  *
  * Port a TypeScript del algoritmo de A. Telea (2004):
@@ -245,7 +245,7 @@ export function inpaintTelea(
     channel[n] = Ia / norm;
   }
 
-  // Paso 5: Fast Marching — procesar todos los canales simultaneamente
+  // Paso 5: Fast Marching - procesar todos los canales simultaneamente
   // Clonar el heap state para poder reusar (procesamos 3 canales con el mismo FMM)
   // Estrategia: procesar los 3 canales en un solo FMM pass
   while (heap.length) {

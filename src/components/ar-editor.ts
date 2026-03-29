@@ -573,7 +573,7 @@ export class ArEditor extends HTMLElement {
     wrap.addEventListener('touchend', (e) => this.onTouchEnd(e));
     wrap.addEventListener('touchcancel', () => this.onTouchEnd());
 
-    // Cancel button — discard all edits
+    // Cancel button - discard all edits
     this.shadowRoot!.querySelector('#cancel-btn')!.addEventListener('click', () => {
       this.dispatchEvent(new CustomEvent('ar:editor-cancel', {
         bubbles: true,
@@ -615,7 +615,7 @@ export class ArEditor extends HTMLElement {
     sizeDisplay.textContent = `${this.brushSize}px`;
   }
 
-  /** Set the image to edit — called after ML processing */
+  /** Set the image to edit - called after ML processing */
   setImage(imageData: ImageData): void {
     this.width = imageData.width;
     this.height = imageData.height;

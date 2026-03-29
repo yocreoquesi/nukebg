@@ -5,8 +5,9 @@
 [![License: GPL-3.0](https://img.shields.io/badge/License-GPL%20v3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![Client-Side](https://img.shields.io/badge/Processing-100%25%20Client--Side-green.svg)](#-privacy)
 [![Ko-fi](https://img.shields.io/badge/Ko--fi-Support%20NukeBG-FF5E5B?logo=ko-fi&logoColor=white)](https://ko-fi.com/yocreoquesi)
+[![Sponsor](https://img.shields.io/badge/Sponsor-GitHub%20Sponsors-ea4aaa?logo=github-sponsors&logoColor=white)](https://github.com/sponsors/yocreoquesi)
 
-[Use NukeBG](https://nukebg.app) | [GitHub](https://github.com/yocreoquesi/nukebg) | [Support on Ko-fi](https://ko-fi.com/yocreoquesi)
+[Use NukeBG](https://nukebg.app) | [GitHub](https://github.com/yocreoquesi/nukebg) | [Sponsor](https://github.com/sponsors/yocreoquesi) | [Ko-fi](https://ko-fi.com/yocreoquesi)
 
 ---
 
@@ -28,7 +29,7 @@ Drop. Nuke. Download. That's it.
 
 ```
 [+] ML BACKGROUND REMOVAL       RMBG-1.4 for segmentation with auto-classification.
-                                  Photos, illustrations, signatures, icons — each optimized.
+                                  Photos, illustrations, signatures, icons. Each optimized.
 
 [+] CHECKERBOARD OBLITERATION    Detects and classifies painted checkerboard backgrounds.
                                   Any grid size, any generator.
@@ -45,7 +46,7 @@ Drop. Nuke. Download. That's it.
 [+] TERMINAL THEME               JetBrains Mono, CRT effects, easter eggs everywhere.
                                   Slider with 4 visual modes. Type 'help' in the prompt.
 
-[+] i18n                         English and Spanish. Auto-detects browser language.
+[+] i18n                         EN, ES, FR, DE, PT, ZH. Auto-detects browser language.
 
 [+] OPEN SOURCE (GPL-3.0)        Audit the code. Fork it. Improve it.
 ```
@@ -115,7 +116,7 @@ The ML model is lazy-loaded on first use, then cached by the Service Worker for 
 | Processing | Canvas API + OffscreenCanvas in Web Workers |
 | Caching | Service Worker + Cache API |
 | Styling | Custom CSS (JetBrains Mono, zero dependencies) |
-| i18n | Lightweight custom system (EN/ES) |
+| i18n | Lightweight custom system (EN/ES/FR/DE/PT/ZH) |
 
 ## > privacy
 
@@ -156,12 +157,12 @@ Contributions welcome. Read the [Contributing Guide](CONTRIBUTING.md) before sub
 
 ## > support
 
-If NukeBG saves you time, consider keeping it alive:
+If NukeBG saves you time, consider keeping the reactor running:
+
+[![Sponsor on GitHub](https://img.shields.io/badge/Sponsor-GitHub%20Sponsors-ea4aaa?logo=github-sponsors&logoColor=white&style=for-the-badge)](https://github.com/sponsors/yocreoquesi)
 
 [![Ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/yocreoquesi)
 
 ---
-
-Built with the assistance of AI agents (Claude by Anthropic).
 
 **Built for creators who are done dealing with garbage backgrounds. Open source forever.**

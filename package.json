@@ -1,9 +1,9 @@
 {
   "name": "nukebg",
   "private": true,
-  "version": "2.4.0",
+  "version": "2.5.0",
   "type": "module",
-  "description": "NukeBG — Nuke AI backgrounds, checkerboard patterns, and watermarks. 100% client-side. Zero uploads. Zero BS.",
+  "description": "NukeBG: Nuke AI backgrounds, checkerboard patterns, and watermarks. 100% client-side. Zero uploads. Zero BS.",
   "license": "GPL-3.0",
   "scripts": {
     "dev": "vite",

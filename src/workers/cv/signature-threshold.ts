@@ -25,7 +25,7 @@ export function signatureThreshold(
     gray[i] = 0.299 * pixels[off] + 0.587 * pixels[off + 1] + 0.114 * pixels[off + 2];
   }
 
-  // Always use Sauvola adaptive threshold — better for all signature types
+  // Always use Sauvola adaptive threshold - better for all signature types
   // including low-quality scans with uneven lighting
   const thresholdMap = computeSauvola(gray, width, height, P.SAUVOLA_WINDOW, P.SAUVOLA_K);
 

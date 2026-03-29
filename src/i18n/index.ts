@@ -16,7 +16,7 @@ const translations: Translations = {
 
     // Dropzone
     'dropzone.title': 'Drop your image here',
-    'dropzone.subtitle': "or click to browse \u2014 we'll nuke the background",
+    'dropzone.subtitle': "or click to browse. We'll nuke the background",
     'dropzone.formats': 'PNG, JPG, WebP up to 4096x4096',
     'dropzone.clipboard': 'Ctrl+V to paste from clipboard',
     'dropzone.dragover': 'Drop to process',
@@ -79,14 +79,15 @@ const translations: Translations = {
     'privacy.tooltip.line3': 'Verify: check Network tab in DevTools.',
 
     // Features
-    'features.srTitle': 'Background Removal That Actually Works',
-    'features.bgRemoval.title': 'It Knows What You Dropped.',
-    'features.bgRemoval.desc': 'Photo, illustration, signature, icon. We classify it and pick the right algorithm. Not one model blindly applied to everything.',
-    'features.aiArtifacts.title': 'Your Images Never Leave.',
-    'features.aiArtifacts.desc': 'Zero uploads. Zero tracking. Everything runs in your browser. Don\u2019t trust us. Open DevTools and check the Network tab.',
+    'features.srTitle': 'Background Removal That Never Uploads Your Images',
+    'features.bgRemoval.title': 'Your Images Never Leave.',
+    'features.bgRemoval.desc': 'Zero uploads. Zero tracking. The ML model runs in your browser via WebAssembly. Don\'t trust us. Open DevTools and check the Network tab.',
+    'features.aiArtifacts.title': 'It Knows What You Dropped.',
+    'features.aiArtifacts.desc': 'Photo, illustration, signature, icon. We classify it and pick the right algorithm. Not one model blindly applied to everything.',
     'features.private.title': 'No Account. No Paywall. No Catch.',
     'features.private.desc': 'Unlimited uses, no watermarks on output, no credit system. GPL-3.0. Go read the code.',
-    'features.disclaimer': 'We\u2019re <s>perfect</s> honest. Sometimes we miss. Fix it with the editor or yell at the repo.',
+    'features.disclaimer': 'We\'re <s>perfect</s> honest. Sometimes we miss. Fix it with the editor or yell at the repo.',
+    'features.limitations': '\u2192 <strong>Works best with:</strong> clear subjects on contrasting backgrounds, photos, logos, signatures.<br>\u2192 <strong>May struggle with:</strong> hair on busy backgrounds, semi-transparent objects, very complex poses.<br>\u2192 <strong>Tip:</strong> use the manual editor to fix any rough spots. The eraser gives you pixel-level control.',
 
     // Header / Footer (index.html)
     'header.skipLink': 'Skip to main content',
@@ -105,12 +106,6 @@ const translations: Translations = {
     'pwa.guideGeneric': '1. Open your browser menu (\u22EE or \u22EF)<br>2. Look for "Install" or "Add to Home Screen"',
     'pwa.guideDismiss': '[ROGER]',
 
-    // Experimental SAM refinement
-    'experimental.btn': '[EXPERIMENTAL] Optimize edges automatically',
-    'experimental.undo': '\u21A9 Undo edge optimization',
-    'experimental.processing': 'Optimizing edges...',
-    'experimental.done': 'Edges optimized',
-
     // Language selector
     'lang.label': 'Language',
   },
@@ -123,7 +118,7 @@ const translations: Translations = {
 
     // Dropzone
     'dropzone.title': 'Arrastra tu imagen aqu\u00ED',
-    'dropzone.subtitle': 'o haz clic para buscar \u2014 nukearemos el fondo',
+    'dropzone.subtitle': 'o haz clic para buscar. Nukearemos el fondo',
     'dropzone.formats': 'PNG, JPG, WebP hasta 4096x4096',
     'dropzone.clipboard': 'Ctrl+V para pegar del portapapeles',
     'dropzone.dragover': 'Suelta para procesar',
@@ -186,14 +181,15 @@ const translations: Translations = {
     'privacy.tooltip.line3': 'Verifica: revisa la pesta\u00F1a Red en DevTools.',
 
     // Features
-    'features.srTitle': 'Eliminaci\u00F3n de fondos que realmente funciona',
-    'features.bgRemoval.title': 'Sabe qu\u00E9 le tiraste.',
-    'features.bgRemoval.desc': 'Foto, ilustraci\u00F3n, firma, \u00EDcono. Lo clasificamos y elegimos el algoritmo correcto. No un modelo aplicado a ciegas a todo.',
-    'features.aiArtifacts.title': 'Tus im\u00E1genes no salen.',
-    'features.aiArtifacts.desc': 'Cero subidas. Cero rastreo. Todo corre en tu navegador. No conf\u00EDes en nosotros. Abre DevTools y revisa la pesta\u00F1a Red.',
+    'features.srTitle': 'Eliminador de fondos que nunca sube tus im\u00E1genes',
+    'features.bgRemoval.title': 'Tus im\u00E1genes no salen.',
+    'features.bgRemoval.desc': 'Cero subidas. Cero rastreo. El modelo de IA corre en tu navegador via WebAssembly. No conf\u00EDes en nosotros. Abre DevTools y revisa la pesta\u00F1a Red.',
+    'features.aiArtifacts.title': 'Sabe qu\u00E9 le tiraste.',
+    'features.aiArtifacts.desc': 'Foto, ilustraci\u00F3n, firma, icono. Lo clasificamos y elegimos el algoritmo correcto. No un modelo aplicado a ciegas a todo.',
     'features.private.title': 'Sin cuenta. Sin muro de pago. Sin trampa.',
     'features.private.desc': 'Usos ilimitados, sin marca de agua en el resultado, sin sistema de cr\u00E9ditos. Es GPL-3.0. Lee el c\u00F3digo.',
     'features.disclaimer': 'Somos <s>perfectos</s> honestos. A veces fallamos. Arr\u00E9glalo con el editor o grita en el repo.',
+    'features.limitations': '\u2192 <strong>Funciona mejor con:</strong> sujetos claros sobre fondos contrastados, fotos, logos, firmas.<br>\u2192 <strong>Puede fallar con:</strong> pelo sobre fondos complejos, objetos semitransparentes, poses muy complejas.<br>\u2192 <strong>Consejo:</strong> usa el editor manual para corregir las zonas que no queden bien. El borrador te da control pixel a pixel.',
 
     // Header / Footer (index.html)
     'header.skipLink': 'Saltar al contenido principal',
@@ -212,12 +208,6 @@ const translations: Translations = {
     'pwa.guideGeneric': '1. Abre el men\u00FA del navegador (\u22EE o \u22EF)<br>2. Busca "Instalar" o "A\u00F1adir a inicio"',
     'pwa.guideDismiss': '[ENTENDIDO]',
 
-    // Experimental SAM refinement
-    'experimental.btn': '[EXPERIMENTAL] Optimizar bordes autom\u00E1ticamente',
-    'experimental.undo': '\u21A9 Deshacer optimizaci\u00F3n de bordes',
-    'experimental.processing': 'Optimizando bordes...',
-    'experimental.done': 'Bordes optimizados',
-
     // Language selector
     'lang.label': 'Idioma',
   },
@@ -230,7 +220,7 @@ const translations: Translations = {
 
     // Dropzone
     'dropzone.title': 'D\u00E9pose ton image ici',
-    'dropzone.subtitle': 'ou clique pour parcourir \u2014 on atomise le fond',
+    'dropzone.subtitle': 'ou clique pour parcourir. On atomise le fond',
     'dropzone.formats': 'PNG, JPG, WebP jusqu\u2019\u00E0 4096x4096',
     'dropzone.clipboard': 'Ctrl+V pour coller depuis le presse-papiers',
     'dropzone.dragover': 'L\u00E2che pour traiter',
@@ -293,14 +283,15 @@ const translations: Translations = {
     'privacy.tooltip.line3': "V\u00E9rifie : ouvre l'onglet R\u00E9seau dans DevTools.",
 
     // Features
-    'features.srTitle': "Un d\u00E9tourage qui marche pour de vrai",
-    'features.bgRemoval.title': 'Il sait ce que tu lui as fil\u00E9.',
-    'features.bgRemoval.desc': "Photo, illustration, signature, ic\u00F4ne. On classifie et on choisit le bon algorithme. Pas un mod\u00E8le appliqu\u00E9 \u00E0 l'aveugle sur tout.",
-    'features.aiArtifacts.title': 'Tes images ne sortent pas.',
-    'features.aiArtifacts.desc': "Z\u00E9ro upload. Z\u00E9ro tracking. Tout tourne dans ton navigateur. Ne nous fais pas confiance. Ouvre DevTools et v\u00E9rifie l'onglet R\u00E9seau.",
+    'features.srTitle': "D\u00E9tourage qui n'uploade jamais tes images",
+    'features.bgRemoval.title': 'Tes images ne sortent pas.',
+    'features.bgRemoval.desc': "Z\u00E9ro upload. Z\u00E9ro tracking. Le mod\u00E8le IA tourne dans ton navigateur via WebAssembly. Ne nous fais pas confiance. Ouvre DevTools et v\u00E9rifie l'onglet R\u00E9seau.",
+    'features.aiArtifacts.title': 'Il sait ce que tu lui as fil\u00E9.',
+    'features.aiArtifacts.desc': "Photo, illustration, signature, ic\u00F4ne. On classifie et on choisit le bon algorithme. Pas un mod\u00E8le appliqu\u00E9 \u00E0 l'aveugle sur tout.",
     'features.private.title': 'Ni compte. Ni paywall. Ni entourloupe.',
     'features.private.desc': "Utilisations illimit\u00E9es, pas de filigrane sur le r\u00E9sultat, pas de syst\u00E8me de cr\u00E9dits. GPL-3.0. Va lire le code.",
     'features.disclaimer': "On est <s>parfaits</s> honn\u00EAtes. Parfois on rate. Corrige avec l'\u00E9diteur ou gueule sur le repo.",
+    'features.limitations': "\u2192 <strong>Marche mieux avec :</strong> sujets nets sur fond contrast\u00E9, photos, logos, signatures.<br>\u2192 <strong>Peut galérer avec :</strong> cheveux sur fonds charg\u00E9s, objets semi-transparents, poses tr\u00E8s complexes.<br>\u2192 <strong>Astuce :</strong> utilise l'\u00E9diteur manuel pour corriger les zones approximatives. La gomme te donne le contr\u00F4le au pixel.",
 
     // Header / Footer (index.html)
     'header.skipLink': 'Aller au contenu principal',
@@ -319,12 +310,6 @@ const translations: Translations = {
     'pwa.guideGeneric': '1. Ouvre le menu du navigateur (\u22EE ou \u22EF)<br>2. Cherche "Installer" ou "Ajouter \u00E0 l\u2019\u00E9cran d\u2019accueil"',
     'pwa.guideDismiss': '[RE\u00C7U]',
 
-    // Experimental
-    'experimental.btn': '[EXP\u00C9RIMENTAL] Optimiser les bords automatiquement',
-    'experimental.undo': '\u21A9 Annuler l\u2019optimisation des bords',
-    'experimental.processing': 'Optimisation des bords...',
-    'experimental.done': 'Bords optimis\u00E9s',
-
     // Language selector
     'lang.label': 'Langue',
   },
@@ -337,7 +322,7 @@ const translations: Translations = {
 
     // Dropzone
     'dropzone.title': 'Bild hier ablegen',
-    'dropzone.subtitle': 'oder klicken zum Ausw\u00E4hlen \u2014 wir nuken den Hintergrund',
+    'dropzone.subtitle': 'oder klicken zum Ausw\u00E4hlen. Wir nuken den Hintergrund',
     'dropzone.formats': 'PNG, JPG, WebP bis 4096x4096',
     'dropzone.clipboard': 'Strg+V zum Einf\u00FCgen aus Zwischenablage',
     'dropzone.dragover': 'Loslassen zum Verarbeiten',
@@ -400,14 +385,15 @@ const translations: Translations = {
     'privacy.tooltip.line3': 'Pr\u00FCfe selbst: Netzwerk-Tab in DevTools \u00F6ffnen.',
 
     // Features
-    'features.srTitle': 'Hintergrundentfernung, die tats\u00E4chlich funktioniert',
-    'features.bgRemoval.title': 'Erkennt, was du reingeworfen hast.',
-    'features.bgRemoval.desc': 'Foto, Illustration, Unterschrift, Icon. Wir klassifizieren und w\u00E4hlen den richtigen Algorithmus. Kein Modell, das blind auf alles losgelassen wird.',
-    'features.aiArtifacts.title': 'Deine Bilder bleiben bei dir.',
-    'features.aiArtifacts.desc': 'Null Uploads. Null Tracking. Alles l\u00E4uft im Browser. Vertrau uns nicht. \u00D6ffne DevTools und check den Netzwerk-Tab.',
+    'features.srTitle': 'Hintergrundentfernung, die deine Bilder nie hochl\u00E4dt',
+    'features.bgRemoval.title': 'Deine Bilder bleiben bei dir.',
+    'features.bgRemoval.desc': 'Null Uploads. Null Tracking. Das KI-Modell l\u00E4uft im Browser via WebAssembly. Vertrau uns nicht. \u00D6ffne DevTools und check den Netzwerk-Tab.',
+    'features.aiArtifacts.title': 'Erkennt, was du reingeworfen hast.',
+    'features.aiArtifacts.desc': 'Foto, Illustration, Unterschrift, Icon. Wir klassifizieren und w\u00E4hlen den richtigen Algorithmus. Kein Modell, das blind auf alles losgelassen wird.',
     'features.private.title': 'Kein Konto. Keine Paywall. Kein Haken.',
     'features.private.desc': 'Unbegrenzt nutzbar, kein Wasserzeichen, kein Credit-System. GPL-3.0. Lies den Code.',
     'features.disclaimer': 'Wir sind <s>perfekt</s> ehrlich. Manchmal daneben. Nachbessern im Editor oder im Repo meckern.',
+    'features.limitations': '\u2192 <strong>Funktioniert am besten mit:</strong> klare Motive vor kontrastreichem Hintergrund, Fotos, Logos, Unterschriften.<br>\u2192 <strong>Kann Probleme haben mit:</strong> Haare vor unruhigem Hintergrund, halbtransparente Objekte, sehr komplexe Posen.<br>\u2192 <strong>Tipp:</strong> nutze den manuellen Editor f\u00FCr unsaubere Stellen. Der Radierer gibt dir Kontrolle auf Pixelebene.',
 
     // Header / Footer (index.html)
     'header.skipLink': 'Zum Hauptinhalt springen',
@@ -426,12 +412,6 @@ const translations: Translations = {
     'pwa.guideGeneric': '1. \u00D6ffne das Browser-Men\u00FC (\u22EE oder \u22EF)<br>2. Suche "Installieren" oder "Zum Startbildschirm"',
     'pwa.guideDismiss': '[VERSTANDEN]',
 
-    // Experimental
-    'experimental.btn': '[EXPERIMENTELL] Kanten automatisch optimieren',
-    'experimental.undo': '\u21A9 Kantenoptimierung r\u00FCckg\u00E4ngig',
-    'experimental.processing': 'Kanten werden optimiert...',
-    'experimental.done': 'Kanten optimiert',
-
     // Language selector
     'lang.label': 'Sprache',
   },
@@ -444,7 +424,7 @@ const translations: Translations = {
 
     // Dropzone
     'dropzone.title': 'Solta a imagem aqui',
-    'dropzone.subtitle': 'ou clica pra escolher \u2014 a gente nukeia o fundo',
+    'dropzone.subtitle': 'ou clica pra escolher. A gente nukeia o fundo',
     'dropzone.formats': 'PNG, JPG, WebP at\u00E9 4096x4096',
     'dropzone.clipboard': 'Ctrl+V pra colar da \u00E1rea de transfer\u00EAncia',
     'dropzone.dragover': 'Solta pra processar',
@@ -507,14 +487,15 @@ const translations: Translations = {
     'privacy.tooltip.line3': 'Confere: abre a aba Rede no DevTools.',
 
     // Features
-    'features.srTitle': 'Remo\u00E7\u00E3o de fundo que funciona de verdade',
-    'features.bgRemoval.title': 'Ele sabe o que voc\u00EA jogou.',
-    'features.bgRemoval.desc': 'Foto, ilustra\u00E7\u00E3o, assinatura, \u00EDcone. A gente classifica e escolhe o algoritmo certo. Nada de um modelo cego aplicado em tudo.',
-    'features.aiArtifacts.title': 'Suas imagens n\u00E3o saem daqui.',
-    'features.aiArtifacts.desc': 'Zero uploads. Zero rastreamento. Tudo roda no seu navegador. N\u00E3o confia na gente? Abre o DevTools e confere a aba Rede.',
+    'features.srTitle': 'Removedor de fundo que nunca sobe suas imagens',
+    'features.bgRemoval.title': 'Suas imagens n\u00E3o saem daqui.',
+    'features.bgRemoval.desc': 'Zero uploads. Zero rastreamento. O modelo de IA roda no seu navegador via WebAssembly. N\u00E3o confia na gente? Abre o DevTools e confere a aba Rede.',
+    'features.aiArtifacts.title': 'Ele sabe o que voc\u00EA jogou.',
+    'features.aiArtifacts.desc': 'Foto, ilustra\u00E7\u00E3o, assinatura, \u00EDcone. A gente classifica e escolhe o algoritmo certo. Nada de um modelo cego aplicado em tudo.',
     'features.private.title': 'Sem conta. Sem paywall. Sem pegadinha.',
     'features.private.desc': 'Uso ilimitado, sem marca d\u2019\u00E1gua no resultado, sem sistema de cr\u00E9ditos. GPL-3.0. Vai ler o c\u00F3digo.',
     'features.disclaimer': 'Somos <s>perfeitos</s> honestos. \u00C0s vezes erramos. Arruma no editor ou xinga no repo.',
+    'features.limitations': '\u2192 <strong>Funciona melhor com:</strong> sujeitos n\u00EDtidos em fundos contrastados, fotos, logos, assinaturas.<br>\u2192 <strong>Pode penar com:</strong> cabelo em fundos complexos, objetos semitransparentes, poses muito complicadas.<br>\u2192 <strong>Dica:</strong> usa o editor manual pra corrigir as partes que ficaram estranhas. A borracha d\u00E1 controle pixel a pixel.',
 
     // Header / Footer (index.html)
     'header.skipLink': 'Pular para o conte\u00FAdo principal',
@@ -533,12 +514,6 @@ const translations: Translations = {
     'pwa.guideGeneric': '1. Abre o menu do navegador (\u22EE ou \u22EF)<br>2. Procura "Instalar" ou "Adicionar \u00E0 tela inicial"',
     'pwa.guideDismiss': '[ENTENDIDO]',
 
-    // Experimental
-    'experimental.btn': '[EXPERIMENTAL] Otimizar bordas automaticamente',
-    'experimental.undo': '\u21A9 Desfazer otimiza\u00E7\u00E3o de bordas',
-    'experimental.processing': 'Otimizando bordas...',
-    'experimental.done': 'Bordas otimizadas',
-
     // Language selector
     'lang.label': 'Idioma',
   },
@@ -551,7 +526,7 @@ const translations: Translations = {
 
     // Dropzone
     'dropzone.title': '\u628A\u56FE\u7247\u4E22\u8FD9\u91CC',
-    'dropzone.subtitle': '\u6216\u8005\u70B9\u51FB\u9009\u62E9 \u2014 \u6211\u4EEC\u6765\u6838\u7206\u80CC\u666F',
+    'dropzone.subtitle': '\u6216\u8005\u70B9\u51FB\u9009\u62E9\uFF0C\u6211\u4EEC\u6765\u6838\u7206\u80CC\u666F',
     'dropzone.formats': 'PNG, JPG, WebP \u6700\u5927 4096x4096',
     'dropzone.clipboard': 'Ctrl+V \u4ECE\u526A\u8D34\u677F\u7C98\u8D34',
     'dropzone.dragover': '\u677E\u624B\u5F00\u59CB\u5904\u7406',
@@ -614,14 +589,15 @@ const translations: Translations = {
     'privacy.tooltip.line3': '\u9A8C\u8BC1\uFF1A\u6253\u5F00 DevTools \u67E5\u770B\u7F51\u7EDC\u9762\u677F\u3002',
 
     // Features
-    'features.srTitle': '\u771F\u6B63\u80FD\u7528\u7684\u80CC\u666F\u53BB\u9664',
-    'features.bgRemoval.title': '\u5B83\u77E5\u9053\u4F60\u4E22\u4E86\u4EC0\u4E48\u3002',
-    'features.bgRemoval.desc': '\u7167\u7247\u3001\u63D2\u753B\u3001\u7B7E\u540D\u3001\u56FE\u6807\u3002\u6211\u4EEC\u5148\u5206\u7C7B\uFF0C\u518D\u9009\u7B97\u6CD5\u3002\u4E0D\u662F\u4E00\u4E2A\u6A21\u578B\u65E0\u8111\u5957\u5728\u6240\u6709\u4E1C\u897F\u4E0A\u3002',
-    'features.aiArtifacts.title': '\u4F60\u7684\u56FE\u7247\u54EA\u513F\u4E5F\u4E0D\u53BB\u3002',
-    'features.aiArtifacts.desc': '\u96F6\u4E0A\u4F20\u3002\u96F6\u8FFD\u8E2A\u3002\u5168\u5728\u6D4F\u89C8\u5668\u91CC\u8DD1\u3002\u522B\u4FE1\u6211\u4EEC\u7684\u8BDD\u3002\u6253\u5F00 DevTools \u81EA\u5DF1\u770B\u7F51\u7EDC\u9762\u677F\u3002',
+    'features.srTitle': '\u6C38\u8FDC\u4E0D\u4F1A\u4E0A\u4F20\u4F60\u56FE\u7247\u7684\u80CC\u666F\u53BB\u9664\u5DE5\u5177',
+    'features.bgRemoval.title': '\u4F60\u7684\u56FE\u7247\u54EA\u513F\u4E5F\u4E0D\u53BB\u3002',
+    'features.bgRemoval.desc': '\u96F6\u4E0A\u4F20\u3002\u96F6\u8FFD\u8E2A\u3002AI\u6A21\u578B\u901A\u8FC7 WebAssembly \u5728\u4F60\u7684\u6D4F\u89C8\u5668\u91CC\u8FD0\u884C\u3002\u522B\u4FE1\u6211\u4EEC\u7684\u8BDD\u3002\u6253\u5F00 DevTools \u81EA\u5DF1\u770B\u7F51\u7EDC\u9762\u677F\u3002',
+    'features.aiArtifacts.title': '\u5B83\u77E5\u9053\u4F60\u4E22\u4E86\u4EC0\u4E48\u3002',
+    'features.aiArtifacts.desc': '\u7167\u7247\u3001\u63D2\u753B\u3001\u7B7E\u540D\u3001\u56FE\u6807\u3002\u6211\u4EEC\u5148\u5206\u7C7B\uFF0C\u518D\u9009\u7B97\u6CD5\u3002\u4E0D\u662F\u4E00\u4E2A\u6A21\u578B\u65E0\u8111\u5957\u5728\u6240\u6709\u4E1C\u897F\u4E0A\u3002',
     'features.private.title': '\u4E0D\u7528\u6CE8\u518C\u3002\u4E0D\u7528\u4ED8\u8D39\u3002\u6CA1\u6709\u5957\u8DEF\u3002',
     'features.private.desc': '\u65E0\u9650\u4F7F\u7528\uFF0C\u8F93\u51FA\u65E0\u6C34\u5370\uFF0C\u6CA1\u6709\u79EF\u5206\u5236\u3002GPL-3.0\u3002\u53BB\u770B\u6E90\u7801\u3002',
     'features.disclaimer': '\u6211\u4EEC<s>\u5B8C\u7F8E</s>\u8BDA\u5B9E\u3002\u6709\u65F6\u7FFB\u8F66\u3002\u7528\u7F16\u8F91\u5668\u4FEE\uFF0C\u6216\u53BB repo \u5410\u69FD\u3002',
+    'features.limitations': '\u2192 <strong>\u6700\u9002\u5408\uFF1A</strong>\u6E05\u6670\u4E3B\u4F53\u914D\u5BF9\u6BD4\u660E\u663E\u7684\u80CC\u666F\u3001\u7167\u7247\u3001logo\u3001\u7B7E\u540D\u3002<br>\u2192 <strong>\u53EF\u80FD\u7FFB\u8F66\uFF1A</strong>\u590D\u6742\u80CC\u666F\u4E0A\u7684\u5934\u53D1\u3001\u534A\u900F\u660E\u7269\u4F53\u3001\u975E\u5E38\u590D\u6742\u7684\u59FF\u52BF\u3002<br>\u2192 <strong>\u5C0F\u8D34\u58EB\uFF1A</strong>\u7528\u624B\u52A8\u7F16\u8F91\u5668\u4FEE\u590D\u4E0D\u5B8C\u7F8E\u7684\u5730\u65B9\u3002\u6A61\u76AE\u64E6\u7ED9\u4F60\u50CF\u7D20\u7EA7\u7684\u63A7\u5236\u3002',
 
     // Header / Footer (index.html)
     'header.skipLink': '\u8DF3\u8F6C\u5230\u4E3B\u8981\u5185\u5BB9',
@@ -639,12 +615,6 @@ const translations: Translations = {
     'pwa.guideSafari': '1. \u70B9\u51FB\u5E95\u90E8\u680F\u7684\u5206\u4EAB\u6309\u94AE (\u2B06)<br>2. \u5411\u4E0B\u6ED1 \u2192 \u70B9\u51FB\u300C\u6DFB\u52A0\u5230\u4E3B\u5C4F\u5E55\u300D',
     'pwa.guideGeneric': '1. \u6253\u5F00\u6D4F\u89C8\u5668\u83DC\u5355\uFF08\u22EE \u6216 \u22EF\uFF09<br>2. \u627E\u5230\u300C\u5B89\u88C5\u300D\u6216\u300C\u6DFB\u52A0\u5230\u4E3B\u5C4F\u5E55\u300D',
     'pwa.guideDismiss': '[\u6536\u5230]',
-
-    // Experimental
-    'experimental.btn': '[\u5B9E\u9A8C\u6027] \u81EA\u52A8\u4F18\u5316\u8FB9\u7F18',
-    'experimental.undo': '\u21A9 \u64A4\u9500\u8FB9\u7F18\u4F18\u5316',
-    'experimental.processing': '\u6B63\u5728\u4F18\u5316\u8FB9\u7F18...',
-    'experimental.done': '\u8FB9\u7F18\u5DF2\u4F18\u5316',
 
     // Language selector
     'lang.label': '\u8BED\u8A00',

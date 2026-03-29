@@ -1,7 +1,7 @@
 {
-  "name": "NukeBG — Nuke Any Background",
+  "name": "NukeBG: Nuke Any Background",
   "short_name": "NukeBG",
-  "description": "Nuke AI backgrounds, checkerboard patterns, and watermarks. 100% client-side.",
+  "description": "Remove backgrounds from any image. 100% private, runs in your browser. Free, open source.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

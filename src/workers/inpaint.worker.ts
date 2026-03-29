@@ -1,5 +1,5 @@
 /**
- * Inpaint Worker — Reconstruccion de zonas de watermark via Telea FMM.
+ * Inpaint Worker - Reconstruccion de zonas de watermark via Telea FMM.
  *
  * Usa el algoritmo de Telea (Fast Marching Method) que propaga pixeles
  * vecinos conocidos hacia adentro de la zona enmascarada. Es puro CV,
@@ -41,7 +41,7 @@ self.onmessage = async (e: MessageEvent<InpaintWorkerRequest>) => {
         break;
       }
       case 'dispose': {
-        // Nada que liberar — no hay modelo en memoria
+        // Nada que liberar - no hay modelo en memoria
         self.postMessage({ id: msg.id, type: 'disposed' } satisfies InpaintWorkerResponse);
         break;
       }
