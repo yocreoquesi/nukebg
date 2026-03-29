@@ -87,7 +87,6 @@ const translations: Translations = {
     'features.private.title': 'No Account. No Paywall. No Catch.',
     'features.private.desc': 'Unlimited uses, no watermarks on output, no credit system. GPL-3.0. Go read the code.',
     'features.disclaimer': 'We\u2019re <s>perfect</s> honest. Sometimes we miss. Fix it with the editor or yell at the repo.',
-    'features.kofi': 'If this saved you time, keep the reactor running.',
 
     // Header / Footer (index.html)
     'header.skipLink': 'Skip to main content',
@@ -195,7 +194,6 @@ const translations: Translations = {
     'features.private.title': 'Sin cuenta. Sin muro de pago. Sin trampa.',
     'features.private.desc': 'Usos ilimitados, sin marca de agua en el resultado, sin sistema de cr\u00E9ditos. Es GPL-3.0. Lee el c\u00F3digo.',
     'features.disclaimer': 'Somos <s>perfectos</s> honestos. A veces fallamos. Arr\u00E9glalo con el editor o grita en el repo.',
-    'features.kofi': 'Si te ahorr\u00F3 tiempo, mant\u00E9n el reactor encendido.',
 
     // Header / Footer (index.html)
     'header.skipLink': 'Saltar al contenido principal',
@@ -303,7 +301,6 @@ const translations: Translations = {
     'features.private.title': 'Ni compte. Ni paywall. Ni entourloupe.',
     'features.private.desc': "Utilisations illimit\u00E9es, pas de filigrane sur le r\u00E9sultat, pas de syst\u00E8me de cr\u00E9dits. GPL-3.0. Va lire le code.",
     'features.disclaimer': "On est <s>parfaits</s> honn\u00EAtes. Parfois on rate. Corrige avec l'\u00E9diteur ou gueule sur le repo.",
-    'features.kofi': 'Si \u00E7a t\u2019a fait gagner du temps, garde le r\u00E9acteur allum\u00E9.',
 
     // Header / Footer (index.html)
     'header.skipLink': 'Aller au contenu principal',
@@ -411,7 +408,6 @@ const translations: Translations = {
     'features.private.title': 'Kein Konto. Keine Paywall. Kein Haken.',
     'features.private.desc': 'Unbegrenzt nutzbar, kein Wasserzeichen, kein Credit-System. GPL-3.0. Lies den Code.',
     'features.disclaimer': 'Wir sind <s>perfekt</s> ehrlich. Manchmal daneben. Nachbessern im Editor oder im Repo meckern.',
-    'features.kofi': 'Hat\u2019s dir Zeit gespart? Halt den Reaktor am Laufen.',
 
     // Header / Footer (index.html)
     'header.skipLink': 'Zum Hauptinhalt springen',
@@ -519,7 +515,6 @@ const translations: Translations = {
     'features.private.title': 'Sem conta. Sem paywall. Sem pegadinha.',
     'features.private.desc': 'Uso ilimitado, sem marca d\u2019\u00E1gua no resultado, sem sistema de cr\u00E9ditos. GPL-3.0. Vai ler o c\u00F3digo.',
     'features.disclaimer': 'Somos <s>perfeitos</s> honestos. \u00C0s vezes erramos. Arruma no editor ou xinga no repo.',
-    'features.kofi': 'Se te economizou tempo, mant\u00E9m o reator ligado.',
 
     // Header / Footer (index.html)
     'header.skipLink': 'Pular para o conte\u00FAdo principal',
@@ -627,7 +622,6 @@ const translations: Translations = {
     'features.private.title': '\u4E0D\u7528\u6CE8\u518C\u3002\u4E0D\u7528\u4ED8\u8D39\u3002\u6CA1\u6709\u5957\u8DEF\u3002',
     'features.private.desc': '\u65E0\u9650\u4F7F\u7528\uFF0C\u8F93\u51FA\u65E0\u6C34\u5370\uFF0C\u6CA1\u6709\u79EF\u5206\u5236\u3002GPL-3.0\u3002\u53BB\u770B\u6E90\u7801\u3002',
     'features.disclaimer': '\u6211\u4EEC<s>\u5B8C\u7F8E</s>\u8BDA\u5B9E\u3002\u6709\u65F6\u7FFB\u8F66\u3002\u7528\u7F16\u8F91\u5668\u4FEE\uFF0C\u6216\u53BB repo \u5410\u69FD\u3002',
-    'features.kofi': '\u5982\u679C\u7ED9\u4F60\u7701\u4E86\u65F6\u95F4\uFF0C\u5E2E\u53CD\u5E94\u5806\u7EE7\u7EED\u8FD0\u8F6C\u3002',
 
     // Header / Footer (index.html)
     'header.skipLink': '\u8DF3\u8F6C\u5230\u4E3B\u8981\u5185\u5BB9',

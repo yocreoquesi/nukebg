@@ -292,23 +292,6 @@ export class ArApp extends HTMLElement {
           text-decoration: line-through;
           opacity: 0.7;
         }
-        .features-kofi {
-          text-align: center;
-          font-family: 'JetBrains Mono', monospace;
-          font-size: 12px;
-          color: var(--color-text-tertiary, #008830);
-          margin-top: var(--space-2, 0.5rem);
-          padding: 0 var(--space-4, 1rem);
-        }
-        .features-kofi a {
-          color: var(--color-accent-primary, #00ff41);
-          text-decoration: none;
-          transition: opacity 0.2s ease;
-        }
-        .features-kofi a:hover {
-          opacity: 0.8;
-          text-decoration: underline;
-        }
         .sr-only {
           position: absolute;
           width: 1px;
@@ -483,8 +466,7 @@ export class ArApp extends HTMLElement {
         :host(.precision-override) .subline,
         :host(.precision-override) .feature-desc,
         :host(.precision-override) .model-status,
-        :host(.precision-override) .features-disclaimer,
-        :host(.precision-override) .features-kofi {
+        :host(.precision-override) .features-disclaimer {
           color: var(--terminal-color-override, #00dd44);
         }
         :host(.precision-override) .feature-title,
@@ -498,9 +480,6 @@ export class ArApp extends HTMLElement {
         }
         :host(.precision-override) .features-disclaimer s {
           color: var(--terminal-color-override, #008830);
-        }
-        :host(.precision-override) .features-kofi a {
-          color: var(--terminal-color-override, #00ff41);
         }
         :host(.precision-override) .edit-btn {
           color: var(--terminal-color-override, #00dd44);
@@ -933,7 +912,6 @@ export class ArApp extends HTMLElement {
           </p>
         </article>
         <p class="features-disclaimer" id="features-disclaimer">${t('features.disclaimer')}</p>
-        <p class="features-kofi" id="features-kofi">${t('features.kofi')} <a href="https://ko-fi.com/yocreoquesi" target="_blank" rel="noopener noreferrer">\u2615 Ko-fi</a></p>
       </section>
     `;
   }
@@ -969,8 +947,6 @@ export class ArApp extends HTMLElement {
     });
     const disclaimer = root.querySelector('#features-disclaimer');
     if (disclaimer) disclaimer.innerHTML = t('features.disclaimer');
-    const kofi = root.querySelector('#features-kofi');
-    if (kofi) kofi.innerHTML = `${t('features.kofi')} <a href="https://ko-fi.com/yocreoquesi" target="_blank" rel="noopener noreferrer">\u2615 Ko-fi</a>`;
     const installBtnEl = root.querySelector('#install-btn') as HTMLButtonElement;
     if (installBtnEl) {
       installBtnEl.textContent = isAppInstalled() ? t('pwa.installed') : t('pwa.install');
