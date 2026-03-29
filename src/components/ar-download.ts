@@ -13,6 +13,7 @@ export class ArDownload extends HTMLElement {
   private timeMs = 0;
   private imgWidth = 0;
   private imgHeight = 0;
+  private boundLocaleHandler: (() => void) | null = null;
 
   constructor() {
     super();
@@ -21,9 +22,10 @@ export class ArDownload extends HTMLElement {
 
   connectedCallback(): void {
     this.render();
-    document.addEventListener('nukebg:locale-changed', () => {
+    this.boundLocaleHandler = () => {
       this.updateTexts();
-    });
+    };
+    document.addEventListener('nukebg:locale-changed', this.boundLocaleHandler);
   }
 
   private updateTexts(): void {
@@ -47,6 +49,7 @@ export class ArDownload extends HTMLElement {
 
   disconnectedCallback(): void {
     if (this.blobUrl) URL.revokeObjectURL(this.blobUrl);
+    if (this.boundLocaleHandler) document.removeEventListener('nukebg:locale-changed', this.boundLocaleHandler);
   }
 
   async setResult(imageData: ImageData, inputFilename: string, totalTimeMs: number, blob?: Blob): Promise<void> {

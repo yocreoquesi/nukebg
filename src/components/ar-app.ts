@@ -29,6 +29,8 @@ export class ArApp extends HTMLElement {
   private cachedEditResult: ImageData | null = null;
   private lastRmbgAlpha: Uint8Array | null = null;
   private preOptimizeResult: ImageData | null = null;
+  private boundLocaleHandler: (() => void) | null = null;
+  private boundPwaInstallableHandler: (() => void) | null = null;
 
   constructor() {
     super();
@@ -77,6 +79,8 @@ export class ArApp extends HTMLElement {
   disconnectedCallback(): void {
     this.crtFlickerTimers.forEach(id => clearInterval(id));
     this.crtFlickerTimers = [];
+    if (this.boundLocaleHandler) document.removeEventListener('nukebg:locale-changed', this.boundLocaleHandler);
+    if (this.boundPwaInstallableHandler) document.removeEventListener('nukebg:pwa-installable', this.boundPwaInstallableHandler);
   }
 
   private render(): void {
@@ -996,10 +1000,11 @@ export class ArApp extends HTMLElement {
   }
 
   private setupEvents(): void {
-    // Escuchar cambio de idioma
-    document.addEventListener('nukebg:locale-changed', () => {
+    // Listen for locale changes
+    this.boundLocaleHandler = () => {
       this.updateTexts();
-    });
+    };
+    document.addEventListener('nukebg:locale-changed', this.boundLocaleHandler);
 
     // PWA install button — mobile only
     const installBtn = this.shadowRoot!.querySelector('#install-btn') as HTMLButtonElement;
@@ -1014,14 +1019,15 @@ export class ArApp extends HTMLElement {
     }
 
     // Show install button when PWA native prompt is available (Chromium)
-    document.addEventListener('nukebg:pwa-installable', () => {
+    this.boundPwaInstallableHandler = () => {
       hasNativePrompt = true;
       if (!isAppInstalled()) {
         installBtn.textContent = t('pwa.install');
         installBtn.classList.add('visible');
         installBtn.disabled = false;
       }
-    });
+    };
+    document.addEventListener('nukebg:pwa-installable', this.boundPwaInstallableHandler);
 
     // On mobile without native prompt, show install button after a delay
     // (Firefox, Safari — they can install but need manual steps)

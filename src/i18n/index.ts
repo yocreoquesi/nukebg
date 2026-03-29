@@ -331,6 +331,12 @@ const translations: Translations = {
     'pwa.guideGeneric': '1. Ouvre le menu du navigateur (\u22EE ou \u22EF)<br>2. Cherche "Installer" ou "Ajouter \u00E0 l\u2019\u00E9cran d\u2019accueil"',
     'pwa.guideDismiss': '[RE\u00C7U]',
 
+    // Experimental
+    'experimental.btn': '[EXP\u00C9RIMENTAL] Optimiser les bords automatiquement',
+    'experimental.undo': '\u21A9 Annuler l\u2019optimisation des bords',
+    'experimental.processing': 'Optimisation des bords...',
+    'experimental.done': 'Bords optimis\u00E9s',
+
     // Language selector
     'lang.label': 'Langue',
   },
@@ -435,6 +441,12 @@ const translations: Translations = {
     'pwa.guideSafari': '1. Tippe auf Teilen (\u2B06) in der unteren Leiste<br>2. Runterscrollen \u2192 "Zum Home-Bildschirm" tippen',
     'pwa.guideGeneric': '1. \u00D6ffne das Browser-Men\u00FC (\u22EE oder \u22EF)<br>2. Suche "Installieren" oder "Zum Startbildschirm"',
     'pwa.guideDismiss': '[VERSTANDEN]',
+
+    // Experimental
+    'experimental.btn': '[EXPERIMENTELL] Kanten automatisch optimieren',
+    'experimental.undo': '\u21A9 Kantenoptimierung r\u00FCckg\u00E4ngig',
+    'experimental.processing': 'Kanten werden optimiert...',
+    'experimental.done': 'Kanten optimiert',
 
     // Language selector
     'lang.label': 'Sprache',
@@ -541,6 +553,12 @@ const translations: Translations = {
     'pwa.guideGeneric': '1. Abre o menu do navegador (\u22EE ou \u22EF)<br>2. Procura "Instalar" ou "Adicionar \u00E0 tela inicial"',
     'pwa.guideDismiss': '[ENTENDIDO]',
 
+    // Experimental
+    'experimental.btn': '[EXPERIMENTAL] Otimizar bordas automaticamente',
+    'experimental.undo': '\u21A9 Desfazer otimiza\u00E7\u00E3o de bordas',
+    'experimental.processing': 'Otimizando bordas...',
+    'experimental.done': 'Bordas otimizadas',
+
     // Language selector
     'lang.label': 'Idioma',
   },
@@ -645,6 +663,12 @@ const translations: Translations = {
     'pwa.guideSafari': '1. \u70B9\u51FB\u5E95\u90E8\u680F\u7684\u5206\u4EAB\u6309\u94AE (\u2B06)<br>2. \u5411\u4E0B\u6ED1 \u2192 \u70B9\u51FB\u300C\u6DFB\u52A0\u5230\u4E3B\u5C4F\u5E55\u300D',
     'pwa.guideGeneric': '1. \u6253\u5F00\u6D4F\u89C8\u5668\u83DC\u5355\uFF08\u22EE \u6216 \u22EF\uFF09<br>2. \u627E\u5230\u300C\u5B89\u88C5\u300D\u6216\u300C\u6DFB\u52A0\u5230\u4E3B\u5C4F\u5E55\u300D',
     'pwa.guideDismiss': '[\u6536\u5230]',
+
+    // Experimental
+    'experimental.btn': '[\u5B9E\u9A8C\u6027] \u81EA\u52A8\u4F18\u5316\u8FB9\u7F18',
+    'experimental.undo': '\u21A9 \u64A4\u9500\u8FB9\u7F18\u4F18\u5316',
+    'experimental.processing': '\u6B63\u5728\u4F18\u5316\u8FB9\u7F18...',
+    'experimental.done': '\u8FB9\u7F18\u5DF2\u4F18\u5316',
 
     // Language selector
     'lang.label': '\u8BED\u8A00',

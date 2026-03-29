@@ -74,6 +74,7 @@ export class ArEditor extends HTMLElement {
   private undoStack: HistoryEntry[] = [];
   private redoStack: HistoryEntry[] = [];
   private maxHistory = 30;
+  private boundLocaleHandler: (() => void) | null = null;
 
   constructor() {
     super();
@@ -84,9 +85,14 @@ export class ArEditor extends HTMLElement {
     this.render();
     this.setupCanvas();
     this.setupEvents();
-    document.addEventListener('nukebg:locale-changed', () => {
+    this.boundLocaleHandler = () => {
       this.updateTexts();
-    });
+    };
+    document.addEventListener('nukebg:locale-changed', this.boundLocaleHandler);
+  }
+
+  disconnectedCallback(): void {
+    if (this.boundLocaleHandler) document.removeEventListener('nukebg:locale-changed', this.boundLocaleHandler);
   }
 
   private updateTexts(): void {
@@ -119,7 +125,7 @@ export class ArEditor extends HTMLElement {
       tooltip.innerHTML = `
         <strong>${t('editor.shortcuts')}</strong><br>
         <kbd>Click</kbd> ${t('editor.shortcutErase')}<br>
-        <kbd>[ ]</kbd> ${t('editor.shortcutBrushSize')}<br>
+        <kbd>[ ]</kbd> ${t('editor.shortcutEraserSize')}<br>
         <kbd>Scroll</kbd> ${t('editor.shortcutZoom')}<br>
         <kbd>Middle drag</kbd> ${t('editor.shortcutPan')}<br>
         <kbd>0</kbd> ${t('editor.shortcutResetView')}<br>

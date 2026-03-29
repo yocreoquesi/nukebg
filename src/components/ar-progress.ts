@@ -15,6 +15,7 @@ export class ArProgress extends HTMLElement {
   private pipelineStartTime = 0;
   private totalTimeMs: number | null = null;
   private detectedContentType: string | null = null;
+  private boundLocaleHandler: (() => void) | null = null;
 
   constructor() {
     super();
@@ -23,8 +24,8 @@ export class ArProgress extends HTMLElement {
 
   connectedCallback(): void {
     this.render();
-    document.addEventListener('nukebg:locale-changed', () => {
-      // Re-traducir labels de stages activos
+    this.boundLocaleHandler = () => {
+      // Re-translate labels for active stages
       this.stages.forEach(s => {
         if (s.stage === 'detect-background') s.label = t('progress.detectBg');
         else if (s.stage === 'watermark-scan') s.label = t('progress.watermarkScan');
@@ -34,7 +35,12 @@ export class ArProgress extends HTMLElement {
         else if (s.stage === 'ml-segmentation') s.label = t('progress.bgRemovalML');
       });
       this.update();
-    });
+    };
+    document.addEventListener('nukebg:locale-changed', this.boundLocaleHandler);
+  }
+
+  disconnectedCallback(): void {
+    if (this.boundLocaleHandler) document.removeEventListener('nukebg:locale-changed', this.boundLocaleHandler);
   }
 
   reset(): void {

@@ -4,6 +4,8 @@ import { t } from '../i18n';
 export class ArDropzone extends HTMLElement {
   private fileInput!: HTMLInputElement;
   private dropArea!: HTMLDivElement;
+  private boundLocaleHandler: (() => void) | null = null;
+  private boundPasteHandler: ((e: ClipboardEvent) => void) | null = null;
 
   constructor() {
     super();
@@ -200,10 +202,11 @@ export class ArDropzone extends HTMLElement {
   }
 
   private setupEvents(): void {
-    // Escuchar cambio de idioma
-    document.addEventListener('nukebg:locale-changed', () => {
+    // Listen for locale changes
+    this.boundLocaleHandler = () => {
       this.updateTexts();
-    });
+    };
+    document.addEventListener('nukebg:locale-changed', this.boundLocaleHandler);
 
     // Click to open file picker
     this.dropArea.addEventListener('click', () => this.fileInput.click());
@@ -239,7 +242,7 @@ export class ArDropzone extends HTMLElement {
     });
 
     // Paste from clipboard
-    document.addEventListener('paste', (e) => {
+    this.boundPasteHandler = (e: ClipboardEvent) => {
       const items = e.clipboardData?.items;
       if (!items) return;
       for (const item of items) {
@@ -249,7 +252,13 @@ export class ArDropzone extends HTMLElement {
           break;
         }
       }
-    });
+    };
+    document.addEventListener('paste', this.boundPasteHandler);
+  }
+
+  disconnectedCallback(): void {
+    if (this.boundLocaleHandler) document.removeEventListener('nukebg:locale-changed', this.boundLocaleHandler);
+    if (this.boundPasteHandler) document.removeEventListener('paste', this.boundPasteHandler);
   }
 
   /** Enable or disable the dropzone (used to block interaction until model is ready) */

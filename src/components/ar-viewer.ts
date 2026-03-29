@@ -18,6 +18,7 @@ export class ArViewer extends HTMLElement {
   private boundMouseUp: (() => void) | null = null;
   private boundTouchMove: ((e: TouchEvent) => void) | null = null;
   private boundTouchEnd: (() => void) | null = null;
+  private boundLocaleHandler: (() => void) | null = null;
 
   constructor() {
     super();
@@ -26,7 +27,7 @@ export class ArViewer extends HTMLElement {
 
   connectedCallback(): void {
     this.render();
-    document.addEventListener('nukebg:locale-changed', () => {
+    this.boundLocaleHandler = () => {
       const root = this.shadowRoot!;
       const origLabel = root.querySelector('#lbl-original');
       if (origLabel) origLabel.textContent = t('viewer.original');
@@ -34,7 +35,8 @@ export class ArViewer extends HTMLElement {
       if (resultLabel) resultLabel.textContent = t('viewer.result');
       const bgLabel = root.querySelector('#viewer-bg-label');
       if (bgLabel) bgLabel.textContent = t('viewer.bg');
-    });
+    };
+    document.addEventListener('nukebg:locale-changed', this.boundLocaleHandler);
   }
 
   disconnectedCallback(): void {
@@ -42,6 +44,7 @@ export class ArViewer extends HTMLElement {
     if (this.boundMouseUp) document.removeEventListener('mouseup', this.boundMouseUp);
     if (this.boundTouchMove) document.removeEventListener('touchmove', this.boundTouchMove);
     if (this.boundTouchEnd) document.removeEventListener('touchend', this.boundTouchEnd);
+    if (this.boundLocaleHandler) document.removeEventListener('nukebg:locale-changed', this.boundLocaleHandler);
   }
 
   private render(): void {
@@ -241,7 +244,7 @@ export class ArViewer extends HTMLElement {
           <canvas id="result"></canvas>
         </div>
         <div class="slider-line" id="slider-line"></div>
-        <div class="slider-handle" id="slider-handle">&#8596;</div>
+        <div class="slider-handle" id="slider-handle" tabindex="0" role="slider" aria-valuenow="${this.sliderPos}" aria-valuemin="0" aria-valuemax="100" aria-label="${t('viewer.original')} / ${t('viewer.result')}">&#8596;</div>
         <span class="label label-original" id="lbl-original">${t('viewer.original')}</span>
         <span class="label label-result" id="lbl-result">${t('viewer.result')}</span>
       </div>
@@ -293,6 +296,33 @@ export class ArViewer extends HTMLElement {
     this.boundTouchEnd = () => { this.isDragging = false; };
     document.addEventListener('touchmove', this.boundTouchMove, { passive: true });
     document.addEventListener('touchend', this.boundTouchEnd);
+
+    // Keyboard support for slider handle
+    const handle = this.shadowRoot!.querySelector('#slider-handle') as HTMLElement;
+    handle.addEventListener('keydown', (e: KeyboardEvent) => {
+      let handled = true;
+      switch (e.key) {
+        case 'ArrowLeft':
+          this.sliderPos = Math.max(0, this.sliderPos - 2);
+          break;
+        case 'ArrowRight':
+          this.sliderPos = Math.min(100, this.sliderPos + 2);
+          break;
+        case 'Home':
+          this.sliderPos = 0;
+          break;
+        case 'End':
+          this.sliderPos = 100;
+          break;
+        default:
+          handled = false;
+      }
+      if (handled) {
+        e.preventDefault();
+        handle.setAttribute('aria-valuenow', String(Math.round(this.sliderPos)));
+        this.updateSlider();
+      }
+    });
   }
 
   private setupBgButtons(): void {
@@ -329,6 +359,7 @@ export class ArViewer extends HTMLElement {
 
     line.style.left = `${this.sliderPos}%`;
     handle.style.left = `${this.sliderPos}%`;
+    handle.setAttribute('aria-valuenow', String(Math.round(this.sliderPos)));
     const clipValue = `inset(0 0 0 ${this.sliderPos}%)`;
     resultLayer.style.clipPath = clipValue;
     // -webkit- prefix for older Safari

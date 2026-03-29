@@ -1,6 +1,8 @@
 import { t } from '../i18n';
 
 export class ArPrivacy extends HTMLElement {
+  private boundLocaleHandler: (() => void) | null = null;
+
   constructor() {
     super();
     this.attachShadow({ mode: 'open' });
@@ -8,9 +10,14 @@ export class ArPrivacy extends HTMLElement {
 
   connectedCallback(): void {
     this.renderContent();
-    document.addEventListener('nukebg:locale-changed', () => {
+    this.boundLocaleHandler = () => {
       this.updateTexts();
-    });
+    };
+    document.addEventListener('nukebg:locale-changed', this.boundLocaleHandler);
+  }
+
+  disconnectedCallback(): void {
+    if (this.boundLocaleHandler) document.removeEventListener('nukebg:locale-changed', this.boundLocaleHandler);
   }
 
   private updateTexts(): void {
