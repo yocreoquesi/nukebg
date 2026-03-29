@@ -467,8 +467,8 @@ export class ArApp extends HTMLElement {
         .experimental-btn {
           width: 100%;
           background: transparent;
-          color: #b8a500;
-          border: 1px solid #3a3a1a;
+          color: var(--color-experimental, #b8a500);
+          border: 1px solid var(--color-experimental-border, #3a3a1a);
           border-radius: 0;
           padding: var(--space-3, 0.75rem);
           font-size: 12px;
@@ -479,8 +479,8 @@ export class ArApp extends HTMLElement {
           transition: color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
         }
         .experimental-btn:hover {
-          color: #e0cc00;
-          border-color: #b8a500;
+          color: var(--color-experimental-hover, #e0cc00);
+          border-color: var(--color-experimental, #b8a500);
           box-shadow: 0 0 10px rgba(184, 165, 0, 0.15);
         }
         .experimental-btn:disabled {

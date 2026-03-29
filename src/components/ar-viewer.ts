@@ -57,7 +57,7 @@ export class ArViewer extends HTMLElement {
           margin: 0 auto;
           border-radius: 0;
           overflow: hidden;
-          border: 1px solid #1a3a1a;
+          border: 1px solid var(--color-surface-border, #1a3a1a);
           cursor: col-resize;
           user-select: none;
           -webkit-user-select: none;
@@ -108,14 +108,14 @@ export class ArViewer extends HTMLElement {
           width: 28px; height: 28px;
           border-radius: 0;
           background: var(--color-accent-primary, #00ff41);
-          border: 2px solid #000;
+          border: 2px solid var(--color-bg-primary, #000);
           cursor: col-resize;
           z-index: 11;
           display: flex;
           align-items: center;
           justify-content: center;
           font-size: 12px;
-          color: #000;
+          color: var(--color-bg-primary, #000);
           box-shadow: 0 0 10px rgba(0, 255, 65, 0.4);
         }
         .label {
@@ -143,8 +143,8 @@ export class ArViewer extends HTMLElement {
           font-size: 12px;
           font-family: 'JetBrains Mono', monospace;
           color: var(--color-text-secondary, #00dd44);
-          background: #000;
-          border-top: 1px solid #1a3a1a;
+          background: var(--color-bg-primary, #000);
+          border-top: 1px solid var(--color-surface-border, #1a3a1a);
         }
         .bg-options {
           display: flex;
@@ -396,21 +396,26 @@ export class ArViewer extends HTMLElement {
     this.resultCanvas.height = imageData.height;
     ctx.putImageData(imageData, 0, 0);
 
-    // Animate slider reveal
-    this.sliderPos = 100;
-    this.updateSlider();
-    requestAnimationFrame(() => {
-      const start = performance.now();
-      const animate = (now: number) => {
-        const progress = Math.min((now - start) / 800, 1);
-        // Ease out
-        const eased = 1 - Math.pow(1 - progress, 3);
-        this.sliderPos = 100 - eased * 100;
-        this.updateSlider();
-        if (progress < 1) requestAnimationFrame(animate);
-      };
-      requestAnimationFrame(animate);
-    });
+    // Animate slider reveal (respect prefers-reduced-motion)
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      this.sliderPos = 0;
+      this.updateSlider();
+    } else {
+      this.sliderPos = 100;
+      this.updateSlider();
+      requestAnimationFrame(() => {
+        const start = performance.now();
+        const animate = (now: number) => {
+          const progress = Math.min((now - start) / 800, 1);
+          // Ease out
+          const eased = 1 - Math.pow(1 - progress, 3);
+          this.sliderPos = 100 - eased * 100;
+          this.updateSlider();
+          if (progress < 1) requestAnimationFrame(animate);
+        };
+        requestAnimationFrame(animate);
+      });
+    }
 
     const info = this.shadowRoot!.querySelector('#info-text')!;
     const sizeStr = blob ? ` | ${Math.round(blob.size / 1024)} KB` : '';

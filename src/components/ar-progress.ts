@@ -161,7 +161,7 @@ export class ArProgress extends HTMLElement {
           font-family: 'Segoe UI Symbol', 'Apple Symbols', 'Noto Sans Symbols', sans-serif;
         }
         .stage.pending .stage-icon {
-          border: 1.5px solid #1a3a1a;
+          border: 1.5px solid var(--color-surface-border, #1a3a1a);
           border-radius: 0;
         }
         .stage.running .stage-icon {
@@ -176,7 +176,7 @@ export class ArProgress extends HTMLElement {
           color: var(--color-text-tertiary, #008830);
         }
         .stage.error .stage-icon {
-          color: #ff3131;
+          color: var(--color-error, #ff3131);
         }
         .stage-label {
           flex: 1;
@@ -192,7 +192,7 @@ export class ArProgress extends HTMLElement {
         .progress-bar {
           width: 100%;
           height: 3px;
-          background: #0d0d0d;
+          background: var(--color-bg-secondary, #0d0d0d);
           border-radius: 0;
           margin-top: 4px;
           overflow: hidden;

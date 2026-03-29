@@ -482,7 +482,17 @@ export class PipelineOrchestrator {
       new URL('../workers/sam.worker.ts', import.meta.url),
       { type: 'module' }
     );
-    this.samWorker.onerror = (e) => this.rejectAllPending(`SAM Worker error: ${e.message}`);
+    this.samWorker.onerror = (e) => {
+      // Only reject SAM-specific pending requests (refine/load-model types),
+      // not requests belonging to CV/ML/inpaint workers
+      const samTypes = ['refine', 'load-model'];
+      for (const [id, pending] of this.pendingRequests) {
+        if (samTypes.includes(pending.expectedType)) {
+          this.pendingRequests.delete(id);
+          pending.reject(new Error(`SAM Worker error: ${e.message}`));
+        }
+      }
+    };
     this.samWorker.onmessage = (e: MessageEvent<SamWorkerResponse>) => {
       const msg = e.data;
       if (msg.type === 'sam-progress') {
