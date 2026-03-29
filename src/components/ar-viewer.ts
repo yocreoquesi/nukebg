@@ -292,9 +292,9 @@ export class ArViewer extends HTMLElement {
       this.isDragging = true;
       onMove(e.touches[0].clientX);
     }, { passive: true });
-    this.boundTouchMove = (e: TouchEvent) => { if (this.isDragging) onMove(e.touches[0].clientX); };
+    this.boundTouchMove = (e: TouchEvent) => { if (this.isDragging) { e.preventDefault(); onMove(e.touches[0].clientX); } };
     this.boundTouchEnd = () => { this.isDragging = false; };
-    document.addEventListener('touchmove', this.boundTouchMove, { passive: true });
+    document.addEventListener('touchmove', this.boundTouchMove, { passive: false });
     document.addEventListener('touchend', this.boundTouchEnd);
 
     // Keyboard support for slider handle

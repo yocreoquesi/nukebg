@@ -3,6 +3,7 @@
   "short_name": "NukeBG",
   "description": "Nuke AI backgrounds, checkerboard patterns, and watermarks. 100% client-side.",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#000000",
   "theme_color": "#000000",

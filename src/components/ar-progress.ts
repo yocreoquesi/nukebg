@@ -247,7 +247,7 @@ export class ArProgress extends HTMLElement {
           text-shadow: 0 0 6px rgba(0, 255, 65, 0.4);
         }
       </style>
-      <div class="stages" role="progressbar" aria-live="polite"></div>
+      <div class="stages" role="log" aria-live="polite"></div>
     `;
   }
 
@@ -257,7 +257,8 @@ export class ArProgress extends HTMLElement {
       .replace(/&/g, '&amp;')
       .replace(/</g, '&lt;')
       .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;');
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
   }
 
   private update(): void {

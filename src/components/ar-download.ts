@@ -329,7 +329,7 @@ export class ArDownload extends HTMLElement {
           <button id="format-webp" aria-pressed="false"><span id="format-webp-label">${t('download.formatWebp')}</span></button>
         </div>
         <a class="btn-primary" id="download-btn">${t('download.btn')}</a>
-        <button class="btn-copy" id="copy-btn" title="Copy to clipboard">${t('download.copy')}</button>
+        <button class="btn-copy" id="copy-btn" title="Copy to clipboard" aria-live="polite">${t('download.copy')}</button>
         <button class="btn-secondary" id="another-btn">${t('download.another')}</button>
         <span class="metadata" id="meta"></span>
       </div>

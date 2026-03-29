@@ -77,7 +77,7 @@ export class ArApp extends HTMLElement {
   }
 
   disconnectedCallback(): void {
-    this.crtFlickerTimers.forEach(id => clearInterval(id));
+    this.crtFlickerTimers.forEach(id => clearTimeout(id));
     this.crtFlickerTimers = [];
     if (this.boundLocaleHandler) document.removeEventListener('nukebg:locale-changed', this.boundLocaleHandler);
     if (this.boundPwaInstallableHandler) document.removeEventListener('nukebg:pwa-installable', this.boundPwaInstallableHandler);
@@ -1335,7 +1335,7 @@ export class ArApp extends HTMLElement {
   }
 
   private stopCrtFlicker(): void {
-    this.crtFlickerTimers.forEach(id => clearInterval(id));
+    this.crtFlickerTimers.forEach(id => clearTimeout(id));
     this.crtFlickerTimers = [];
     const allCards = this.shadowRoot!.querySelectorAll('.feature-card');
     allCards.forEach(c => c.classList.remove('crt-flicker'));
@@ -1487,6 +1487,10 @@ export class ArApp extends HTMLElement {
     this.download.reset();
     this.preEditResult = null;
     this.cachedEditResult = null;
+    this.lastResultImageData = null;
+    this.currentImageData = null;
+    this.lastRmbgAlpha = null;
+    this.preOptimizeResult = null;
 
     // Keep pipeline alive for next image (model stays loaded)
   }
