@@ -482,18 +482,39 @@ export class ArApp extends HTMLElement {
         }
         :host(.precision-override) .subline,
         :host(.precision-override) .feature-desc,
-        :host(.precision-override) .model-status {
+        :host(.precision-override) .model-status,
+        :host(.precision-override) .features-disclaimer,
+        :host(.precision-override) .features-kofi {
           color: var(--terminal-color-override, #00dd44);
         }
         :host(.precision-override) .feature-title,
-        :host(.precision-override) .precision-label {
+        :host(.precision-override) .precision-label,
+        :host(.precision-override) .terminal-prefix,
+        :host(.precision-override) .feature-icon {
+          color: var(--terminal-color-override, #00ff41);
+        }
+        :host(.precision-override) .feature-sep {
+          color: var(--terminal-color-override, #008830);
+        }
+        :host(.precision-override) .features-disclaimer s {
+          color: var(--terminal-color-override, #008830);
+        }
+        :host(.precision-override) .features-kofi a {
           color: var(--terminal-color-override, #00ff41);
         }
         :host(.precision-override) .edit-btn {
           color: var(--terminal-color-override, #00dd44);
           border-color: var(--terminal-color-override, #1a3a1a);
         }
-        :host(.precision-override) #precision-slider {
+        :host(.precision-override) .experimental-btn {
+          color: var(--terminal-color-override, #b8a500);
+          border-color: var(--terminal-color-override, #3a3a1a);
+        }
+        :host(.precision-override) .model-status::before {
+          color: var(--terminal-color-override, #008830);
+        }
+        :host(.precision-override) #precision-slider,
+        :host(.precision-override) #precision-slider-ws {
           accent-color: var(--terminal-color-override, #00ff41);
         }
 
