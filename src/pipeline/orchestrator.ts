@@ -8,7 +8,12 @@ import type {
   ImageContentType,
 } from '../types/pipeline';
 import type { CvWorkerResponse, MlWorkerResponse, InpaintWorkerResponse, ModelId, ClassifyImageResult } from '../types/worker-messages';
-import type { SamWorkerResponse } from '../workers/sam.worker';
+// SAM worker response type (inline to avoid importing from worker file)
+type SamWorkerResponse =
+  | { id: string; type: 'sam-progress'; progress: number }
+  | { id: string; type: 'sam-ready' }
+  | { id: string; type: 'refine-result'; result: Uint8Array }
+  | { id: string; type: 'error'; error: string };
 import { CV_PARAMS, IMAGE_CLASSIFY_PARAMS } from './constants';
 
 type StageCallback = (stage: PipelineStage, status: StageStatus, message?: string) => void;
