@@ -103,11 +103,19 @@ export interface BackendConfig {
 export const BACKEND_WEBGPU: BackendConfig = {
   modelId: 'inspyrenet',
   device: 'webgpu',
-  dtype: 'fp16',
+  dtype: 'q8',
   label: 'InSPyReNet',
 };
 
 export const BACKEND_WASM: BackendConfig = {
+  modelId: 'inspyrenet',
+  device: 'wasm',
+  dtype: 'q8',
+  label: 'InSPyReNet',
+};
+
+/** Legacy RMBG fallback - used only if InSPyReNet fails completely */
+export const BACKEND_RMBG: BackendConfig = {
   modelId: 'briaai/RMBG-1.4',
   device: 'wasm',
   dtype: 'q8',
@@ -115,8 +123,8 @@ export const BACKEND_WASM: BackendConfig = {
 };
 
 export const MODEL_OPTIONS: { id: ModelId; label: string; description: string }[] = [
-  { id: 'inspyrenet', label: 'InSPyReNet', description: 'WebGPU, MIT license, superior quality' },
-  { id: 'briaai/RMBG-1.4', label: 'RMBG 1.4', description: 'WASM fallback, universal compatibility' },
+  { id: 'inspyrenet', label: 'InSPyReNet', description: 'MIT license, superior quality (27MB)' },
+  { id: 'briaai/RMBG-1.4', label: 'RMBG 1.4', description: 'Legacy fallback' },
 ];
 
 export type MlWorkerRequest =

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import type { ModelId, BackendConfig } from '../../src/types/worker-messages';
-import { MODEL_OPTIONS, BACKEND_WEBGPU, BACKEND_WASM } from '../../src/types/worker-messages';
+import { MODEL_OPTIONS, BACKEND_WEBGPU, BACKEND_WASM, BACKEND_RMBG } from '../../src/types/worker-messages';
 
 /**
  * Tests for dual-backend model configuration.
@@ -40,15 +40,22 @@ describe('ModelId parameter', () => {
   it('BACKEND_WEBGPU config is correct', () => {
     expect(BACKEND_WEBGPU.modelId).toBe('inspyrenet');
     expect(BACKEND_WEBGPU.device).toBe('webgpu');
-    expect(BACKEND_WEBGPU.dtype).toBe('fp16');
+    expect(BACKEND_WEBGPU.dtype).toBe('q8');
     expect(BACKEND_WEBGPU.label).toBe('InSPyReNet');
   });
 
   it('BACKEND_WASM config is correct', () => {
-    expect(BACKEND_WASM.modelId).toBe('briaai/RMBG-1.4');
+    expect(BACKEND_WASM.modelId).toBe('inspyrenet');
     expect(BACKEND_WASM.device).toBe('wasm');
     expect(BACKEND_WASM.dtype).toBe('q8');
-    expect(BACKEND_WASM.label).toBe('RMBG 1.4');
+    expect(BACKEND_WASM.label).toBe('InSPyReNet');
+  });
+
+  it('BACKEND_RMBG fallback config is correct', () => {
+    expect(BACKEND_RMBG.modelId).toBe('briaai/RMBG-1.4');
+    expect(BACKEND_RMBG.device).toBe('wasm');
+    expect(BACKEND_RMBG.dtype).toBe('q8');
+    expect(BACKEND_RMBG.label).toBe('RMBG 1.4');
   });
 
   it('ModelId type accepts both model IDs', () => {

@@ -1,21 +1,21 @@
 /**
- * ML Worker - Background removal with dual-backend support.
- * Primary: InSPyReNet (MIT, fp16, WebGPU) via direct ONNX Runtime session.
+ * ML Worker - Background removal with InSPyReNet (MIT license).
+ * Primary: InSPyReNet Res2Net50 q8 (27MB) via direct ONNX Runtime session.
  * Fallback: RMBG-1.4 (non-commercial, q8, WASM) via Transformers.js pipeline.
- * WebGPU is auto-detected; falls back silently to WASM if unavailable.
+ * WebGPU auto-detected for acceleration; WASM as universal fallback.
  */
 import type { MlWorkerRequest, ModelId, BackendConfig } from '../types/worker-messages';
-import { BACKEND_WEBGPU, BACKEND_WASM } from '../types/worker-messages';
+import { BACKEND_WEBGPU, BACKEND_WASM, BACKEND_RMBG } from '../types/worker-messages';
 
-/** InSPyReNet model URL - served from GitHub Releases */
-const INSPYRENET_MODEL_URL = 'https://github.com/yocreoquesi/nukebg/releases/download/models-v1/inspyrenet_res2net50_fp16_nopad.onnx';
+/** InSPyReNet q8 model URL - served from GitHub Releases */
+const INSPYRENET_MODEL_URL = 'https://github.com/yocreoquesi/nukebg/releases/download/models-v1/inspyrenet_res2net50_q8.onnx';
 /** InSPyReNet fixed input resolution */
 const INSPYRENET_SIZE = 384;
 /** ImageNet normalization constants */
 const IMAGENET_MEAN = [0.485, 0.456, 0.406];
 const IMAGENET_STD = [0.229, 0.224, 0.225];
 
-// --- Transformers.js types for RMBG pipeline ---
+// --- Type definitions ---
 
 interface SegmenterEntry {
   pipeline: { dispose?: () => void; (image: unknown, opts: unknown): Promise<Array<{ mask?: { data: Uint8Array; width: number; height: number } }>>; };
@@ -25,18 +25,19 @@ interface SegmenterEntry {
 interface OnnxSessionEntry {
   session: { run(feeds: Record<string, unknown>): Promise<Record<string, { data: Float32Array; dims: number[] }>>; release(): void };
   type: 'onnx';
+  inputName: string;
 }
 
 type ModelEntry = SegmenterEntry | OnnxSessionEntry;
 
-/** Cache loaded models so switching is instant after first load */
+/** Cache loaded models */
 const models = new Map<string, ModelEntry>();
 let activeConfig: BackendConfig = BACKEND_WASM;
 let RawImageClass: (new (data: Uint8ClampedArray, w: number, h: number, channels: number) => unknown) | null = null;
 
 /**
  * Detect the best available backend.
- * Tries WebGPU first (for InSPyReNet fp16), falls back to WASM (for RMBG q8).
+ * Tries WebGPU first for acceleration, falls back to WASM.
  */
 async function detectBackend(): Promise<BackendConfig> {
   if (typeof navigator === 'undefined' || !('gpu' in navigator)) {
@@ -59,13 +60,10 @@ async function detectBackend(): Promise<BackendConfig> {
   }
 }
 
-/**
- * Spatial context edge refinement.
- * Removes isolated semi-transparent residue pixels while preserving
- * the subject's outline. Works by checking each edge pixel's neighborhood:
- * - If mostly surrounded by transparent -> it's residue -> remove
- * - If mostly surrounded by opaque -> it's part of the subject -> keep
- */
+// ============================================================
+// Edge refinement (shared by all models)
+// ============================================================
+
 function refineEdges(
   alpha: Uint8Array,
   _pixels: Uint8ClampedArray,
@@ -78,7 +76,6 @@ function refineEdges(
   return result;
 }
 
-/** Single spatial refinement pass at given radius */
 function spatialPass(alpha: Uint8Array, w: number, h: number, radius: number): Uint8Array {
   const result = new Uint8Array(alpha);
 
@@ -120,7 +117,6 @@ function spatialPass(alpha: Uint8Array, w: number, h: number, radius: number): U
   return result;
 }
 
-/** Remove small opaque clusters not connected to the main subject */
 function removeSmallClusters(alpha: Uint8Array, w: number, h: number, minSize: number): Uint8Array {
   const result = new Uint8Array(alpha);
   const visited = new Uint8Array(w * h);
@@ -180,10 +176,9 @@ const progressCb = (id: string) => (progress: { status: string; progress?: numbe
 };
 
 // ============================================================
-// InSPyReNet: direct ONNX Runtime session (WebGPU or WASM)
+// InSPyReNet: direct ONNX Runtime session
 // ============================================================
 
-/** Download model with progress tracking */
 async function fetchModelWithProgress(id: string, url: string): Promise<ArrayBuffer> {
   const response = await fetch(url);
   if (!response.ok) throw new Error(`Failed to fetch model: ${response.status}`);
@@ -216,7 +211,6 @@ async function fetchModelWithProgress(id: string, url: string): Promise<ArrayBuf
   return buffer.buffer;
 }
 
-/** Load InSPyReNet via direct ONNX Runtime session */
 async function loadInspyrenet(id: string, device: 'webgpu' | 'wasm'): Promise<void> {
   self.postMessage({ id, type: 'model-progress', progress: 5 });
 
@@ -224,12 +218,10 @@ async function loadInspyrenet(id: string, device: 'webgpu' | 'wasm'): Promise<vo
 
   self.postMessage({ id, type: 'model-progress', progress: 8 });
 
-  // Download model
   const modelBuffer = await fetchModelWithProgress(id, INSPYRENET_MODEL_URL);
 
   self.postMessage({ id, type: 'model-progress', progress: 85 });
 
-  // Create session with appropriate backend
   const sessionOptions = {
     executionProviders: device === 'webgpu'
       ? [{ name: 'webgpu' as const, preferredLayout: 'NHWC' as const }]
@@ -238,22 +230,25 @@ async function loadInspyrenet(id: string, device: 'webgpu' | 'wasm'): Promise<vo
 
   const session = await ort.InferenceSession.create(modelBuffer, sessionOptions);
 
+  // Discover input name (varies between fp16 and q8 exports)
+  const inputName = session.inputNames[0];
+
   self.postMessage({ id, type: 'model-progress', progress: 90 });
 
-  // Warmup inference
+  // Warmup
   try {
     const warmupData = new Float32Array(1 * 3 * INSPYRENET_SIZE * INSPYRENET_SIZE);
     const warmupTensor = new ort.Tensor('float32', warmupData, [1, 3, INSPYRENET_SIZE, INSPYRENET_SIZE]);
-    await session.run({ input_image: warmupTensor });
+    await session.run({ [inputName]: warmupTensor });
   } catch { /* warmup failure is non-critical */ }
 
   models.set('inspyrenet', {
     session: session as unknown as OnnxSessionEntry['session'],
     type: 'onnx',
+    inputName,
   });
 }
 
-/** Preprocess RGBA pixels to InSPyReNet input tensor (1x3x384x384, ImageNet normalized) */
 function preprocessInspyrenet(
   pixels: Uint8ClampedArray,
   width: number,
@@ -282,7 +277,6 @@ function preprocessInspyrenet(
   return tensor;
 }
 
-/** Run InSPyReNet inference and return alpha mask at original dimensions */
 async function runInspyrenet(
   pixels: Uint8ClampedArray,
   width: number,
@@ -294,11 +288,10 @@ async function runInspyrenet(
   const inputData = preprocessInspyrenet(pixels, width, height);
   const inputTensor = new ort.Tensor('float32', inputData, [1, 3, INSPYRENET_SIZE, INSPYRENET_SIZE]);
 
-  const results = await entry.session.run({ input_image: inputTensor });
+  const results = await entry.session.run({ [entry.inputName]: inputTensor });
   const outputKey = Object.keys(results)[0];
   const outputData = results[outputKey].data as Float32Array;
 
-  // Output is 1x1x384x384, values 0-1. Map back to original dimensions.
   const maskSize = INSPYRENET_SIZE;
   const alpha = new Uint8Array(width * height);
 
@@ -315,7 +308,7 @@ async function runInspyrenet(
 }
 
 // ============================================================
-// RMBG-1.4: Transformers.js pipeline (WASM)
+// RMBG-1.4: Transformers.js pipeline (last resort fallback)
 // ============================================================
 
 async function loadRmbg(id: string): Promise<void> {
@@ -339,7 +332,6 @@ async function loadRmbg(id: string): Promise<void> {
     type: 'transformers',
   });
 
-  // Warmup
   self.postMessage({ id, type: 'model-progress', progress: 96 });
   try {
     if (RawImageClass) {
@@ -350,7 +342,6 @@ async function loadRmbg(id: string): Promise<void> {
   } catch { /* warmup failure is non-critical */ }
 }
 
-/** Run RMBG-1.4 inference via Transformers.js pipeline */
 async function runRmbg(
   pixels: Uint8ClampedArray,
   width: number,
@@ -433,7 +424,6 @@ async function segment(
   _modelId: ModelId = activeConfig.modelId,
   threshold = 0.5,
 ): Promise<void> {
-  // Auto-load if needed
   if (!models.has(activeConfig.modelId)) {
     await loadModel(`_autoload_${id}`, activeConfig, false);
   }
@@ -447,16 +437,31 @@ async function segment(
       rawAlpha = await runRmbg(pixels, width, height, threshold);
     }
   } catch (err) {
-    // WebGPU failure: fall back to WASM + RMBG
-    if (isWebGpuError(err) && activeConfig.device === 'webgpu') {
-      await fallbackToWasm(id, 'GPU inference failed');
-      rawAlpha = await runRmbg(pixels, width, height, threshold);
+    // Any failure from primary model: try next fallback
+    if (activeConfig.modelId === 'inspyrenet') {
+      const reason = String(err).slice(0, 120);
+
+      if (activeConfig.device === 'webgpu') {
+        // WebGPU InSPyReNet failed → try WASM InSPyReNet
+        await fallbackTo(id, BACKEND_WASM, reason);
+        try {
+          rawAlpha = await runInspyrenet(pixels, width, height);
+        } catch {
+          // WASM InSPyReNet also failed → last resort: RMBG
+          await fallbackTo(id, BACKEND_RMBG, 'InSPyReNet WASM also failed');
+          rawAlpha = await runRmbg(pixels, width, height, threshold);
+        }
+      } else {
+        // WASM InSPyReNet failed → last resort: RMBG
+        await fallbackTo(id, BACKEND_RMBG, reason);
+        rawAlpha = await runRmbg(pixels, width, height, threshold);
+      }
     } else {
       throw err;
     }
   }
 
-  // Diagnostic: check raw mask value distribution
+  // Diagnostic
   let rawMin = 255;
   let rawMax = 0;
   for (let i = 0; i < rawAlpha.length; i++) {
@@ -480,13 +485,9 @@ async function segment(
   );
 }
 
-/** Check if an error is a WebGPU-related failure */
-function isWebGpuError(err: unknown): boolean {
-  return /lost|oom|out of memory|bad_alloc|device lost|allocation|abort|shader|pipeline|webgpu|non-zero status/i.test(String(err));
-}
-
-/** Attempt to fall back from WebGPU to WASM */
-async function fallbackToWasm(id: string, reason: string): Promise<void> {
+/** Switch to a different backend config */
+async function fallbackTo(id: string, config: BackendConfig, reason: string): Promise<void> {
+  // Dispose current model
   for (const [k, e] of models) {
     try {
       if (e.type === 'onnx') e.session.release();
@@ -499,12 +500,12 @@ async function fallbackToWasm(id: string, reason: string): Promise<void> {
     id,
     type: 'backend-fallback',
     from: activeConfig.label,
-    to: BACKEND_WASM.label,
+    to: config.label,
     reason,
   });
 
-  activeConfig = BACKEND_WASM;
-  await loadModel(id, BACKEND_WASM);
+  activeConfig = config;
+  await loadModel(id, config);
 }
 
 self.onmessage = async (e: MessageEvent<MlWorkerRequest>) => {
@@ -518,8 +519,20 @@ self.onmessage = async (e: MessageEvent<MlWorkerRequest>) => {
         try {
           await loadModel(msg.id, config);
         } catch (loadErr) {
-          if (config.device === 'webgpu' && isWebGpuError(loadErr)) {
-            await fallbackToWasm(msg.id, 'WebGPU model failed to load');
+          // Primary failed to load → cascade fallback
+          const reason = String(loadErr).slice(0, 120);
+
+          if (config.device === 'webgpu') {
+            // WebGPU failed → try WASM InSPyReNet
+            try {
+              await fallbackTo(msg.id, BACKEND_WASM, reason);
+            } catch {
+              // WASM InSPyReNet failed → RMBG
+              await fallbackTo(msg.id, BACKEND_RMBG, 'InSPyReNet unavailable');
+            }
+          } else if (config.modelId === 'inspyrenet') {
+            // WASM InSPyReNet failed → RMBG
+            await fallbackTo(msg.id, BACKEND_RMBG, reason);
           } else {
             throw loadErr;
           }
