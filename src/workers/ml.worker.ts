@@ -415,7 +415,7 @@ async function segment(
 
 /** Check if an error is a WebGPU-related failure */
 function isWebGpuError(err: unknown): boolean {
-  return /lost|oom|out of memory|device lost|allocation|abort|shader|pipeline|webgpu|non-zero status/i.test(String(err));
+  return /lost|oom|out of memory|bad_alloc|device lost|allocation|abort|shader|pipeline|webgpu|non-zero status/i.test(String(err));
 }
 
 /** Attempt to fall back from WebGPU to WASM */
