@@ -302,30 +302,13 @@ async function segment(
       return_mask: true,
     });
   } catch (err) {
-    // WebGPU OOM or device lost: fall back to WASM + RMBG
-    const isGpuError = /lost|oom|out of memory|device lost|allocation|abort/i.test(String(err));
-    if (isGpuError && activeConfig.device === 'webgpu') {
-      // Dispose broken WebGPU session
-      for (const [k, e] of segmenters) {
-        try { e.pipeline?.dispose?.(); } catch { /* ignore */ }
-        segmenters.delete(k);
-      }
-
-      // Notify UI of fallback
-      self.postMessage({
-        id,
-        type: 'backend-fallback',
-        from: activeConfig.label,
-        to: BACKEND_WASM.label,
-        reason: 'GPU memory exceeded',
-      });
-
-      // Switch to WASM and retry
-      activeConfig = BACKEND_WASM;
-      await loadModel(`_fallback_${id}`, BACKEND_WASM, false);
+    // WebGPU failure: fall back to WASM + RMBG
+    if (isWebGpuError(err) && activeConfig.device === 'webgpu') {
+      await fallbackToWasm(id, 'GPU inference failed');
 
       // Retry with WASM (no downscale needed)
       const wasmEntry = segmenters.get(BACKEND_WASM.modelId)!;
+      if (!RawImageClass) throw new Error('RawImage class not loaded');
       const wasmImage = new RawImageClass(pixels, width, height, 4);
       results = await wasmEntry.pipeline(wasmImage, { threshold, return_mask: true });
     } else {
@@ -378,6 +361,31 @@ async function segment(
   );
 }
 
+/** Check if an error is a WebGPU-related failure */
+function isWebGpuError(err: unknown): boolean {
+  return /lost|oom|out of memory|device lost|allocation|abort|shader|pipeline|webgpu|non-zero status/i.test(String(err));
+}
+
+/** Attempt to fall back from WebGPU to WASM */
+async function fallbackToWasm(id: string, reason: string): Promise<void> {
+  // Dispose any broken WebGPU sessions
+  for (const [k, e] of segmenters) {
+    try { e.pipeline?.dispose?.(); } catch { /* ignore */ }
+    segmenters.delete(k);
+  }
+
+  self.postMessage({
+    id,
+    type: 'backend-fallback',
+    from: activeConfig.label,
+    to: BACKEND_WASM.label,
+    reason,
+  });
+
+  activeConfig = BACKEND_WASM;
+  await loadModel(id, BACKEND_WASM);
+}
+
 self.onmessage = async (e: MessageEvent<MlWorkerRequest>) => {
   const msg = e.data;
   try {
@@ -386,7 +394,17 @@ self.onmessage = async (e: MessageEvent<MlWorkerRequest>) => {
         // Detect best backend on first load
         const config = await detectBackend();
         activeConfig = config;
-        await loadModel(msg.id, config);
+
+        try {
+          await loadModel(msg.id, config);
+        } catch (loadErr) {
+          // WebGPU model failed to load (shader compilation, etc.) -> fallback
+          if (config.device === 'webgpu' && isWebGpuError(loadErr)) {
+            await fallbackToWasm(msg.id, 'WebGPU model failed to load');
+          } else {
+            throw loadErr;
+          }
+        }
         break;
       }
       case 'segment': {
