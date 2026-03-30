@@ -1,12 +1,11 @@
 /**
  * ML Worker - Background removal via Transformers.js
- * Uses briaai/RMBG-1.4 through the high-level pipeline API.
+ * Dual-backend: WebGPU + BiRefNet-lite (fp16) with WASM + RMBG-1.4 (q8) fallback.
  * Transformers.js handles ONNX Runtime, WebGPU/WASM detection,
  * model download, caching - all internally.
  */
-import type { MlWorkerRequest, ModelId } from '../types/worker-messages';
-
-const DEFAULT_MODEL: ModelId = 'briaai/RMBG-1.4';
+import type { MlWorkerRequest, ModelId, BackendConfig } from '../types/worker-messages';
+import { BACKEND_WEBGPU, BACKEND_WASM } from '../types/worker-messages';
 
 /** Transformers.js pipeline entry - shape is dynamic from the library */
 interface SegmenterEntry {
@@ -16,23 +15,46 @@ interface SegmenterEntry {
 
 /** Cache segmenters by model ID so switching is instant after first load */
 const segmenters = new Map<string, SegmenterEntry>();
-let currentModelId: ModelId = DEFAULT_MODEL;
+let activeConfig: BackendConfig = BACKEND_WASM;
 let RawImageClass: (new (data: Uint8ClampedArray, w: number, h: number, channels: number) => unknown) | null = null;
 
-/** Detect compute device - currently forced to WASM */
-async function detectDevice(): Promise<'webgpu' | 'wasm'> {
-  // Force WASM - WebGPU in Transformers.js is unstable and causes
-  // NetworkError on some browsers when loading the WebGPU runtime.
-  // Re-enable when Transformers.js WebGPU support is stable.
-  return 'wasm';
+/** Max inference resolution for WebGPU to stay within VRAM limits */
+const WEBGPU_MAX_SIZE = 512;
+
+/**
+ * Detect the best available backend.
+ * Tries WebGPU first (for BiRefNet fp16), falls back to WASM (for RMBG q8).
+ */
+async function detectBackend(): Promise<BackendConfig> {
+  // Check WebGPU availability in worker scope
+  if (typeof navigator === 'undefined' || !('gpu' in navigator)) {
+    return BACKEND_WASM;
+  }
+
+  try {
+    const adapter = await navigator.gpu.requestAdapter();
+    if (!adapter) return BACKEND_WASM;
+
+    // Check minimum buffer size (~256MB) as VRAM proxy
+    const maxBuffer = adapter.limits.maxBufferSize;
+    if (maxBuffer < 256 * 1024 * 1024) return BACKEND_WASM;
+
+    // Confirm device can be created
+    const device = await adapter.requestDevice();
+    device.destroy();
+
+    return BACKEND_WEBGPU;
+  } catch {
+    return BACKEND_WASM;
+  }
 }
 
 /**
  * Spatial context edge refinement.
  * Removes isolated semi-transparent residue pixels while preserving
  * the subject's outline. Works by checking each edge pixel's neighborhood:
- * - If mostly surrounded by transparent → it's residue → remove
- * - If mostly surrounded by opaque → it's part of the subject → keep
+ * - If mostly surrounded by transparent -> it's residue -> remove
+ * - If mostly surrounded by opaque -> it's part of the subject -> keep
  * This doesn't depend on color, so it works when subject outline
  * matches background color (e.g., dark outline on dark checkerboard).
  */
@@ -158,22 +180,56 @@ const progressCb = (id: string) => (progress: { status: string; progress?: numbe
   }
 };
 
-async function loadModel(id: string, modelId: ModelId = DEFAULT_MODEL, emitReady = true): Promise<void> {
-  const device = await detectDevice();
+/**
+ * Downscale pixels for WebGPU inference to fit VRAM.
+ * Returns downscaled pixels + dimensions, or original if already small enough.
+ */
+function downscaleForInference(
+  pixels: Uint8ClampedArray,
+  width: number,
+  height: number,
+  maxSize: number,
+): { pixels: Uint8ClampedArray; width: number; height: number; scaled: boolean } {
+  if (width <= maxSize && height <= maxSize) {
+    return { pixels, width, height, scaled: false };
+  }
+
+  const scale = maxSize / Math.max(width, height);
+  const newW = Math.round(width * scale);
+  const newH = Math.round(height * scale);
+  const out = new Uint8ClampedArray(newW * newH * 4);
+
+  for (let y = 0; y < newH; y++) {
+    for (let x = 0; x < newW; x++) {
+      const srcX = Math.min(Math.floor(x / scale), width - 1);
+      const srcY = Math.min(Math.floor(y / scale), height - 1);
+      const si = (srcY * width + srcX) * 4;
+      const di = (y * newW + x) * 4;
+      out[di] = pixels[si];
+      out[di + 1] = pixels[si + 1];
+      out[di + 2] = pixels[si + 2];
+      out[di + 3] = pixels[si + 3];
+    }
+  }
+
+  return { pixels: out, width: newW, height: newH, scaled: true };
+}
+
+async function loadModel(id: string, config: BackendConfig = activeConfig, emitReady = true): Promise<void> {
+  const { modelId, device, dtype, label } = config;
 
   if (segmenters.has(modelId)) {
-    currentModelId = modelId;
+    activeConfig = config;
     if (emitReady) {
       self.postMessage({ id, type: 'model-progress', progress: 100 });
-      self.postMessage({ id, type: 'model-ready', device });
+      self.postMessage({ id, type: 'model-ready', device, modelLabel: label });
     }
     return;
   }
 
-  // Free previous model to avoid OOM - WASM can't hold multiple models
+  // Free previous model to avoid OOM - only one model in memory at a time
   for (const [key, entry] of segmenters) {
     if (key !== modelId) {
-      // Free previous model to avoid OOM
       try {
         if (entry.pipeline?.dispose) entry.pipeline.dispose();
       } catch { /* ignore dispose errors */ }
@@ -192,13 +248,12 @@ async function loadModel(id: string, modelId: ModelId = DEFAULT_MODEL, emitReady
 
   const seg = await transformers.pipeline('image-segmentation', modelId, {
     device,
-    dtype: 'q8',
+    dtype,
     progress_callback: progressCb(id),
   });
   segmenters.set(modelId, { pipeline: seg as unknown as SegmenterEntry['pipeline'], type: 'pipeline' });
 
-  // Warmup: run a tiny inference to force WASM full compilation
-  // This ensures consistent results from the very first real image
+  // Warmup: run a tiny inference to force full compilation
   self.postMessage({ id, type: 'model-progress', progress: 96 });
   try {
     if (RawImageClass) {
@@ -209,11 +264,11 @@ async function loadModel(id: string, modelId: ModelId = DEFAULT_MODEL, emitReady
     }
   } catch { /* warmup failure is non-critical */ }
 
-  currentModelId = modelId;
+  activeConfig = config;
 
   if (emitReady) {
     self.postMessage({ id, type: 'model-progress', progress: 100 });
-    self.postMessage({ id, type: 'model-ready', device });
+    self.postMessage({ id, type: 'model-ready', device, modelLabel: label });
   }
 }
 
@@ -222,21 +277,61 @@ async function segment(
   pixels: Uint8ClampedArray,
   width: number,
   height: number,
-  modelId: ModelId = DEFAULT_MODEL,
+  modelId: ModelId = activeConfig.modelId,
   threshold = 0.5,
 ): Promise<void> {
-  // Use a separate internal ID for auto-loading so that any model-ready
-  // message cannot accidentally resolve the pending segment request.
-  if (!segmenters.has(modelId)) await loadModel(`_autoload_${id}`, modelId, false);
-  const entry = segmenters.get(modelId)!;
+  // Auto-load if needed
+  if (!segmenters.has(modelId)) {
+    await loadModel(`_autoload_${id}`, activeConfig, false);
+  }
+
+  // Downscale for WebGPU to fit VRAM
+  const inferenceInput = activeConfig.device === 'webgpu'
+    ? downscaleForInference(pixels, width, height, WEBGPU_MAX_SIZE)
+    : { pixels, width, height, scaled: false };
+
+  const entry = segmenters.get(activeConfig.modelId)!;
 
   if (!RawImageClass) throw new Error('RawImage class not loaded');
-  const image = new RawImageClass(pixels, width, height, 4);
+  const image = new RawImageClass(inferenceInput.pixels, inferenceInput.width, inferenceInput.height, 4);
 
-  const results = await entry.pipeline(image, {
-    threshold,
-    return_mask: true,
-  });
+  let results: Array<{ mask?: { data: Uint8Array; width: number; height: number } }>;
+  try {
+    results = await entry.pipeline(image, {
+      threshold,
+      return_mask: true,
+    });
+  } catch (err) {
+    // WebGPU OOM or device lost: fall back to WASM + RMBG
+    const isGpuError = /lost|oom|out of memory|device lost|allocation|abort/i.test(String(err));
+    if (isGpuError && activeConfig.device === 'webgpu') {
+      // Dispose broken WebGPU session
+      for (const [k, e] of segmenters) {
+        try { e.pipeline?.dispose?.(); } catch { /* ignore */ }
+        segmenters.delete(k);
+      }
+
+      // Notify UI of fallback
+      self.postMessage({
+        id,
+        type: 'backend-fallback',
+        from: activeConfig.label,
+        to: BACKEND_WASM.label,
+        reason: 'GPU memory exceeded',
+      });
+
+      // Switch to WASM and retry
+      activeConfig = BACKEND_WASM;
+      await loadModel(`_fallback_${id}`, BACKEND_WASM, false);
+
+      // Retry with WASM (no downscale needed)
+      const wasmEntry = segmenters.get(BACKEND_WASM.modelId)!;
+      const wasmImage = new RawImageClass(pixels, width, height, 4);
+      results = await wasmEntry.pipeline(wasmImage, { threshold, return_mask: true });
+    } else {
+      throw err;
+    }
+  }
 
   const maskImage = results[0]?.mask;
   if (!maskImage) throw new Error('Model returned no mask');
@@ -245,6 +340,7 @@ async function segment(
   const maskW = maskImage.width;
   const maskH = maskImage.height;
 
+  // Always map mask back to ORIGINAL dimensions (not inference dimensions)
   const rawAlpha = new Uint8Array(width * height);
   const scaleX = maskW / width;
   const scaleY = maskH / height;
@@ -257,8 +353,6 @@ async function segment(
   }
 
   // Diagnostic: check raw mask value distribution before binarization.
-  // A healthy mask has a wide range (0 for bg, 255 for fg). A uniform
-  // mask (all values within 5 of each other) indicates corrupt model output.
   let rawMin = 255;
   let rawMax = 0;
   for (let i = 0; i < rawAlpha.length; i++) {
@@ -276,9 +370,6 @@ async function segment(
   }
 
   // Use the model's soft alpha directly - no binarization.
-  // The model produces smooth edges (1-2% edge pixels) that look natural.
-  // Binarization was creating artificial contour lines.
-  // Light edge cleanup: remove isolated residue pixels only.
   const alphaMask = refineEdges(rawAlpha, pixels, width, height);
 
   self.postMessage(
@@ -292,14 +383,16 @@ self.onmessage = async (e: MessageEvent<MlWorkerRequest>) => {
   try {
     switch (msg.type) {
       case 'load-model': {
-        await loadModel(msg.id, msg.modelId || DEFAULT_MODEL);
+        // Detect best backend on first load
+        const config = await detectBackend();
+        activeConfig = config;
+        await loadModel(msg.id, config);
         break;
       }
       case 'segment': {
         const { payload } = msg;
-        const modelId = msg.modelId || currentModelId;
         const threshold = msg.threshold ?? 0.5;
-        await segment(msg.id, payload.pixels, payload.width, payload.height, modelId, threshold);
+        await segment(msg.id, payload.pixels, payload.width, payload.height, activeConfig.modelId, threshold);
         break;
       }
     }

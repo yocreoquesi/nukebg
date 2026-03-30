@@ -91,10 +91,32 @@ export type CvWorkerResponse =
 
 /** ======== ML Worker Messages ======== */
 
-export type ModelId = 'briaai/RMBG-1.4';
+export type ModelId = 'briaai/RMBG-1.4' | 'onnx-community/BiRefNet_lite-ONNX';
+
+export interface BackendConfig {
+  modelId: ModelId;
+  device: 'webgpu' | 'wasm';
+  dtype: 'fp16' | 'q8';
+  label: string;
+}
+
+export const BACKEND_WEBGPU: BackendConfig = {
+  modelId: 'onnx-community/BiRefNet_lite-ONNX',
+  device: 'webgpu',
+  dtype: 'fp16',
+  label: 'BiRefNet Lite',
+};
+
+export const BACKEND_WASM: BackendConfig = {
+  modelId: 'briaai/RMBG-1.4',
+  device: 'wasm',
+  dtype: 'q8',
+  label: 'RMBG 1.4',
+};
 
 export const MODEL_OPTIONS: { id: ModelId; label: string; description: string }[] = [
-  { id: 'briaai/RMBG-1.4', label: 'RMBG 1.4', description: 'Best for illustrations, icons, and AI art' },
+  { id: 'onnx-community/BiRefNet_lite-ONNX', label: 'BiRefNet Lite', description: 'WebGPU, sharper edges, MIT license' },
+  { id: 'briaai/RMBG-1.4', label: 'RMBG 1.4', description: 'WASM fallback, universal compatibility' },
 ];
 
 export type MlWorkerRequest =
@@ -121,7 +143,8 @@ export interface MlSegmentRequest {
 
 export type MlWorkerResponse =
   | { id: string; type: 'model-progress'; progress: number }
-  | { id: string; type: 'model-ready'; device: 'webgpu' | 'wasm' }
+  | { id: string; type: 'model-ready'; device: 'webgpu' | 'wasm'; modelLabel: string }
+  | { id: string; type: 'backend-fallback'; from: string; to: string; reason: string }
   | { id: string; type: 'segment-result'; result: Uint8Array }
   | { id: string; type: 'error'; error: string };
 

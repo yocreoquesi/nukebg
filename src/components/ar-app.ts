@@ -1,6 +1,6 @@
 import { PipelineOrchestrator } from '../pipeline/orchestrator';
 import type { PipelineStage, StageStatus } from '../types/pipeline';
-import type { ModelId } from '../types/worker-messages';
+// ModelId import removed - worker auto-detects backend
 import { t } from '../i18n';
 import { installApp, isAppInstalled } from '../sw-register';
 import type { ArViewer } from './ar-viewer';
@@ -10,7 +10,6 @@ import type { ArEditor } from './ar-editor';
 import type { ArDropzone } from './ar-dropzone';
 
 export class ArApp extends HTMLElement {
-  private static readonly MODEL_ID: ModelId = 'briaai/RMBG-1.4';
   private pipeline: PipelineOrchestrator | null = null;
   private viewer!: ArViewer;
   private progress!: ArProgress;
@@ -59,7 +58,7 @@ export class ArApp extends HTMLElement {
     // Dropzone starts disabled until model is ready
     this.dropzone.setEnabled(false);
 
-    this.pipeline.preloadModel(ArApp.MODEL_ID).then(() => {
+    this.pipeline.preloadModel().then(() => {
       const s = statusEl();
       if (s) {
         s.textContent = '> reactor online. Ready to nuke.';
@@ -1435,7 +1434,7 @@ export class ArApp extends HTMLElement {
     }
 
     try {
-      const result = await this.pipeline.process(imageData, ArApp.MODEL_ID);
+      const result = await this.pipeline.process(imageData);
       if (this.processingAborted) return;
 
       const { exportPng } = await import('../utils/image-io');
