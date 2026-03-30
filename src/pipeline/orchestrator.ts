@@ -77,13 +77,6 @@ export class PipelineOrchestrator {
   private setupMlWorkerHandler(): void {
     this.mlWorker.onmessage = (e: MessageEvent<MlWorkerResponse>) => {
       const msg = e.data;
-      // backend-fallback: GPU failed, reloading with WASM. Forward to UI.
-      if (msg.type === 'backend-fallback') {
-        const fb = msg as { from: string; to: string; reason: string };
-        this.emit('ml-segmentation', 'running', `[WARN] ${fb.reason}. Reloading reactor with ${fb.to}...`);
-        return;
-      }
-
       // model-progress events: forward to UI, don't resolve the pending request
       if (msg.type === 'model-progress') {
         if (this.suppressMlProgress) return; // background preload, don't update UI
@@ -116,9 +109,8 @@ export class PipelineOrchestrator {
             console.warn(`[NukeBG] model-ready arrived for a '${pending.expectedType}' request - ignoring`);
             return;
           }
-          const badge = msg.device === 'webgpu' ? '[GPU]' : '[CPU]';
           const modelLabel = (msg as { modelLabel?: string }).modelLabel || 'unknown';
-          this.emit('ml-segmentation', 'running', `${badge} ${modelLabel} loaded`);
+          this.emit('ml-segmentation', 'running', `${modelLabel} loaded`);
           this.pendingRequests.delete(msg.id);
           pending.resolve(msg);
         }

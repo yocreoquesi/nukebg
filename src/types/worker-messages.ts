@@ -91,41 +91,21 @@ export type CvWorkerResponse =
 
 /** ======== ML Worker Messages ======== */
 
-export type ModelId = 'inspyrenet' | 'briaai/RMBG-1.4';
+export type ModelId = 'inspyrenet';
 
 export interface BackendConfig {
   modelId: ModelId;
-  device: 'webgpu' | 'wasm';
-  dtype: 'fp16' | 'q8';
+  device: 'wasm';
+  dtype: 'q8';
   label: string;
 }
 
-export const BACKEND_WEBGPU: BackendConfig = {
-  modelId: 'inspyrenet',
-  device: 'webgpu',
-  dtype: 'fp16',
-  label: 'InSPyReNet',
-};
-
-export const BACKEND_WASM: BackendConfig = {
+export const BACKEND_CONFIG: BackendConfig = {
   modelId: 'inspyrenet',
   device: 'wasm',
   dtype: 'q8',
   label: 'InSPyReNet',
 };
-
-/** Legacy RMBG fallback - used only if InSPyReNet fails completely */
-export const BACKEND_RMBG: BackendConfig = {
-  modelId: 'briaai/RMBG-1.4',
-  device: 'wasm',
-  dtype: 'q8',
-  label: 'RMBG 1.4',
-};
-
-export const MODEL_OPTIONS: { id: ModelId; label: string; description: string }[] = [
-  { id: 'inspyrenet', label: 'InSPyReNet', description: 'MIT license, superior quality (27MB)' },
-  { id: 'briaai/RMBG-1.4', label: 'RMBG 1.4', description: 'Legacy fallback' },
-];
 
 export type MlWorkerRequest =
   | MlLoadModelRequest
@@ -134,13 +114,11 @@ export type MlWorkerRequest =
 export interface MlLoadModelRequest {
   id: string;
   type: 'load-model';
-  modelId?: ModelId;
 }
 
 export interface MlSegmentRequest {
   id: string;
   type: 'segment';
-  modelId?: ModelId;
   threshold?: number;
   payload: {
     pixels: Uint8ClampedArray;
@@ -151,8 +129,7 @@ export interface MlSegmentRequest {
 
 export type MlWorkerResponse =
   | { id: string; type: 'model-progress'; progress: number }
-  | { id: string; type: 'model-ready'; device: 'webgpu' | 'wasm'; modelLabel: string }
-  | { id: string; type: 'backend-fallback'; from: string; to: string; reason: string }
+  | { id: string; type: 'model-ready'; modelLabel: string }
   | { id: string; type: 'segment-result'; result: Uint8Array }
   | { id: string; type: 'error'; error: string };
 

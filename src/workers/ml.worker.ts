@@ -1,68 +1,25 @@
 /**
- * ML Worker - Background removal with InSPyReNet (MIT license).
- * Primary: InSPyReNet Res2Net50 q8 (27MB) via direct ONNX Runtime session.
- * Fallback: RMBG-1.4 (non-commercial, q8, WASM) via Transformers.js pipeline.
- * WebGPU auto-detected for acceleration; WASM as universal fallback.
+ * ML Worker - Background removal via InSPyReNet (MIT license).
+ * Single model: InSPyReNet Res2Net50 q8 (27MB) on WASM.
+ * Direct ONNX Runtime session — no Transformers.js dependency.
  */
-import type { MlWorkerRequest, ModelId, BackendConfig } from '../types/worker-messages';
-import { BACKEND_WEBGPU, BACKEND_WASM, BACKEND_RMBG } from '../types/worker-messages';
+import type { MlWorkerRequest } from '../types/worker-messages';
+import { BACKEND_CONFIG } from '../types/worker-messages';
 
-/** InSPyReNet model URLs - served from GitHub Releases */
-const INSPYRENET_FP16_URL = 'https://github.com/yocreoquesi/nukebg/releases/download/models-v1/inspyrenet_res2net50_fp16_nopad.onnx';
-const INSPYRENET_Q8_URL = 'https://github.com/yocreoquesi/nukebg/releases/download/models-v1/inspyrenet_res2net50_q8.onnx';
+/** InSPyReNet q8 model URL - served from GitHub Releases */
+const MODEL_URL = 'https://github.com/yocreoquesi/nukebg/releases/download/models-v1/inspyrenet_res2net50_q8.onnx';
 /** InSPyReNet fixed input resolution */
-const INSPYRENET_SIZE = 384;
+const INPUT_SIZE = 384;
 /** ImageNet normalization constants */
 const IMAGENET_MEAN = [0.485, 0.456, 0.406];
 const IMAGENET_STD = [0.229, 0.224, 0.225];
 
-// --- Type definitions ---
-
-interface SegmenterEntry {
-  pipeline: { dispose?: () => void; (image: unknown, opts: unknown): Promise<Array<{ mask?: { data: Uint8Array; width: number; height: number } }>>; };
-  type: 'transformers';
-}
-
-interface OnnxSessionEntry {
-  session: { run(feeds: Record<string, unknown>): Promise<Record<string, { data: Float32Array; dims: number[] }>>; release(): void };
-  type: 'onnx';
-  inputName: string;
-}
-
-type ModelEntry = SegmenterEntry | OnnxSessionEntry;
-
-/** Cache loaded models */
-const models = new Map<string, ModelEntry>();
-let activeConfig: BackendConfig = BACKEND_WASM;
-let RawImageClass: (new (data: Uint8ClampedArray, w: number, h: number, channels: number) => unknown) | null = null;
-
-/**
- * Detect the best available backend.
- * Tries WebGPU first for acceleration, falls back to WASM.
- */
-async function detectBackend(): Promise<BackendConfig> {
-  if (typeof navigator === 'undefined' || !('gpu' in navigator)) {
-    return BACKEND_WASM;
-  }
-
-  try {
-    const adapter = await navigator.gpu.requestAdapter();
-    if (!adapter) return BACKEND_WASM;
-
-    const maxBuffer = adapter.limits.maxBufferSize;
-    if (maxBuffer < 256 * 1024 * 1024) return BACKEND_WASM;
-
-    const device = await adapter.requestDevice();
-    device.destroy();
-
-    return BACKEND_WEBGPU;
-  } catch {
-    return BACKEND_WASM;
-  }
-}
+/** ONNX Runtime session */
+let session: { run(feeds: Record<string, unknown>): Promise<Record<string, { data: Float32Array; dims: number[] }>>; release(): void } | null = null;
+let inputName = 'input';
 
 // ============================================================
-// Edge refinement (shared by all models)
+// Edge refinement
 // ============================================================
 
 function refineEdges(
@@ -166,22 +123,12 @@ function removeSmallClusters(alpha: Uint8Array, w: number, h: number, minSize: n
   return result;
 }
 
-const progressCb = (id: string) => (progress: { status: string; progress?: number }) => {
-  if (progress.status === 'progress' && progress.progress != null) {
-    const pct = 10 + Math.round(progress.progress * 0.8);
-    self.postMessage({ id, type: 'model-progress', progress: pct });
-  }
-  if (progress.status === 'ready') {
-    self.postMessage({ id, type: 'model-progress', progress: 95 });
-  }
-};
-
 // ============================================================
-// InSPyReNet: direct ONNX Runtime session
+// Model loading and inference
 // ============================================================
 
-async function fetchModelWithProgress(id: string, url: string): Promise<ArrayBuffer> {
-  const response = await fetch(url);
+async function fetchModelWithProgress(id: string): Promise<ArrayBuffer> {
+  const response = await fetch(MODEL_URL);
   if (!response.ok) throw new Error(`Failed to fetch model: ${response.status}`);
 
   const contentLength = response.headers.get('content-length');
@@ -212,51 +159,49 @@ async function fetchModelWithProgress(id: string, url: string): Promise<ArrayBuf
   return buffer.buffer;
 }
 
-async function loadInspyrenet(id: string, device: 'webgpu' | 'wasm', dtype: 'fp16' | 'q8' = 'q8'): Promise<void> {
+async function loadModel(id: string): Promise<void> {
+  if (session) {
+    self.postMessage({ id, type: 'model-progress', progress: 100 });
+    self.postMessage({ id, type: 'model-ready', modelLabel: BACKEND_CONFIG.label });
+    return;
+  }
+
   self.postMessage({ id, type: 'model-progress', progress: 5 });
 
   const ort = await import('onnxruntime-web');
 
   self.postMessage({ id, type: 'model-progress', progress: 8 });
 
-  const modelUrl = dtype === 'fp16' ? INSPYRENET_FP16_URL : INSPYRENET_Q8_URL;
-  const modelBuffer = await fetchModelWithProgress(id, modelUrl);
+  const modelBuffer = await fetchModelWithProgress(id);
 
   self.postMessage({ id, type: 'model-progress', progress: 85 });
 
-  const sessionOptions = {
-    executionProviders: device === 'webgpu'
-      ? [{ name: 'webgpu' as const, preferredLayout: 'NHWC' as const }]
-      : ['wasm' as const],
-  };
+  const sess = await ort.InferenceSession.create(modelBuffer, {
+    executionProviders: ['wasm'],
+  });
 
-  const session = await ort.InferenceSession.create(modelBuffer, sessionOptions);
-
-  // Discover input name (varies between fp16 and q8 exports)
-  const inputName = session.inputNames[0];
+  inputName = sess.inputNames[0];
+  session = sess as unknown as typeof session;
 
   self.postMessage({ id, type: 'model-progress', progress: 90 });
 
   // Warmup
   try {
-    const warmupData = new Float32Array(1 * 3 * INSPYRENET_SIZE * INSPYRENET_SIZE);
-    const warmupTensor = new ort.Tensor('float32', warmupData, [1, 3, INSPYRENET_SIZE, INSPYRENET_SIZE]);
-    await session.run({ [inputName]: warmupTensor });
+    const warmupData = new Float32Array(1 * 3 * INPUT_SIZE * INPUT_SIZE);
+    const warmupTensor = new ort.Tensor('float32', warmupData, [1, 3, INPUT_SIZE, INPUT_SIZE]);
+    await sess.run({ [inputName]: warmupTensor });
   } catch { /* warmup failure is non-critical */ }
 
-  models.set('inspyrenet', {
-    session: session as unknown as OnnxSessionEntry['session'],
-    type: 'onnx',
-    inputName,
-  });
+  self.postMessage({ id, type: 'model-progress', progress: 100 });
+  self.postMessage({ id, type: 'model-ready', modelLabel: BACKEND_CONFIG.label });
 }
 
-function preprocessInspyrenet(
+function preprocess(
   pixels: Uint8ClampedArray,
   width: number,
   height: number,
 ): Float32Array {
-  const size = INSPYRENET_SIZE;
+  const size = INPUT_SIZE;
   const tensor = new Float32Array(1 * 3 * size * size);
 
   for (let y = 0; y < size; y++) {
@@ -279,187 +224,43 @@ function preprocessInspyrenet(
   return tensor;
 }
 
-async function runInspyrenet(
+async function segment(
+  id: string,
   pixels: Uint8ClampedArray,
   width: number,
   height: number,
-): Promise<Uint8Array> {
-  const entry = models.get('inspyrenet') as OnnxSessionEntry;
+  threshold = 0.5,
+): Promise<void> {
+  if (!session) {
+    await loadModel(`_autoload_${id}`);
+  }
+
   const ort = await import('onnxruntime-web');
+  const inputData = preprocess(pixels, width, height);
+  const inputTensor = new ort.Tensor('float32', inputData, [1, 3, INPUT_SIZE, INPUT_SIZE]);
 
-  const inputData = preprocessInspyrenet(pixels, width, height);
-  const inputTensor = new ort.Tensor('float32', inputData, [1, 3, INSPYRENET_SIZE, INSPYRENET_SIZE]);
-
-  const results = await entry.session.run({ [entry.inputName]: inputTensor });
+  const results = await session!.run({ [inputName]: inputTensor });
   const outputKey = Object.keys(results)[0];
   const outputData = results[outputKey].data as Float32Array;
 
-  const maskSize = INSPYRENET_SIZE;
-  const alpha = new Uint8Array(width * height);
+  // Map model output (1x1x384x384, values 0-1) back to original dimensions
+  const maskSize = INPUT_SIZE;
+  const rawAlpha = new Uint8Array(width * height);
 
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
       const srcX = Math.min(Math.floor(x * maskSize / width), maskSize - 1);
       const srcY = Math.min(Math.floor(y * maskSize / height), maskSize - 1);
       const val = outputData[srcY * maskSize + srcX];
-      alpha[y * width + x] = Math.round(Math.max(0, Math.min(1, val)) * 255);
+      rawAlpha[y * width + x] = Math.round(Math.max(0, Math.min(1, val)) * 255);
     }
   }
 
-  return alpha;
-}
-
-// ============================================================
-// RMBG-1.4: Transformers.js pipeline (last resort fallback)
-// ============================================================
-
-async function loadRmbg(id: string): Promise<void> {
-  self.postMessage({ id, type: 'model-progress', progress: 5 });
-
-  const transformers = await import('@huggingface/transformers');
-  transformers.env.allowLocalModels = false;
-  transformers.env.allowRemoteModels = true;
-  RawImageClass = transformers.RawImage as unknown as typeof RawImageClass;
-
-  self.postMessage({ id, type: 'model-progress', progress: 10 });
-
-  const seg = await transformers.pipeline('image-segmentation', 'briaai/RMBG-1.4', {
-    device: 'wasm',
-    dtype: 'q8',
-    progress_callback: progressCb(id),
-  });
-
-  models.set('briaai/RMBG-1.4', {
-    pipeline: seg as unknown as SegmenterEntry['pipeline'],
-    type: 'transformers',
-  });
-
-  self.postMessage({ id, type: 'model-progress', progress: 96 });
-  try {
-    if (RawImageClass) {
-      const warmupPixels = new Uint8ClampedArray(256 * 256 * 4);
-      const warmupImg = new RawImageClass(warmupPixels, 256, 256, 4);
-      await (seg as unknown as SegmenterEntry['pipeline'])(warmupImg, { threshold: 0.5, return_mask: true });
-    }
-  } catch { /* warmup failure is non-critical */ }
-}
-
-async function runRmbg(
-  pixels: Uint8ClampedArray,
-  width: number,
-  height: number,
-  threshold: number,
-): Promise<Uint8Array> {
-  const entry = models.get('briaai/RMBG-1.4') as SegmenterEntry;
-
-  if (!RawImageClass) throw new Error('RawImage class not loaded');
-  const image = new RawImageClass(pixels, width, height, 4);
-
-  const results = await entry.pipeline(image, { threshold, return_mask: true });
-  const maskImage = results[0]?.mask;
-  if (!maskImage) throw new Error('Model returned no mask');
-
-  const maskData = maskImage.data;
-  const maskW = maskImage.width;
-  const maskH = maskImage.height;
-
-  const alpha = new Uint8Array(width * height);
-  const scaleX = maskW / width;
-  const scaleY = maskH / height;
-  for (let y = 0; y < height; y++) {
-    for (let x = 0; x < width; x++) {
-      const srcX = Math.min(Math.floor(x * scaleX), maskW - 1);
-      const srcY = Math.min(Math.floor(y * scaleY), maskH - 1);
-      alpha[y * width + x] = maskData[srcY * maskW + srcX];
-    }
-  }
-
-  return alpha;
-}
-
-// ============================================================
-// Unified load / segment / fallback
-// ============================================================
-
-async function loadModel(id: string, config: BackendConfig = activeConfig, emitReady = true): Promise<void> {
-  const { modelId, device, label } = config;
-
-  if (models.has(modelId)) {
-    activeConfig = config;
-    if (emitReady) {
-      self.postMessage({ id, type: 'model-progress', progress: 100 });
-      self.postMessage({ id, type: 'model-ready', device, modelLabel: label });
-    }
-    return;
-  }
-
-  // Free previous model to avoid OOM
-  for (const [key, entry] of models) {
-    if (key !== modelId) {
-      try {
-        if (entry.type === 'onnx') entry.session.release();
-        else if (entry.pipeline?.dispose) entry.pipeline.dispose();
-      } catch { /* ignore dispose errors */ }
-      models.delete(key);
-    }
-  }
-
-  if (modelId === 'inspyrenet') {
-    await loadInspyrenet(id, device, config.dtype);
-  } else {
-    await loadRmbg(id);
-  }
-
-  activeConfig = config;
-
-  if (emitReady) {
-    self.postMessage({ id, type: 'model-progress', progress: 100 });
-    self.postMessage({ id, type: 'model-ready', device, modelLabel: label });
-  }
-}
-
-async function segment(
-  id: string,
-  pixels: Uint8ClampedArray,
-  width: number,
-  height: number,
-  _modelId: ModelId = activeConfig.modelId,
-  threshold = 0.5,
-): Promise<void> {
-  if (!models.has(activeConfig.modelId)) {
-    await loadModel(`_autoload_${id}`, activeConfig, false);
-  }
-
-  let rawAlpha: Uint8Array;
-
-  try {
-    if (activeConfig.modelId === 'inspyrenet') {
-      rawAlpha = await runInspyrenet(pixels, width, height);
-    } else {
-      rawAlpha = await runRmbg(pixels, width, height, threshold);
-    }
-  } catch (err) {
-    // Any failure from primary model: try next fallback
-    if (activeConfig.modelId === 'inspyrenet') {
-      const reason = String(err).slice(0, 120);
-
-      if (activeConfig.device === 'webgpu') {
-        // WebGPU InSPyReNet failed → try WASM InSPyReNet
-        await fallbackTo(id, BACKEND_WASM, reason);
-        try {
-          rawAlpha = await runInspyrenet(pixels, width, height);
-        } catch {
-          // WASM InSPyReNet also failed → last resort: RMBG
-          await fallbackTo(id, BACKEND_RMBG, 'InSPyReNet WASM also failed');
-          rawAlpha = await runRmbg(pixels, width, height, threshold);
-        }
-      } else {
-        // WASM InSPyReNet failed → last resort: RMBG
-        await fallbackTo(id, BACKEND_RMBG, reason);
-        rawAlpha = await runRmbg(pixels, width, height, threshold);
-      }
-    } else {
-      throw err;
+  // Apply threshold for binary segmentation
+  if (threshold < 1) {
+    const t = Math.round(threshold * 255);
+    for (let i = 0; i < rawAlpha.length; i++) {
+      rawAlpha[i] = rawAlpha[i] >= t ? 255 : 0;
     }
   }
 
@@ -471,8 +272,7 @@ async function segment(
     if (rawAlpha[i] > rawMax) rawMax = rawAlpha[i];
   }
 
-  const allSameRange = (rawMax - rawMin) < 5;
-  if (allSameRange && rawAlpha.length > 100) {
+  if ((rawMax - rawMin) < 5 && rawAlpha.length > 100) {
     console.warn(
       `[NukeBG ML] Suspicious mask: min=${rawMin} max=${rawMax} range=${rawMax - rawMin} - ` +
       `model may have returned uniform output.`
@@ -487,64 +287,21 @@ async function segment(
   );
 }
 
-/** Switch to a different backend config */
-async function fallbackTo(id: string, config: BackendConfig, reason: string): Promise<void> {
-  // Dispose current model
-  for (const [k, e] of models) {
-    try {
-      if (e.type === 'onnx') e.session.release();
-      else e.pipeline?.dispose?.();
-    } catch { /* ignore */ }
-    models.delete(k);
-  }
-
-  self.postMessage({
-    id,
-    type: 'backend-fallback',
-    from: activeConfig.label,
-    to: config.label,
-    reason,
-  });
-
-  activeConfig = config;
-  await loadModel(id, config);
-}
+// ============================================================
+// Message handler
+// ============================================================
 
 self.onmessage = async (e: MessageEvent<MlWorkerRequest>) => {
   const msg = e.data;
   try {
     switch (msg.type) {
-      case 'load-model': {
-        const config = await detectBackend();
-        activeConfig = config;
-
-        try {
-          await loadModel(msg.id, config);
-        } catch (loadErr) {
-          // Primary failed to load → cascade fallback
-          const reason = String(loadErr).slice(0, 120);
-
-          if (config.device === 'webgpu') {
-            // WebGPU failed → try WASM InSPyReNet
-            try {
-              await fallbackTo(msg.id, BACKEND_WASM, reason);
-            } catch {
-              // WASM InSPyReNet failed → RMBG
-              await fallbackTo(msg.id, BACKEND_RMBG, 'InSPyReNet unavailable');
-            }
-          } else if (config.modelId === 'inspyrenet') {
-            // WASM InSPyReNet failed → RMBG
-            await fallbackTo(msg.id, BACKEND_RMBG, reason);
-          } else {
-            throw loadErr;
-          }
-        }
+      case 'load-model':
+        await loadModel(msg.id);
         break;
-      }
       case 'segment': {
         const { payload } = msg;
         const threshold = msg.threshold ?? 0.5;
-        await segment(msg.id, payload.pixels, payload.width, payload.height, activeConfig.modelId, threshold);
+        await segment(msg.id, payload.pixels, payload.width, payload.height, threshold);
         break;
       }
     }
