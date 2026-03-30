@@ -22,6 +22,46 @@ let RawImageClass: (new (data: Uint8ClampedArray, w: number, h: number, channels
 const WEBGPU_MAX_SIZE = 512;
 
 /**
+ * BiRefNet-lite Pad node names that must run on CPU.
+ * WebGPU's Pad shader compilation fails for these nodes.
+ * Extracted from onnx-community/BiRefNet_lite-ONNX model_fp16.onnx.
+ */
+const BIREFNET_PAD_NODES: readonly string[] = [
+  '/bb/layers.0/blocks.0/Pad', '/bb/layers.0/blocks.1/Pad',
+  '/bb/layers.1/blocks.0/Pad', '/bb/layers.1/blocks.1/Pad',
+  '/bb/layers.2/blocks.0/Pad', '/bb/layers.2/blocks.1/Pad',
+  '/bb/layers.2/blocks.2/Pad', '/bb/layers.2/blocks.3/Pad',
+  '/bb/layers.2/blocks.4/Pad', '/bb/layers.2/blocks.5/Pad',
+  '/bb/layers.3/blocks.0/Pad', '/bb/layers.3/blocks.1/Pad',
+  '/bb/layers.0/blocks.0_1/Pad', '/bb/layers.0/blocks.1_1/Pad',
+  '/bb/layers.1/blocks.0_1/Pad', '/bb/layers.1/blocks.1_1/Pad',
+  '/bb/layers.2/blocks.0_1/Pad', '/bb/layers.2/blocks.1_1/Pad',
+  '/bb/layers.2/blocks.2_1/Pad', '/bb/layers.2/blocks.3_1/Pad',
+  '/bb/layers.2/blocks.4_1/Pad', '/bb/layers.2/blocks.5_1/Pad',
+  '/bb/layers.3/blocks.0_1/Pad', '/bb/layers.3/blocks.1_1/Pad',
+  '/squeeze_module/squeeze_module.0/dec_att/aspp1/atrous_conv/Pad',
+  '/squeeze_module/squeeze_module.0/dec_att/aspp_deforms.0/atrous_conv/Pad',
+  '/squeeze_module/squeeze_module.0/dec_att/aspp_deforms.1/atrous_conv/Pad',
+  '/squeeze_module/squeeze_module.0/dec_att/aspp_deforms.2/atrous_conv/Pad',
+  '/decoder/decoder_block4/dec_att/aspp1/atrous_conv/Pad',
+  '/decoder/decoder_block4/dec_att/aspp_deforms.0/atrous_conv/Pad',
+  '/decoder/decoder_block4/dec_att/aspp_deforms.1/atrous_conv/Pad',
+  '/decoder/decoder_block4/dec_att/aspp_deforms.2/atrous_conv/Pad',
+  '/decoder/decoder_block3/dec_att/aspp1/atrous_conv/Pad',
+  '/decoder/decoder_block3/dec_att/aspp_deforms.0/atrous_conv/Pad',
+  '/decoder/decoder_block3/dec_att/aspp_deforms.1/atrous_conv/Pad',
+  '/decoder/decoder_block3/dec_att/aspp_deforms.2/atrous_conv/Pad',
+  '/decoder/decoder_block2/dec_att/aspp1/atrous_conv/Pad',
+  '/decoder/decoder_block2/dec_att/aspp_deforms.0/atrous_conv/Pad',
+  '/decoder/decoder_block2/dec_att/aspp_deforms.1/atrous_conv/Pad',
+  '/decoder/decoder_block2/dec_att/aspp_deforms.2/atrous_conv/Pad',
+  '/decoder/decoder_block1/dec_att/aspp1/atrous_conv/Pad',
+  '/decoder/decoder_block1/dec_att/aspp_deforms.0/atrous_conv/Pad',
+  '/decoder/decoder_block1/dec_att/aspp_deforms.1/atrous_conv/Pad',
+  '/decoder/decoder_block1/dec_att/aspp_deforms.2/atrous_conv/Pad',
+];
+
+/**
  * Detect the best available backend.
  * Tries WebGPU first (for BiRefNet fp16), falls back to WASM (for RMBG q8).
  */
@@ -246,11 +286,23 @@ async function loadModel(id: string, config: BackendConfig = activeConfig, emitR
 
   self.postMessage({ id, type: 'model-progress', progress: 10 });
 
-  const seg = await transformers.pipeline('image-segmentation', modelId, {
+  // For WebGPU + BiRefNet: force Pad nodes to CPU to avoid shader compilation failures
+  const pipelineOpts: Record<string, unknown> = {
     device,
     dtype,
     progress_callback: progressCb(id),
-  });
+  };
+  if (device === 'webgpu' && modelId === 'onnx-community/BiRefNet_lite-ONNX') {
+    pipelineOpts.session_options = {
+      executionProviders: [{
+        name: 'webgpu',
+        preferredLayout: 'NHWC',
+        forceCpuNodeNames: BIREFNET_PAD_NODES,
+      }],
+    };
+  }
+
+  const seg = await transformers.pipeline('image-segmentation', modelId, pipelineOpts);
   segmenters.set(modelId, { pipeline: seg as unknown as SegmenterEntry['pipeline'], type: 'pipeline' });
 
   // Warmup: run a tiny inference to force full compilation
