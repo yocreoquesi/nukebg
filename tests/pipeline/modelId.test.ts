@@ -40,7 +40,7 @@ describe('ModelId parameter', () => {
   it('BACKEND_WEBGPU config is correct', () => {
     expect(BACKEND_WEBGPU.modelId).toBe('inspyrenet');
     expect(BACKEND_WEBGPU.device).toBe('webgpu');
-    expect(BACKEND_WEBGPU.dtype).toBe('q8');
+    expect(BACKEND_WEBGPU.dtype).toBe('fp16');
     expect(BACKEND_WEBGPU.label).toBe('InSPyReNet');
   });
 

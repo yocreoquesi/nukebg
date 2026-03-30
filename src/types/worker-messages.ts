@@ -103,7 +103,7 @@ export interface BackendConfig {
 export const BACKEND_WEBGPU: BackendConfig = {
   modelId: 'inspyrenet',
   device: 'webgpu',
-  dtype: 'q8',
+  dtype: 'fp16',
   label: 'InSPyReNet',
 };
 

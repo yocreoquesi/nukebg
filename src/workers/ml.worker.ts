@@ -7,8 +7,9 @@
 import type { MlWorkerRequest, ModelId, BackendConfig } from '../types/worker-messages';
 import { BACKEND_WEBGPU, BACKEND_WASM, BACKEND_RMBG } from '../types/worker-messages';
 
-/** InSPyReNet q8 model URL - served from GitHub Releases */
-const INSPYRENET_MODEL_URL = 'https://github.com/yocreoquesi/nukebg/releases/download/models-v1/inspyrenet_res2net50_q8.onnx';
+/** InSPyReNet model URLs - served from GitHub Releases */
+const INSPYRENET_FP16_URL = 'https://github.com/yocreoquesi/nukebg/releases/download/models-v1/inspyrenet_res2net50_fp16_nopad.onnx';
+const INSPYRENET_Q8_URL = 'https://github.com/yocreoquesi/nukebg/releases/download/models-v1/inspyrenet_res2net50_q8.onnx';
 /** InSPyReNet fixed input resolution */
 const INSPYRENET_SIZE = 384;
 /** ImageNet normalization constants */
@@ -211,14 +212,15 @@ async function fetchModelWithProgress(id: string, url: string): Promise<ArrayBuf
   return buffer.buffer;
 }
 
-async function loadInspyrenet(id: string, device: 'webgpu' | 'wasm'): Promise<void> {
+async function loadInspyrenet(id: string, device: 'webgpu' | 'wasm', dtype: 'fp16' | 'q8' = 'q8'): Promise<void> {
   self.postMessage({ id, type: 'model-progress', progress: 5 });
 
   const ort = await import('onnxruntime-web');
 
   self.postMessage({ id, type: 'model-progress', progress: 8 });
 
-  const modelBuffer = await fetchModelWithProgress(id, INSPYRENET_MODEL_URL);
+  const modelUrl = dtype === 'fp16' ? INSPYRENET_FP16_URL : INSPYRENET_Q8_URL;
+  const modelBuffer = await fetchModelWithProgress(id, modelUrl);
 
   self.postMessage({ id, type: 'model-progress', progress: 85 });
 
@@ -403,7 +405,7 @@ async function loadModel(id: string, config: BackendConfig = activeConfig, emitR
   }
 
   if (modelId === 'inspyrenet') {
-    await loadInspyrenet(id, device);
+    await loadInspyrenet(id, device, config.dtype);
   } else {
     await loadRmbg(id);
   }
