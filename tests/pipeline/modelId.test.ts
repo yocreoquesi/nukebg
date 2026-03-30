@@ -6,7 +6,7 @@ import { MODEL_OPTIONS, BACKEND_WEBGPU, BACKEND_WASM } from '../../src/types/wor
  * Tests for dual-backend model configuration.
  *
  * NukeBG supports two backends:
- * - WebGPU + BiRefNet-lite (fp16, 115MB, MIT license)
+ * - WebGPU + InSPyReNet (fp16, ~54MB, MIT license)
  * - WASM + RMBG-1.4 (q8, 45MB, non-commercial fallback)
  *
  * The worker auto-detects the best backend at runtime.
@@ -25,10 +25,10 @@ describe('ModelId parameter', () => {
     }
   });
 
-  it('MODEL_OPTIONS includes BiRefNet-lite as primary', () => {
-    const birefnet = MODEL_OPTIONS.find(o => o.id === 'onnx-community/BiRefNet_lite-ONNX');
-    expect(birefnet).toBeDefined();
-    expect(birefnet!.label).toBe('BiRefNet Lite');
+  it('MODEL_OPTIONS includes InSPyReNet as primary', () => {
+    const inspyrenet = MODEL_OPTIONS.find(o => o.id === 'inspyrenet');
+    expect(inspyrenet).toBeDefined();
+    expect(inspyrenet!.label).toBe('InSPyReNet');
   });
 
   it('MODEL_OPTIONS includes RMBG-1.4 as fallback', () => {
@@ -38,10 +38,10 @@ describe('ModelId parameter', () => {
   });
 
   it('BACKEND_WEBGPU config is correct', () => {
-    expect(BACKEND_WEBGPU.modelId).toBe('onnx-community/BiRefNet_lite-ONNX');
+    expect(BACKEND_WEBGPU.modelId).toBe('inspyrenet');
     expect(BACKEND_WEBGPU.device).toBe('webgpu');
     expect(BACKEND_WEBGPU.dtype).toBe('fp16');
-    expect(BACKEND_WEBGPU.label).toBe('BiRefNet Lite');
+    expect(BACKEND_WEBGPU.label).toBe('InSPyReNet');
   });
 
   it('BACKEND_WASM config is correct', () => {
@@ -52,9 +52,9 @@ describe('ModelId parameter', () => {
   });
 
   it('ModelId type accepts both model IDs', () => {
-    const birefnet: ModelId = 'onnx-community/BiRefNet_lite-ONNX';
+    const inspyrenet: ModelId = 'inspyrenet';
     const rmbg: ModelId = 'briaai/RMBG-1.4';
-    expect(birefnet).toBeTruthy();
+    expect(inspyrenet).toBeTruthy();
     expect(rmbg).toBeTruthy();
   });
 
@@ -79,7 +79,7 @@ describe('ModelId parameter', () => {
   });
 
   it('segment message builds correctly with modelId', () => {
-    const modelId: ModelId = 'onnx-community/BiRefNet_lite-ONNX';
+    const modelId: ModelId = 'inspyrenet';
     const payload = { pixels: new Uint8ClampedArray(100), width: 5, height: 5 };
     const extra = modelId ? { modelId } : undefined;
 
@@ -92,7 +92,7 @@ describe('ModelId parameter', () => {
 
     expect(message.id).toBe('test-uuid');
     expect(message.type).toBe('segment');
-    expect(message.modelId).toBe('onnx-community/BiRefNet_lite-ONNX');
+    expect(message.modelId).toBe('inspyrenet');
     expect(message.payload.pixels).toBeInstanceOf(Uint8ClampedArray);
   });
 

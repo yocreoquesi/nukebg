@@ -1,72 +1,44 @@
 /**
- * ML Worker - Background removal via Transformers.js
- * Dual-backend: WebGPU + BiRefNet-lite (fp16) with WASM + RMBG-1.4 (q8) fallback.
- * Transformers.js handles ONNX Runtime, WebGPU/WASM detection,
- * model download, caching - all internally.
+ * ML Worker - Background removal with dual-backend support.
+ * Primary: InSPyReNet (MIT, fp16, WebGPU) via direct ONNX Runtime session.
+ * Fallback: RMBG-1.4 (non-commercial, q8, WASM) via Transformers.js pipeline.
+ * WebGPU is auto-detected; falls back silently to WASM if unavailable.
  */
 import type { MlWorkerRequest, ModelId, BackendConfig } from '../types/worker-messages';
 import { BACKEND_WEBGPU, BACKEND_WASM } from '../types/worker-messages';
 
-/** Transformers.js pipeline entry - shape is dynamic from the library */
+/** InSPyReNet model URL - served from GitHub Releases */
+const INSPYRENET_MODEL_URL = 'https://github.com/yocreoquesi/nukebg/releases/download/models-v1/inspyrenet_res2net50_fp16_nopad.onnx';
+/** InSPyReNet fixed input resolution */
+const INSPYRENET_SIZE = 384;
+/** ImageNet normalization constants */
+const IMAGENET_MEAN = [0.485, 0.456, 0.406];
+const IMAGENET_STD = [0.229, 0.224, 0.225];
+
+// --- Transformers.js types for RMBG pipeline ---
+
 interface SegmenterEntry {
   pipeline: { dispose?: () => void; (image: unknown, opts: unknown): Promise<Array<{ mask?: { data: Uint8Array; width: number; height: number } }>>; };
-  type: string;
+  type: 'transformers';
 }
 
-/** Cache segmenters by model ID so switching is instant after first load */
-const segmenters = new Map<string, SegmenterEntry>();
+interface OnnxSessionEntry {
+  session: { run(feeds: Record<string, unknown>): Promise<Record<string, { data: Float32Array; dims: number[] }>>; release(): void };
+  type: 'onnx';
+}
+
+type ModelEntry = SegmenterEntry | OnnxSessionEntry;
+
+/** Cache loaded models so switching is instant after first load */
+const models = new Map<string, ModelEntry>();
 let activeConfig: BackendConfig = BACKEND_WASM;
 let RawImageClass: (new (data: Uint8ClampedArray, w: number, h: number, channels: number) => unknown) | null = null;
 
-/** Max inference resolution for WebGPU to stay within VRAM limits */
-const WEBGPU_MAX_SIZE = 512;
-
-/**
- * BiRefNet-lite Pad node names that must run on CPU.
- * WebGPU's Pad shader compilation fails for these nodes.
- * Extracted from onnx-community/BiRefNet_lite-ONNX model_fp16.onnx.
- */
-const BIREFNET_PAD_NODES: readonly string[] = [
-  '/bb/layers.0/blocks.0/Pad', '/bb/layers.0/blocks.1/Pad',
-  '/bb/layers.1/blocks.0/Pad', '/bb/layers.1/blocks.1/Pad',
-  '/bb/layers.2/blocks.0/Pad', '/bb/layers.2/blocks.1/Pad',
-  '/bb/layers.2/blocks.2/Pad', '/bb/layers.2/blocks.3/Pad',
-  '/bb/layers.2/blocks.4/Pad', '/bb/layers.2/blocks.5/Pad',
-  '/bb/layers.3/blocks.0/Pad', '/bb/layers.3/blocks.1/Pad',
-  '/bb/layers.0/blocks.0_1/Pad', '/bb/layers.0/blocks.1_1/Pad',
-  '/bb/layers.1/blocks.0_1/Pad', '/bb/layers.1/blocks.1_1/Pad',
-  '/bb/layers.2/blocks.0_1/Pad', '/bb/layers.2/blocks.1_1/Pad',
-  '/bb/layers.2/blocks.2_1/Pad', '/bb/layers.2/blocks.3_1/Pad',
-  '/bb/layers.2/blocks.4_1/Pad', '/bb/layers.2/blocks.5_1/Pad',
-  '/bb/layers.3/blocks.0_1/Pad', '/bb/layers.3/blocks.1_1/Pad',
-  '/squeeze_module/squeeze_module.0/dec_att/aspp1/atrous_conv/Pad',
-  '/squeeze_module/squeeze_module.0/dec_att/aspp_deforms.0/atrous_conv/Pad',
-  '/squeeze_module/squeeze_module.0/dec_att/aspp_deforms.1/atrous_conv/Pad',
-  '/squeeze_module/squeeze_module.0/dec_att/aspp_deforms.2/atrous_conv/Pad',
-  '/decoder/decoder_block4/dec_att/aspp1/atrous_conv/Pad',
-  '/decoder/decoder_block4/dec_att/aspp_deforms.0/atrous_conv/Pad',
-  '/decoder/decoder_block4/dec_att/aspp_deforms.1/atrous_conv/Pad',
-  '/decoder/decoder_block4/dec_att/aspp_deforms.2/atrous_conv/Pad',
-  '/decoder/decoder_block3/dec_att/aspp1/atrous_conv/Pad',
-  '/decoder/decoder_block3/dec_att/aspp_deforms.0/atrous_conv/Pad',
-  '/decoder/decoder_block3/dec_att/aspp_deforms.1/atrous_conv/Pad',
-  '/decoder/decoder_block3/dec_att/aspp_deforms.2/atrous_conv/Pad',
-  '/decoder/decoder_block2/dec_att/aspp1/atrous_conv/Pad',
-  '/decoder/decoder_block2/dec_att/aspp_deforms.0/atrous_conv/Pad',
-  '/decoder/decoder_block2/dec_att/aspp_deforms.1/atrous_conv/Pad',
-  '/decoder/decoder_block2/dec_att/aspp_deforms.2/atrous_conv/Pad',
-  '/decoder/decoder_block1/dec_att/aspp1/atrous_conv/Pad',
-  '/decoder/decoder_block1/dec_att/aspp_deforms.0/atrous_conv/Pad',
-  '/decoder/decoder_block1/dec_att/aspp_deforms.1/atrous_conv/Pad',
-  '/decoder/decoder_block1/dec_att/aspp_deforms.2/atrous_conv/Pad',
-];
-
 /**
  * Detect the best available backend.
- * Tries WebGPU first (for BiRefNet fp16), falls back to WASM (for RMBG q8).
+ * Tries WebGPU first (for InSPyReNet fp16), falls back to WASM (for RMBG q8).
  */
 async function detectBackend(): Promise<BackendConfig> {
-  // Check WebGPU availability in worker scope
   if (typeof navigator === 'undefined' || !('gpu' in navigator)) {
     return BACKEND_WASM;
   }
@@ -75,11 +47,9 @@ async function detectBackend(): Promise<BackendConfig> {
     const adapter = await navigator.gpu.requestAdapter();
     if (!adapter) return BACKEND_WASM;
 
-    // Check minimum buffer size (~256MB) as VRAM proxy
     const maxBuffer = adapter.limits.maxBufferSize;
     if (maxBuffer < 256 * 1024 * 1024) return BACKEND_WASM;
 
-    // Confirm device can be created
     const device = await adapter.requestDevice();
     device.destroy();
 
@@ -95,8 +65,6 @@ async function detectBackend(): Promise<BackendConfig> {
  * the subject's outline. Works by checking each edge pixel's neighborhood:
  * - If mostly surrounded by transparent -> it's residue -> remove
  * - If mostly surrounded by opaque -> it's part of the subject -> keep
- * This doesn't depend on color, so it works when subject outline
- * matches background color (e.g., dark outline on dark checkerboard).
  */
 function refineEdges(
   alpha: Uint8Array,
@@ -105,13 +73,8 @@ function refineEdges(
   h: number,
 ): Uint8Array {
   let result = new Uint8Array(alpha);
-
-  // Pass 1: Spatial context with radius 6 (catches larger residue areas)
   result = new Uint8Array(spatialPass(result, w, h, 6));
-
-  // Pass 2: Remove small isolated opaque clusters (<50px) not connected to main subject
   result = new Uint8Array(removeSmallClusters(result, w, h, 50));
-
   return result;
 }
 
@@ -162,13 +125,11 @@ function removeSmallClusters(alpha: Uint8Array, w: number, h: number, minSize: n
   const result = new Uint8Array(alpha);
   const visited = new Uint8Array(w * h);
 
-  // Find all connected components of opaque pixels (alpha > 30)
   const components: { indices: number[]; size: number }[] = [];
 
   for (let i = 0; i < w * h; i++) {
     if (alpha[i] <= 30 || visited[i]) continue;
 
-    // BFS flood-fill to find connected component
     const indices: number[] = [];
     const queue = [i];
     visited[i] = 1;
@@ -194,11 +155,9 @@ function removeSmallClusters(alpha: Uint8Array, w: number, h: number, minSize: n
     components.push({ indices, size: indices.length });
   }
 
-  // Find the largest component (= the subject)
   if (components.length === 0) return result;
   const maxSize = Math.max(...components.map(c => c.size));
 
-  // Remove all components smaller than minSize (and not the main subject)
   for (const comp of components) {
     if (comp.size < minSize && comp.size < maxSize) {
       for (const idx of comp.indices) {
@@ -220,63 +179,146 @@ const progressCb = (id: string) => (progress: { status: string; progress?: numbe
   }
 };
 
-/**
- * Downscale pixels for WebGPU inference to fit VRAM.
- * Returns downscaled pixels + dimensions, or original if already small enough.
- */
-function downscaleForInference(
+// ============================================================
+// InSPyReNet: direct ONNX Runtime session (WebGPU or WASM)
+// ============================================================
+
+/** Download model with progress tracking */
+async function fetchModelWithProgress(id: string, url: string): Promise<ArrayBuffer> {
+  const response = await fetch(url);
+  if (!response.ok) throw new Error(`Failed to fetch model: ${response.status}`);
+
+  const contentLength = response.headers.get('content-length');
+  if (!contentLength || !response.body) {
+    return response.arrayBuffer();
+  }
+
+  const total = parseInt(contentLength, 10);
+  const reader = response.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let received = 0;
+
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    chunks.push(value);
+    received += value.length;
+    const pct = 10 + Math.round((received / total) * 70);
+    self.postMessage({ id, type: 'model-progress', progress: pct });
+  }
+
+  const buffer = new Uint8Array(received);
+  let offset = 0;
+  for (const chunk of chunks) {
+    buffer.set(chunk, offset);
+    offset += chunk.length;
+  }
+  return buffer.buffer;
+}
+
+/** Load InSPyReNet via direct ONNX Runtime session */
+async function loadInspyrenet(id: string, device: 'webgpu' | 'wasm'): Promise<void> {
+  self.postMessage({ id, type: 'model-progress', progress: 5 });
+
+  const ort = await import('onnxruntime-web');
+
+  self.postMessage({ id, type: 'model-progress', progress: 8 });
+
+  // Download model
+  const modelBuffer = await fetchModelWithProgress(id, INSPYRENET_MODEL_URL);
+
+  self.postMessage({ id, type: 'model-progress', progress: 85 });
+
+  // Create session with appropriate backend
+  const sessionOptions = {
+    executionProviders: device === 'webgpu'
+      ? [{ name: 'webgpu' as const, preferredLayout: 'NHWC' as const }]
+      : ['wasm' as const],
+  };
+
+  const session = await ort.InferenceSession.create(modelBuffer, sessionOptions);
+
+  self.postMessage({ id, type: 'model-progress', progress: 90 });
+
+  // Warmup inference
+  try {
+    const warmupData = new Float32Array(1 * 3 * INSPYRENET_SIZE * INSPYRENET_SIZE);
+    const warmupTensor = new ort.Tensor('float32', warmupData, [1, 3, INSPYRENET_SIZE, INSPYRENET_SIZE]);
+    await session.run({ input_image: warmupTensor });
+  } catch { /* warmup failure is non-critical */ }
+
+  models.set('inspyrenet', {
+    session: session as unknown as OnnxSessionEntry['session'],
+    type: 'onnx',
+  });
+}
+
+/** Preprocess RGBA pixels to InSPyReNet input tensor (1x3x384x384, ImageNet normalized) */
+function preprocessInspyrenet(
   pixels: Uint8ClampedArray,
   width: number,
   height: number,
-  maxSize: number,
-): { pixels: Uint8ClampedArray; width: number; height: number; scaled: boolean } {
-  if (width <= maxSize && height <= maxSize) {
-    return { pixels, width, height, scaled: false };
-  }
+): Float32Array {
+  const size = INSPYRENET_SIZE;
+  const tensor = new Float32Array(1 * 3 * size * size);
 
-  const scale = maxSize / Math.max(width, height);
-  const newW = Math.round(width * scale);
-  const newH = Math.round(height * scale);
-  const out = new Uint8ClampedArray(newW * newH * 4);
-
-  for (let y = 0; y < newH; y++) {
-    for (let x = 0; x < newW; x++) {
-      const srcX = Math.min(Math.floor(x / scale), width - 1);
-      const srcY = Math.min(Math.floor(y / scale), height - 1);
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      const srcX = Math.min(Math.floor(x * width / size), width - 1);
+      const srcY = Math.min(Math.floor(y * height / size), height - 1);
       const si = (srcY * width + srcX) * 4;
-      const di = (y * newW + x) * 4;
-      out[di] = pixels[si];
-      out[di + 1] = pixels[si + 1];
-      out[di + 2] = pixels[si + 2];
-      out[di + 3] = pixels[si + 3];
+
+      const r = pixels[si] / 255;
+      const g = pixels[si + 1] / 255;
+      const b = pixels[si + 2] / 255;
+
+      const idx = y * size + x;
+      tensor[0 * size * size + idx] = (r - IMAGENET_MEAN[0]) / IMAGENET_STD[0];
+      tensor[1 * size * size + idx] = (g - IMAGENET_MEAN[1]) / IMAGENET_STD[1];
+      tensor[2 * size * size + idx] = (b - IMAGENET_MEAN[2]) / IMAGENET_STD[2];
     }
   }
 
-  return { pixels: out, width: newW, height: newH, scaled: true };
+  return tensor;
 }
 
-async function loadModel(id: string, config: BackendConfig = activeConfig, emitReady = true): Promise<void> {
-  const { modelId, device, dtype, label } = config;
+/** Run InSPyReNet inference and return alpha mask at original dimensions */
+async function runInspyrenet(
+  pixels: Uint8ClampedArray,
+  width: number,
+  height: number,
+): Promise<Uint8Array> {
+  const entry = models.get('inspyrenet') as OnnxSessionEntry;
+  const ort = await import('onnxruntime-web');
 
-  if (segmenters.has(modelId)) {
-    activeConfig = config;
-    if (emitReady) {
-      self.postMessage({ id, type: 'model-progress', progress: 100 });
-      self.postMessage({ id, type: 'model-ready', device, modelLabel: label });
+  const inputData = preprocessInspyrenet(pixels, width, height);
+  const inputTensor = new ort.Tensor('float32', inputData, [1, 3, INSPYRENET_SIZE, INSPYRENET_SIZE]);
+
+  const results = await entry.session.run({ input_image: inputTensor });
+  const outputKey = Object.keys(results)[0];
+  const outputData = results[outputKey].data as Float32Array;
+
+  // Output is 1x1x384x384, values 0-1. Map back to original dimensions.
+  const maskSize = INSPYRENET_SIZE;
+  const alpha = new Uint8Array(width * height);
+
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const srcX = Math.min(Math.floor(x * maskSize / width), maskSize - 1);
+      const srcY = Math.min(Math.floor(y * maskSize / height), maskSize - 1);
+      const val = outputData[srcY * maskSize + srcX];
+      alpha[y * width + x] = Math.round(Math.max(0, Math.min(1, val)) * 255);
     }
-    return;
   }
 
-  // Free previous model to avoid OOM - only one model in memory at a time
-  for (const [key, entry] of segmenters) {
-    if (key !== modelId) {
-      try {
-        if (entry.pipeline?.dispose) entry.pipeline.dispose();
-      } catch { /* ignore dispose errors */ }
-      segmenters.delete(key);
-    }
-  }
+  return alpha;
+}
 
+// ============================================================
+// RMBG-1.4: Transformers.js pipeline (WASM)
+// ============================================================
+
+async function loadRmbg(id: string): Promise<void> {
   self.postMessage({ id, type: 'model-progress', progress: 5 });
 
   const transformers = await import('@huggingface/transformers');
@@ -286,35 +328,94 @@ async function loadModel(id: string, config: BackendConfig = activeConfig, emitR
 
   self.postMessage({ id, type: 'model-progress', progress: 10 });
 
-  // For WebGPU + BiRefNet: force Pad nodes to CPU to avoid shader compilation failures
-  const pipelineOpts: Record<string, unknown> = {
-    device,
-    dtype,
+  const seg = await transformers.pipeline('image-segmentation', 'briaai/RMBG-1.4', {
+    device: 'wasm',
+    dtype: 'q8',
     progress_callback: progressCb(id),
-  };
-  if (device === 'webgpu' && modelId === 'onnx-community/BiRefNet_lite-ONNX') {
-    pipelineOpts.session_options = {
-      executionProviders: [{
-        name: 'webgpu',
-        preferredLayout: 'NHWC',
-        forceCpuNodeNames: BIREFNET_PAD_NODES,
-      }],
-    };
-  }
+  });
 
-  const seg = await transformers.pipeline('image-segmentation', modelId, pipelineOpts);
-  segmenters.set(modelId, { pipeline: seg as unknown as SegmenterEntry['pipeline'], type: 'pipeline' });
+  models.set('briaai/RMBG-1.4', {
+    pipeline: seg as unknown as SegmenterEntry['pipeline'],
+    type: 'transformers',
+  });
 
-  // Warmup: run a tiny inference to force full compilation
+  // Warmup
   self.postMessage({ id, type: 'model-progress', progress: 96 });
   try {
     if (RawImageClass) {
-      const warmupSize = 256;
-      const warmupPixels = new Uint8ClampedArray(warmupSize * warmupSize * 4);
-      const warmupImg = new RawImageClass(warmupPixels, warmupSize, warmupSize, 4);
+      const warmupPixels = new Uint8ClampedArray(256 * 256 * 4);
+      const warmupImg = new RawImageClass(warmupPixels, 256, 256, 4);
       await (seg as unknown as SegmenterEntry['pipeline'])(warmupImg, { threshold: 0.5, return_mask: true });
     }
   } catch { /* warmup failure is non-critical */ }
+}
+
+/** Run RMBG-1.4 inference via Transformers.js pipeline */
+async function runRmbg(
+  pixels: Uint8ClampedArray,
+  width: number,
+  height: number,
+  threshold: number,
+): Promise<Uint8Array> {
+  const entry = models.get('briaai/RMBG-1.4') as SegmenterEntry;
+
+  if (!RawImageClass) throw new Error('RawImage class not loaded');
+  const image = new RawImageClass(pixels, width, height, 4);
+
+  const results = await entry.pipeline(image, { threshold, return_mask: true });
+  const maskImage = results[0]?.mask;
+  if (!maskImage) throw new Error('Model returned no mask');
+
+  const maskData = maskImage.data;
+  const maskW = maskImage.width;
+  const maskH = maskImage.height;
+
+  const alpha = new Uint8Array(width * height);
+  const scaleX = maskW / width;
+  const scaleY = maskH / height;
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const srcX = Math.min(Math.floor(x * scaleX), maskW - 1);
+      const srcY = Math.min(Math.floor(y * scaleY), maskH - 1);
+      alpha[y * width + x] = maskData[srcY * maskW + srcX];
+    }
+  }
+
+  return alpha;
+}
+
+// ============================================================
+// Unified load / segment / fallback
+// ============================================================
+
+async function loadModel(id: string, config: BackendConfig = activeConfig, emitReady = true): Promise<void> {
+  const { modelId, device, label } = config;
+
+  if (models.has(modelId)) {
+    activeConfig = config;
+    if (emitReady) {
+      self.postMessage({ id, type: 'model-progress', progress: 100 });
+      self.postMessage({ id, type: 'model-ready', device, modelLabel: label });
+    }
+    return;
+  }
+
+  // Free previous model to avoid OOM
+  for (const [key, entry] of models) {
+    if (key !== modelId) {
+      try {
+        if (entry.type === 'onnx') entry.session.release();
+        else if (entry.pipeline?.dispose) entry.pipeline.dispose();
+      } catch { /* ignore dispose errors */ }
+      models.delete(key);
+    }
+  }
+
+  if (modelId === 'inspyrenet') {
+    await loadInspyrenet(id, device);
+  } else {
+    await loadRmbg(id);
+  }
 
   activeConfig = config;
 
@@ -329,65 +430,33 @@ async function segment(
   pixels: Uint8ClampedArray,
   width: number,
   height: number,
-  modelId: ModelId = activeConfig.modelId,
+  _modelId: ModelId = activeConfig.modelId,
   threshold = 0.5,
 ): Promise<void> {
   // Auto-load if needed
-  if (!segmenters.has(modelId)) {
+  if (!models.has(activeConfig.modelId)) {
     await loadModel(`_autoload_${id}`, activeConfig, false);
   }
 
-  // Downscale for WebGPU to fit VRAM
-  const inferenceInput = activeConfig.device === 'webgpu'
-    ? downscaleForInference(pixels, width, height, WEBGPU_MAX_SIZE)
-    : { pixels, width, height, scaled: false };
+  let rawAlpha: Uint8Array;
 
-  const entry = segmenters.get(activeConfig.modelId)!;
-
-  if (!RawImageClass) throw new Error('RawImage class not loaded');
-  const image = new RawImageClass(inferenceInput.pixels, inferenceInput.width, inferenceInput.height, 4);
-
-  let results: Array<{ mask?: { data: Uint8Array; width: number; height: number } }>;
   try {
-    results = await entry.pipeline(image, {
-      threshold,
-      return_mask: true,
-    });
+    if (activeConfig.modelId === 'inspyrenet') {
+      rawAlpha = await runInspyrenet(pixels, width, height);
+    } else {
+      rawAlpha = await runRmbg(pixels, width, height, threshold);
+    }
   } catch (err) {
     // WebGPU failure: fall back to WASM + RMBG
     if (isWebGpuError(err) && activeConfig.device === 'webgpu') {
       await fallbackToWasm(id, 'GPU inference failed');
-
-      // Retry with WASM (no downscale needed)
-      const wasmEntry = segmenters.get(BACKEND_WASM.modelId)!;
-      if (!RawImageClass) throw new Error('RawImage class not loaded');
-      const wasmImage = new RawImageClass(pixels, width, height, 4);
-      results = await wasmEntry.pipeline(wasmImage, { threshold, return_mask: true });
+      rawAlpha = await runRmbg(pixels, width, height, threshold);
     } else {
       throw err;
     }
   }
 
-  const maskImage = results[0]?.mask;
-  if (!maskImage) throw new Error('Model returned no mask');
-
-  const maskData = maskImage.data;
-  const maskW = maskImage.width;
-  const maskH = maskImage.height;
-
-  // Always map mask back to ORIGINAL dimensions (not inference dimensions)
-  const rawAlpha = new Uint8Array(width * height);
-  const scaleX = maskW / width;
-  const scaleY = maskH / height;
-  for (let y = 0; y < height; y++) {
-    for (let x = 0; x < width; x++) {
-      const srcX = Math.min(Math.floor(x * scaleX), maskW - 1);
-      const srcY = Math.min(Math.floor(y * scaleY), maskH - 1);
-      rawAlpha[y * width + x] = maskData[srcY * maskW + srcX];
-    }
-  }
-
-  // Diagnostic: check raw mask value distribution before binarization.
+  // Diagnostic: check raw mask value distribution
   let rawMin = 255;
   let rawMax = 0;
   for (let i = 0; i < rawAlpha.length; i++) {
@@ -395,16 +464,14 @@ async function segment(
     if (rawAlpha[i] > rawMax) rawMax = rawAlpha[i];
   }
 
-  const totalPx = rawAlpha.length;
   const allSameRange = (rawMax - rawMin) < 5;
-  if (allSameRange && totalPx > 100) {
+  if (allSameRange && rawAlpha.length > 100) {
     console.warn(
       `[NukeBG ML] Suspicious mask: min=${rawMin} max=${rawMax} range=${rawMax - rawMin} - ` +
       `model may have returned uniform output.`
     );
   }
 
-  // Use the model's soft alpha directly - no binarization.
   const alphaMask = refineEdges(rawAlpha, pixels, width, height);
 
   self.postMessage(
@@ -420,10 +487,12 @@ function isWebGpuError(err: unknown): boolean {
 
 /** Attempt to fall back from WebGPU to WASM */
 async function fallbackToWasm(id: string, reason: string): Promise<void> {
-  // Dispose any broken WebGPU sessions
-  for (const [k, e] of segmenters) {
-    try { e.pipeline?.dispose?.(); } catch { /* ignore */ }
-    segmenters.delete(k);
+  for (const [k, e] of models) {
+    try {
+      if (e.type === 'onnx') e.session.release();
+      else e.pipeline?.dispose?.();
+    } catch { /* ignore */ }
+    models.delete(k);
   }
 
   self.postMessage({
@@ -443,14 +512,12 @@ self.onmessage = async (e: MessageEvent<MlWorkerRequest>) => {
   try {
     switch (msg.type) {
       case 'load-model': {
-        // Detect best backend on first load
         const config = await detectBackend();
         activeConfig = config;
 
         try {
           await loadModel(msg.id, config);
         } catch (loadErr) {
-          // WebGPU model failed to load (shader compilation, etc.) -> fallback
           if (config.device === 'webgpu' && isWebGpuError(loadErr)) {
             await fallbackToWasm(msg.id, 'WebGPU model failed to load');
           } else {

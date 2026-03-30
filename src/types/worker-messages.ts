@@ -91,7 +91,7 @@ export type CvWorkerResponse =
 
 /** ======== ML Worker Messages ======== */
 
-export type ModelId = 'briaai/RMBG-1.4' | 'onnx-community/BiRefNet_lite-ONNX';
+export type ModelId = 'inspyrenet' | 'briaai/RMBG-1.4';
 
 export interface BackendConfig {
   modelId: ModelId;
@@ -101,10 +101,10 @@ export interface BackendConfig {
 }
 
 export const BACKEND_WEBGPU: BackendConfig = {
-  modelId: 'onnx-community/BiRefNet_lite-ONNX',
+  modelId: 'inspyrenet',
   device: 'webgpu',
   dtype: 'fp16',
-  label: 'BiRefNet Lite',
+  label: 'InSPyReNet',
 };
 
 export const BACKEND_WASM: BackendConfig = {
@@ -115,7 +115,7 @@ export const BACKEND_WASM: BackendConfig = {
 };
 
 export const MODEL_OPTIONS: { id: ModelId; label: string; description: string }[] = [
-  { id: 'onnx-community/BiRefNet_lite-ONNX', label: 'BiRefNet Lite', description: 'WebGPU, sharper edges, MIT license' },
+  { id: 'inspyrenet', label: 'InSPyReNet', description: 'WebGPU, MIT license, superior quality' },
   { id: 'briaai/RMBG-1.4', label: 'RMBG 1.4', description: 'WASM fallback, universal compatibility' },
 ];
 
