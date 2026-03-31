@@ -1,0 +1,2 @@
+# Proxy ML model from GitHub Releases (same-origin avoids CORS)
+/models/* https://github.com/yocreoquesi/nukebg/releases/download/models-v1/:splat 200
