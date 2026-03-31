@@ -1,13 +1,13 @@
 /**
  * ML Worker - Background removal via InSPyReNet (MIT license).
- * Single model: InSPyReNet Res2Net50 q8 (27MB) on WASM.
+ * Single model: InSPyReNet Res2Net50 fp16 (54MB) on WASM.
  * Direct ONNX Runtime session — no Transformers.js dependency.
  */
 import type { MlWorkerRequest } from '../types/worker-messages';
 import { BACKEND_CONFIG } from '../types/worker-messages';
 
-/** InSPyReNet q8 model — served via GitHub Pages (CORS enabled) */
-const MODEL_URL = 'https://yocreoquesi.github.io/nukebg/inspyrenet_res2net50_q8.onnx';
+/** InSPyReNet fp16 model — served via GitHub Pages (CORS enabled) */
+const MODEL_URL = 'https://yocreoquesi.github.io/nukebg/inspyrenet_res2net50_fp16.onnx';
 /** InSPyReNet fixed input resolution */
 const INPUT_SIZE = 384;
 /** ImageNet normalization constants */

@@ -5,7 +5,7 @@ import { BACKEND_CONFIG } from '../../src/types/worker-messages';
 /**
  * Tests for InSPyReNet model configuration.
  *
- * NukeBG uses InSPyReNet Res2Net50 q8 (27MB, MIT license)
+ * NukeBG uses InSPyReNet Res2Net50 fp16 (27MB, MIT license)
  * via direct ONNX Runtime session on WASM.
  */
 
@@ -13,7 +13,7 @@ describe('Model configuration', () => {
   it('BACKEND_CONFIG is correct', () => {
     expect(BACKEND_CONFIG.modelId).toBe('inspyrenet');
     expect(BACKEND_CONFIG.device).toBe('wasm');
-    expect(BACKEND_CONFIG.dtype).toBe('q8');
+    expect(BACKEND_CONFIG.dtype).toBe('fp16');
     expect(BACKEND_CONFIG.label).toBe('InSPyReNet');
   });
 

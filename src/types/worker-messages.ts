@@ -96,14 +96,14 @@ export type ModelId = 'inspyrenet';
 export interface BackendConfig {
   modelId: ModelId;
   device: 'wasm';
-  dtype: 'q8';
+  dtype: 'fp16';
   label: string;
 }
 
 export const BACKEND_CONFIG: BackendConfig = {
   modelId: 'inspyrenet',
   device: 'wasm',
-  dtype: 'q8',
+  dtype: 'fp16',
   label: 'InSPyReNet',
 };
 
