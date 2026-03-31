@@ -111,9 +111,9 @@ export const IMAGE_CLASSIFY_PARAMS = {
   /** Max brightness std for illustration (uniform lighting) */
   ILLUSTRATION_BRIGHTNESS_STD_MAX: 70,
 
-  // ICON RMBG threshold
-  /** RMBG confidence threshold for icons (lower = more aggressive) */
-  ICON_RMBG_THRESHOLD: 0.3,
+  // ICON segmentation threshold
+  /** ML confidence threshold for icons (lower = more aggressive) */
+  ICON_ML_THRESHOLD: 0.3,
 
   // Signature threshold algorithm params
   /** Min dimension to use Sauvola (below this, fall back to Otsu) */

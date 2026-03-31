@@ -1,6 +1,6 @@
 import { PipelineOrchestrator } from '../pipeline/orchestrator';
 import type { PipelineStage, StageStatus } from '../types/pipeline';
-// ModelId import removed - worker auto-detects backend
+// Single model (InSPyReNet) - no model selection needed
 import { t } from '../i18n';
 import { installApp, isAppInstalled } from '../sw-register';
 import type { ArViewer } from './ar-viewer';

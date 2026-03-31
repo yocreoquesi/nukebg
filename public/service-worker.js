@@ -1,11 +1,10 @@
 // Service Worker v3 — PWA caching with stale-while-revalidate + cache-first
 const CACHE_VERSION = 'nukebg-v3';
 
-// URLs that must NEVER be cached (ML model + CDN assets)
+// URLs that must NEVER be cached (ML model downloads)
 const EXCLUDED_PATTERNS = [
-  'huggingface.co',
-  'cdn-lfs',
-  'cdn.jsdelivr.net',
+  'github.com',
+  'githubusercontent.com',
 ];
 
 // App shell to pre-cache on install

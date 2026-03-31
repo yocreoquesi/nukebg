@@ -7,7 +7,7 @@ import type {
   WatermarkResult,
   ImageContentType,
 } from '../types/pipeline';
-import type { CvWorkerResponse, MlWorkerResponse, InpaintWorkerResponse, ModelId, ClassifyImageResult } from '../types/worker-messages';
+import type { CvWorkerResponse, MlWorkerResponse, InpaintWorkerResponse, ClassifyImageResult } from '../types/worker-messages';
 import { CV_PARAMS, IMAGE_CLASSIFY_PARAMS } from './constants';
 
 type StageCallback = (stage: PipelineStage, status: StageStatus, message?: string) => void;
@@ -241,8 +241,8 @@ export class PipelineOrchestrator {
   }
 
   /** Pre-load the ML model so it's ready when the user drops an image */
-  async preloadModel(modelId?: ModelId): Promise<void> {
-    await this.mlCall('load-model', undefined, modelId ? { modelId } : undefined);
+  async preloadModel(): Promise<void> {
+    await this.mlCall('load-model');
   }
 
   /**
@@ -269,7 +269,7 @@ export class PipelineOrchestrator {
     return combined;
   }
 
-  async process(imageData: ImageData, modelId?: ModelId): Promise<PipelineResult> {
+  async process(imageData: ImageData): Promise<PipelineResult> {
     this.suppressMlProgress = false; // new image = show progress
     const startTime = performance.now();
     const { width, height } = imageData;
@@ -399,15 +399,14 @@ export class PipelineOrchestrator {
       this.emit('inpaint', 'skipped');
     }
 
-    // ── Stage 4: Background removal (RMBG) ──
+    // ── Stage 4: Background removal (InSPyReNet) ──
     t = performance.now();
     this.emit('ml-segmentation', 'running', 'Loading background removal model...');
 
     // Use the (possibly inpainted) pixels for segmentation
     const extra: Record<string, unknown> = {};
-    if (modelId) extra.modelId = modelId;
     // ICON: use lower threshold for more aggressive removal
-    if (contentType === 'ICON') extra.threshold = IMAGE_CLASSIFY_PARAMS.ICON_RMBG_THRESHOLD;
+    if (contentType === 'ICON') extra.threshold = IMAGE_CLASSIFY_PARAMS.ICON_ML_THRESHOLD;
 
     const mlAlpha = await this.mlCall<Uint8Array>('segment', {
       pixels: new Uint8ClampedArray(originalPixels),

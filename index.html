@@ -49,8 +49,8 @@
   <link rel="manifest" href="/manifest.webmanifest" />
   <link rel="preload" href="/fonts/JetBrainsMono-Regular.woff2" as="font" type="font/woff2" crossorigin />
   <link rel="preload" href="/fonts/JetBrainsMono-Bold.woff2" as="font" type="font/woff2" crossorigin />
-  <link rel="dns-prefetch" href="https://huggingface.co" />
-  <link rel="preconnect" href="https://cdn-lfs.huggingface.co" crossorigin />
+  <link rel="dns-prefetch" href="https://github.com" />
+  <link rel="preconnect" href="https://github.com" crossorigin />
 
   <!-- Fonts: self-hosted, zero external requests -->
   <style>
@@ -82,7 +82,7 @@
     "featureList": [
       "AI checkerboard pattern detection and removal",
       "Gemini sparkle watermark removal",
-      "ML-powered background removal (RMBG-1.4)",
+      "ML-powered background removal (InSPyReNet)",
       "100% client-side processing (images never uploaded)",
       "Works offline after first visit",
       "WebAssembly-powered processing",
@@ -165,7 +165,7 @@
         "name": "How to get transparent background without Photoshop?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "NukeBG gives you a transparent PNG background without Photoshop or any installed software. It uses an ML model (RMBG-1.4) running directly in your browser to separate the subject from the background. Just drop your image and download the result."
+          "text": "NukeBG gives you a transparent PNG background without Photoshop or any installed software. It uses an ML model (InSPyReNet) running directly in your browser to separate the subject from the background. Just drop your image and download the result."
         }
       },
       {
@@ -221,7 +221,7 @@
         "name": "Why does the model take time to load the first time?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "The ML model (RMBG-1.4) is approximately 45 MB and needs to download on your first visit. After that, it is cached by the Service Worker so subsequent visits load instantly, even offline. The initial download is a one-time cost."
+          "text": "The ML model (InSPyReNet) is approximately 27 MB and needs to download on your first visit. After that, it is cached by the Service Worker so subsequent visits load instantly, even offline. The initial download is a one-time cost."
         }
       },
       {
@@ -274,7 +274,7 @@
         "@type": "HowToStep",
         "position": 3,
         "name": "Wait for processing",
-        "text": "NukeBG runs an ML model (RMBG-1.4) directly in your browser to detect and remove the background. It also checks for painted checkerboard patterns and Gemini watermarks. Processing takes a few seconds depending on your device."
+        "text": "NukeBG runs an ML model (InSPyReNet) directly in your browser to detect and remove the background. It also checks for painted checkerboard patterns and Gemini watermarks. Processing takes a few seconds depending on your device."
       },
       {
         "@type": "HowToStep",
@@ -332,7 +332,7 @@
       <h2 style="color:#00ff41;font-size:1.1rem;margin:1.5rem 0 0.5rem;">Features</h2>
       <ul>
         <li>100% client-side processing. Your images never touch a server.</li>
-        <li>ML-powered background removal (RMBG-1.4 via WebAssembly)</li>
+        <li>ML-powered background removal (InSPyReNet via WebAssembly)</li>
         <li>Auto-detects image type: photo, illustration, signature, icon</li>
         <li>Before/after comparison view and manual editor</li>
         <li>Works offline after first visit (PWA)</li>

@@ -13,7 +13,6 @@
     "test:watch": "vitest"
   },
   "devDependencies": {
-    "@webgpu/types": "^0.1.69",
     "happy-dom": "^20.8.8",
     "sharp": "^0.34.5",
     "tsx": "^4.21.0",
@@ -22,6 +21,6 @@
     "vitest": "^4.1.1"
   },
   "dependencies": {
-    "@huggingface/transformers": "^4.0.0-next.11"
+    "onnxruntime-web": "^1.24.3"
   }
 }
