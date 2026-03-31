@@ -6,8 +6,8 @@
 import type { MlWorkerRequest } from '../types/worker-messages';
 import { BACKEND_CONFIG } from '../types/worker-messages';
 
-/** InSPyReNet q8 model — proxied via Cloudflare Pages _redirects to avoid CORS */
-const MODEL_URL = '/models/inspyrenet_res2net50_q8.onnx';
+/** InSPyReNet q8 model — served via GitHub Pages (CORS enabled) */
+const MODEL_URL = 'https://yocreoquesi.github.io/nukebg/inspyrenet_res2net50_q8.onnx';
 /** InSPyReNet fixed input resolution */
 const INPUT_SIZE = 384;
 /** ImageNet normalization constants */

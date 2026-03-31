@@ -3,8 +3,7 @@ const CACHE_VERSION = 'nukebg-v3';
 
 // URLs that must NEVER be cached (ML model downloads)
 const EXCLUDED_PATTERNS = [
-  'github.com',
-  'githubusercontent.com',
+  'yocreoquesi.github.io',
 ];
 
 // App shell to pre-cache on install
