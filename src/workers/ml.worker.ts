@@ -5,6 +5,7 @@
  * model download, caching - all internally.
  */
 import type { MlWorkerRequest, ModelId } from '../types/worker-messages';
+import { REFINE_PARAMS } from '../pipeline/constants';
 
 const DEFAULT_MODEL: ModelId = 'briaai/RMBG-1.4';
 
@@ -44,11 +45,14 @@ function refineEdges(
 ): Uint8Array {
   let result = new Uint8Array(alpha);
 
-  // Pass 1: Spatial context with radius 6 (catches larger residue areas)
-  result = new Uint8Array(spatialPass(result, w, h, 6));
+  // Pass 1: Spatial context (catches edge residue areas)
+  result = new Uint8Array(spatialPass(result, w, h, REFINE_PARAMS.SPATIAL_RADIUS));
 
-  // Pass 2: Remove small isolated opaque clusters (<50px) not connected to main subject
-  result = new Uint8Array(removeSmallClusters(result, w, h, 50));
+  // Pass 2: Morphological opening (erode + dilate) to clean orphan contour pixels
+  result = new Uint8Array(morphOpen(result, w, h, REFINE_PARAMS.MORPH_OPEN_RADIUS));
+
+  // Pass 3: Remove isolated opaque clusters not connected to main subject
+  result = new Uint8Array(removeSmallClusters(result, w, h, REFINE_PARAMS.MIN_CLUSTER_SIZE));
 
   return result;
 }
@@ -89,6 +93,60 @@ function spatialPass(alpha: Uint8Array, w: number, h: number, radius: number): U
       } else if (opaqueRatio > 0.5) {
         result[y * w + x] = Math.min(255, Math.round(a * 1.3));
       }
+    }
+  }
+
+  return result;
+}
+
+/**
+ * Morphological opening (erode then dilate) on binary alpha mask.
+ * Erode removes thin protrusions and orphan edge pixels.
+ * Dilate restores the main shape to its original size.
+ */
+function morphOpen(alpha: Uint8Array, w: number, h: number, radius: number): Uint8Array {
+  const threshold = 128;
+
+  // Erode: pixel is opaque only if ALL neighbors within radius are opaque
+  const eroded = new Uint8Array(w * h);
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      if (alpha[y * w + x] < threshold) continue;
+      let allOpaque = true;
+      outer:
+      for (let dy = -radius; dy <= radius; dy++) {
+        for (let dx = -radius; dx <= radius; dx++) {
+          const ny = y + dy;
+          const nx = x + dx;
+          if (ny < 0 || ny >= h || nx < 0 || nx >= w) { allOpaque = false; break outer; }
+          if (alpha[ny * w + nx] < threshold) { allOpaque = false; break outer; }
+        }
+      }
+      if (allOpaque) eroded[y * w + x] = alpha[y * w + x];
+    }
+  }
+
+  // Dilate: pixel is opaque if ANY neighbor within radius is opaque in eroded
+  const result = new Uint8Array(w * h);
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      // Keep original alpha if already opaque in eroded
+      if (eroded[y * w + x] >= threshold) {
+        result[y * w + x] = alpha[y * w + x];
+        continue;
+      }
+      // Check if any neighbor in eroded is opaque → restore original alpha
+      let hasOpaqueNeighbor = false;
+      for (let dy = -radius; dy <= radius && !hasOpaqueNeighbor; dy++) {
+        for (let dx = -radius; dx <= radius && !hasOpaqueNeighbor; dx++) {
+          const ny = y + dy;
+          const nx = x + dx;
+          if (ny >= 0 && ny < h && nx >= 0 && nx < w && eroded[ny * w + nx] >= threshold) {
+            hasOpaqueNeighbor = true;
+          }
+        }
+      }
+      result[y * w + x] = hasOpaqueNeighbor ? alpha[y * w + x] : 0;
     }
   }
 
@@ -136,9 +194,10 @@ function removeSmallClusters(alpha: Uint8Array, w: number, h: number, minSize: n
   if (components.length === 0) return result;
   const maxSize = Math.max(...components.map(c => c.size));
 
-  // Remove all components smaller than minSize (and not the main subject)
+  // Remove components smaller than CLUSTER_RATIO of the main subject OR below absolute minSize
+  const relativeMin = Math.max(minSize, Math.round(maxSize * REFINE_PARAMS.CLUSTER_RATIO));
   for (const comp of components) {
-    if (comp.size < minSize && comp.size < maxSize) {
+    if (comp.size < relativeMin && comp.size < maxSize) {
       for (const idx of comp.indices) {
         result[idx] = 0;
       }

@@ -56,7 +56,7 @@ describe('Inpaint Telea FMM', () => {
     const w = 64, h = 64;
     const pixels = solidImage(w, h, 200, 100, 50);
 
-    // Corromper un bloque de 4x4 en el centro
+    // Corrupt a 4x4 block in the center
     const cx = 32, cy = 32;
     for (let dy = -2; dy <= 2; dy++) {
       for (let dx = -2; dx <= 2; dx++) {
@@ -120,7 +120,7 @@ describe('Inpaint Telea FMM', () => {
     for (let y = h - 22; y < h - 2; y++) {
       for (let x = w - 22; x < w - 2; x++) {
         mask[y * w + x] = 1;
-        // Corromper los pixeles del watermark
+        // Corrupt the watermark pixels
         const i = y * w + x;
         pixels[i * 4] = 255;
         pixels[i * 4 + 1] = 0;

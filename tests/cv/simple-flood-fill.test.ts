@@ -17,7 +17,7 @@ describe('simpleFloodFill', () => {
   it('no marca pixeles de un color distinto al fondo', () => {
     const w = 64, h = 64;
     const pixels = solidImage(w, h, 255, 255, 255);
-    // Pintar un sujeto rojo en el centro que no toca bordes
+    // Paint a red subject in the center that doesn't touch edges
     paintRect(pixels, w, 20, 20, 24, 24, 255, 0, 0);
 
     const colorA = [255, 255, 255];
@@ -34,7 +34,7 @@ describe('simpleFloodFill', () => {
     }
     expect(subjectBg).toBe(0);
 
-    // Pero el fondo circundante si debe estar marcado
+    // But the surrounding background should be marked
     expect(countBg(mask)).toBeGreaterThan(w * h - 24 * 24 - 10);
   });
 
@@ -86,7 +86,7 @@ describe('simpleFloodFill', () => {
     }
 
     const mask = simpleFloodFill(pixels, w, h, [100, 100, 100], [200, 200, 200]);
-    // Todos los pixeles deben ser fondo
+    // All pixels should be background
     expect(countBg(mask)).toBe(w * h);
   });
 

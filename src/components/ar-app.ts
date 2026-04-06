@@ -29,6 +29,7 @@ export class ArApp extends HTMLElement {
   private cachedEditResult: ImageData | null = null;
   private boundLocaleHandler: (() => void) | null = null;
   private boundPwaInstallableHandler: (() => void) | null = null;
+  private abortController: AbortController | null = null;
 
   constructor() {
     super();
@@ -36,6 +37,7 @@ export class ArApp extends HTMLElement {
   }
 
   connectedCallback(): void {
+    this.abortController = new AbortController();
     this.render();
     this.setupComponents();
     this.setupEvents();
@@ -79,6 +81,8 @@ export class ArApp extends HTMLElement {
     this.crtFlickerTimers = [];
     if (this.boundLocaleHandler) document.removeEventListener('nukebg:locale-changed', this.boundLocaleHandler);
     if (this.boundPwaInstallableHandler) document.removeEventListener('nukebg:pwa-installable', this.boundPwaInstallableHandler);
+    this.abortController?.abort();
+    this.abortController = null;
   }
 
   private render(): void {
@@ -1049,6 +1053,8 @@ export class ArApp extends HTMLElement {
       }, 2000);
     }
 
+    const signal = this.abortController!.signal;
+
     installBtn.addEventListener('click', async () => {
       // If native prompt available (Chromium), use it
       if (hasNativePrompt) {
@@ -1066,9 +1072,9 @@ export class ArApp extends HTMLElement {
       installGuide.classList.toggle('visible');
       const closeBtn = installGuide.querySelector('.install-guide-close');
       if (closeBtn) {
-        closeBtn.addEventListener('click', () => installGuide.classList.remove('visible'));
+        closeBtn.addEventListener('click', () => installGuide.classList.remove('visible'), { signal });
       }
-    });
+    }, { signal });
 
     this.shadowRoot!.addEventListener('ar:image-loaded', async (e: Event) => {
       const detail = (e as CustomEvent).detail;
@@ -1082,11 +1088,11 @@ export class ArApp extends HTMLElement {
       }
 
       await this.processImage(detail.imageData, detail.file.size);
-    });
+    }, { signal });
 
     this.shadowRoot!.addEventListener('ar:process-another', () => {
       this.resetToIdle();
-    });
+    }, { signal });
 
     // Precision slider - 4 positions with visual effects at extremes
     const precisionKeys = ['low-power', 'normal', 'high-power', 'full-nuke'] as const;
@@ -1238,7 +1244,7 @@ export class ArApp extends HTMLElement {
         const featuresSection = this.shadowRoot!.querySelector('.features') as HTMLElement;
         if (featuresSection) featuresSection.style.display = 'none';
       }
-    });
+    }, { signal });
 
     // Workspace precision slider - syncs with hero slider
     this.shadowRoot!.querySelector('#precision-slider-ws')?.addEventListener('input', (e) => {
@@ -1250,13 +1256,13 @@ export class ArApp extends HTMLElement {
       const wsLabel = this.shadowRoot!.querySelector('#precision-label-ws');
       if (wsLabel) wsLabel.textContent = precisionLabels[val];
       // No auto-reprocess - user must click Reprocess button
-    });
+    }, { signal });
 
     // Disclaimer click - toggle limitations detail
     this.shadowRoot!.querySelector('#features-disclaimer')?.addEventListener('click', () => {
       const detail = this.shadowRoot!.querySelector('#limitations-detail');
       if (detail) detail.classList.toggle('visible');
-    });
+    }, { signal });
 
     // Edit button - opens editor or discards edits
     this.shadowRoot!.querySelector('#edit-btn')?.addEventListener('click', async () => {
@@ -1285,7 +1291,7 @@ export class ArApp extends HTMLElement {
         this.cachedEditResult = null;
         (this.shadowRoot!.querySelector('#edit-btn') as HTMLElement).style.display = 'none';
       }
-    });
+    }, { signal });
 
 
 
@@ -1293,7 +1299,7 @@ export class ArApp extends HTMLElement {
     this.shadowRoot!.addEventListener('ar:editor-cancel', () => {
       (this.shadowRoot!.querySelector('#editor-section') as HTMLElement).style.display = 'none';
       (this.shadowRoot!.querySelector('#edit-btn') as HTMLElement).style.display = 'block';
-    });
+    }, { signal });
 
     // Editor done - update viewer and download with edited result
     this.shadowRoot!.addEventListener('ar:editor-done', async (e: Event) => {
@@ -1318,7 +1324,7 @@ export class ArApp extends HTMLElement {
       const editBtn = this.shadowRoot!.querySelector('#edit-btn') as HTMLElement;
       editBtn.style.display = 'block';
       editBtn.textContent = t('edit.discard');
-    });
+    }, { signal });
   }
 
   private startCrtFlicker(): void {

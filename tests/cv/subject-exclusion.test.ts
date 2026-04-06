@@ -26,7 +26,7 @@ describe('subjectExclusion', () => {
 
     const mask = subjectExclusion(pixels, w, h, dark, light, gs, 0);
 
-    // Verificar que el sujeto es foreground (no marcado como bg)
+    // Verify that the subject is foreground (not marked as bg)
     let subjectBg = 0;
     // Verificar solo el interior (alejado del borde de celda)
     for (let y = 48; y < 80; y++) {

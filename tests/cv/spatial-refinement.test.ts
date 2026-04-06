@@ -59,7 +59,7 @@ describe('shadowCleanup (spatial refinement / removeSmallClusters)', () => {
 
     // Con maxBlobSize=100, el blob de 128*128 no cabe, asi que NO se limpia
     // (el blob excede maxBlobSize, se marca overflow y se conserva)
-    // Verificar que al menos los pixeles siguen como foreground
+    // Verify that at least the pixels remain as foreground
     let fgCount = 0;
     for (let i = 0; i < result.length; i++) {
       if (result[i] === 0) fgCount++;

@@ -16,7 +16,7 @@ import { CV_PARAMS } from '../../src/pipeline/constants';
  * el flujo actual: detect-bg -> ML segmentation (soft alpha) -> watermark -> compose.
  */
 
-// Importamos las funciones CV directamente (sin workers)
+// Import CV functions directly (without workers)
 import { detectBgColors } from '../../src/workers/cv/detect-bg-colors';
 import { detectCheckerGrid } from '../../src/workers/cv/detect-checker-grid';
 import { gridFloodFill } from '../../src/workers/cv/grid-flood-fill';
@@ -102,7 +102,7 @@ describe('Pipeline - flujo de decision (nuevo: ML soft alpha)', () => {
 
   it('clasifica background complejo (alta varianza, no checker)', () => {
     const w = 128, h = 128;
-    // Imagen con gradiente (alta varianza en esquinas, pero no checker)
+    // Image with gradient (high variance in corners, but not checker)
     const pixels = new Uint8ClampedArray(w * h * 4);
     for (let y = 0; y < h; y++) {
       for (let x = 0; x < w; x++) {
@@ -116,7 +116,7 @@ describe('Pipeline - flujo de decision (nuevo: ML soft alpha)', () => {
 
     const bgInfo = detectBgColors(pixels, w, h);
 
-    // No es checker, y la varianza es alta (no solido)
+    // Not checker, and variance is high (not solid)
     // En este caso el pipeline rutea a ML. Solo verificamos la clasificacion.
     if (bgInfo.isCheckerboard) {
       const grid = detectCheckerGrid(pixels, w, h, bgInfo.colorA, bgInfo.colorB);
@@ -198,14 +198,14 @@ describe('Pipeline - composicion final RGBA con soft alpha', () => {
       result[i * 4 + 3] = alpha[i];
     }
 
-    // Pixel del sujeto (centro, 8,8): RGB intacto, alpha alto
+    // Subject pixel (center, 8,8): RGB intact, high alpha
     const ci = (8 * w + 8) * 4;
     expect(result[ci]).toBe(100);
     expect(result[ci + 1]).toBe(150);
     expect(result[ci + 2]).toBe(200);
     expect(result[ci + 3]).toBeGreaterThan(200);
 
-    // Pixel del fondo (esquina 0,0): RGB intacto, alpha=0
+    // Background pixel (corner 0,0): RGB intact, alpha=0
     expect(result[0]).toBe(255);
     expect(result[1]).toBe(255);
     expect(result[2]).toBe(255);
@@ -255,7 +255,7 @@ describe('Pipeline - watermark zeroes alpha en soft alpha', () => {
     expect(alpha[0]).toBe(0);
     expect(alpha[1]).toBe(0);
     expect(alpha[2]).toBe(0);
-    // Pixeles sin watermark mantienen su alpha
+    // Non-watermark pixels keep their alpha
     expect(alpha[3]).toBe(200);
   });
 });

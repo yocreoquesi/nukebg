@@ -16,7 +16,7 @@ describe('watermarkDetect', () => {
   it('no detecta watermark en imagen con sujeto pero sin sparkle', () => {
     const w = 512, h = 512;
     const pixels = solidImage(w, h, 255, 255, 255);
-    // Sujeto en el centro
+    // Subject in the center
     paintRect(pixels, w, 200, 200, 112, 112, 100, 50, 150);
 
     const result = watermarkDetect(pixels, w, h, [255, 255, 255], [255, 255, 255]);
@@ -28,12 +28,12 @@ describe('watermarkDetect', () => {
     const w = 512, h = 512;
     const pixels = solidImage(w, h, 200, 200, 200);
 
-    // Simular un cluster de pixeles brillantes (sparkle) en bottom-right
+    // Simulate a cluster of bright pixels (sparkle) in bottom-right
     const scanSize = Math.max(200, Math.floor(Math.min(h, w) / 5));
     const cy = h - Math.floor(scanSize / 2);
     const cx = w - Math.floor(scanSize / 2);
 
-    // Pintar un cluster de ~50 pixeles muy diferentes al fondo
+    // Paint a cluster of ~50 pixels very different from background
     for (let dy = -5; dy <= 5; dy++) {
       for (let dx = -5; dx <= 5; dx++) {
         if (Math.sqrt(dy * dy + dx * dx) <= 5) {

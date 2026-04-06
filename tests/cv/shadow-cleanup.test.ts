@@ -8,7 +8,7 @@ describe('shadowCleanup', () => {
     const pixels = solidImage(w, h, 255, 0, 0); // sujeto rojo saturado
     // Mascara donde todo el borde es fondo
     const mask = new Uint8Array(w * h);
-    // Solo el borde es fondo
+    // Only the border is background
     for (let y = 0; y < h; y++) {
       for (let x = 0; x < w; x++) {
         if (y < 5 || y >= h - 5 || x < 5 || x >= w - 5) {

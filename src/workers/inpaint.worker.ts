@@ -41,7 +41,7 @@ self.onmessage = async (e: MessageEvent<InpaintWorkerRequest>) => {
         break;
       }
       case 'dispose': {
-        // Nada que liberar - no hay modelo en memoria
+        // Nothing to free - no model in memory
         self.postMessage({ id: msg.id, type: 'disposed' } satisfies InpaintWorkerResponse);
         break;
       }

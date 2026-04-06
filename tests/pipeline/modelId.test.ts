@@ -38,7 +38,7 @@ describe('ModelId parameter', () => {
   });
 
   it('modelId condicional genera el payload correcto para mlCall', () => {
-    // Replica de la logica en orchestrator.process():
+    // Replica of the logic in orchestrator.process():
     // modelId ? { modelId } : undefined
     const modelId: ModelId | undefined = 'briaai/RMBG-1.4';
     const extra = modelId ? { modelId } : undefined;

@@ -75,6 +75,7 @@ export class ArEditor extends HTMLElement {
   private redoStack: HistoryEntry[] = [];
   private maxHistory = 30;
   private boundLocaleHandler: (() => void) | null = null;
+  private abortController: AbortController | null = null;
 
   constructor() {
     super();
@@ -82,6 +83,7 @@ export class ArEditor extends HTMLElement {
   }
 
   connectedCallback(): void {
+    this.abortController = new AbortController();
     this.render();
     this.setupCanvas();
     this.setupEvents();
@@ -93,6 +95,8 @@ export class ArEditor extends HTMLElement {
 
   disconnectedCallback(): void {
     if (this.boundLocaleHandler) document.removeEventListener('nukebg:locale-changed', this.boundLocaleHandler);
+    this.abortController?.abort();
+    this.abortController = null;
   }
 
   private updateTexts(): void {
@@ -119,7 +123,7 @@ export class ArEditor extends HTMLElement {
     if (doneBtn) doneBtn.textContent = t('editor.apply');
     const bgLabel = root.querySelector('#ed-bg-label');
     if (bgLabel) bgLabel.textContent = t('editor.bg');
-    // Tooltip de atajos
+    // Shortcuts tooltip
     const tooltip = root.querySelector('#help-tooltip');
     if (tooltip) {
       tooltip.innerHTML = `
@@ -506,12 +510,13 @@ export class ArEditor extends HTMLElement {
 
   private setupEvents(): void {
     const wrap = this.shadowRoot!.querySelector('#canvas-wrap') as HTMLElement;
+    const signal = this.abortController!.signal;
 
     // Brush shape
     this.shadowRoot!.querySelector('#brush-shape')!.addEventListener('change', (e) => {
       this.brushShape = (e.target as HTMLSelectElement).value as BrushShape;
       this.updateCursor();
-    });
+    }, { signal });
 
     // Brush size
     const sizeInput = this.shadowRoot!.querySelector('#brush-size') as HTMLInputElement;
@@ -520,23 +525,23 @@ export class ArEditor extends HTMLElement {
       this.brushSize = parseInt(sizeInput.value);
       sizeDisplay.textContent = `${this.brushSize}px`;
       this.updateCursor();
-    });
+    }, { signal });
 
     // Undo/Redo
-    this.shadowRoot!.querySelector('#undo-btn')!.addEventListener('click', () => this.undo());
-    this.shadowRoot!.querySelector('#redo-btn')!.addEventListener('click', () => this.redo());
+    this.shadowRoot!.querySelector('#undo-btn')!.addEventListener('click', () => this.undo(), { signal });
+    this.shadowRoot!.querySelector('#redo-btn')!.addEventListener('click', () => this.redo(), { signal });
 
     // Zoom
-    this.shadowRoot!.querySelector('#zoom-in')!.addEventListener('click', () => this.setZoom(this.zoom * 1.5));
-    this.shadowRoot!.querySelector('#zoom-out')!.addEventListener('click', () => this.setZoom(this.zoom / 1.5));
-    this.shadowRoot!.querySelector('#zoom-fit')!.addEventListener('click', () => this.fitToView());
+    this.shadowRoot!.querySelector('#zoom-in')!.addEventListener('click', () => this.setZoom(this.zoom * 1.5), { signal });
+    this.shadowRoot!.querySelector('#zoom-out')!.addEventListener('click', () => this.setZoom(this.zoom / 1.5), { signal });
+    this.shadowRoot!.querySelector('#zoom-fit')!.addEventListener('click', () => this.fitToView(), { signal });
 
     // Mouse wheel zoom
     wrap.addEventListener('wheel', (e) => {
       e.preventDefault();
       const factor = e.deltaY < 0 ? 1.15 : 1 / 1.15;
       this.setZoom(this.zoom * factor);
-    }, { passive: false });
+    }, { passive: false, signal });
 
     // Background buttons
     this.shadowRoot!.querySelectorAll('.bg-btn').forEach(btn => {
@@ -545,33 +550,33 @@ export class ArEditor extends HTMLElement {
         btn.classList.add('active');
         this.editorBg = (btn as HTMLElement).dataset.bg || 'checker';
         this.redraw();
-      });
+      }, { signal });
     });
 
     // Help tooltip toggle
     const helpBtn = this.shadowRoot!.querySelector('#help-btn')!;
     const helpTooltip = this.shadowRoot!.querySelector('#help-tooltip')!;
-    helpBtn.addEventListener('click', () => helpTooltip.classList.toggle('visible'));
+    helpBtn.addEventListener('click', () => helpTooltip.classList.toggle('visible'), { signal });
     // Close on click outside
     this.shadowRoot!.addEventListener('click', (e) => {
       if (e.target !== helpBtn && !helpTooltip.contains(e.target as Node)) {
         helpTooltip.classList.remove('visible');
       }
-    });
+    }, { signal });
 
     // Canvas mouse events
-    this.canvas.addEventListener('mousedown', (e) => this.onMouseDown(e));
-    this.canvas.addEventListener('mousemove', (e) => this.onMouseMove(e));
-    this.canvas.addEventListener('mouseup', () => this.onMouseUp());
-    this.canvas.addEventListener('mouseleave', () => this.onMouseUp());
-    this.canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+    this.canvas.addEventListener('mousedown', (e) => this.onMouseDown(e), { signal });
+    this.canvas.addEventListener('mousemove', (e) => this.onMouseMove(e), { signal });
+    this.canvas.addEventListener('mouseup', () => this.onMouseUp(), { signal });
+    this.canvas.addEventListener('mouseleave', () => this.onMouseUp(), { signal });
+    this.canvas.addEventListener('contextmenu', (e) => e.preventDefault(), { signal });
 
     // Touch events for canvas
     this.touchIndicator = this.shadowRoot!.querySelector('#touch-indicator');
-    wrap.addEventListener('touchstart', (e) => this.onTouchStart(e), { passive: false });
-    wrap.addEventListener('touchmove', (e) => this.onTouchMove(e), { passive: false });
-    wrap.addEventListener('touchend', (e) => this.onTouchEnd(e));
-    wrap.addEventListener('touchcancel', () => this.onTouchEnd());
+    wrap.addEventListener('touchstart', (e) => this.onTouchStart(e), { passive: false, signal });
+    wrap.addEventListener('touchmove', (e) => this.onTouchMove(e), { passive: false, signal });
+    wrap.addEventListener('touchend', (e) => this.onTouchEnd(e), { signal });
+    wrap.addEventListener('touchcancel', () => this.onTouchEnd(), { signal });
 
     // Cancel button - discard all edits
     this.shadowRoot!.querySelector('#cancel-btn')!.addEventListener('click', () => {
@@ -579,7 +584,7 @@ export class ArEditor extends HTMLElement {
         bubbles: true,
         composed: true,
       }));
-    });
+    }, { signal });
 
     // Done button
     this.shadowRoot!.querySelector('#done-btn')!.addEventListener('click', () => {
@@ -588,7 +593,7 @@ export class ArEditor extends HTMLElement {
         composed: true,
         detail: { imageData: this.getResultImageData() },
       }));
-    });
+    }, { signal });
 
     // Keyboard shortcuts
     this.addEventListener('keydown', (e) => {
@@ -599,7 +604,7 @@ export class ArEditor extends HTMLElement {
       if (e.key === '[') { this.brushSize = Math.max(2, this.brushSize - 5); this.updateSizeUI(); this.updateCursor(); }
       if (e.key === ']') { this.brushSize = Math.min(100, this.brushSize + 5); this.updateSizeUI(); this.updateCursor(); }
       if (e.key === '0' || e.key === 'Home') { this.resetView(); }
-    });
+    }, { signal });
   }
 
   /** Update the canvas cursor to match brush shape and size */

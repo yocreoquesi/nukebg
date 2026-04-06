@@ -107,26 +107,26 @@ export function inpaintTelea(
     channels.push(ch);
   }
 
-  // Computar flag array y distance array (compartido entre canales)
+  // Compute flag array and distance array (shared between channels)
   const flag = new Uint8Array(size);
   const u = new Float32Array(size);
 
-  // Paso 1: dilatacion morfologica de la mascara para encontrar la banda
+  // Step 1: morphological dilation of the mask to find the band
   const dilated = new Uint8Array(size);
   for (let i = 0; i < size; i++) {
     if (!mask[i]) continue;
     dilated[i] = 1;
-    // Cruz de 1px
+    // 1px cross
     if (i > 0) dilated[i - 1] = 1;
     if (i < size - 1) dilated[i + 1] = 1;
     if (i >= width) dilated[i - width] = 1;
     if (i + width < size) dilated[i + width] = 1;
   }
 
-  // Paso 2: clasificar pixeles
+  // Step 2: classify pixels
   for (let i = 0; i < size; i++) {
     if (mask[i]) {
-      // Pixel desconocido que esta en la banda dilatada
+      // Unknown pixel inside the dilated band
       if (dilated[i] && !mask[i]) {
         flag[i] = BAND;
       } else {
@@ -134,16 +134,16 @@ export function inpaintTelea(
         u[i] = LARGE_VALUE;
       }
     } else if (dilated[i]) {
-      // Pixel conocido en el borde de la mascara = BAND
+      // Known pixel at the mask border = BAND
       flag[i] = BAND;
     } else {
       flag[i] = KNOWN;
     }
   }
 
-  // Re-check: los pixeles de mask que estan en la frontera (vecino conocido) son BAND
-  // pero los que estan dentro son UNKNOWN
-  // Simplificacion: flag = dilated*2 - (mask XOR dilated)
+  // Re-check: mask pixels at the frontier (known neighbor) are BAND
+  // but those inside are UNKNOWN
+  // Simplification: flag = dilated*2 - (mask XOR dilated)
   for (let i = 0; i < size; i++) {
     const inMask = mask[i] ? 1 : 0;
     const inDilated = dilated[i] ? 1 : 0;
@@ -153,7 +153,7 @@ export function inpaintTelea(
     }
   }
 
-  // Paso 3: inicializar heap con todos los pixeles BAND
+  // Step 3: initialize heap with all BAND pixels
   const heap = new MinHeap();
   for (let i = 0; i < size; i++) {
     if (flag[i] === BAND) {
@@ -161,7 +161,7 @@ export function inpaintTelea(
     }
   }
 
-  // Paso 4: precomputar offsets circulares para el radio dado
+  // Step 4: precompute circular offsets for the given radius
   const offsets: number[] = [];
   for (let dy = -r; dy <= r; dy++) {
     const h = Math.floor(Math.sqrt(r * r - dy * dy));
@@ -225,7 +225,7 @@ export function inpaintTelea(
       const nbx = nb % width;
       const nby = Math.floor(nb / width);
 
-      // Bordes de seguridad
+      // Safety bounds
       if (nbx <= 1 || nby <= 1 || nbx >= width - 1 || nby >= height - 1) continue;
       if (flag[nb] !== KNOWN) continue;
 
@@ -242,12 +242,12 @@ export function inpaintTelea(
       norm += weight;
     }
 
-    channel[n] = Ia / norm;
+    if (norm > 1e-6) channel[n] = Ia / norm;
   }
 
-  // Paso 5: Fast Marching - procesar todos los canales simultaneamente
-  // Clonar el heap state para poder reusar (procesamos 3 canales con el mismo FMM)
-  // Estrategia: procesar los 3 canales en un solo FMM pass
+  // Step 5: Fast Marching - process all channels simultaneously
+  // Clone the heap state for reuse (we process 3 channels with the same FMM)
+  // Strategy: process all 3 channels in a single FMM pass
   while (heap.length) {
     const entry = heap.pop();
     const n = entry[1];
@@ -258,7 +258,7 @@ export function inpaintTelea(
 
     if (ix <= 1 || iy <= 1 || ix >= width - 1 || iy >= height - 1) continue;
 
-    // Vecinos cardinales
+    // Cardinal neighbors
     const neighbors = [n - width, n - 1, n + width, n + 1];
     for (let k = 0; k < 4; k++) {
       const nb = neighbors[k];
@@ -275,7 +275,7 @@ export function inpaintTelea(
       if (flag[nb] === UNKNOWN) {
         flag[nb] = BAND;
         heap.push([u[nb], nb]);
-        // Inpaintar los 3 canales en este punto
+        // Inpaint all 3 channels at this point
         for (let c = 0; c < 3; c++) {
           inpaintPoint(nb, channels[c]);
         }
@@ -283,13 +283,13 @@ export function inpaintTelea(
     }
   }
 
-  // Paso 6: escribir canales procesados de vuelta a RGBA
+  // Step 6: write processed channels back to RGBA
   for (let i = 0; i < size; i++) {
-    if (!mask[i]) continue; // Solo tocar pixeles de la mascara
+    if (!mask[i]) continue; // Only touch mask pixels
     result[i * 4] = Math.round(Math.max(0, Math.min(255, channels[0][i])));
     result[i * 4 + 1] = Math.round(Math.max(0, Math.min(255, channels[1][i])));
     result[i * 4 + 2] = Math.round(Math.max(0, Math.min(255, channels[2][i])));
-    result[i * 4 + 3] = 255; // Opaco
+    result[i * 4 + 3] = 255; // Opaque
   }
 
   return result;

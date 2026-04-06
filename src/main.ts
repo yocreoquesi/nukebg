@@ -444,10 +444,10 @@ function initShakeDetection(): void {
 function initI18n(): void {
   const locale = getLocale();
 
-  // Establecer lang del html al inicio
+  // Set html lang attribute on init
   document.documentElement.lang = locale;
 
-  // Sincronizar el selector
+  // Sync the selector
   const langSelector = document.getElementById('lang-selector') as HTMLSelectElement | null;
   if (langSelector) {
     langSelector.value = locale;

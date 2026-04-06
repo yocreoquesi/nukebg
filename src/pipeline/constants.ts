@@ -27,17 +27,17 @@ export const WATERMARK_PARAMS = {
 } as const;
 
 export const DALLE_WATERMARK_PARAMS = {
-  /** Cuantas filas desde abajo escanear */
+  /** How many rows to scan from the bottom edge */
   SCAN_HEIGHT: 10,
-  /** Ancho maximo de escaneo desde el borde derecho */
+  /** Max scan width from the right edge */
   SCAN_WIDTH: 200,
-  /** Minimo de colores unicos (cuantizados) para considerar watermark */
+  /** Min unique colors (quantized) to consider watermark */
   MIN_UNIQUE_COLORS: 15,
-  /** La linea debe tener N veces mas colores que la referencia */
+  /** Line must have N times more colors than reference */
   CONTRAST_THRESHOLD: 2.0,
-  /** Spread minimo sumado de canales RGB */
+  /** Min combined RGB channel spread */
   MIN_CHANNEL_SPREAD: 200,
-  /** Margen extra en pixeles alrededor de la barra detectada */
+  /** Extra margin in pixels around detected bar */
   MASK_MARGIN: 2,
 } as const;
 
@@ -64,10 +64,21 @@ export const GUIDED_FILTER_PARAMS = {
 
 
 export const INPAINT_PARAMS = {
-  /** Radio de busqueda de vecinos para Telea FMM.
-   *  Debe ser >= al grosor de la zona a reconstruir.
-   *  Para watermarks tipicos (sparkle, barra DALL-E) 5-8px basta. */
+  /** Neighbor search radius for Telea FMM.
+   *  Must be >= the thickness of the region to reconstruct.
+   *  For typical watermarks (sparkle, DALL-E bar) 5-8px is enough. */
   TELEA_RADIUS: 7,
+} as const;
+
+export const REFINE_PARAMS = {
+  /** Spatial pass radius for edge cleanup */
+  SPATIAL_RADIUS: 6,
+  /** Absolute minimum cluster size (pixels) */
+  MIN_CLUSTER_SIZE: 50,
+  /** Relative cluster threshold: remove clusters smaller than this fraction of the main subject */
+  CLUSTER_RATIO: 0.01,
+  /** Morphological opening radius: erode then dilate to clean orphan edge pixels */
+  MORPH_OPEN_RADIUS: 1,
 } as const;
 
 export const IMAGE_CLASSIFY_PARAMS = {

@@ -18,7 +18,7 @@ export function watermarkDetectDalle(
   const minUniqueColors = DALLE_WATERMARK_PARAMS.MIN_UNIQUE_COLORS;
   const contrastThreshold = DALLE_WATERMARK_PARAMS.CONTRAST_THRESHOLD;
 
-  // Escanear las ultimas filas, zona derecha
+  // Scan the last rows, right zone
   let barStartY = -1;
   let barEndY = -1;
 
@@ -44,10 +44,10 @@ export function watermarkDetectDalle(
 
     if (count === 0) continue;
 
-    // Verificar alta variacion de color
+    // Verify high color variation
     if (colors.size < minUniqueColors) continue;
 
-    // Comparar con la linea de arriba (referencia del fondo)
+    // Compare with the line above (background reference)
     const refY = Math.max(0, y - scanH - 5);
     const refColors = new Set<number>();
     for (let x = width - scanW; x < width; x++) {
@@ -62,7 +62,7 @@ export function watermarkDetectDalle(
     // La linea de watermark debe tener significativamente mas colores que la referencia
     if (colors.size <= refColors.size * contrastThreshold) continue;
 
-    // Verificar que hay variacion real de hue (no solo ruido de brillo)
+    // Verify there is real hue variation (not just brightness noise)
     let minR = 255, maxR = 0, minG = 255, maxG = 0, minB = 255, maxB = 0;
     for (let x = width - scanW; x < width; x++) {
       const idx = pixelIndex(x, y, width);

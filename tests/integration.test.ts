@@ -157,7 +157,7 @@ describe('Integracion: T3 - Ilustracion sobre fondo negro', () => {
 
 describe('Integracion: T5 - PNG ya transparente (passthrough)', () => {
   it('imagen con alpha 0 en corners se detecta como solid y se procesa', () => {
-    // Simulamos una imagen donde el fondo es un color uniforme
+    // Simulate an image with a uniform background color
     // (en el mundo real seria alpha=0, pero nuestro pipeline opera sobre RGB)
     const w = 128, h = 128;
     const pixels = solidImage(w, h, 0, 0, 0);

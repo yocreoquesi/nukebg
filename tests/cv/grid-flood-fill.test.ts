@@ -21,7 +21,7 @@ describe('gridFloodFill', () => {
     const w = 128, h = 128, gs = 16;
     const pixels = checkerboardImage(w, h, gs, dark, light);
 
-    // Pintar un sujeto rojo de 40x40 en el centro
+    // Paint a 40x40 red subject in the center
     paintRect(pixels, w, 44, 44, 40, 40, 255, 0, 0);
 
     const mask = gridFloodFill(pixels, w, h, dark, light, gs, 0);

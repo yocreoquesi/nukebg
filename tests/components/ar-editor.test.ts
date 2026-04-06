@@ -10,7 +10,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
  * Testea: setImage, getResultImageData, undo/redo, reset, toolbar, eventos.
  */
 
-// Polyfill de ImageData para happy-dom
+// ImageData polyfill for happy-dom
 if (typeof globalThis.ImageData === 'undefined') {
   (globalThis as any).ImageData = class ImageData {
     data: Uint8ClampedArray;
@@ -30,7 +30,7 @@ if (typeof globalThis.ImageData === 'undefined') {
   };
 }
 
-// Mock de CanvasRenderingContext2D para happy-dom
+// CanvasRenderingContext2D mock for happy-dom
 const mockCtx = {
   fillStyle: '',
   fillRect: vi.fn(),
@@ -61,7 +61,7 @@ vi.stubGlobal('OffscreenCanvas', class {
   getContext() { return mockCtx; }
 });
 
-// Registrar el componente
+// Register the component
 import '../../src/components/ar-editor';
 import { ArEditor } from '../../src/components/ar-editor';
 
@@ -120,7 +120,7 @@ describe('ArEditor component', () => {
       const img = makeTestImageData();
       editor.setImage(img);
 
-      // Modificar el original
+      // Modify the original
       img.data[0] = 0;
 
       // El editor tiene su propia copia

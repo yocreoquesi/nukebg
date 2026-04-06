@@ -117,7 +117,7 @@ describe('originalPixels no se corrompe al usar extractTransferables', () => {
     const copy2 = new Uint8ClampedArray(source);
     const copy3 = new Uint8ClampedArray(source);
 
-    // Modificar las copias (como haria un worker)
+    // Modify the copies (as a worker would)
     copy1.fill(0);
     copy2.fill(128);
     copy3.fill(255);
@@ -131,7 +131,7 @@ describe('originalPixels no se corrompe al usar extractTransferables', () => {
   it('la composicion final usa originalPixels sin corrupcion', () => {
     const width = 4, height = 4;
     const imagePixels = new Uint8ClampedArray(width * height * 4);
-    // Rellenar con colores conocidos
+    // Fill with known colors
     for (let i = 0; i < width * height; i++) {
       imagePixels[i * 4] = 100;     // R
       imagePixels[i * 4 + 1] = 150; // G

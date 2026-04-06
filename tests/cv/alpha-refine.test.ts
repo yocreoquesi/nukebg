@@ -63,7 +63,7 @@ describe('alphaRefine', () => {
 
     const alpha = alphaRefine(mask, w, h);
 
-    // En la zona de transicion (x=9-10) puede haber valores intermedios
+    // In the transition zone (x=9-10) there may be intermediate values
     // o un salto brusco post-threshold. El punto es que no crashee
     // y los extremos sean correctos
     expect(alpha[10 * w + 0]).toBe(0);   // bg lejano

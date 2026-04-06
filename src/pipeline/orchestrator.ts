@@ -383,7 +383,7 @@ export class PipelineOrchestrator {
           stageTiming['inpaint'] = performance.now() - t;
           this.emit('inpaint', 'done', 'Watermark reconstructed');
         } finally {
-          // Liberar el worker de inpaint
+          // Free the inpaint worker
           this.disposeInpaintWorker();
         }
       } else {
