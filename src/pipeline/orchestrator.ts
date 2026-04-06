@@ -38,6 +38,7 @@ export class PipelineOrchestrator {
   private mlWorker: Worker;
   private inpaintWorker: Worker | null = null;
   private pendingRequests = new Map<string, { resolve: (val: unknown) => void; reject: (err: Error) => void; expectedType: string }>();
+  private pendingTimers = new Set<ReturnType<typeof setTimeout>>();
   private onStageChange: StageCallback;
 
   constructor(onStageChange: StageCallback) {
@@ -52,8 +53,14 @@ export class PipelineOrchestrator {
       { type: 'module' }
     );
 
-    this.cvWorker.onerror = (e) => this.rejectAllPending(`CV Worker error: ${e.message}`);
-    this.mlWorker.onerror = (e) => this.rejectAllPending(`ML Worker error: ${e.message}`);
+    this.cvWorker.onerror = (e) => {
+      this.rejectAllPending(`CV Worker error: ${e.message}`);
+      this.cvWorker.terminate();
+    };
+    this.mlWorker.onerror = (e) => {
+      this.rejectAllPending(`ML Worker error: ${e.message}`);
+      this.mlWorker.terminate();
+    };
 
     this.cvWorker.onmessage = (e: MessageEvent<CvWorkerResponse>) => {
       const msg = e.data;
@@ -133,6 +140,8 @@ export class PipelineOrchestrator {
 
   /** Reject all pending requests (used when a worker crashes) */
   private rejectAllPending(message: string): void {
+    for (const timer of this.pendingTimers) clearTimeout(timer);
+    this.pendingTimers.clear();
     for (const [, pending] of this.pendingRequests) {
       pending.reject(new Error(message));
     }
@@ -146,12 +155,14 @@ export class PipelineOrchestrator {
       const transferables = PipelineOrchestrator.extractTransferables(payload);
       this.cvWorker.postMessage({ id, type, payload }, transferables);
 
-      setTimeout(() => {
+      const timer = setTimeout(() => {
+        this.pendingTimers.delete(timer);
         if (this.pendingRequests.has(id)) {
           this.pendingRequests.delete(id);
           reject(new Error(`CV Worker timeout after ${CV_TIMEOUT_MS}ms: ${type}`));
         }
       }, CV_TIMEOUT_MS);
+      this.pendingTimers.add(timer);
     });
   }
 
@@ -162,12 +173,14 @@ export class PipelineOrchestrator {
       const transferables = PipelineOrchestrator.extractTransferables(payload);
       this.mlWorker.postMessage({ id, type, payload, ...extra }, transferables);
 
-      setTimeout(() => {
+      const timer = setTimeout(() => {
+        this.pendingTimers.delete(timer);
         if (this.pendingRequests.has(id)) {
           this.pendingRequests.delete(id);
           reject(new Error(`ML Worker timeout after ${ML_TIMEOUT_MS}ms: ${type}. Check browser console for errors.`));
         }
       }, ML_TIMEOUT_MS);
+      this.pendingTimers.add(timer);
     });
   }
 
@@ -213,16 +226,18 @@ export class PipelineOrchestrator {
       const transferables = PipelineOrchestrator.extractTransferables(payload);
       this.inpaintWorker!.postMessage({ id, type, payload }, transferables);
 
-      setTimeout(() => {
+      const timer = setTimeout(() => {
+        this.pendingTimers.delete(timer);
         if (this.pendingRequests.has(id)) {
           this.pendingRequests.delete(id);
           reject(new Error(`Inpaint Worker timeout after ${INPAINT_TIMEOUT_MS}ms: ${type}`));
         }
       }, INPAINT_TIMEOUT_MS);
+      this.pendingTimers.add(timer);
     });
   }
 
-  /** Dispose inpaint worker y liberar memoria */
+  /** Dispose inpaint worker and free memory */
   private disposeInpaintWorker(): void {
     if (this.inpaintWorker) {
       this.inpaintWorker.terminate();
@@ -480,6 +495,8 @@ export class PipelineOrchestrator {
   }
 
   destroy(): void {
+    for (const timer of this.pendingTimers) clearTimeout(timer);
+    this.pendingTimers.clear();
     this.cvWorker.terminate();
     this.mlWorker.terminate();
     this.disposeInpaintWorker();

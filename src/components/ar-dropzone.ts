@@ -243,6 +243,7 @@ export class ArDropzone extends HTMLElement {
 
     // Paste from clipboard
     this.boundPasteHandler = (e: ClipboardEvent) => {
+      if (this.dropArea.classList.contains('dropzone-disabled')) return;
       const items = e.clipboardData?.items;
       if (!items) return;
       for (const item of items) {

@@ -84,20 +84,23 @@ export class ArDownload extends HTMLElement {
     this.selectedFormat = format;
     this.filename = generateOutputFilename(this.inputFilename, format, getLocale());
 
+    let newBlob: Blob;
     if (format === 'webp') {
       const { exportWebp } = await import('../utils/image-io');
-      this.resultBlob = await exportWebp(this.currentImageData);
+      newBlob = await exportWebp(this.currentImageData);
     } else {
       // Reuse cached PNG blob if available
       if (this.pngBlob) {
-        this.resultBlob = this.pngBlob;
+        newBlob = this.pngBlob;
       } else {
         const { exportPng } = await import('../utils/image-io');
-        this.resultBlob = await exportPng(this.currentImageData);
-        this.pngBlob = this.resultBlob;
+        newBlob = await exportPng(this.currentImageData);
+        this.pngBlob = newBlob;
       }
     }
 
+    // Revoke old URL only after new blob is ready
+    this.resultBlob = newBlob;
     if (this.blobUrl) URL.revokeObjectURL(this.blobUrl);
     this.blobUrl = URL.createObjectURL(this.resultBlob);
     this.update();
@@ -412,6 +415,7 @@ export class ArDownload extends HTMLElement {
     this.currentImageData = null;
     this.inputFilename = '';
     this.selectedFormat = 'png';
+    this.updateFormatToggleState();
   }
 }
 

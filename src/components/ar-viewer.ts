@@ -274,6 +274,7 @@ export class ArViewer extends HTMLElement {
     const onMove = (clientX: number) => {
       if (!this.isDragging) return;
       const rect = this.container.getBoundingClientRect();
+      if (!rect.width) return;
       this.sliderPos = Math.max(0, Math.min(100, ((clientX - rect.left) / rect.width) * 100));
       this.updateSlider();
     };

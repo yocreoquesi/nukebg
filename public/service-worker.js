@@ -1,5 +1,5 @@
 // Service Worker v3 — PWA caching with stale-while-revalidate + cache-first
-const CACHE_VERSION = 'nukebg-v3';
+const CACHE_VERSION = 'nukebg-v4';
 
 // URLs that must NEVER be cached (ML model + CDN assets)
 const EXCLUDED_PATTERNS = [
@@ -20,8 +20,8 @@ function isNavigationRequest(request) {
 }
 
 function isHashedAsset(url) {
-  // Vite outputs files like /assets/index-abc123.js or /assets/style-def456.css
-  return /\/assets\/[^/]+\.[a-f0-9]{8,}\.(js|css)$/.test(url);
+  // Vite outputs files like /assets/index-CgG6YtGA.js (base64url hashes, not hex)
+  return /\/assets\/[^/]+-[a-zA-Z0-9_-]{8,}\.(js|css)$/.test(url);
 }
 
 function isFontRequest(url) {

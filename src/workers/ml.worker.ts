@@ -174,13 +174,14 @@ function removeSmallClusters(alpha: Uint8Array, w: number, h: number, minSize: n
   for (let i = 0; i < w * h; i++) {
     if (alpha[i] <= 30 || visited[i]) continue;
 
-    // BFS flood-fill to find connected component
+    // BFS flood-fill to find connected component (FIFO via head pointer)
     const indices: number[] = [];
     const queue = [i];
+    let head = 0;
     visited[i] = 1;
 
-    while (queue.length > 0) {
-      const idx = queue.pop()!;
+    while (head < queue.length) {
+      const idx = queue[head++];
       indices.push(idx);
       const cx = idx % w;
       const cy = (idx - cx) / w;

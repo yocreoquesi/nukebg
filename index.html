@@ -376,6 +376,16 @@
   <div class="kbd-toast" id="kbd-toast" role="status" aria-live="polite"></div>
   <div class="smoke-overlay" id="smoke-overlay"></div>
 
+  <!-- Auto-recovery: if main JS fails to load (stale SW cache), clear and reload -->
+  <script>
+    setTimeout(function() {
+      if (document.getElementById('seo-content') && 'serviceWorker' in navigator) {
+        caches.keys().then(function(keys) {
+          return Promise.all(keys.map(function(k) { return caches.delete(k); }));
+        }).then(function() { location.reload(); });
+      }
+    }, 5000);
+  </script>
   <script type="module" src="/src/main.ts"></script>
 </body>
 </html>
