@@ -81,6 +81,60 @@ export const REFINE_PARAMS = {
   MORPH_OPEN_RADIUS: 1,
 } as const;
 
+/** Precision mode type - maps to slider positions */
+export type PrecisionMode = 'low-power' | 'normal' | 'high-power' | 'full-nuke';
+
+/** Per-mode pipeline parameters that control processing quality */
+export interface PrecisionProfile {
+  /** RMBG confidence threshold (lower = keeps more of the subject) */
+  rmbgThreshold: number;
+  /** Number of spatial refinement passes */
+  spatialPasses: number;
+  /** Radius for each spatial pass */
+  spatialRadius: number;
+  /** Morphological opening radius (0 = skip) */
+  morphOpenRadius: number;
+  /** Relative cluster threshold */
+  clusterRatio: number;
+  /** Absolute minimum cluster size */
+  minClusterSize: number;
+}
+
+export const PRECISION_PROFILES: Record<PrecisionMode, PrecisionProfile> = {
+  'low-power': {
+    rmbgThreshold: 0.6,
+    spatialPasses: 1,
+    spatialRadius: 4,
+    morphOpenRadius: 0,
+    clusterRatio: 0.02,
+    minClusterSize: 100,
+  },
+  'normal': {
+    rmbgThreshold: 0.5,
+    spatialPasses: 1,
+    spatialRadius: REFINE_PARAMS.SPATIAL_RADIUS,
+    morphOpenRadius: REFINE_PARAMS.MORPH_OPEN_RADIUS,
+    clusterRatio: REFINE_PARAMS.CLUSTER_RATIO,
+    minClusterSize: REFINE_PARAMS.MIN_CLUSTER_SIZE,
+  },
+  'high-power': {
+    rmbgThreshold: 0.4,
+    spatialPasses: 2,
+    spatialRadius: 5,
+    morphOpenRadius: 1,
+    clusterRatio: 0.005,
+    minClusterSize: 30,
+  },
+  'full-nuke': {
+    rmbgThreshold: 0.3,
+    spatialPasses: 3,
+    spatialRadius: 4,
+    morphOpenRadius: 2,
+    clusterRatio: 0.003,
+    minClusterSize: 20,
+  },
+} as const;
+
 export const IMAGE_CLASSIFY_PARAMS = {
   /** Pixel count threshold for sampling unique colors (avoid full scan on large images) */
   SAMPLE_THRESHOLD: 100_000,

@@ -8,7 +8,8 @@ import type {
   ImageContentType,
 } from '../types/pipeline';
 import type { CvWorkerResponse, MlWorkerResponse, InpaintWorkerResponse, ModelId, ClassifyImageResult } from '../types/worker-messages';
-import { CV_PARAMS, IMAGE_CLASSIFY_PARAMS } from './constants';
+import { CV_PARAMS, IMAGE_CLASSIFY_PARAMS, PRECISION_PROFILES } from './constants';
+import type { PrecisionMode } from './constants';
 
 type StageCallback = (stage: PipelineStage, status: StageStatus, message?: string) => void;
 
@@ -29,7 +30,7 @@ function generateUUID(): string {
 const CV_TIMEOUT_MS = 60_000;
 /** ML timeout is longer: model download can take time on first use */
 const ML_TIMEOUT_MS = 300_000;
-/** Inpaint timeout: Telea CV es instantaneo, 30s es mas que suficiente */
+/** Inpaint timeout: Telea CV is instant, 30s is more than enough */
 const INPAINT_TIMEOUT_MS = 30_000;
 
 export class PipelineOrchestrator {
@@ -170,7 +171,7 @@ export class PipelineOrchestrator {
     });
   }
 
-  /** Crear el inpaint worker lazy (solo si se necesita) */
+  /** Create the inpaint worker lazily (only when needed) */
   private createInpaintWorker(): void {
     if (this.inpaintWorker) return;
     this.inpaintWorker = new Worker(
@@ -244,8 +245,8 @@ export class PipelineOrchestrator {
   }
 
   /**
-   * Combinar N mascaras de watermark con OR logico.
-   * Si todas son null, devuelve null.
+   * Combine N watermark masks with logical OR.
+   * Returns null if all masks are null.
    */
   private static combineMasks(
     masks: Array<Uint8Array | null>,
@@ -267,7 +268,7 @@ export class PipelineOrchestrator {
     return combined;
   }
 
-  async process(imageData: ImageData, modelId?: ModelId): Promise<PipelineResult> {
+  async process(imageData: ImageData, modelId?: ModelId, precision: PrecisionMode = 'normal'): Promise<PipelineResult> {
     this.suppressMlProgress = false; // new image = show progress
     const startTime = performance.now();
     const { width, height } = imageData;
@@ -402,16 +403,26 @@ export class PipelineOrchestrator {
     this.emit('ml-segmentation', 'running', 'Loading background removal model...');
 
     // Use the (possibly inpainted) pixels for segmentation
+    const profile = PRECISION_PROFILES[precision];
     const extra: Record<string, unknown> = {};
     if (modelId) extra.modelId = modelId;
     // ICON: use lower threshold for more aggressive removal
-    if (contentType === 'ICON') extra.threshold = IMAGE_CLASSIFY_PARAMS.ICON_RMBG_THRESHOLD;
+    extra.threshold = contentType === 'ICON'
+      ? IMAGE_CLASSIFY_PARAMS.ICON_RMBG_THRESHOLD
+      : profile.rmbgThreshold;
+    extra.refine = {
+      spatialPasses: profile.spatialPasses,
+      spatialRadius: profile.spatialRadius,
+      morphOpenRadius: profile.morphOpenRadius,
+      clusterRatio: profile.clusterRatio,
+      minClusterSize: profile.minClusterSize,
+    };
 
     const mlAlpha = await this.mlCall<Uint8Array>('segment', {
       pixels: new Uint8ClampedArray(originalPixels),
       width,
       height,
-    }, Object.keys(extra).length > 0 ? extra : undefined);
+    }, extra);
 
     stageTiming['ml-segmentation'] = performance.now() - t;
     this.emit('ml-segmentation', 'done', 'Background removed');

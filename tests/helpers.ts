@@ -1,9 +1,9 @@
 /**
- * Test helpers: funciones utilitarias para generar imagenes sinteticas en tests.
+ * Test helpers: utility functions for generating synthetic images in tests.
  */
 
 /**
- * Crea un buffer RGBA lleno de un solo color.
+ * Creates an RGBA buffer filled with a single color.
  */
 export function solidImage(
   width: number,
@@ -24,8 +24,8 @@ export function solidImage(
 }
 
 /**
- * Crea una imagen con patron de tablero de ajedrez (checkerboard).
- * colorDark y colorLight son [r, g, b].
+ * Creates a checkerboard pattern image.
+ * colorDark and colorLight are [r, g, b].
  */
 export function checkerboardImage(
   width: number,
@@ -53,7 +53,7 @@ export function checkerboardImage(
 }
 
 /**
- * Pinta un rectangulo solido sobre un buffer RGBA existente.
+ * Paints a solid rectangle onto an existing RGBA buffer.
  */
 export function paintRect(
   data: Uint8ClampedArray,
@@ -78,7 +78,7 @@ export function paintRect(
 }
 
 /**
- * Cuenta cuantos pixeles de un Uint8Array son 1 (background).
+ * Counts how many pixels in a Uint8Array are 1 (background).
  */
 export function countBg(mask: Uint8Array): number {
   let count = 0;
@@ -89,7 +89,7 @@ export function countBg(mask: Uint8Array): number {
 }
 
 /**
- * Cuenta cuantos pixeles de un Uint8Array son 0 (foreground).
+ * Counts how many pixels in a Uint8Array are 0 (foreground).
  */
 export function countFg(mask: Uint8Array): number {
   return mask.length - countBg(mask);

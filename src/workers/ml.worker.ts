@@ -4,7 +4,7 @@
  * Transformers.js handles ONNX Runtime, WebGPU/WASM detection,
  * model download, caching - all internally.
  */
-import type { MlWorkerRequest, ModelId } from '../types/worker-messages';
+import type { MlWorkerRequest, MlRefineOptions, ModelId } from '../types/worker-messages';
 import { REFINE_PARAMS } from '../pipeline/constants';
 
 const DEFAULT_MODEL: ModelId = 'briaai/RMBG-1.4';
@@ -42,17 +42,27 @@ function refineEdges(
   _pixels: Uint8ClampedArray,
   w: number,
   h: number,
+  opts?: MlRefineOptions,
 ): Uint8Array {
+  const spatialPasses = opts?.spatialPasses ?? 1;
+  const spatialRadius = opts?.spatialRadius ?? REFINE_PARAMS.SPATIAL_RADIUS;
+  const morphRadius = opts?.morphOpenRadius ?? REFINE_PARAMS.MORPH_OPEN_RADIUS;
+  const minCluster = opts?.minClusterSize ?? REFINE_PARAMS.MIN_CLUSTER_SIZE;
+
   let result = new Uint8Array(alpha);
 
-  // Pass 1: Spatial context (catches edge residue areas)
-  result = new Uint8Array(spatialPass(result, w, h, REFINE_PARAMS.SPATIAL_RADIUS));
+  // Spatial context passes (catches edge residue areas)
+  for (let i = 0; i < spatialPasses; i++) {
+    result = new Uint8Array(spatialPass(result, w, h, spatialRadius));
+  }
 
-  // Pass 2: Morphological opening (erode + dilate) to clean orphan contour pixels
-  result = new Uint8Array(morphOpen(result, w, h, REFINE_PARAMS.MORPH_OPEN_RADIUS));
+  // Morphological opening (erode + dilate) to clean orphan contour pixels
+  if (morphRadius > 0) {
+    result = new Uint8Array(morphOpen(result, w, h, morphRadius));
+  }
 
-  // Pass 3: Remove isolated opaque clusters not connected to main subject
-  result = new Uint8Array(removeSmallClusters(result, w, h, REFINE_PARAMS.MIN_CLUSTER_SIZE));
+  // Remove isolated opaque clusters not connected to main subject
+  result = new Uint8Array(removeSmallClusters(result, w, h, minCluster, opts?.clusterRatio));
 
   return result;
 }
@@ -154,7 +164,7 @@ function morphOpen(alpha: Uint8Array, w: number, h: number, radius: number): Uin
 }
 
 /** Remove small opaque clusters not connected to the main subject */
-function removeSmallClusters(alpha: Uint8Array, w: number, h: number, minSize: number): Uint8Array {
+function removeSmallClusters(alpha: Uint8Array, w: number, h: number, minSize: number, clusterRatio?: number): Uint8Array {
   const result = new Uint8Array(alpha);
   const visited = new Uint8Array(w * h);
 
@@ -195,7 +205,8 @@ function removeSmallClusters(alpha: Uint8Array, w: number, h: number, minSize: n
   const maxSize = Math.max(...components.map(c => c.size));
 
   // Remove components smaller than CLUSTER_RATIO of the main subject OR below absolute minSize
-  const relativeMin = Math.max(minSize, Math.round(maxSize * REFINE_PARAMS.CLUSTER_RATIO));
+  const ratio = clusterRatio ?? REFINE_PARAMS.CLUSTER_RATIO;
+  const relativeMin = Math.max(minSize, Math.round(maxSize * ratio));
   for (const comp of components) {
     if (comp.size < relativeMin && comp.size < maxSize) {
       for (const idx of comp.indices) {
@@ -283,6 +294,7 @@ async function segment(
   height: number,
   modelId: ModelId = DEFAULT_MODEL,
   threshold = 0.5,
+  refineOpts?: MlRefineOptions,
 ): Promise<void> {
   // Use a separate internal ID for auto-loading so that any model-ready
   // message cannot accidentally resolve the pending segment request.
@@ -307,11 +319,35 @@ async function segment(
   const rawAlpha = new Uint8Array(width * height);
   const scaleX = maskW / width;
   const scaleY = maskH / height;
+  const useBilinear = refineOpts ? refineOpts.spatialPasses > 0 : true;
+
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
-      const srcX = Math.min(Math.floor(x * scaleX), maskW - 1);
-      const srcY = Math.min(Math.floor(y * scaleY), maskH - 1);
-      rawAlpha[y * width + x] = maskData[srcY * maskW + srcX];
+      if (!useBilinear) {
+        // Nearest-neighbor: fast, used in low-power mode
+        const srcX = Math.min(Math.floor(x * scaleX), maskW - 1);
+        const srcY = Math.min(Math.floor(y * scaleY), maskH - 1);
+        rawAlpha[y * width + x] = maskData[srcY * maskW + srcX];
+      } else {
+        // Bilinear interpolation: smoother edges, avoids staircase artifacts
+        const fx = x * scaleX - 0.5;
+        const fy = y * scaleY - 0.5;
+        const x0 = Math.max(0, Math.floor(fx));
+        const y0 = Math.max(0, Math.floor(fy));
+        const x1 = Math.min(x0 + 1, maskW - 1);
+        const y1 = Math.min(y0 + 1, maskH - 1);
+        const dx = fx - x0;
+        const dy = fy - y0;
+
+        const v00 = maskData[y0 * maskW + x0];
+        const v10 = maskData[y0 * maskW + x1];
+        const v01 = maskData[y1 * maskW + x0];
+        const v11 = maskData[y1 * maskW + x1];
+
+        const top = v00 + (v10 - v00) * dx;
+        const bot = v01 + (v11 - v01) * dx;
+        rawAlpha[y * width + x] = Math.round(top + (bot - top) * dy);
+      }
     }
   }
 
@@ -338,7 +374,7 @@ async function segment(
   // The model produces smooth edges (1-2% edge pixels) that look natural.
   // Binarization was creating artificial contour lines.
   // Light edge cleanup: remove isolated residue pixels only.
-  const alphaMask = refineEdges(rawAlpha, pixels, width, height);
+  const alphaMask = refineEdges(rawAlpha, pixels, width, height, refineOpts);
 
   self.postMessage(
     { id, type: 'segment-result', result: alphaMask },
@@ -358,7 +394,7 @@ self.onmessage = async (e: MessageEvent<MlWorkerRequest>) => {
         const { payload } = msg;
         const modelId = msg.modelId || currentModelId;
         const threshold = msg.threshold ?? 0.5;
-        await segment(msg.id, payload.pixels, payload.width, payload.height, modelId, threshold);
+        await segment(msg.id, payload.pixels, payload.width, payload.height, modelId, threshold, msg.refine);
         break;
       }
     }

@@ -1,10 +1,10 @@
 /**
- * Validacion visual con imagenes sinteticas de mascota.
+ * Visual validation with synthetic mascot images.
  *
- * Genera imagenes sinteticas que simulan distintos tipos de input
- * (checkerboard, fondo blanco, fondo negro, fondo gris) con un sujeto
- * colorido, las procesa a traves del pipeline CV, y verifica que cada
- * resultado tiene >20% foreground.
+ * Generates synthetic images simulating different input types
+ * (checkerboard, white background, black background, gray background)
+ * with a colorful subject, processes them through the CV pipeline,
+ * and verifies that each result has >20% foreground.
  *
  * Usage: npx tsx scripts/validate-mascots.ts
  */

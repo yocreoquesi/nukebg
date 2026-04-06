@@ -107,11 +107,20 @@ export interface MlLoadModelRequest {
   modelId?: ModelId;
 }
 
+export interface MlRefineOptions {
+  spatialPasses: number;
+  spatialRadius: number;
+  morphOpenRadius: number;
+  clusterRatio: number;
+  minClusterSize: number;
+}
+
 export interface MlSegmentRequest {
   id: string;
   type: 'segment';
   modelId?: ModelId;
   threshold?: number;
+  refine?: MlRefineOptions;
   payload: {
     pixels: Uint8ClampedArray;
     width: number;

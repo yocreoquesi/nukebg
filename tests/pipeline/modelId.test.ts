@@ -3,14 +3,14 @@ import type { ModelId } from '../../src/types/worker-messages';
 import { MODEL_OPTIONS } from '../../src/types/worker-messages';
 
 /**
- * Tests del parametro modelId en el pipeline.
+ * Tests for the modelId parameter in the pipeline.
  *
- * El PipelineOrchestrator pasa modelId al ML worker en preloadModel() y process().
- * Como no podemos instanciar workers reales en tests unitarios, validamos:
- * 1. Que el tipo ModelId acepta los valores esperados
- * 2. Que la logica de decision (modelId ? { modelId } : undefined) funciona
- * 3. Que MODEL_OPTIONS tiene entradas validas
- * 4. Que el mensaje al worker se construye correctamente
+ * PipelineOrchestrator passes modelId to the ML worker in preloadModel() and process().
+ * Since we can't instantiate real workers in unit tests, we validate:
+ * 1. That the ModelId type accepts expected values
+ * 2. That the decision logic (modelId ? { modelId } : undefined) works
+ * 3. That MODEL_OPTIONS has valid entries
+ * 4. That the worker message is built correctly
  */
 
 describe('ModelId parameter', () => {

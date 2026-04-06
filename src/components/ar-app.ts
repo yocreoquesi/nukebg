@@ -1,6 +1,7 @@
 import { PipelineOrchestrator } from '../pipeline/orchestrator';
 import type { PipelineStage, StageStatus } from '../types/pipeline';
 import type { ModelId } from '../types/worker-messages';
+import type { PrecisionMode } from '../pipeline/constants';
 import { t } from '../i18n';
 import { installApp, isAppInstalled } from '../sw-register';
 import type { ArViewer } from './ar-viewer';
@@ -20,7 +21,7 @@ export class ArApp extends HTMLElement {
   private currentFileName = 'image.png';
   private currentImageData: ImageData | null = null;
   private currentFileSize = 0;
-  private selectedPrecision: 'low-power' | 'normal' | 'high-power' | 'full-nuke' = 'normal';
+  private selectedPrecision: PrecisionMode = 'normal';
   private lastResultImageData: ImageData | null = null;
   private crtFlickerTimers: number[] = [];
   private isProcessing = false;
@@ -1441,7 +1442,7 @@ export class ArApp extends HTMLElement {
     }
 
     try {
-      const result = await this.pipeline.process(imageData, ArApp.MODEL_ID);
+      const result = await this.pipeline.process(imageData, ArApp.MODEL_ID, this.selectedPrecision);
       if (this.processingAborted) return;
 
       const { exportPng } = await import('../utils/image-io');

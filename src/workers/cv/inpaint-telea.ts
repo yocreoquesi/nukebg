@@ -1,20 +1,20 @@
 /**
- * Inpainting Telea - Algoritmo Fast Marching Method para reconstruir
- * zonas enmascaradas usando pixeles vecinos.
+ * Inpainting Telea - Fast Marching Method algorithm to reconstruct
+ * masked regions using neighboring pixels.
  *
- * Port a TypeScript del algoritmo de A. Telea (2004):
+ * TypeScript port of A. Telea (2004):
  * "An Image Inpainting Technique Based on the Fast Marching Method"
- * Basado en la implementacion de antimatter15/inpaint.js (port de scikit-image).
+ * Based on the antimatter15/inpaint.js implementation (scikit-image port).
  *
- * Ideal para watermarks porque las regiones son pequenas y el algoritmo
- * propaga la informacion de los bordes hacia adentro de forma natural.
+ * Ideal for watermarks because the regions are small and the algorithm
+ * propagates edge information inward naturally.
  */
 
 import { INPAINT_PARAMS } from '../../pipeline/constants';
 
 // --- Min-Heap para Fast Marching ---
 
-/** Entrada del heap: [distancia, indice_lineal] */
+/** Heap entry: [distance, linear_index] */
 type HeapEntry = [number, number];
 
 class MinHeap {

@@ -2,18 +2,18 @@ import { describe, it, expect } from 'vitest';
 import { CV_PARAMS } from '../../src/pipeline/constants';
 
 /**
- * Tests del pipeline orchestrator.
+ * Pipeline orchestrator tests.
  *
- * El PipelineOrchestrator depende de Web Workers (new Worker(...)),
- * que no estan disponibles en el entorno de test unitario.
+ * PipelineOrchestrator depends on Web Workers (new Worker(...)),
+ * which are not available in the unit test environment.
  *
- * Estrategia: testeamos la logica de decision del pipeline importando
- * las funciones CV directamente y simulando el flujo que el orchestrator
- * ejecutaria. Esto valida que la logica de routing es correcta.
+ * Strategy: test the pipeline's decision logic by importing CV functions
+ * directly and simulating the flow the orchestrator would execute.
+ * This validates that the routing logic is correct.
  *
- * NOTA: El orchestrator ahora usa soft alpha del ML model directamente.
- * Ya no llama a alpha-refine ni shadow-cleanup. Los tests simulan
- * el flujo actual: detect-bg -> ML segmentation (soft alpha) -> watermark -> compose.
+ * NOTE: The orchestrator now uses soft alpha from the ML model directly.
+ * It no longer calls alpha-refine or shadow-cleanup. Tests simulate
+ * the current flow: detect-bg -> ML segmentation (soft alpha) -> watermark -> compose.
  */
 
 // Import CV functions directly (without workers)
@@ -26,9 +26,9 @@ import { watermarkDetect } from '../../src/workers/cv/watermark-detect';
 import { solidImage, checkerboardImage, paintRect, countBg } from '../helpers';
 
 /**
- * Simula el soft alpha que devolveria el ML model.
- * Para tests unitarios: foreground=255, background=0,
- * basado en diferencia de color respecto al fondo detectado.
+ * Simulates the soft alpha that the ML model would return.
+ * For unit tests: foreground=255, background=0,
+ * based on color difference from the detected background.
  */
 function simulateMlSoftAlpha(
   pixels: Uint8ClampedArray,

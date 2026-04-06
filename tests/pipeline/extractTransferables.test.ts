@@ -1,15 +1,15 @@
 import { describe, it, expect } from 'vitest';
 
 /**
- * Tests para extractTransferables y que originalPixels no se corrompe
- * al transferir buffers a los workers.
+ * Tests for extractTransferables and verifying that originalPixels
+ * is not corrupted when transferring buffers to workers.
  *
- * El PipelineOrchestrator.extractTransferables es un metodo estatico privado,
- * pero podemos replicar su logica aqui y verificar que las copias usadas
- * para transfer no afectan el buffer original.
+ * PipelineOrchestrator.extractTransferables is a private static method,
+ * but we can replicate its logic here and verify that the copies used
+ * for transfer do not affect the original buffer.
  */
 
-/** Replica de PipelineOrchestrator.extractTransferables */
+/** Replica of PipelineOrchestrator.extractTransferables */
 function extractTransferables(payload: Record<string, any> | undefined): Transferable[] {
   if (!payload) return [];
   const transferables: Transferable[] = [];

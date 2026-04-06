@@ -625,22 +625,22 @@ const STORAGE_KEY = 'nukebg-locale';
 const SUPPORTED_LOCALES = Object.keys(translations);
 const DEFAULT_LOCALE = 'en';
 
-/** Detecta el idioma del navegador con fallback a 'en' */
+/** Detects the browser language with fallback to 'en' */
 function detectLocale(): string {
-  // Primero, revisar si hay un parametro ?lang= en la URL
+  // First, check for a ?lang= URL parameter
   const urlParams = new URLSearchParams(window.location.search);
   const langParam = urlParams.get('lang');
   if (langParam && SUPPORTED_LOCALES.includes(langParam)) {
     return langParam;
   }
 
-  // Segundo, revisar localStorage
+  // Second, check localStorage
   const stored = localStorage.getItem(STORAGE_KEY);
   if (stored && SUPPORTED_LOCALES.includes(stored)) {
     return stored;
   }
 
-  // Tercero, detectar del navegador
+  // Third, detect from browser
   const browserLang = navigator.language?.split('-')[0] || DEFAULT_LOCALE;
   if (SUPPORTED_LOCALES.includes(browserLang)) {
     return browserLang;
@@ -652,8 +652,8 @@ function detectLocale(): string {
 let currentLocale = detectLocale();
 
 /**
- * Traduce una clave al idioma actual.
- * Soporta interpolacion basica: t('key', { var: 'value' })
+ * Translates a key to the current locale.
+ * Supports basic interpolation: t('key', { var: 'value' })
  */
 export function t(key: string, params?: Record<string, string>): string {
   const value = translations[currentLocale]?.[key]
@@ -668,7 +668,7 @@ export function t(key: string, params?: Record<string, string>): string {
   );
 }
 
-/** Cambia el idioma activo */
+/** Changes the active locale */
 export function setLocale(locale: string): void {
   if (!SUPPORTED_LOCALES.includes(locale)) return;
   if (locale === currentLocale) return;
@@ -676,21 +676,21 @@ export function setLocale(locale: string): void {
   currentLocale = locale;
   localStorage.setItem(STORAGE_KEY, locale);
 
-  // Actualizar lang del html
+  // Update html lang attribute
   document.documentElement.lang = locale;
 
-  // Emitir evento para que los componentes se re-rendericen
+  // Emit event so components re-render
   document.dispatchEvent(new CustomEvent('nukebg:locale-changed', {
     detail: { locale },
   }));
 }
 
-/** Obtiene el idioma activo */
+/** Gets the active locale */
 export function getLocale(): string {
   return currentLocale;
 }
 
-/** Obtiene la lista de idiomas soportados */
+/** Gets the list of supported locales */
 export function getSupportedLocales(): string[] {
   return [...SUPPORTED_LOCALES];
 }

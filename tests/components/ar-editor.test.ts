@@ -1,13 +1,13 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 /**
- * Tests del componente ar-editor (Web Component).
+ * Tests for the ar-editor component (Web Component).
  *
- * Usa happy-dom (configurado en vite.config.ts) para simular el DOM.
- * happy-dom no soporta canvas 2D context completamente, asi que
- * parcheamos getContext para devolver un mock que no crashee.
+ * Uses happy-dom (configured in vite.config.ts) to simulate the DOM.
+ * happy-dom doesn't fully support canvas 2D context, so we patch
+ * getContext to return a mock that doesn't crash.
  *
- * Testea: setImage, getResultImageData, undo/redo, reset, toolbar, eventos.
+ * Tests: setImage, getResultImageData, undo/redo, reset, toolbar, events.
  */
 
 // ImageData polyfill for happy-dom

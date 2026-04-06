@@ -1,11 +1,11 @@
 /**
- * Tests de integracion del inpainting Telea FMM.
+ * Integration tests for Telea FMM inpainting.
  *
- * Valida que el algoritmo de inpainting por CV funciona correctamente:
- * - Reconstruye zonas enmascaradas con pixeles vecinos
- * - No modifica pixeles fuera de la mascara
- * - Produce valores RGBA validos
- * - Funciona con mascaras de watermark tipicas (pequenas, en esquinas)
+ * Validates that the CV inpainting algorithm works correctly:
+ * - Reconstructs masked regions using neighboring pixels
+ * - Does not modify pixels outside the mask
+ * - Produces valid RGBA values
+ * - Works with typical watermark masks (small, in corners)
  */
 import { describe, it, expect } from 'vitest';
 import { inpaintTelea } from '../../src/workers/cv/inpaint-telea';

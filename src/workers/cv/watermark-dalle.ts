@@ -3,10 +3,10 @@ import type { WatermarkResult } from '../../types/pipeline';
 import { pixelIndex } from './utils';
 
 /**
- * Detectar el watermark de DALL-E 3: barra multicolor de ~5px en la
- * esquina inferior derecha. Se busca una linea horizontal con alta
- * variacion de color (muchos colores distintos en pocos pixeles)
- * que no encaje con el resto de la imagen.
+ * Detect the DALL-E 3 watermark: a multicolor bar of ~5px in the
+ * bottom-right corner. Searches for a horizontal line with high
+ * color variation (many distinct colors in few pixels)
+ * that doesn't match the rest of the image.
  */
 export function watermarkDetectDalle(
   pixels: Uint8ClampedArray,

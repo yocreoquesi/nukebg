@@ -1,14 +1,13 @@
 /**
- * Inpaint Worker - Reconstruccion de zonas de watermark via Telea FMM.
+ * Inpaint Worker - Watermark zone reconstruction via Telea FMM.
  *
- * Usa el algoritmo de Telea (Fast Marching Method) que propaga pixeles
- * vecinos conocidos hacia adentro de la zona enmascarada. Es puro CV,
- * no necesita modelo ML, y funciona instantaneamente para regiones
- * pequenas como watermarks.
+ * Uses the Telea algorithm (Fast Marching Method) to propagate known
+ * neighboring pixels inward into the masked zone. Pure CV, no ML model
+ * needed, works instantly for small regions like watermarks.
  *
- * Reemplaza la implementacion anterior basada en LaMa ONNX que colgaba
- * en InferenceSession.create() por bug conocido de onnxruntime-web con
- * modelos grandes en WASM (GitHub issue #26858).
+ * Replaces the previous LaMa ONNX implementation that hung on
+ * InferenceSession.create() due to a known onnxruntime-web bug with
+ * large models in WASM (GitHub issue #26858).
  */
 import { inpaintTelea } from './cv/inpaint-telea';
 import type { InpaintWorkerRequest, InpaintWorkerResponse } from '../types/worker-messages';
