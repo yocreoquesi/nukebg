@@ -102,6 +102,14 @@ export class ArDropzone extends HTMLElement {
           font-size: 12px;
           color: var(--color-text-tertiary, #008830);
         }
+        .hint-multi {
+          color: var(--color-text-secondary, #00dd44);
+          margin-top: 4px;
+        }
+        .hint-multi::before {
+          content: '[*] ';
+          color: var(--color-accent-primary, #00ff41);
+        }
         .dragover-text {
           display: none;
         }
@@ -174,6 +182,7 @@ export class ArDropzone extends HTMLElement {
           <div class="sub-text" id="dz-subtitle">${t('dropzone.subtitle')}</div>
           <div class="hint" id="dz-formats">${t('dropzone.formats')}</div>
           <div class="hint" id="dz-clipboard">${t('dropzone.clipboard')}</div>
+          <div class="hint hint-multi" id="dz-multi">${t('dropzone.multi')}</div>
         </div>
         <div class="dragover-text">
           <div class="main-text" id="dz-dragover">${t('dropzone.dragover')}</div>
@@ -196,6 +205,8 @@ export class ArDropzone extends HTMLElement {
     if (formats) formats.textContent = t('dropzone.formats');
     const clipboard = root.querySelector('#dz-clipboard');
     if (clipboard) clipboard.textContent = t('dropzone.clipboard');
+    const multi = root.querySelector('#dz-multi');
+    if (multi) multi.textContent = t('dropzone.multi');
     const dragover = root.querySelector('#dz-dragover');
     if (dragover) dragover.textContent = t('dropzone.dragover');
     const dropzone = root.querySelector('.dropzone');

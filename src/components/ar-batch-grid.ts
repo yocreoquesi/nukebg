@@ -114,16 +114,32 @@ export class ArBatchGrid extends HTMLElement {
           color: var(--color-text-tertiary, #008830);
           cursor: not-allowed;
         }
+        button.danger {
+          border-color: #3a1a1a;
+          color: #ff3131;
+        }
+        button.danger:hover:not(:disabled) {
+          background: rgba(255, 49, 49, 0.08);
+          box-shadow: 0 0 8px rgba(255, 49, 49, 0.3);
+        }
       </style>
       <div class="header" id="header" aria-live="polite"></div>
       <div class="grid" id="grid"></div>
       <div class="actions">
         <button id="zip-btn" disabled></button>
+        <button id="cancel-btn" class="danger"></button>
       </div>
     `;
 
     this.shadowRoot!.querySelector('#zip-btn')!.addEventListener('click', () => {
       this.dispatchEvent(new CustomEvent('batch:download-zip', {
+        bubbles: true,
+        composed: true,
+      }));
+    });
+
+    this.shadowRoot!.querySelector('#cancel-btn')!.addEventListener('click', () => {
+      this.dispatchEvent(new CustomEvent('batch:cancel', {
         bubbles: true,
         composed: true,
       }));
@@ -168,6 +184,8 @@ export class ArBatchGrid extends HTMLElement {
 
     zipBtn.textContent = t('batch.downloadZip');
     zipBtn.disabled = done === 0;
+    const cancelBtn = this.shadowRoot!.querySelector('#cancel-btn') as HTMLButtonElement | null;
+    if (cancelBtn) cancelBtn.textContent = t('batch.cancel');
   }
 }
 

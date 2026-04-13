@@ -1186,6 +1186,10 @@ export class ArApp extends HTMLElement {
       await this.downloadBatchZip();
     }, { signal });
 
+    this.shadowRoot!.addEventListener('batch:cancel', () => {
+      this.resetToIdle();
+    }, { signal });
+
     const backBtn = this.shadowRoot!.querySelector('#back-to-grid-btn');
     if (backBtn) {
       backBtn.addEventListener('click', () => this.closeBatchDetail(), { signal });
@@ -1645,9 +1649,8 @@ export class ArApp extends HTMLElement {
       thumbnailUrl: this.makeThumbnail(img.imageData),
     }));
 
-    const hero = this.shadowRoot!.querySelector('#hero')!;
     const workspace = this.shadowRoot!.querySelector('#workspace')!;
-    hero.classList.add('hidden');
+    // Keep hero visible during batch so dropzone and precision slider stay accessible.
     workspace.classList.add('visible');
     this.setBatchUiMode('grid');
 
@@ -1700,10 +1703,12 @@ export class ArApp extends HTMLElement {
     this.batchDetailId = id;
 
     const failedBar = this.shadowRoot!.querySelector('#batch-failed-bar') as HTMLElement;
+    const retryBtn = this.shadowRoot!.querySelector('#batch-retry-btn') as HTMLElement;
     this.setBatchUiMode('detail');
 
     if (item.state === 'failed') {
       failedBar.style.display = 'flex';
+      if (retryBtn) retryBtn.style.display = 'inline-block';
       this.viewer.clearResult();
       this.viewer.setOriginal(item.imageData, item.file.size);
       this.progress.reset();
@@ -1718,8 +1723,10 @@ export class ArApp extends HTMLElement {
       return;
     }
 
-    failedBar.style.display = 'none';
     if (item.state === 'done' && item.result) {
+      // Show discard button (excludes this image from ZIP) but hide retry.
+      failedBar.style.display = 'flex';
+      if (retryBtn) retryBtn.style.display = 'none';
       this.currentFileName = item.originalName;
       this.currentImageData = item.imageData;
       this.currentFileSize = item.file.size;
