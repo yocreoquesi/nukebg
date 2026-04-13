@@ -22,8 +22,9 @@ export class ArBatchItem extends HTMLElement {
     this.render();
     this.shadowRoot!.addEventListener('click', (e) => {
       e.stopPropagation();
-      // Pending/processing are non-interactive; user waits.
-      if (this.itemState === 'pending' || this.itemState === 'processing') return;
+      // Pending slots are non-interactive. Processing IS clickable so the
+      // user can open the live progress console for the current item.
+      if (this.itemState === 'pending') return;
       this.dispatchEvent(new CustomEvent('batch:item-click', {
         bubbles: true,
         composed: true,
@@ -33,7 +34,7 @@ export class ArBatchItem extends HTMLElement {
     this.shadowRoot!.addEventListener('keydown', (e) => {
       const ke = e as KeyboardEvent;
       if (ke.key !== 'Enter' && ke.key !== ' ') return;
-      if (this.itemState === 'pending' || this.itemState === 'processing') return;
+      if (this.itemState === 'pending') return;
       ke.preventDefault();
       this.dispatchEvent(new CustomEvent('batch:item-click', {
         bubbles: true,
@@ -183,7 +184,10 @@ export class ArBatchItem extends HTMLElement {
     if (!this.shadowRoot) return;
     const root = this.shadowRoot;
     this.setAttribute('data-state', this.itemState);
-    const clickable = this.itemState === 'done' || this.itemState === 'failed';
+    const clickable =
+      this.itemState === 'done' ||
+      this.itemState === 'failed' ||
+      this.itemState === 'processing';
     this.setAttribute('data-clickable', clickable ? 'true' : 'false');
 
     const img = root.querySelector('.thumb') as HTMLImageElement | null;

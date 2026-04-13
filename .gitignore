@@ -32,3 +32,6 @@ public/models/*.onnx
 
 # Claude Code config (internal)
 CLAUDE.md
+
+# Launch/marketing planning notes — never ship to production
+LAUNCH-PLAN.md

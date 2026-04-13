@@ -1699,10 +1699,18 @@ export class ArApp extends HTMLElement {
         item.thumbnailUrl = this.makeThumbnail(result.imageData);
         item.state = 'done';
         if (this.batchGrid) this.batchGrid.updateItem(item.id, 'done', item.thumbnailUrl);
+        // If the user is currently watching this item's live detail view,
+        // swap it to the done view so they see the result without going back.
+        if (this.batchDetailId === item.id) {
+          await this.openBatchDetail(item.id);
+        }
       } catch (err) {
         item.errorMessage = err instanceof Error ? err.message : String(err);
         item.state = 'failed';
         if (this.batchGrid) this.batchGrid.updateItem(item.id, 'failed');
+        if (this.batchDetailId === item.id) {
+          await this.openBatchDetail(item.id);
+        }
       }
     }
   }
@@ -1715,6 +1723,20 @@ export class ArApp extends HTMLElement {
     const failedBar = this.shadowRoot!.querySelector('#batch-failed-bar') as HTMLElement;
     const retryBtn = this.shadowRoot!.querySelector('#batch-retry-btn') as HTMLElement;
     this.setBatchUiMode('detail');
+
+    if (item.state === 'processing') {
+      // Live progress view: show the original, let the pipeline callback
+      // keep updating the progress console, hide result-only actions.
+      failedBar.style.display = 'none';
+      this.viewer.clearResult();
+      this.viewer.setOriginal(item.imageData, item.file.size);
+      this.download.reset();
+      const editBtn = this.shadowRoot!.querySelector('#edit-btn') as HTMLElement;
+      if (editBtn) editBtn.style.display = 'none';
+      const editorSection = this.shadowRoot!.querySelector('#editor-section') as HTMLElement;
+      if (editorSection) editorSection.style.display = 'none';
+      return;
+    }
 
     if (item.state === 'failed') {
       failedBar.style.display = 'flex';

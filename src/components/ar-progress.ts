@@ -289,16 +289,25 @@ export class ArProgress extends HTMLElement {
   }
 
   private getIcon(status: StageStatus | 'pending'): string {
-    // Glyphs picked from blocks with near-universal monospace font coverage
-    // (Geometric Shapes U+25xx, Dingbats U+27xx, General Punctuation U+20xx).
-    // Avoid Miscellaneous Symbols (U+26xx, e.g. ☢) — those fall back to tofu
-    // on systems without a Symbol font in the fallback chain.
+    // Inline SVG renders identically on every system — no dependency on
+    // system symbol fonts (Misc Symbols glyphs like ☢ fall back to tofu
+    // on minimal Linux installs even with a monospace font stack).
+    const svg = (path: string): string =>
+      `<svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square">${path}</svg>`;
     switch (status) {
       case 'pending': return '';
-      case 'running': return '&#9680;'; // ◐ half-filled circle — spins as a loader
-      case 'done': return '&#10003;';   // ✓ check mark
-      case 'skipped': return '&#8212;'; // — em dash
-      case 'error': return '&#10007;';  // ✗ ballot x
+      case 'running':
+        // Arc — rotates via parent .stage.running animation to form a spinner
+        return svg('<circle cx="8" cy="8" r="5" stroke-dasharray="18 10"/>');
+      case 'done':
+        // Check mark
+        return svg('<polyline points="3,8 7,12 13,4"/>');
+      case 'skipped':
+        // Horizontal line
+        return svg('<line x1="3" y1="8" x2="13" y2="8"/>');
+      case 'error':
+        // Cross
+        return svg('<line x1="4" y1="4" x2="12" y2="12"/><line x1="12" y1="4" x2="4" y2="12"/>');
     }
   }
 }
