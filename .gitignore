@@ -35,3 +35,8 @@ CLAUDE.md
 
 # Launch/marketing planning notes — never ship to production
 LAUNCH-PLAN.md
+
+# Playwright
+playwright-report/
+test-results/
+

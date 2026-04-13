@@ -96,6 +96,25 @@ export class PipelineOrchestrator {
         return;
       }
 
+      // warmup-diagnostic: surface iOS Safari hang info to console for remote debugging
+      if (msg.type === 'warmup-diagnostic') {
+        const d = msg.diagnostic;
+        const tag = '[NukeBG/warmup]';
+        if (d.status === 'ok') {
+          console.info(`${tag} ok ${d.elapsedMs}ms (device=${d.device})`);
+        } else {
+          console.warn(`${tag} ${d.status} after ${d.elapsedMs}ms`, {
+            device: d.device,
+            errorName: d.errorName,
+            errorMessage: d.errorMessage,
+            errorStack: d.errorStack,
+            userAgent: d.userAgent,
+            hardwareConcurrency: d.hardwareConcurrency,
+          });
+        }
+        return;
+      }
+
       const pending = this.pendingRequests.get(msg.id);
       if (pending) {
         if (msg.type === 'error') {

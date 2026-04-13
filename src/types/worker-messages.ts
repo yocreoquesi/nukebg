@@ -128,11 +128,23 @@ export interface MlSegmentRequest {
   };
 }
 
+export interface WarmupDiagnostic {
+  status: 'ok' | 'error' | 'timeout';
+  elapsedMs: number;
+  errorName?: string;
+  errorMessage?: string;
+  errorStack?: string;
+  userAgent?: string;
+  hardwareConcurrency?: number;
+  device: 'webgpu' | 'wasm';
+}
+
 export type MlWorkerResponse =
   | { id: string; type: 'model-progress'; progress: number }
   | { id: string; type: 'model-ready'; device: 'webgpu' | 'wasm' }
   | { id: string; type: 'segment-result'; result: Uint8Array }
-  | { id: string; type: 'error'; error: string };
+  | { id: string; type: 'error'; error: string }
+  | { id: string; type: 'warmup-diagnostic'; diagnostic: WarmupDiagnostic };
 
 
 /** ======== Inpaint Worker Messages ======== */

@@ -4,7 +4,7 @@
  * Transformers.js handles ONNX Runtime, WebGPU/WASM detection,
  * model download, caching - all internally.
  */
-import type { MlWorkerRequest, MlRefineOptions, ModelId } from '../types/worker-messages';
+import type { MlWorkerRequest, MlRefineOptions, ModelId, WarmupDiagnostic } from '../types/worker-messages';
 import { REFINE_PARAMS } from '../pipeline/constants';
 
 const DEFAULT_MODEL: ModelId = 'briaai/RMBG-1.4';
@@ -277,17 +277,45 @@ async function loadModel(id: string, modelId: ModelId = DEFAULT_MODEL, emitReady
   });
   segmenters.set(modelId, { pipeline: seg as unknown as SegmenterEntry['pipeline'], type: 'pipeline' });
 
-  // Warmup: run a tiny inference to force WASM full compilation
-  // This ensures consistent results from the very first real image
+  // Warmup: run a tiny inference to force WASM full compilation.
+  // This ensures consistent results from the very first real image.
+  // Wrapped in Promise.race + timeout because on iOS Safari the WASM
+  // pipeline has been observed to hang at this step (stuck at 96%).
   self.postMessage({ id, type: 'model-progress', progress: 96 });
+  const warmupStart = performance.now();
+  const warmupTimeoutMs = 15000;
+  let warmupDiagnostic: WarmupDiagnostic = {
+    status: 'ok',
+    elapsedMs: 0,
+    device,
+    userAgent: typeof self !== 'undefined' && (self as any).navigator ? (self as any).navigator.userAgent : undefined,
+    hardwareConcurrency: typeof self !== 'undefined' && (self as any).navigator ? (self as any).navigator.hardwareConcurrency : undefined,
+  };
   try {
     if (RawImageClass) {
       const warmupSize = 256;
       const warmupPixels = new Uint8ClampedArray(warmupSize * warmupSize * 4);
       const warmupImg = new RawImageClass(warmupPixels, warmupSize, warmupSize, 4);
-      await (seg as unknown as SegmenterEntry['pipeline'])(warmupImg, { threshold: 0.5, return_mask: true });
+      const warmupPromise = (seg as unknown as SegmenterEntry['pipeline'])(warmupImg, { threshold: 0.5, return_mask: true });
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(() => reject(new Error(`warmup_timeout_${warmupTimeoutMs}ms`)), warmupTimeoutMs);
+      });
+      await Promise.race([warmupPromise, timeoutPromise]);
     }
-  } catch { /* warmup failure is non-critical */ }
+    warmupDiagnostic.elapsedMs = Math.round(performance.now() - warmupStart);
+  } catch (err) {
+    const e = err as Error;
+    const isTimeout = e?.message?.startsWith('warmup_timeout_');
+    warmupDiagnostic = {
+      ...warmupDiagnostic,
+      status: isTimeout ? 'timeout' : 'error',
+      elapsedMs: Math.round(performance.now() - warmupStart),
+      errorName: e?.name,
+      errorMessage: e?.message,
+      errorStack: e?.stack,
+    };
+  }
+  self.postMessage({ id, type: 'warmup-diagnostic', diagnostic: warmupDiagnostic });
 
   currentModelId = modelId;
 
