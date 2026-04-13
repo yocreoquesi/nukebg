@@ -120,6 +120,8 @@ const translations: Translations = {
     'batch.discarded': 'Discarded',
     'batch.completed': '{done}/{total} ready, {failed} failed',
     'batch.emptyZip': 'No completed images to download',
+    'batch.cancel': 'Cancel batch',
+    'dropzone.multi': 'Drop up to 12 images for batch mode',
 
     // Language selector
     'lang.label': 'Language',
@@ -237,6 +239,8 @@ const translations: Translations = {
     'batch.discarded': 'Descartada',
     'batch.completed': '{done}/{total} listas, {failed} fallidas',
     'batch.emptyZip': 'No hay im\u00E1genes procesadas para descargar',
+    'batch.cancel': 'Cancelar lote',
+    'dropzone.multi': 'Suelta hasta 12 im\u00E1genes para procesarlas juntas',
 
     // Language selector
     'lang.label': 'Idioma',
@@ -354,6 +358,8 @@ const translations: Translations = {
     'batch.discarded': 'Supprim\u00E9e',
     'batch.completed': '{done}/{total} pr\u00EAtes, {failed} \u00E9chou\u00E9es',
     'batch.emptyZip': 'Aucune image pr\u00EAte \u00E0 t\u00E9l\u00E9charger',
+    'batch.cancel': 'Annuler le lot',
+    'dropzone.multi': 'D\u00E9pose jusqu\u2019\u00E0 12 images pour le mode lot',
 
     // Language selector
     'lang.label': 'Langue',
@@ -471,6 +477,8 @@ const translations: Translations = {
     'batch.discarded': 'Verworfen',
     'batch.completed': '{done}/{total} fertig, {failed} fehlgeschlagen',
     'batch.emptyZip': 'Keine fertigen Bilder zum Herunterladen',
+    'batch.cancel': 'Stapel abbrechen',
+    'dropzone.multi': 'Bis zu 12 Bilder f\u00FCr den Stapelmodus ablegen',
 
     // Language selector
     'lang.label': 'Sprache',
@@ -588,6 +596,8 @@ const translations: Translations = {
     'batch.discarded': 'Descartada',
     'batch.completed': '{done}/{total} prontas, {failed} falharam',
     'batch.emptyZip': 'Sem imagens prontas para baixar',
+    'batch.cancel': 'Cancelar lote',
+    'dropzone.multi': 'Solta at\u00E9 12 imagens pra modo em lote',
 
     // Language selector
     'lang.label': 'Idioma',
@@ -705,6 +715,8 @@ const translations: Translations = {
     'batch.discarded': '\u5DF2\u4E22\u5F03',
     'batch.completed': '{done}/{total} \u5B8C\u6210\uFF0C{failed} \u5931\u8D25',
     'batch.emptyZip': '\u6CA1\u6709\u5DF2\u5904\u7406\u7684\u56FE\u7247\u53EF\u4E0B\u8F7D',
+    'batch.cancel': '\u53D6\u6D88\u6279\u91CF',
+    'dropzone.multi': '\u62D6\u5165\u6700\u591A 12 \u5F20\u56FE\u7247\u8FDB\u5165\u6279\u91CF\u6A21\u5F0F',
 
     // Language selector
     'lang.label': '\u8BED\u8A00',
