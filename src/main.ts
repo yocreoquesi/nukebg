@@ -14,6 +14,8 @@ import './components/ar-progress';
 import './components/ar-download';
 import './components/ar-privacy';
 import './components/ar-editor';
+import './components/ar-batch-item';
+import './components/ar-batch-grid';
 import './components/ar-app';
 
 // Register Service Worker
