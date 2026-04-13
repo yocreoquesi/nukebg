@@ -186,6 +186,12 @@ export class ArEditor extends HTMLElement {
           border-radius: 0;
           flex-wrap: wrap;
         }
+        .zoom-group {
+          flex: 0 0 100%;
+          display: flex;
+          align-items: center;
+          gap: var(--space-3, 0.75rem);
+        }
         .toolbar label {
           font-size: var(--text-xs, 0.75rem);
           color: var(--color-text-tertiary, #008830);
@@ -478,12 +484,12 @@ export class ArEditor extends HTMLElement {
           <button class="toolbar-btn" id="undo-btn" disabled aria-label="${t('editor.undo')}">${t('editor.undo')}</button>
           <button class="toolbar-btn" id="redo-btn" disabled aria-label="${t('editor.redo')}">${t('editor.redo')}</button>
 
-          <div class="separator"></div>
-
-          <button class="toolbar-btn" id="zoom-in" aria-label="Zoom in">+</button>
-          <span class="zoom-display" id="zoom-display">100%</span>
-          <button class="toolbar-btn" id="zoom-out" aria-label="Zoom out">&minus;</button>
-          <button class="toolbar-btn" id="zoom-fit" aria-label="${t('editor.zoomFit')}">${t('editor.zoomFit')}</button>
+          <div class="zoom-group">
+            <button class="toolbar-btn" id="zoom-out" aria-label="Zoom out">&minus;</button>
+            <button class="toolbar-btn" id="zoom-in" aria-label="Zoom in">+</button>
+            <span class="zoom-display" id="zoom-display">100%</span>
+            <button class="toolbar-btn" id="zoom-fit" aria-label="${t('editor.zoomFit')}">${t('editor.zoomFit')}</button>
+          </div>
 
           <div class="separator"></div>
 
