@@ -21,6 +21,7 @@
     "vitest": "^4.1.1"
   },
   "dependencies": {
-    "@huggingface/transformers": "^3.8.1"
+    "@huggingface/transformers": "^3.8.1",
+    "jszip": "^3.10.1"
   }
 }
