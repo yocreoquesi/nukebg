@@ -122,7 +122,9 @@ export class ArProgress extends HTMLElement {
           align-items: center;
           justify-content: center;
           flex-shrink: 0;
-          font-family: 'Segoe UI Symbol', 'Apple Symbols', 'Noto Sans Symbols', sans-serif;
+          font-family: 'JetBrains Mono', monospace;
+          font-size: 14px;
+          line-height: 1;
         }
         .stage.pending .stage-icon {
           border: 1.5px solid var(--color-surface-border, #1a3a1a);
@@ -287,12 +289,16 @@ export class ArProgress extends HTMLElement {
   }
 
   private getIcon(status: StageStatus | 'pending'): string {
+    // Glyphs picked from blocks with near-universal monospace font coverage
+    // (Geometric Shapes U+25xx, Dingbats U+27xx, General Punctuation U+20xx).
+    // Avoid Miscellaneous Symbols (U+26xx, e.g. ☢) — those fall back to tofu
+    // on systems without a Symbol font in the fallback chain.
     switch (status) {
       case 'pending': return '';
-      case 'running': return '&#9762;'; // radiation symbol
-      case 'done': return '&#10003;';    // checkmark
-      case 'skipped': return '&#8212;';  // em dash
-      case 'error': return '&#10007;';   // X
+      case 'running': return '&#9680;'; // ◐ half-filled circle — spins as a loader
+      case 'done': return '&#10003;';   // ✓ check mark
+      case 'skipped': return '&#8212;'; // — em dash
+      case 'error': return '&#10007;';  // ✗ ballot x
     }
   }
 }
