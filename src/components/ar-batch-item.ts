@@ -123,13 +123,16 @@ export class ArBatchItem extends HTMLElement {
           left: 0;
           right: 0;
           font-family: 'JetBrains Mono', monospace;
-          font-size: 10px;
-          padding: 2px 4px;
-          background: rgba(0, 0, 0, 0.75);
+          font-size: 12px;
+          padding: 4px 6px;
+          background: rgba(0, 0, 0, 0.78);
           color: var(--color-text-secondary, #00dd44);
           text-transform: uppercase;
           letter-spacing: 0.05em;
           text-align: center;
+        }
+        @media (max-width: 480px) {
+          .badge { font-size: 11px; padding: 3px 4px; }
         }
         .badge.ok { color: var(--color-accent-primary, #00ff41); }
         .badge.fail { color: #ff3131; }
@@ -139,8 +142,8 @@ export class ArBatchItem extends HTMLElement {
           top: 50%;
           left: 50%;
           transform: translate(-50%, -50%);
-          width: 20px;
-          height: 20px;
+          width: 28px;
+          height: 28px;
           border: 2px solid #1a3a1a;
           border-top-color: var(--color-accent-primary, #00ff41);
           border-radius: 50%;

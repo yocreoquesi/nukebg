@@ -948,6 +948,7 @@ export class ArApp extends HTMLElement {
           </div>
         </div>
         <ar-dropzone></ar-dropzone>
+        <ar-batch-grid id="batch-grid" style="display:none"></ar-batch-grid>
         <p class="model-status" id="model-status">${t('hero.modelStatus')}</p>
         <button class="install-btn" id="install-btn" aria-label="${t('pwa.install')}">${isAppInstalled() ? t('pwa.installed') : t('pwa.install')}</button>
         <div class="install-guide" id="install-guide"></div>
@@ -957,7 +958,6 @@ export class ArApp extends HTMLElement {
 
       <section class="workspace" id="workspace" aria-label="Image processing workspace">
         <div class="workspace-inner">
-          <ar-batch-grid id="batch-grid" style="display:none"></ar-batch-grid>
           <div class="batch-detail-bar" id="batch-detail-bar" style="display:none">
             <button class="back-to-grid-btn" id="back-to-grid-btn">${t('batch.backToGrid')}</button>
           </div>
@@ -1614,16 +1614,28 @@ export class ArApp extends HTMLElement {
 
   private setBatchUiMode(mode: 'grid' | 'detail'): void {
     const root = this.shadowRoot!;
+    const hero = root.querySelector('#hero') as HTMLElement;
+    const workspace = root.querySelector('#workspace') as HTMLElement;
+    const dropzone = root.querySelector('ar-dropzone') as HTMLElement;
     const grid = root.querySelector('#batch-grid') as HTMLElement;
     const single = root.querySelector('#single-file-workspace') as HTMLElement;
     const detailBar = root.querySelector('#batch-detail-bar') as HTMLElement;
     const failedBar = root.querySelector('#batch-failed-bar') as HTMLElement;
     if (mode === 'grid') {
+      // Grid lives inside hero in the same slot as the dropzone — swap them in place.
+      hero.classList.remove('hidden');
+      workspace.classList.remove('visible');
+      if (dropzone) dropzone.style.display = 'none';
       grid.style.display = 'block';
       single.style.display = 'none';
       detailBar.style.display = 'none';
       failedBar.style.display = 'none';
     } else {
+      // Detail mode: show the per-image workspace, hide the hero so the viewer
+      // gets full attention. The batch-detail-bar exposes "back to grid".
+      hero.classList.add('hidden');
+      workspace.classList.add('visible');
+      if (dropzone) dropzone.style.display = 'none';
       grid.style.display = 'none';
       single.style.display = 'flex';
       detailBar.style.display = 'flex';
@@ -1649,9 +1661,7 @@ export class ArApp extends HTMLElement {
       thumbnailUrl: this.makeThumbnail(img.imageData),
     }));
 
-    const workspace = this.shadowRoot!.querySelector('#workspace')!;
-    // Keep hero visible during batch so dropzone and precision slider stay accessible.
-    workspace.classList.add('visible');
+    // setBatchUiMode handles hero/workspace/dropzone visibility for grid mode.
     this.setBatchUiMode('grid');
 
     if (this.batchGrid) {
@@ -1799,11 +1809,23 @@ export class ArApp extends HTMLElement {
   }
 
   private resetToIdle(): void {
-    const hero = this.shadowRoot!.querySelector('#hero')!;
-    const workspace = this.shadowRoot!.querySelector('#workspace')!;
+    const root = this.shadowRoot!;
+    const hero = root.querySelector('#hero') as HTMLElement;
+    const workspace = root.querySelector('#workspace') as HTMLElement;
+    const dropzone = root.querySelector('ar-dropzone') as HTMLElement;
+    const grid = root.querySelector('#batch-grid') as HTMLElement;
+    const single = root.querySelector('#single-file-workspace') as HTMLElement;
+    const detailBar = root.querySelector('#batch-detail-bar') as HTMLElement;
+    const failedBar = root.querySelector('#batch-failed-bar') as HTMLElement;
 
     workspace.classList.remove('visible');
     hero.classList.remove('hidden');
+    if (dropzone) dropzone.style.display = '';
+    if (grid) grid.style.display = 'none';
+    if (single) single.style.display = 'flex';
+    if (detailBar) detailBar.style.display = 'none';
+    if (failedBar) failedBar.style.display = 'none';
+
     this.download.reset();
     this.preEditResult = null;
     this.cachedEditResult = null;
@@ -1815,14 +1837,6 @@ export class ArApp extends HTMLElement {
       this.batchItems = [];
       this.batchDetailId = null;
       this.batchMode = 'off';
-      const grid = this.shadowRoot!.querySelector('#batch-grid') as HTMLElement;
-      const single = this.shadowRoot!.querySelector('#single-file-workspace') as HTMLElement;
-      const detailBar = this.shadowRoot!.querySelector('#batch-detail-bar') as HTMLElement;
-      const failedBar = this.shadowRoot!.querySelector('#batch-failed-bar') as HTMLElement;
-      if (grid) grid.style.display = 'none';
-      if (single) single.style.display = 'flex';
-      if (detailBar) detailBar.style.display = 'none';
-      if (failedBar) failedBar.style.display = 'none';
     }
     // Keep pipeline alive for next image (model stays loaded)
   }

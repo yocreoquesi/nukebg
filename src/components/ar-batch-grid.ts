@@ -60,11 +60,10 @@ export class ArBatchGrid extends HTMLElement {
         :host {
           display: block;
           font-family: 'JetBrains Mono', monospace;
-          margin: 0 auto;
-          max-width: 1200px;
+          width: 100%;
         }
         .header {
-          font-size: 12px;
+          font-size: 13px;
           color: var(--color-text-secondary, #00dd44);
           margin-bottom: 10px;
           text-align: left;
@@ -76,14 +75,14 @@ export class ArBatchGrid extends HTMLElement {
         }
         .grid {
           display: grid;
-          grid-template-columns: repeat(4, 1fr);
-          gap: 8px;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 10px;
         }
         @media (max-width: 768px) {
-          .grid { grid-template-columns: repeat(3, 1fr); gap: 6px; }
+          .grid { grid-template-columns: repeat(3, 1fr); gap: 8px; }
         }
         @media (max-width: 420px) {
-          .grid { grid-template-columns: repeat(2, 1fr); }
+          .grid { grid-template-columns: repeat(2, 1fr); gap: 6px; }
         }
         .actions {
           display: flex;
