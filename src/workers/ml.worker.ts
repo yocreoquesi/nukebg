@@ -9,6 +9,14 @@ import { REFINE_PARAMS } from '../pipeline/constants';
 
 const DEFAULT_MODEL: ModelId = 'briaai/RMBG-1.4';
 
+// Pin model to a specific revision SHA for supply-chain safety.
+// Transformers.js defaults to 'main' branch, which can change silently.
+// Pinning guarantees the exact same model weights every load.
+// Bump manually after auditing upstream changes on huggingface.co.
+const MODEL_REVISIONS: Record<ModelId, string> = {
+  'briaai/RMBG-1.4': '2ceba5a5efaec153162aedea169f76caf9b46cf8',
+};
+
 /** Transformers.js pipeline entry - shape is dynamic from the library */
 interface SegmenterEntry {
   pipeline: { dispose?: () => void; (image: unknown, opts: unknown): Promise<Array<{ mask?: { data: Uint8Array; width: number; height: number } }>>; };
@@ -264,6 +272,7 @@ async function loadModel(id: string, modelId: ModelId = DEFAULT_MODEL, emitReady
   const seg = await transformers.pipeline('image-segmentation', modelId, {
     device,
     dtype: 'q8',
+    revision: MODEL_REVISIONS[modelId],
     progress_callback: progressCb(id),
   });
   segmenters.set(modelId, { pipeline: seg as unknown as SegmenterEntry['pipeline'], type: 'pipeline' });
