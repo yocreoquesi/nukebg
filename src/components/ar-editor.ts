@@ -9,29 +9,40 @@ import { t } from '../i18n';
 type BrushShape = 'circle' | 'square';
 
 interface HistoryEntry {
-  alpha: Uint8ClampedArray;
+  // Full RGBA snapshot. Needed because the Restore tool writes RGB (not just
+  // alpha); alpha-only snapshots cannot undo color changes. Bounded by
+  // maxHistory to keep memory predictable on large images.
+  rgba: Uint8ClampedArray;
 }
 
-/** Generate a CSS cursor data URL that matches the brush shape and size */
-function makeBrushCursor(size: number, shape: BrushShape, zoom: number): string {
+/** Generate a CSS cursor data URL that matches the brush shape, size and tool */
+function makeBrushCursor(
+  size: number,
+  shape: BrushShape,
+  zoom: number,
+  tool: 'erase' | 'restore' = 'erase',
+): string {
   const displaySize = Math.min(64, Math.max(8, Math.round(size * zoom)));
   const r = displaySize / 2;
   const svgSize = displaySize + 2; // 1px padding
   const center = svgSize / 2;
+  // Erase stays green (default brand accent); Restore is cyan so the user
+  // can tell at a glance which tool is active.
+  const stroke = tool === 'restore' ? '#00d4ff' : '#39ff14';
 
   let shapeEl: string;
   if (shape === 'circle') {
-    shapeEl = `<circle cx="${center}" cy="${center}" r="${r}" fill="none" stroke="#39ff14" stroke-width="1.5" opacity="0.9"/>
+    shapeEl = `<circle cx="${center}" cy="${center}" r="${r}" fill="none" stroke="${stroke}" stroke-width="1.5" opacity="0.9"/>
                <circle cx="${center}" cy="${center}" r="${r}" fill="none" stroke="black" stroke-width="0.5" opacity="0.5"/>`;
   } else {
     const half = r;
-    shapeEl = `<rect x="${center - half}" y="${center - half}" width="${half * 2}" height="${half * 2}" fill="none" stroke="#39ff14" stroke-width="1.5" opacity="0.9"/>
+    shapeEl = `<rect x="${center - half}" y="${center - half}" width="${half * 2}" height="${half * 2}" fill="none" stroke="${stroke}" stroke-width="1.5" opacity="0.9"/>
                <rect x="${center - half}" y="${center - half}" width="${half * 2}" height="${half * 2}" fill="none" stroke="black" stroke-width="0.5" opacity="0.5"/>`;
   }
 
   // Crosshair at center
-  const cross = `<line x1="${center}" y1="${center-3}" x2="${center}" y2="${center+3}" stroke="#39ff14" stroke-width="0.8" opacity="0.7"/>
-                 <line x1="${center-3}" y1="${center}" x2="${center+3}" y2="${center}" stroke="#39ff14" stroke-width="0.8" opacity="0.7"/>`;
+  const cross = `<line x1="${center}" y1="${center-3}" x2="${center}" y2="${center+3}" stroke="${stroke}" stroke-width="0.8" opacity="0.7"/>
+                 <line x1="${center-3}" y1="${center}" x2="${center+3}" y2="${center}" stroke="${stroke}" stroke-width="0.8" opacity="0.7"/>`;
 
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${svgSize}" height="${svgSize}">${shapeEl}${cross}</svg>`;
   const encoded = encodeURIComponent(svg);
@@ -46,6 +57,10 @@ export class ArEditor extends HTMLElement {
 
   // Image state
   private imageData: ImageData | null = null;
+  // Pre-segmentation image — used by the Restore tool to bring back RGBA
+  // pixels that were wrongly wiped out (e.g. interior holes where the
+  // subject shared the background color).
+  private originalImage: ImageData | null = null;
   private width = 0;
   private height = 0;
 
@@ -60,6 +75,7 @@ export class ArEditor extends HTMLElement {
   // Brush state
   private brushSize = 20;
   private brushShape: BrushShape = 'circle';
+  private tool: 'erase' | 'restore' = 'erase';
   private isErasing = false;
 
   // Background preview
@@ -73,7 +89,9 @@ export class ArEditor extends HTMLElement {
   // History
   private undoStack: HistoryEntry[] = [];
   private redoStack: HistoryEntry[] = [];
-  private maxHistory = 30;
+  // Full-RGBA snapshots × maxHistory — budget this conservatively so large
+  // images (up to 4096² ≈ 67 MB per entry) don't blow RAM.
+  private maxHistory = 12;
   private boundLocaleHandler: (() => void) | null = null;
   private abortController: AbortController | null = null;
 
@@ -101,8 +119,16 @@ export class ArEditor extends HTMLElement {
 
   private updateTexts(): void {
     const root = this.shadowRoot!;
+    const toolLabel = root.querySelector('#ed-tool-label');
+    if (toolLabel) toolLabel.textContent = t('editor.tool');
+    const toolSelect = root.querySelector('#brush-tool') as HTMLSelectElement | null;
+    if (toolSelect) {
+      const opts = toolSelect.options;
+      if (opts[0]) opts[0].textContent = t('editor.eraser');
+      if (opts[1]) opts[1].textContent = t('editor.restore');
+    }
     const brushLabel = root.querySelector('#ed-brush-label');
-    if (brushLabel) brushLabel.textContent = t('editor.eraser');
+    if (brushLabel) brushLabel.textContent = t('editor.shape');
     const brushSelect = root.querySelector('#brush-shape') as HTMLSelectElement | null;
     if (brushSelect) {
       const opts = brushSelect.options;
@@ -159,6 +185,12 @@ export class ArEditor extends HTMLElement {
           border: 1px solid #1a3a1a;
           border-radius: 0;
           flex-wrap: wrap;
+        }
+        .zoom-group {
+          flex: 0 0 100%;
+          display: flex;
+          align-items: center;
+          gap: var(--space-3, 0.75rem);
         }
         .toolbar label {
           font-size: var(--text-xs, 0.75rem);
@@ -431,8 +463,14 @@ export class ArEditor extends HTMLElement {
 
       <div class="editor-container">
         <div class="toolbar">
-          <label id="ed-brush-label">${t('editor.eraser')}</label>
-          <select id="brush-shape" aria-label="${t('editor.eraser')}">
+          <label id="ed-tool-label">${t('editor.tool')}</label>
+          <select id="brush-tool" aria-label="${t('editor.tool')}">
+            <option value="erase" selected>${t('editor.eraser')}</option>
+            <option value="restore">${t('editor.restore')}</option>
+          </select>
+
+          <label id="ed-brush-label">${t('editor.shape')}</label>
+          <select id="brush-shape" aria-label="${t('editor.shape')}">
             <option value="circle" selected>${t('editor.eraserCircle')}</option>
             <option value="square">${t('editor.eraserSquare')}</option>
           </select>
@@ -446,12 +484,12 @@ export class ArEditor extends HTMLElement {
           <button class="toolbar-btn" id="undo-btn" disabled aria-label="${t('editor.undo')}">${t('editor.undo')}</button>
           <button class="toolbar-btn" id="redo-btn" disabled aria-label="${t('editor.redo')}">${t('editor.redo')}</button>
 
-          <div class="separator"></div>
-
-          <button class="toolbar-btn" id="zoom-in" aria-label="Zoom in">+</button>
-          <span class="zoom-display" id="zoom-display">100%</span>
-          <button class="toolbar-btn" id="zoom-out" aria-label="Zoom out">&minus;</button>
-          <button class="toolbar-btn" id="zoom-fit" aria-label="${t('editor.zoomFit')}">${t('editor.zoomFit')}</button>
+          <div class="zoom-group">
+            <button class="toolbar-btn" id="zoom-out" aria-label="Zoom out">&minus;</button>
+            <button class="toolbar-btn" id="zoom-in" aria-label="Zoom in">+</button>
+            <span class="zoom-display" id="zoom-display">100%</span>
+            <button class="toolbar-btn" id="zoom-fit" aria-label="${t('editor.zoomFit')}">${t('editor.zoomFit')}</button>
+          </div>
 
           <div class="separator"></div>
 
@@ -513,6 +551,11 @@ export class ArEditor extends HTMLElement {
     const signal = this.abortController!.signal;
 
     // Brush shape
+    this.shadowRoot!.querySelector('#brush-tool')!.addEventListener('change', (e) => {
+      this.tool = (e.target as HTMLSelectElement).value as 'erase' | 'restore';
+      this.updateCursor();
+    }, { signal });
+
     this.shadowRoot!.querySelector('#brush-shape')!.addEventListener('change', (e) => {
       this.brushShape = (e.target as HTMLSelectElement).value as BrushShape;
       this.updateCursor();
@@ -610,7 +653,7 @@ export class ArEditor extends HTMLElement {
   /** Update the canvas cursor to match brush shape and size */
   private updateCursor(): void {
     if (!this.canvas) return;
-    this.canvas.style.cursor = makeBrushCursor(this.brushSize, this.brushShape, this.zoom);
+    this.canvas.style.cursor = makeBrushCursor(this.brushSize, this.brushShape, this.zoom, this.tool);
   }
 
   private updateSizeUI(): void {
@@ -620,8 +663,13 @@ export class ArEditor extends HTMLElement {
     sizeDisplay.textContent = `${this.brushSize}px`;
   }
 
-  /** Set the image to edit - called after ML processing */
-  setImage(imageData: ImageData): void {
+  /**
+   * Set the image to edit — called after ML processing.
+   *
+   * @param imageData the current result (with alpha holes / cleanup needed)
+   * @param original  the pre-segmentation source, sampled by the Restore tool.
+   */
+  setImage(imageData: ImageData, original: ImageData): void {
     this.width = imageData.width;
     this.height = imageData.height;
     this.imageData = new ImageData(
@@ -629,8 +677,12 @@ export class ArEditor extends HTMLElement {
       this.width,
       this.height,
     );
+    this.originalImage = new ImageData(
+      new Uint8ClampedArray(original.data),
+      this.width,
+      this.height,
+    );
 
-    // Reset state
     this.undoStack = [];
     this.redoStack = [];
     this.updateUndoRedoButtons();
@@ -862,61 +914,59 @@ export class ArEditor extends HTMLElement {
 
   /** Apply brush at pixel coordinates (shared between mouse and touch) */
   private applyBrushAt(pos: { x: number; y: number }): void {
-    if (!this.imageData) return;
-    const { x: cx, y: cy } = pos;
-    const r = Math.floor(this.brushSize / 2);
+    this.stamp(pos.x, pos.y);
+  }
+
+  private applyBrush(e: MouseEvent): void {
+    const p = this.eventToPixel(e);
+    this.stamp(p.x, p.y);
+  }
+
+  /**
+   * Paint one brush stamp at (cx,cy).
+   *
+   * - `erase`: writes alpha=0 to every pixel under the brush.
+   * - `restore`: copies RGBA from the pre-segmentation original, which
+   *   brings back both color and alpha=original. Useful for interior holes
+   *   the ML mask wrongly punched because the subject shared the
+   *   background color.
+   */
+  private stamp(cx: number, cy: number): void {
+    if (!this.imageData || !this.originalImage) return;
     const data = this.imageData.data;
+    const src = this.originalImage.data;
+    const restore = this.tool === 'restore';
+    const r = Math.floor(this.brushSize / 2);
+    const circle = this.brushShape === 'circle';
+    const r2 = r * r;
 
     for (let dy = -r; dy <= r; dy++) {
       for (let dx = -r; dx <= r; dx++) {
         const px = cx + dx;
         const py = cy + dy;
         if (px < 0 || px >= this.width || py < 0 || py >= this.height) continue;
-        if (this.brushShape === 'circle') {
-          if (dx * dx + dy * dy > r * r) continue;
-        }
+        if (circle && dx * dx + dy * dy > r2) continue;
         const i = (py * this.width + px) * 4;
-        data[i + 3] = 0;
+        if (restore) {
+          data[i] = src[i];
+          data[i + 1] = src[i + 1];
+          data[i + 2] = src[i + 2];
+          data[i + 3] = src[i + 3];
+        } else {
+          data[i + 3] = 0;
+        }
       }
     }
     this.redraw();
   }
 
-  private applyBrush(e: MouseEvent): void {
-    if (!this.imageData) return;
-    const { x: cx, y: cy } = this.eventToPixel(e);
-    const r = Math.floor(this.brushSize / 2);
-    const data = this.imageData.data;
-
-    for (let dy = -r; dy <= r; dy++) {
-      for (let dx = -r; dx <= r; dx++) {
-        const px = cx + dx;
-        const py = cy + dy;
-        if (px < 0 || px >= this.width || py < 0 || py >= this.height) continue;
-
-        // Check brush shape
-        if (this.brushShape === 'circle') {
-          if (dx * dx + dy * dy > r * r) continue;
-        }
-
-        const i = (py * this.width + px) * 4;
-
-        // Erase: set alpha to 0
-        data[i + 3] = 0;
-      }
-    }
-
-    this.redraw();
+  private snapshot(): Uint8ClampedArray {
+    return new Uint8ClampedArray(this.imageData!.data);
   }
 
   private pushUndo(): void {
     if (!this.imageData) return;
-    // Save only alpha channel to save memory
-    const alpha = new Uint8ClampedArray(this.width * this.height);
-    for (let i = 0; i < this.width * this.height; i++) {
-      alpha[i] = this.imageData.data[i * 4 + 3];
-    }
-    this.undoStack.push({ alpha });
+    this.undoStack.push({ rgba: this.snapshot() });
     if (this.undoStack.length > this.maxHistory) this.undoStack.shift();
     this.redoStack = [];
     this.updateUndoRedoButtons();
@@ -924,35 +974,18 @@ export class ArEditor extends HTMLElement {
 
   private undo(): void {
     if (!this.undoStack.length || !this.imageData) return;
-    // Save current state to redo
-    const currentAlpha = new Uint8ClampedArray(this.width * this.height);
-    for (let i = 0; i < this.width * this.height; i++) {
-      currentAlpha[i] = this.imageData.data[i * 4 + 3];
-    }
-    this.redoStack.push({ alpha: currentAlpha });
-
-    // Restore previous state
+    this.redoStack.push({ rgba: this.snapshot() });
     const prev = this.undoStack.pop()!;
-    for (let i = 0; i < this.width * this.height; i++) {
-      this.imageData.data[i * 4 + 3] = prev.alpha[i];
-    }
+    this.imageData.data.set(prev.rgba);
     this.updateUndoRedoButtons();
     this.redraw();
   }
 
   private redo(): void {
     if (!this.redoStack.length || !this.imageData) return;
-    // Save current to undo
-    const currentAlpha = new Uint8ClampedArray(this.width * this.height);
-    for (let i = 0; i < this.width * this.height; i++) {
-      currentAlpha[i] = this.imageData.data[i * 4 + 3];
-    }
-    this.undoStack.push({ alpha: currentAlpha });
-
+    this.undoStack.push({ rgba: this.snapshot() });
     const next = this.redoStack.pop()!;
-    for (let i = 0; i < this.width * this.height; i++) {
-      this.imageData.data[i * 4 + 3] = next.alpha[i];
-    }
+    this.imageData.data.set(next.rgba);
     this.updateUndoRedoButtons();
     this.redraw();
   }
@@ -971,6 +1004,7 @@ export class ArEditor extends HTMLElement {
 
   reset(): void {
     this.imageData = null;
+    this.originalImage = null;
     this.undoStack = [];
     this.redoStack = [];
   }

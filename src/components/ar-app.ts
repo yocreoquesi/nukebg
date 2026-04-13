@@ -1400,7 +1400,10 @@ export class ArApp extends HTMLElement {
         // Edit mode: open editor, pass cached edit result for instant toggle if available
         const editorSection = this.shadowRoot!.querySelector('#editor-section') as HTMLElement;
         editorSection.style.display = 'block';
-        this.editor.setImage(this.cachedEditResult ?? this.lastResultImageData);
+        this.editor.setImage(
+          this.cachedEditResult ?? this.lastResultImageData,
+          this.currentImageData!,
+        );
         this.cachedEditResult = null;
         (this.shadowRoot!.querySelector('#edit-btn') as HTMLElement).style.display = 'none';
       }
@@ -1425,10 +1428,7 @@ export class ArApp extends HTMLElement {
       this.cachedEditResult = editedData;
       this.lastResultImageData = editedData;
 
-      // Viewer compares pre-edit vs post-edit
-      if (this.preEditResult) {
-        this.viewer.setOriginal(this.preEditResult, this.currentFileSize);
-      }
+      // "Before" stays as the original input image; only "after" updates
       this.viewer.setResult(editedData, blob);
       await this.download.setResult(editedData, this.currentFileName, 0, blob);
 

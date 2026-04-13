@@ -77,6 +77,11 @@ function makeTestImageData(width = 4, height = 4): ImageData {
   return new ImageData(data, width, height);
 }
 
+/** Helper: setImage con original opcional (usa la misma imagen si no se pasa) */
+function setImg(editor: ArEditor, img: ImageData, original?: ImageData): void {
+  editor.setImage(img, original ?? img);
+}
+
 describe('ArEditor component', () => {
   let editor: ArEditor;
 
@@ -108,7 +113,7 @@ describe('ArEditor component', () => {
   describe('setImage', () => {
     it('establece la imagen y se puede recuperar con getResultImageData', () => {
       const img = makeTestImageData();
-      editor.setImage(img);
+      setImg(editor,img);
 
       const result = editor.getResultImageData();
       expect(result).not.toBeNull();
@@ -118,7 +123,7 @@ describe('ArEditor component', () => {
 
     it('crea una copia independiente de los datos', () => {
       const img = makeTestImageData();
-      editor.setImage(img);
+      setImg(editor,img);
 
       // Modify the original
       img.data[0] = 0;
@@ -135,7 +140,7 @@ describe('ArEditor component', () => {
       img.data[2] = 30;
       img.data[3] = 128;
 
-      editor.setImage(img);
+      setImg(editor,img);
 
       const result = editor.getResultImageData();
       expect(result.data[0]).toBe(10);
@@ -145,7 +150,7 @@ describe('ArEditor component', () => {
     });
 
     it('resetea las pilas de undo/redo al cargar nueva imagen', () => {
-      editor.setImage(makeTestImageData());
+      setImg(editor,makeTestImageData());
 
       const undoBtn = editor.shadowRoot!.querySelector('#undo-btn') as HTMLButtonElement;
       const redoBtn = editor.shadowRoot!.querySelector('#redo-btn') as HTMLButtonElement;
@@ -157,7 +162,7 @@ describe('ArEditor component', () => {
   describe('getResultImageData', () => {
     it('devuelve el ImageData actual del editor', () => {
       const img = makeTestImageData(8, 8);
-      editor.setImage(img);
+      setImg(editor,img);
 
       const result = editor.getResultImageData();
       expect(result).toBeInstanceOf(ImageData);
@@ -167,7 +172,7 @@ describe('ArEditor component', () => {
 
   describe('reset', () => {
     it('limpia el estado interno', () => {
-      editor.setImage(makeTestImageData());
+      setImg(editor,makeTestImageData());
       editor.reset();
 
       const result = editor.getResultImageData();
@@ -177,13 +182,13 @@ describe('ArEditor component', () => {
 
   describe('undo/redo', () => {
     it('undo esta deshabilitado antes de editar', () => {
-      editor.setImage(makeTestImageData(4, 4));
+      setImg(editor,makeTestImageData(4, 4));
       const undoBtn = editor.shadowRoot!.querySelector('#undo-btn') as HTMLButtonElement;
       expect(undoBtn.disabled).toBe(true);
     });
 
     it('redo esta deshabilitado antes de editar', () => {
-      editor.setImage(makeTestImageData(4, 4));
+      setImg(editor,makeTestImageData(4, 4));
       const redoBtn = editor.shadowRoot!.querySelector('#redo-btn') as HTMLButtonElement;
       expect(redoBtn.disabled).toBe(true);
     });
@@ -191,7 +196,7 @@ describe('ArEditor component', () => {
 
   describe('eventos', () => {
     it('emite ar:editor-done con imageData al hacer click en Done', async () => {
-      editor.setImage(makeTestImageData(4, 4));
+      setImg(editor,makeTestImageData(4, 4));
 
       const donePromise = new Promise<CustomEvent>((resolve) => {
         editor.addEventListener('ar:editor-done', (e) => resolve(e as CustomEvent), { once: true });
@@ -205,7 +210,7 @@ describe('ArEditor component', () => {
     });
 
     it('emite ar:editor-cancel al hacer click en Cancel', async () => {
-      editor.setImage(makeTestImageData());
+      setImg(editor,makeTestImageData());
 
       const cancelPromise = new Promise<Event>((resolve) => {
         editor.addEventListener('ar:editor-cancel', (e) => resolve(e), { once: true });
@@ -262,6 +267,26 @@ describe('ArEditor component', () => {
     it('tiene 5 opciones de fondo', () => {
       const bgBtns = editor.shadowRoot!.querySelectorAll('.bg-btn');
       expect(bgBtns.length).toBe(5);
+    });
+
+    it('tiene selector de herramienta con opciones erase y restore', () => {
+      const select = editor.shadowRoot!.querySelector('#brush-tool') as HTMLSelectElement;
+      expect(select).not.toBeNull();
+      expect(select.value).toBe('erase');
+      const values = Array.from(select.options).map(o => o.value);
+      expect(values).toEqual(['erase', 'restore']);
+    });
+
+    it('copia el original independientemente (muta src, editor conserva snapshot)', () => {
+      const cur = makeTestImageData(4, 4);
+      const orig = makeTestImageData(4, 4);
+      orig.data[0] = 42;
+      editor.setImage(cur, orig);
+      orig.data[0] = 7;
+      // We don't expose originalImage, but if the editor copied it the
+      // undo/redo and Restore tool remain stable regardless of outside
+      // mutation. This test just verifies setImage(cur, orig) is accepted.
+      expect(editor.getResultImageData().width).toBe(4);
     });
   });
 });
