@@ -546,14 +546,7 @@ export class ArEditor extends HTMLElement {
 
     // Brush shape
     this.shadowRoot!.querySelector('#brush-tool')!.addEventListener('change', (e) => {
-      const val = (e.target as HTMLSelectElement).value;
-      if (val === 'restore' && !this.originalImage) {
-        // No original available → ignore and snap back to erase.
-        (e.target as HTMLSelectElement).value = 'erase';
-        this.tool = 'erase';
-      } else {
-        this.tool = val as 'erase' | 'restore';
-      }
+      this.tool = (e.target as HTMLSelectElement).value as 'erase' | 'restore';
       this.updateCursor();
     }, { signal });
 
@@ -668,11 +661,9 @@ export class ArEditor extends HTMLElement {
    * Set the image to edit — called after ML processing.
    *
    * @param imageData the current result (with alpha holes / cleanup needed)
-   * @param original  the pre-segmentation source — required for the Restore
-   *                  tool. If omitted, Restore is disabled and the tool
-   *                  selector hides the Restore option.
+   * @param original  the pre-segmentation source, sampled by the Restore tool.
    */
-  setImage(imageData: ImageData, original?: ImageData): void {
+  setImage(imageData: ImageData, original: ImageData): void {
     this.width = imageData.width;
     this.height = imageData.height;
     this.imageData = new ImageData(
@@ -680,29 +671,12 @@ export class ArEditor extends HTMLElement {
       this.width,
       this.height,
     );
+    this.originalImage = new ImageData(
+      new Uint8ClampedArray(original.data),
+      this.width,
+      this.height,
+    );
 
-    // Keep original for Restore. Must match dimensions, otherwise ignore.
-    if (original && original.width === this.width && original.height === this.height) {
-      this.originalImage = new ImageData(
-        new Uint8ClampedArray(original.data),
-        this.width,
-        this.height,
-      );
-    } else {
-      this.originalImage = null;
-    }
-    // Toggle the Restore option based on availability.
-    const toolSelect = this.shadowRoot?.querySelector('#brush-tool') as HTMLSelectElement | null;
-    if (toolSelect) {
-      const restoreOpt = toolSelect.querySelector('option[value="restore"]') as HTMLOptionElement | null;
-      if (restoreOpt) restoreOpt.disabled = this.originalImage === null;
-      if (!this.originalImage && this.tool === 'restore') {
-        this.tool = 'erase';
-        toolSelect.value = 'erase';
-      }
-    }
-
-    // Reset state
     this.undoStack = [];
     this.redoStack = [];
     this.updateUndoRedoButtons();
@@ -952,10 +926,10 @@ export class ArEditor extends HTMLElement {
    *   background color.
    */
   private stamp(cx: number, cy: number): void {
-    if (!this.imageData) return;
-    const useRestore = this.tool === 'restore' && this.originalImage !== null;
+    if (!this.imageData || !this.originalImage) return;
     const data = this.imageData.data;
-    const src = useRestore ? this.originalImage!.data : null;
+    const src = this.originalImage.data;
+    const restore = this.tool === 'restore';
     const r = Math.floor(this.brushSize / 2);
     const circle = this.brushShape === 'circle';
     const r2 = r * r;
@@ -967,11 +941,11 @@ export class ArEditor extends HTMLElement {
         if (px < 0 || px >= this.width || py < 0 || py >= this.height) continue;
         if (circle && dx * dx + dy * dy > r2) continue;
         const i = (py * this.width + px) * 4;
-        if (useRestore) {
-          data[i] = src![i];
-          data[i + 1] = src![i + 1];
-          data[i + 2] = src![i + 2];
-          data[i + 3] = src![i + 3];
+        if (restore) {
+          data[i] = src[i];
+          data[i + 1] = src[i + 1];
+          data[i + 2] = src[i + 2];
+          data[i + 3] = src[i + 3];
         } else {
           data[i + 3] = 0;
         }
