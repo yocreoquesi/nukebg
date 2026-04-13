@@ -59,7 +59,7 @@ Drop. Nuke. Download. That's it.
 $ open https://nukebg.app
 ```
 
-**Run locally:**
+**Run locally (Node):**
 
 ```bash
 $ git clone https://github.com/yocreoquesi/nukebg.git
@@ -69,6 +69,29 @@ $ npm run dev        # dev server at localhost:5173
 $ npm test           # run tests
 $ npm run build      # production build -> dist/
 ```
+
+**Run locally (Docker):**
+
+Mirrors the production setup — multi-stage build, nginx alpine, same CSP and
+security headers as the deployed site. Useful to validate nginx config before
+shipping, or to self-host.
+
+```bash
+$ git clone https://github.com/yocreoquesi/nukebg.git
+$ cd nukebg
+$ docker compose up -d --build    # build + run detached
+$ open http://localhost:8080      # -> nukebg served via nginx
+$ docker compose logs -f          # follow logs
+$ docker compose down             # stop and remove
+```
+
+No environment variables needed — NukeBG is 100% client-side, no server
+config, no secrets, no database. The container serves static assets with
+nginx on port 8080 (mapped 1:1 on the host). Change the left side of
+`"8080:8080"` in `docker-compose.yml` to publish on a different host port.
+
+The image is built as the non-root `nukebg` user and exposes only port 8080.
+Includes an HTTP healthcheck (`wget --spider` every 30s).
 
 Deploy `dist/` to any static host: Cloudflare Pages, GitHub Pages, Netlify, Vercel.
 
