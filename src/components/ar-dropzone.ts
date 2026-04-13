@@ -1,5 +1,6 @@
 import { loadImage, isSupportedFormat } from '../utils/image-io';
 import { t } from '../i18n';
+import { getBatchLimit } from '../types/batch';
 
 export class ArDropzone extends HTMLElement {
   private fileInput!: HTMLInputElement;
@@ -178,7 +179,7 @@ export class ArDropzone extends HTMLElement {
           <div class="main-text" id="dz-dragover">${t('dropzone.dragover')}</div>
         </div>
       </div>
-      <input type="file" accept="image/png,image/jpeg,image/webp" />
+      <input type="file" accept="image/png,image/jpeg,image/webp" multiple />
     `;
 
     this.dropArea = this.shadowRoot!.querySelector('.dropzone')!;
@@ -221,8 +222,8 @@ export class ArDropzone extends HTMLElement {
 
     // File input change
     this.fileInput.addEventListener('change', () => {
-      if (this.fileInput.files?.[0]) {
-        this.handleFile(this.fileInput.files[0]);
+      if (this.fileInput.files && this.fileInput.files.length > 0) {
+        this.handleFiles(this.fileInput.files);
       }
     });
 
@@ -237,8 +238,8 @@ export class ArDropzone extends HTMLElement {
     this.dropArea.addEventListener('drop', (e) => {
       e.preventDefault();
       this.dropArea.classList.remove('dragover');
-      const file = e.dataTransfer?.files[0];
-      if (file) this.handleFile(file);
+      const files = e.dataTransfer?.files;
+      if (files && files.length > 0) this.handleFiles(files);
     });
 
     // Paste from clipboard
@@ -295,6 +296,72 @@ export class ArDropzone extends HTMLElement {
       const msg = err instanceof Error ? err.message : 'Failed to load image.';
       this.showError(msg);
     }
+  }
+
+  /**
+   * Handle a list of files from drop or file-picker. When exactly one valid
+   * image is selected we emit the classic ar:image-loaded event so the
+   * single-file workspace UX stays untouched. Two or more valid images
+   * trigger ar:images-loaded (plural) which ar-app renders as a batch grid.
+   */
+  private async handleFiles(fileList: FileList): Promise<void> {
+    const valid: File[] = [];
+    for (const f of Array.from(fileList)) {
+      if (isSupportedFormat(f.type)) valid.push(f);
+    }
+
+    if (valid.length === 0) {
+      this.showError(t('dropzone.errorFormat') || 'Unsupported format. Use PNG, JPG, or WebP.');
+      return;
+    }
+
+    const limit = getBatchLimit();
+    const accepted = valid.slice(0, limit);
+    const overLimit = valid.length > limit;
+
+    if (accepted.length === 1) {
+      await this.handleFile(accepted[0]);
+      return;
+    }
+
+    const loaded: Array<{
+      file: File;
+      imageData: ImageData;
+      originalWidth: number;
+      originalHeight: number;
+      wasDownsampled: boolean;
+    }> = [];
+
+    for (const file of accepted) {
+      try {
+        const result = await loadImage(file);
+        loaded.push({
+          file,
+          imageData: result.imageData,
+          originalWidth: result.originalWidth,
+          originalHeight: result.originalHeight,
+          wasDownsampled: result.wasDownsampled,
+        });
+      } catch {
+        // Silently skip images that fail to load; batch mode should not
+        // block the whole selection on a single broken file.
+      }
+    }
+
+    if (loaded.length === 0) {
+      this.showError(t('dropzone.errorFormat') || 'Unsupported format. Use PNG, JPG, or WebP.');
+      return;
+    }
+
+    if (overLimit) {
+      this.showError(t('batch.limitExceeded', { limit: String(limit) }));
+    }
+
+    this.dispatchEvent(new CustomEvent('ar:images-loaded', {
+      bubbles: true,
+      composed: true,
+      detail: { images: loaded },
+    }));
   }
 
   private showError(message?: string): void {

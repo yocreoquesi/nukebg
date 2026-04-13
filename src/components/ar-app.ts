@@ -9,6 +9,9 @@ import type { ArProgress } from './ar-progress';
 import type { ArDownload } from './ar-download';
 import type { ArEditor } from './ar-editor';
 import type { ArDropzone } from './ar-dropzone';
+import type { ArBatchGrid } from './ar-batch-grid';
+import type { BatchItem } from '../types/batch';
+import { createZip, safeZipEntryName, downloadBlob } from '../utils/zip';
 
 export class ArApp extends HTMLElement {
   private static readonly MODEL_ID: ModelId = 'briaai/RMBG-1.4';
@@ -31,6 +34,11 @@ export class ArApp extends HTMLElement {
   private boundLocaleHandler: (() => void) | null = null;
   private boundPwaInstallableHandler: (() => void) | null = null;
   private abortController: AbortController | null = null;
+  private batchGrid: ArBatchGrid | null = null;
+  private batchItems: BatchItem[] = [];
+  private batchMode: 'off' | 'grid' | 'detail' = 'off';
+  private batchDetailId: string | null = null;
+  private batchAborted = false;
 
   constructor() {
     super();
@@ -225,9 +233,52 @@ export class ArApp extends HTMLElement {
         .workspace.visible {
           display: block;
         }
+        .batch-detail-bar,
+        .batch-failed-bar {
+          max-width: 1200px;
+          margin: 0 auto 12px auto;
+          display: flex;
+          gap: 10px;
+          justify-content: flex-start;
+          flex-wrap: wrap;
+        }
+        .back-to-grid-btn,
+        .batch-retry-btn,
+        .batch-discard-btn {
+          background: transparent;
+          border: 1px solid var(--color-accent-primary, #00ff41);
+          color: var(--color-accent-primary, #00ff41);
+          font-family: 'JetBrains Mono', monospace;
+          font-size: 12px;
+          padding: 8px 16px;
+          cursor: pointer;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          border-radius: 0;
+          transition: background 0.2s ease, box-shadow 0.2s ease;
+        }
+        .back-to-grid-btn:hover,
+        .batch-retry-btn:hover,
+        .batch-discard-btn:hover {
+          background: rgba(0, 255, 65, 0.08);
+          box-shadow: 0 0 8px rgba(0, 255, 65, 0.3);
+        }
+        .batch-discard-btn {
+          border-color: #3a1a1a;
+          color: #ff3131;
+        }
+        .batch-discard-btn:hover {
+          background: rgba(255, 49, 49, 0.08);
+          box-shadow: 0 0 8px rgba(255, 49, 49, 0.3);
+        }
         .workspace-inner {
           max-width: 1200px;
           margin: 0 auto;
+          display: flex;
+          flex-direction: column;
+          gap: var(--space-4, 1rem);
+        }
+        .single-file-workspace {
           display: flex;
           flex-direction: column;
           gap: var(--space-4, 1rem);
@@ -906,6 +957,15 @@ export class ArApp extends HTMLElement {
 
       <section class="workspace" id="workspace" aria-label="Image processing workspace">
         <div class="workspace-inner">
+          <ar-batch-grid id="batch-grid" style="display:none"></ar-batch-grid>
+          <div class="batch-detail-bar" id="batch-detail-bar" style="display:none">
+            <button class="back-to-grid-btn" id="back-to-grid-btn">${t('batch.backToGrid')}</button>
+          </div>
+          <div class="batch-failed-bar" id="batch-failed-bar" style="display:none">
+            <button class="batch-retry-btn" id="batch-retry-btn">${t('batch.retry')}</button>
+            <button class="batch-discard-btn" id="batch-discard-btn">${t('batch.discard')}</button>
+          </div>
+          <div class="single-file-workspace" id="single-file-workspace">
           <ar-viewer></ar-viewer>
           <ar-progress></ar-progress>
           <div class="ws-controls">
@@ -919,6 +979,7 @@ export class ArApp extends HTMLElement {
           <ar-download></ar-download>
           <button class="edit-btn" id="edit-btn" style="display:none">${t('edit.btn')}</button>
           <ar-editor style="display:none" id="editor-section"></ar-editor>
+          </div>
         </div>
       </section>
 
@@ -964,6 +1025,7 @@ export class ArApp extends HTMLElement {
     this.download = this.shadowRoot!.querySelector('ar-download')!;
     this.editor = this.shadowRoot!.querySelector('ar-editor')!;
     this.dropzone = this.shadowRoot!.querySelector('ar-dropzone')! as ArDropzone;
+    this.batchGrid = this.shadowRoot!.querySelector('#batch-grid') as ArBatchGrid;
   }
 
   /** Actualiza textos sin re-renderizar todo el componente */
@@ -996,6 +1058,12 @@ export class ArApp extends HTMLElement {
       installBtnEl.textContent = isAppInstalled() ? t('pwa.installed') : t('pwa.install');
       installBtnEl.setAttribute('aria-label', t('pwa.install'));
     }
+    const backBtnEl = root.querySelector('#back-to-grid-btn');
+    if (backBtnEl) backBtnEl.textContent = t('batch.backToGrid');
+    const retryBtnEl = root.querySelector('#batch-retry-btn');
+    if (retryBtnEl) retryBtnEl.textContent = t('batch.retry');
+    const discardBtnEl = root.querySelector('#batch-discard-btn');
+    if (discardBtnEl) discardBtnEl.textContent = t('batch.discard');
   }
 
   private getInstallGuide(): string {
@@ -1090,6 +1158,46 @@ export class ArApp extends HTMLElement {
 
       await this.processImage(detail.imageData, detail.file.size);
     }, { signal });
+
+    this.shadowRoot!.addEventListener('ar:images-loaded', async (e: Event) => {
+      const detail = (e as CustomEvent).detail as {
+        images: Array<{
+          file: File;
+          imageData: ImageData;
+          originalWidth: number;
+          originalHeight: number;
+          wasDownsampled: boolean;
+        }>;
+      };
+      if (this.isProcessing) {
+        this.processingAborted = true;
+        this.isProcessing = false;
+        this.enableWorkspaceButtons();
+      }
+      await this.startBatch(detail.images);
+    }, { signal });
+
+    this.shadowRoot!.addEventListener('batch:item-click', (e: Event) => {
+      const detail = (e as CustomEvent).detail as { id: string; state: string };
+      this.openBatchDetail(detail.id);
+    }, { signal });
+
+    this.shadowRoot!.addEventListener('batch:download-zip', async () => {
+      await this.downloadBatchZip();
+    }, { signal });
+
+    const backBtn = this.shadowRoot!.querySelector('#back-to-grid-btn');
+    if (backBtn) {
+      backBtn.addEventListener('click', () => this.closeBatchDetail(), { signal });
+    }
+    const retryBtn = this.shadowRoot!.querySelector('#batch-retry-btn');
+    if (retryBtn) {
+      retryBtn.addEventListener('click', () => this.retryBatchItem(), { signal });
+    }
+    const discardBtn = this.shadowRoot!.querySelector('#batch-discard-btn');
+    if (discardBtn) {
+      discardBtn.addEventListener('click', () => this.discardBatchItem(), { signal });
+    }
 
     this.shadowRoot!.addEventListener('ar:process-another', () => {
       this.resetToIdle();
@@ -1481,6 +1589,208 @@ export class ArApp extends HTMLElement {
     }
   }
 
+  private makeThumbnail(imageData: ImageData, maxSide = 200): string {
+    const { width, height } = imageData;
+    const scale = Math.min(1, maxSide / Math.max(width, height));
+    const tw = Math.max(1, Math.round(width * scale));
+    const th = Math.max(1, Math.round(height * scale));
+    const src = document.createElement('canvas');
+    src.width = width;
+    src.height = height;
+    src.getContext('2d')!.putImageData(imageData, 0, 0);
+    const out = document.createElement('canvas');
+    out.width = tw;
+    out.height = th;
+    const ctx = out.getContext('2d')!;
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(src, 0, 0, tw, th);
+    return out.toDataURL('image/png');
+  }
+
+  private setBatchUiMode(mode: 'grid' | 'detail'): void {
+    const root = this.shadowRoot!;
+    const grid = root.querySelector('#batch-grid') as HTMLElement;
+    const single = root.querySelector('#single-file-workspace') as HTMLElement;
+    const detailBar = root.querySelector('#batch-detail-bar') as HTMLElement;
+    const failedBar = root.querySelector('#batch-failed-bar') as HTMLElement;
+    if (mode === 'grid') {
+      grid.style.display = 'block';
+      single.style.display = 'none';
+      detailBar.style.display = 'none';
+      failedBar.style.display = 'none';
+    } else {
+      grid.style.display = 'none';
+      single.style.display = 'flex';
+      detailBar.style.display = 'flex';
+    }
+    this.batchMode = mode;
+  }
+
+  private async startBatch(images: Array<{
+    file: File;
+    imageData: ImageData;
+    originalWidth: number;
+    originalHeight: number;
+    wasDownsampled: boolean;
+  }>): Promise<void> {
+    this.batchAborted = false;
+    this.batchItems = images.map((img, i) => ({
+      id: `batch-${Date.now()}-${i}`,
+      originalName: img.file.name || `image-${i + 1}.png`,
+      file: img.file,
+      imageData: img.imageData,
+      state: 'pending',
+      result: null,
+      thumbnailUrl: this.makeThumbnail(img.imageData),
+    }));
+
+    const hero = this.shadowRoot!.querySelector('#hero')!;
+    const workspace = this.shadowRoot!.querySelector('#workspace')!;
+    hero.classList.add('hidden');
+    workspace.classList.add('visible');
+    this.setBatchUiMode('grid');
+
+    if (this.batchGrid) {
+      this.batchGrid.setItems(this.batchItems);
+      this.batchGrid.setCurrentIndex(0);
+    }
+
+    if (!this.pipeline) {
+      this.pipeline = new PipelineOrchestrator(
+        (stage: PipelineStage, status: StageStatus, message?: string) => {
+          this.progress.setStage(stage, status, message);
+        }
+      );
+    }
+
+    await this.runBatchQueue();
+  }
+
+  private async runBatchQueue(): Promise<void> {
+    for (let i = 0; i < this.batchItems.length; i++) {
+      if (this.batchAborted) return;
+      const item = this.batchItems[i];
+      if (item.state === 'done' || item.state === 'discarded') continue;
+      if (this.batchGrid) this.batchGrid.setCurrentIndex(i);
+      item.state = 'processing';
+      if (this.batchGrid) this.batchGrid.updateItem(item.id, 'processing');
+      try {
+        const result = await this.pipeline!.process(
+          item.imageData,
+          ArApp.MODEL_ID,
+          this.selectedPrecision,
+        );
+        if (this.batchAborted) return;
+        item.result = result;
+        item.thumbnailUrl = this.makeThumbnail(result.imageData);
+        item.state = 'done';
+        if (this.batchGrid) this.batchGrid.updateItem(item.id, 'done', item.thumbnailUrl);
+      } catch (err) {
+        item.errorMessage = err instanceof Error ? err.message : String(err);
+        item.state = 'failed';
+        if (this.batchGrid) this.batchGrid.updateItem(item.id, 'failed');
+      }
+    }
+  }
+
+  private async openBatchDetail(id: string): Promise<void> {
+    const item = this.batchItems.find(i => i.id === id);
+    if (!item) return;
+    this.batchDetailId = id;
+
+    const failedBar = this.shadowRoot!.querySelector('#batch-failed-bar') as HTMLElement;
+    this.setBatchUiMode('detail');
+
+    if (item.state === 'failed') {
+      failedBar.style.display = 'flex';
+      this.viewer.clearResult();
+      this.viewer.setOriginal(item.imageData, item.file.size);
+      this.progress.reset();
+      this.download.reset();
+      this.progress.setStage(
+        'ml-segmentation',
+        'error',
+        t('pipeline.error', { msg: item.errorMessage || 'Unknown error' }),
+      );
+      const editBtn = this.shadowRoot!.querySelector('#edit-btn') as HTMLElement;
+      if (editBtn) editBtn.style.display = 'none';
+      return;
+    }
+
+    failedBar.style.display = 'none';
+    if (item.state === 'done' && item.result) {
+      this.currentFileName = item.originalName;
+      this.currentImageData = item.imageData;
+      this.currentFileSize = item.file.size;
+      this.viewer.clearResult();
+      this.viewer.setOriginal(item.imageData, item.file.size);
+      this.progress.reset();
+      this.download.reset();
+      const { exportPng } = await import('../utils/image-io');
+      const blob = await exportPng(item.result.imageData);
+      this.viewer.setResult(item.result.imageData, blob);
+      await this.download.setResult(
+        item.result.imageData,
+        item.originalName,
+        item.result.totalTimeMs,
+        blob,
+      );
+      this.lastResultImageData = item.result.imageData;
+      const editBtn = this.shadowRoot!.querySelector('#edit-btn') as HTMLElement;
+      if (editBtn) editBtn.style.display = 'block';
+      const editorSection = this.shadowRoot!.querySelector('#editor-section') as HTMLElement;
+      if (editorSection) editorSection.style.display = 'none';
+    }
+  }
+
+  private closeBatchDetail(): void {
+    this.batchDetailId = null;
+    this.preEditResult = null;
+    this.cachedEditResult = null;
+    this.lastResultImageData = null;
+    this.currentImageData = null;
+    const editorSection = this.shadowRoot!.querySelector('#editor-section') as HTMLElement;
+    if (editorSection) editorSection.style.display = 'none';
+    const editBtn = this.shadowRoot!.querySelector('#edit-btn') as HTMLElement;
+    if (editBtn) editBtn.style.display = 'none';
+    this.setBatchUiMode('grid');
+  }
+
+  private async retryBatchItem(): Promise<void> {
+    if (!this.batchDetailId) return;
+    const item = this.batchItems.find(i => i.id === this.batchDetailId);
+    if (!item) return;
+    item.state = 'pending';
+    item.errorMessage = undefined;
+    if (this.batchGrid) this.batchGrid.updateItem(item.id, 'pending');
+    this.closeBatchDetail();
+    await this.runBatchQueue();
+  }
+
+  private discardBatchItem(): void {
+    if (!this.batchDetailId) return;
+    const item = this.batchItems.find(i => i.id === this.batchDetailId);
+    if (!item) return;
+    item.state = 'discarded';
+    if (this.batchGrid) this.batchGrid.updateItem(item.id, 'discarded');
+    this.closeBatchDetail();
+  }
+
+  private async downloadBatchZip(): Promise<void> {
+    const done = this.batchItems.filter(i => i.state === 'done' && i.result);
+    if (done.length === 0) return;
+    const { exportPng } = await import('../utils/image-io');
+    const files = await Promise.all(
+      done.map(async (item, idx) => ({
+        name: safeZipEntryName(idx + 1, done.length, item.originalName),
+        blob: await exportPng(item.result!.imageData),
+      })),
+    );
+    const zip = await createZip(files);
+    downloadBlob(zip, `nukebg-batch-${Date.now()}.zip`);
+  }
+
   private resetToIdle(): void {
     const hero = this.shadowRoot!.querySelector('#hero')!;
     const workspace = this.shadowRoot!.querySelector('#workspace')!;
@@ -1492,6 +1802,21 @@ export class ArApp extends HTMLElement {
     this.cachedEditResult = null;
     this.lastResultImageData = null;
     this.currentImageData = null;
+
+    if (this.batchMode !== 'off') {
+      this.batchAborted = true;
+      this.batchItems = [];
+      this.batchDetailId = null;
+      this.batchMode = 'off';
+      const grid = this.shadowRoot!.querySelector('#batch-grid') as HTMLElement;
+      const single = this.shadowRoot!.querySelector('#single-file-workspace') as HTMLElement;
+      const detailBar = this.shadowRoot!.querySelector('#batch-detail-bar') as HTMLElement;
+      const failedBar = this.shadowRoot!.querySelector('#batch-failed-bar') as HTMLElement;
+      if (grid) grid.style.display = 'none';
+      if (single) single.style.display = 'flex';
+      if (detailBar) detailBar.style.display = 'none';
+      if (failedBar) failedBar.style.display = 'none';
+    }
     // Keep pipeline alive for next image (model stays loaded)
   }
 }

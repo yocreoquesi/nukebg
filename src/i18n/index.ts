@@ -106,6 +106,21 @@ const translations: Translations = {
     'pwa.guideGeneric': '1. Open your browser menu (\u22EE or \u22EF)<br>2. Look for "Install" or "Add to Home Screen"',
     'pwa.guideDismiss': '[ROGER]',
 
+    // Batch mode
+    'batch.processing': 'Processing {current}/{total}',
+    'batch.downloadZip': '\u2193 Download all as ZIP',
+    'batch.failed': 'Failed',
+    'batch.retry': 'Retry',
+    'batch.discard': 'Discard',
+    'batch.backToGrid': '\u2190 Back to grid',
+    'batch.limitExceeded': 'Max {limit} images at once. Taking the first {limit}.',
+    'batch.pending': 'Queued',
+    'batch.processingState': 'Processing...',
+    'batch.done': 'Done',
+    'batch.discarded': 'Discarded',
+    'batch.completed': '{done}/{total} ready, {failed} failed',
+    'batch.emptyZip': 'No completed images to download',
+
     // Language selector
     'lang.label': 'Language',
   },
@@ -207,6 +222,21 @@ const translations: Translations = {
     'pwa.guideSafari': '1. Toca el bot\u00F3n Compartir (\u2B06) en la barra inferior<br>2. Baja \u2192 toca "A\u00F1adir a pantalla de inicio"',
     'pwa.guideGeneric': '1. Abre el men\u00FA del navegador (\u22EE o \u22EF)<br>2. Busca "Instalar" o "A\u00F1adir a inicio"',
     'pwa.guideDismiss': '[ENTENDIDO]',
+
+    // Batch mode
+    'batch.processing': 'Procesando {current}/{total}',
+    'batch.downloadZip': '\u2193 Descargar todas (ZIP)',
+    'batch.failed': 'Fall\u00F3',
+    'batch.retry': 'Reintentar',
+    'batch.discard': 'Descartar',
+    'batch.backToGrid': '\u2190 Volver al grid',
+    'batch.limitExceeded': 'M\u00E1ximo {limit} im\u00E1genes. Tomamos las primeras {limit}.',
+    'batch.pending': 'En cola',
+    'batch.processingState': 'Procesando...',
+    'batch.done': 'Listo',
+    'batch.discarded': 'Descartada',
+    'batch.completed': '{done}/{total} listas, {failed} fallidas',
+    'batch.emptyZip': 'No hay im\u00E1genes procesadas para descargar',
 
     // Language selector
     'lang.label': 'Idioma',
@@ -310,6 +340,21 @@ const translations: Translations = {
     'pwa.guideGeneric': '1. Ouvre le menu du navigateur (\u22EE ou \u22EF)<br>2. Cherche "Installer" ou "Ajouter \u00E0 l\u2019\u00E9cran d\u2019accueil"',
     'pwa.guideDismiss': '[RE\u00C7U]',
 
+    // Batch mode
+    'batch.processing': 'Traitement {current}/{total}',
+    'batch.downloadZip': '\u2193 Tout t\u00E9l\u00E9charger (ZIP)',
+    'batch.failed': '\u00C9chec',
+    'batch.retry': 'R\u00E9essayer',
+    'batch.discard': 'Supprimer',
+    'batch.backToGrid': '\u2190 Retour \u00E0 la grille',
+    'batch.limitExceeded': 'Max {limit} images. Les {limit} premi\u00E8res sont prises.',
+    'batch.pending': 'En attente',
+    'batch.processingState': 'Traitement...',
+    'batch.done': 'Termin\u00E9',
+    'batch.discarded': 'Supprim\u00E9e',
+    'batch.completed': '{done}/{total} pr\u00EAtes, {failed} \u00E9chou\u00E9es',
+    'batch.emptyZip': 'Aucune image pr\u00EAte \u00E0 t\u00E9l\u00E9charger',
+
     // Language selector
     'lang.label': 'Langue',
   },
@@ -411,6 +456,21 @@ const translations: Translations = {
     'pwa.guideSafari': '1. Tippe auf Teilen (\u2B06) in der unteren Leiste<br>2. Runterscrollen \u2192 "Zum Home-Bildschirm" tippen',
     'pwa.guideGeneric': '1. \u00D6ffne das Browser-Men\u00FC (\u22EE oder \u22EF)<br>2. Suche "Installieren" oder "Zum Startbildschirm"',
     'pwa.guideDismiss': '[VERSTANDEN]',
+
+    // Batch mode
+    'batch.processing': 'Verarbeite {current}/{total}',
+    'batch.downloadZip': '\u2193 Alle als ZIP herunterladen',
+    'batch.failed': 'Fehlgeschlagen',
+    'batch.retry': 'Wiederholen',
+    'batch.discard': 'Verwerfen',
+    'batch.backToGrid': '\u2190 Zur\u00FCck zum Raster',
+    'batch.limitExceeded': 'Max. {limit} Bilder. Die ersten {limit} werden genommen.',
+    'batch.pending': 'Warteschlange',
+    'batch.processingState': 'Verarbeite...',
+    'batch.done': 'Fertig',
+    'batch.discarded': 'Verworfen',
+    'batch.completed': '{done}/{total} fertig, {failed} fehlgeschlagen',
+    'batch.emptyZip': 'Keine fertigen Bilder zum Herunterladen',
 
     // Language selector
     'lang.label': 'Sprache',
@@ -514,6 +574,21 @@ const translations: Translations = {
     'pwa.guideGeneric': '1. Abre o menu do navegador (\u22EE ou \u22EF)<br>2. Procura "Instalar" ou "Adicionar \u00E0 tela inicial"',
     'pwa.guideDismiss': '[ENTENDIDO]',
 
+    // Batch mode
+    'batch.processing': 'Processando {current}/{total}',
+    'batch.downloadZip': '\u2193 Baixar todas (ZIP)',
+    'batch.failed': 'Falhou',
+    'batch.retry': 'Tentar novamente',
+    'batch.discard': 'Descartar',
+    'batch.backToGrid': '\u2190 Voltar \u00E0 grade',
+    'batch.limitExceeded': 'M\u00E1ximo {limit} imagens. Pegando as primeiras {limit}.',
+    'batch.pending': 'Na fila',
+    'batch.processingState': 'Processando...',
+    'batch.done': 'Pronto',
+    'batch.discarded': 'Descartada',
+    'batch.completed': '{done}/{total} prontas, {failed} falharam',
+    'batch.emptyZip': 'Sem imagens prontas para baixar',
+
     // Language selector
     'lang.label': 'Idioma',
   },
@@ -615,6 +690,21 @@ const translations: Translations = {
     'pwa.guideSafari': '1. \u70B9\u51FB\u5E95\u90E8\u680F\u7684\u5206\u4EAB\u6309\u94AE (\u2B06)<br>2. \u5411\u4E0B\u6ED1 \u2192 \u70B9\u51FB\u300C\u6DFB\u52A0\u5230\u4E3B\u5C4F\u5E55\u300D',
     'pwa.guideGeneric': '1. \u6253\u5F00\u6D4F\u89C8\u5668\u83DC\u5355\uFF08\u22EE \u6216 \u22EF\uFF09<br>2. \u627E\u5230\u300C\u5B89\u88C5\u300D\u6216\u300C\u6DFB\u52A0\u5230\u4E3B\u5C4F\u5E55\u300D',
     'pwa.guideDismiss': '[\u6536\u5230]',
+
+    // Batch mode
+    'batch.processing': '\u5904\u7406\u4E2D {current}/{total}',
+    'batch.downloadZip': '\u2193 \u4E0B\u8F7D\u5168\u90E8 (ZIP)',
+    'batch.failed': '\u5931\u8D25',
+    'batch.retry': '\u91CD\u8BD5',
+    'batch.discard': '\u4E22\u5F03',
+    'batch.backToGrid': '\u2190 \u8FD4\u56DE\u7F51\u683C',
+    'batch.limitExceeded': '\u6700\u591A {limit} \u5F20\u56FE\u7247\uFF0C\u4EC5\u53D6\u524D {limit} \u5F20',
+    'batch.pending': '\u6392\u961F\u4E2D',
+    'batch.processingState': '\u5904\u7406\u4E2D...',
+    'batch.done': '\u5B8C\u6210',
+    'batch.discarded': '\u5DF2\u4E22\u5F03',
+    'batch.completed': '{done}/{total} \u5B8C\u6210\uFF0C{failed} \u5931\u8D25',
+    'batch.emptyZip': '\u6CA1\u6709\u5DF2\u5904\u7406\u7684\u56FE\u7247\u53EF\u4E0B\u8F7D',
 
     // Language selector
     'lang.label': '\u8BED\u8A00',
