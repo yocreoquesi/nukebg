@@ -1400,7 +1400,10 @@ export class ArApp extends HTMLElement {
         // Edit mode: open editor, pass cached edit result for instant toggle if available
         const editorSection = this.shadowRoot!.querySelector('#editor-section') as HTMLElement;
         editorSection.style.display = 'block';
-        this.editor.setImage(this.cachedEditResult ?? this.lastResultImageData);
+        this.editor.setImage(
+          this.cachedEditResult ?? this.lastResultImageData,
+          this.currentImageData ?? undefined,
+        );
         this.cachedEditResult = null;
         (this.shadowRoot!.querySelector('#edit-btn') as HTMLElement).style.display = 'none';
       }

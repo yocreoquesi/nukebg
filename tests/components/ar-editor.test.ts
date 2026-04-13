@@ -263,5 +263,41 @@ describe('ArEditor component', () => {
       const bgBtns = editor.shadowRoot!.querySelectorAll('.bg-btn');
       expect(bgBtns.length).toBe(5);
     });
+
+    it('tiene selector de herramienta con opciones erase y restore', () => {
+      const select = editor.shadowRoot!.querySelector('#brush-tool') as HTMLSelectElement;
+      expect(select).not.toBeNull();
+      expect(select.value).toBe('erase');
+      const values = Array.from(select.options).map(o => o.value);
+      expect(values).toEqual(['erase', 'restore']);
+    });
+
+    it('deshabilita la opcion restore cuando no hay original', () => {
+      editor.setImage(makeTestImageData(4, 4));
+      const restoreOpt = editor.shadowRoot!.querySelector(
+        '#brush-tool option[value="restore"]',
+      ) as HTMLOptionElement;
+      expect(restoreOpt.disabled).toBe(true);
+    });
+
+    it('habilita la opcion restore cuando se pasa una imagen original', () => {
+      const cur = makeTestImageData(4, 4);
+      const orig = makeTestImageData(4, 4);
+      editor.setImage(cur, orig);
+      const restoreOpt = editor.shadowRoot!.querySelector(
+        '#brush-tool option[value="restore"]',
+      ) as HTMLOptionElement;
+      expect(restoreOpt.disabled).toBe(false);
+    });
+
+    it('ignora original con dimensiones distintas (restore queda deshabilitado)', () => {
+      const cur = makeTestImageData(4, 4);
+      const orig = makeTestImageData(8, 8);
+      editor.setImage(cur, orig);
+      const restoreOpt = editor.shadowRoot!.querySelector(
+        '#brush-tool option[value="restore"]',
+      ) as HTMLOptionElement;
+      expect(restoreOpt.disabled).toBe(true);
+    });
   });
 });

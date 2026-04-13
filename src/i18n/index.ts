@@ -44,7 +44,10 @@ const translations: Translations = {
     'download.another': '\u21BB Process another',
 
     // Editor
-    'editor.eraser': 'Eraser:',
+    'editor.tool': 'Tool:',
+    'editor.shape': 'Shape:',
+    'editor.eraser': 'Eraser',
+    'editor.restore': 'Restore',
     'editor.eraserCircle': 'Circle',
     'editor.eraserSquare': 'Square',
     'editor.eraserSize': 'Size:',
@@ -163,7 +166,10 @@ const translations: Translations = {
     'download.another': '\u21BB Procesar otra',
 
     // Editor
-    'editor.eraser': 'Borrador:',
+    'editor.tool': 'Herramienta:',
+    'editor.shape': 'Forma:',
+    'editor.eraser': 'Borrador',
+    'editor.restore': 'Restaurar',
     'editor.eraserCircle': 'C\u00EDrculo',
     'editor.eraserSquare': 'Cuadrado',
     'editor.eraserSize': 'Tama\u00F1o:',
@@ -282,7 +288,10 @@ const translations: Translations = {
     'download.another': '\u21BB Traiter une autre',
 
     // Editor
-    'editor.eraser': 'Gomme :',
+    'editor.tool': 'Outil :',
+    'editor.shape': 'Forme :',
+    'editor.eraser': 'Gomme',
+    'editor.restore': 'Restaurer',
     'editor.eraserCircle': 'Cercle',
     'editor.eraserSquare': 'Carr\u00E9',
     'editor.eraserSize': 'Taille :',
@@ -401,7 +410,10 @@ const translations: Translations = {
     'download.another': '\u21BB N\u00E4chstes Bild',
 
     // Editor
-    'editor.eraser': 'Radierer:',
+    'editor.tool': 'Werkzeug:',
+    'editor.shape': 'Form:',
+    'editor.eraser': 'Radierer',
+    'editor.restore': 'Wiederherstellen',
     'editor.eraserCircle': 'Kreis',
     'editor.eraserSquare': 'Quadrat',
     'editor.eraserSize': 'Gr\u00F6\u00DFe:',
@@ -520,7 +532,10 @@ const translations: Translations = {
     'download.another': '\u21BB Processar outra',
 
     // Editor
-    'editor.eraser': 'Borracha:',
+    'editor.tool': 'Ferramenta:',
+    'editor.shape': 'Forma:',
+    'editor.eraser': 'Borracha',
+    'editor.restore': 'Restaurar',
     'editor.eraserCircle': 'C\u00EDrculo',
     'editor.eraserSquare': 'Quadrado',
     'editor.eraserSize': 'Tamanho:',
@@ -639,7 +654,10 @@ const translations: Translations = {
     'download.another': '\u21BB \u518D\u5904\u7406\u4E00\u5F20',
 
     // Editor
-    'editor.eraser': '\u6A61\u76AE\u64E6:',
+    'editor.tool': '\u5DE5\u5177\uFF1A',
+    'editor.shape': '\u5F62\u72B6\uFF1A',
+    'editor.eraser': '\u6A61\u76AE\u64E6',
+    'editor.restore': '\u6062\u590D',
     'editor.eraserCircle': '\u5706\u5F62',
     'editor.eraserSquare': '\u65B9\u5F62',
     'editor.eraserSize': '\u5927\u5C0F:',
