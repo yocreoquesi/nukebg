@@ -1,4 +1,4 @@
-import type { PipelineResult } from './pipeline';
+import type { PipelineResult, PipelineStage, StageStatus } from './pipeline';
 
 /** Per-item state in a batch-processing run. */
 export type BatchItemState =
@@ -7,6 +7,18 @@ export type BatchItemState =
   | 'done'
   | 'failed'
   | 'discarded';
+
+/**
+ * Snapshot of a single stage transition emitted by the pipeline.
+ * Captured per BatchItem so its progress console can be faithfully
+ * replayed (icons + timings + skipped stages) when the user reopens
+ * the detail view after the item has finished.
+ */
+export interface StageSnapshot {
+  stage: PipelineStage;
+  status: StageStatus;
+  message?: string;
+}
 
 /**
  * A single image slot in the batch grid.
@@ -21,6 +33,7 @@ export interface BatchItem {
   result: PipelineResult | null;
   thumbnailUrl: string | null;
   errorMessage?: string;
+  stageHistory: StageSnapshot[];
 }
 
 /** Batch size caps. Mobile uses a lower cap for memory/performance reasons. */

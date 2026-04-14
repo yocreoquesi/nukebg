@@ -10,7 +10,7 @@ import type { ArDownload } from './ar-download';
 import type { ArEditor } from './ar-editor';
 import type { ArDropzone } from './ar-dropzone';
 import type { ArBatchGrid } from './ar-batch-grid';
-import type { BatchItem } from '../types/batch';
+import type { BatchItem, StageSnapshot } from '../types/batch';
 import { createZip, safeZipEntryName, downloadBlob } from '../utils/zip';
 
 export class ArApp extends HTMLElement {
@@ -39,6 +39,9 @@ export class ArApp extends HTMLElement {
   private batchMode: 'off' | 'grid' | 'detail' = 'off';
   private batchDetailId: string | null = null;
   private batchAborted = false;
+  /** Item currently being processed by the batch queue. The pipeline stage
+   * callback reads this to append snapshots to the right item's history. */
+  private batchCurrentProcessingItem: BatchItem | null = null;
 
   constructor() {
     super();
@@ -1659,6 +1662,7 @@ export class ArApp extends HTMLElement {
       state: 'pending',
       result: null,
       thumbnailUrl: this.makeThumbnail(img.imageData),
+      stageHistory: [],
     }));
 
     // setBatchUiMode handles hero/workspace/dropzone visibility for grid mode.
@@ -1669,12 +1673,20 @@ export class ArApp extends HTMLElement {
       this.batchGrid.setCurrentIndex(0);
     }
 
+    // Stage callback: drives the live progress console AND records the
+    // event into the item being processed so we can replay the exact
+    // sequence (running → done / skipped / error) if the user reopens
+    // that item's detail later.
+    const batchStageCallback = (stage: PipelineStage, status: StageStatus, message?: string): void => {
+      this.progress.setStage(stage, status, message);
+      const current = this.batchCurrentProcessingItem;
+      if (current) current.stageHistory.push({ stage, status, message });
+    };
+
     if (!this.pipeline) {
-      this.pipeline = new PipelineOrchestrator(
-        (stage: PipelineStage, status: StageStatus, message?: string) => {
-          this.progress.setStage(stage, status, message);
-        }
-      );
+      this.pipeline = new PipelineOrchestrator(batchStageCallback);
+    } else {
+      this.pipeline.setStageCallback(batchStageCallback);
     }
 
     await this.runBatchQueue();
@@ -1687,6 +1699,10 @@ export class ArApp extends HTMLElement {
       if (item.state === 'done' || item.state === 'discarded') continue;
       if (this.batchGrid) this.batchGrid.setCurrentIndex(i);
       item.state = 'processing';
+      // Fresh slate for this item: empty history, empty live console.
+      item.stageHistory = [];
+      this.progress.reset();
+      this.batchCurrentProcessingItem = item;
       if (this.batchGrid) this.batchGrid.updateItem(item.id, 'processing');
       try {
         const result = await this.pipeline!.process(
@@ -1712,6 +1728,17 @@ export class ArApp extends HTMLElement {
           await this.openBatchDetail(item.id);
         }
       }
+    }
+    this.batchCurrentProcessingItem = null;
+  }
+
+  /** Replay a finished item's captured stage events into the shared
+   * progress console. Resets first so no stale state from the previous
+   * item leaks through, then reapplies each snapshot in order. */
+  private replayStageHistory(history: StageSnapshot[]): void {
+    this.progress.reset();
+    for (const snap of history) {
+      this.progress.setStage(snap.stage, snap.status, snap.message);
     }
   }
 
@@ -1743,13 +1770,21 @@ export class ArApp extends HTMLElement {
       if (retryBtn) retryBtn.style.display = 'inline-block';
       this.viewer.clearResult();
       this.viewer.setOriginal(item.imageData, item.file.size);
-      this.progress.reset();
       this.download.reset();
-      this.progress.setStage(
-        'ml-segmentation',
-        'error',
-        t('pipeline.error', { msg: item.errorMessage || 'Unknown error' }),
-      );
+      // Replay captured history so the console shows the real sequence
+      // (e.g. detect-bg done → watermark-scan done → ml-segmentation error).
+      // Fallback for edge cases where nothing was captured: synthesize a
+      // single error stage so the user still sees what went wrong.
+      if (item.stageHistory.length > 0) {
+        this.replayStageHistory(item.stageHistory);
+      } else {
+        this.progress.reset();
+        this.progress.setStage(
+          'ml-segmentation',
+          'error',
+          t('pipeline.error', { msg: item.errorMessage || 'Unknown error' }),
+        );
+      }
       const editBtn = this.shadowRoot!.querySelector('#edit-btn') as HTMLElement;
       if (editBtn) editBtn.style.display = 'none';
       return;
@@ -1764,7 +1799,10 @@ export class ArApp extends HTMLElement {
       this.currentFileSize = item.file.size;
       this.viewer.clearResult();
       this.viewer.setOriginal(item.imageData, item.file.size);
-      this.progress.reset();
+      // Replay per-item stage history so each finished image shows its own
+      // icons (done/skipped) and timings — previously we just reset(),
+      // which left every stage 'pending' and blanked out every icon.
+      this.replayStageHistory(item.stageHistory);
       this.download.reset();
       const { exportPng } = await import('../utils/image-io');
       const blob = await exportPng(item.result.imageData);
@@ -1802,6 +1840,7 @@ export class ArApp extends HTMLElement {
     if (!item) return;
     item.state = 'pending';
     item.errorMessage = undefined;
+    item.stageHistory = [];
     if (this.batchGrid) this.batchGrid.updateItem(item.id, 'pending');
     this.closeBatchDetail();
     await this.runBatchQueue();
