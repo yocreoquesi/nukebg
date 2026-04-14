@@ -184,3 +184,40 @@ export type InpaintWorkerResponse =
   | { id: string; type: 'inpaint-result'; result: Uint8ClampedArray }
   | { id: string; type: 'disposed' }
   | { id: string; type: 'error'; error: string };
+
+
+/** ======== Lama (ONNX content-aware inpainting) Worker Messages ======== */
+
+export type LamaWorkerRequest =
+  | LamaLoadModelRequest
+  | LamaRunRequest
+  | LamaDisposeRequest;
+
+export interface LamaLoadModelRequest {
+  id: string;
+  type: 'lama-load-model';
+}
+
+export interface LamaRunRequest {
+  id: string;
+  type: 'lama-inpaint';
+  payload: {
+    pixels: Uint8ClampedArray;
+    width: number;
+    height: number;
+    mask: Uint8Array;
+  };
+}
+
+export interface LamaDisposeRequest {
+  id: string;
+  type: 'lama-dispose';
+}
+
+export type LamaWorkerResponse =
+  | { id: string; type: 'lama-model-progress'; progress: number }
+  | { id: string; type: 'lama-model-ready' }
+  | { id: string; type: 'lama-inpaint-progress'; stage: string }
+  | { id: string; type: 'lama-inpaint-result'; result: Uint8ClampedArray }
+  | { id: string; type: 'lama-disposed' }
+  | { id: string; type: 'error'; error: string };

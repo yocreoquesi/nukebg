@@ -127,6 +127,52 @@ export const INPAINT_PARAMS = {
   NOISE_SIGMA: 6,
 } as const;
 
+/** LaMa INT8 ONNX model for content-aware watermark reconstruction.
+ *  Source: opencv/inpainting_lama on HuggingFace, Apache 2.0 licensed.
+ *  Unlike PatchMatch (patch-based), LaMa uses Fourier convolutions that
+ *  understand structure and semantics, so it reconstructs watermarks
+ *  sitting on faces, text, or complex objects without the flat-patch
+ *  look. Only loaded when the router says structure is present. */
+export const LAMA_PARAMS = {
+  MODEL_URL: 'https://huggingface.co/opencv/inpainting_lama/resolve/main/inpainting_lama_2025jan.onnx',
+  /** Fixed 1:1 input expected by the ONNX graph. Changing this breaks
+   *  inference — it's baked into the Fourier convolution tensor sizes. */
+  INPUT_SIZE: 512,
+  /** Named input tensors in the exported ONNX model. */
+  IMAGE_INPUT_NAME: 'image',
+  MASK_INPUT_NAME: 'mask',
+  /** Pixels of surrounding context (in original-image scale) added
+   *  around the mask bbox before cropping. The Fourier convs need
+   *  enough signal around the hole to produce a coherent fill — too
+   *  tight and the reconstruction looks flat. */
+  CROP_PADDING: 48,
+  /** Minimum square side (in original-image scale) the crop expands
+   *  to if the mask bbox is tiny. Prevents degenerate 20×20 crops
+   *  that blow up to 512 and produce mush. */
+  MIN_CROP_SIDE: 128,
+  /** Feather radius used when compositing the inpainted region back
+   *  into the untouched image. Must be ≥ INPAINT_PARAMS.FEATHER_RADIUS
+   *  so the LaMa-reconstructed core blends as softly as PatchMatch. */
+  COMPOSITE_FEATHER: 6,
+} as const;
+
+/** Heuristic that decides whether a detected watermark lives over
+ *  structured content (→ LaMa) or uniform background (→ PatchMatch).
+ *  Tuned against real photos with Gemini sparkles / DALL-E bars. */
+export const LAMA_ROUTER_PARAMS = {
+  /** Luminance variance over the mask-bbox sample. Above this → content
+   *  has texture/gradient worth reconstructing with the model. Uniform
+   *  sky/wall typically sits around 50-150. */
+  VARIANCE_THRESHOLD: 350,
+  /** Mean Sobel gradient magnitude over the sample. Above this → edges
+   *  are present (object outlines, text, rivets). Flat zones score near 0. */
+  EDGE_DENSITY_THRESHOLD: 20,
+  /** Pixels added around the raw mask bbox when sampling the heuristic.
+   *  Guards against masks too tight to carry signal about what lies
+   *  underneath. */
+  SAMPLE_BBOX_MARGIN: 12,
+} as const;
+
 export const REFINE_PARAMS = {
   /** Spatial pass radius for edge cleanup */
   SPATIAL_RADIUS: 6,

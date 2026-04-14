@@ -7,10 +7,11 @@ import type {
   WatermarkResult,
   ImageContentType,
 } from '../types/pipeline';
-import type { CvWorkerResponse, MlWorkerResponse, InpaintWorkerResponse, ModelId, ClassifyImageResult } from '../types/worker-messages';
+import type { CvWorkerResponse, MlWorkerResponse, InpaintWorkerResponse, LamaWorkerResponse, ModelId, ClassifyImageResult } from '../types/worker-messages';
 import { CV_PARAMS, IMAGE_CLASSIFY_PARAMS, INPAINT_PARAMS, PRECISION_PROFILES } from './constants';
 import type { PrecisionMode } from './constants';
 import { compositeWithFeather, dilateMask } from '../workers/cv/inpaint-blend';
+import { shouldUseLama } from '../workers/cv/lama-router';
 
 type StageCallback = (stage: PipelineStage, status: StageStatus, message?: string) => void;
 
@@ -31,13 +32,18 @@ function generateUUID(): string {
 const CV_TIMEOUT_MS = 60_000;
 /** ML timeout is longer: model download can take time on first use */
 const ML_TIMEOUT_MS = 300_000;
-/** Inpaint timeout: Telea CV is instant, 30s is more than enough */
+/** Inpaint timeout: PatchMatch CV is instant, 30s is more than enough */
 const INPAINT_TIMEOUT_MS = 30_000;
+/** LaMa timeout: first call downloads the ~95MB ONNX model over CDN,
+ *  then runs Fourier-convolution inference on WASM. 5 min covers the
+ *  worst-case cold start on a slow connection. */
+const LAMA_TIMEOUT_MS = 300_000;
 
 export class PipelineOrchestrator {
   private cvWorker: Worker;
   private mlWorker: Worker;
   private inpaintWorker: Worker | null = null;
+  private lamaWorker: Worker | null = null;
   private pendingRequests = new Map<string, { resolve: (val: unknown) => void; reject: (err: Error) => void; expectedType: string }>();
   private pendingTimers = new Set<ReturnType<typeof setTimeout>>();
   private onStageChange: StageCallback;
@@ -265,6 +271,76 @@ export class PipelineOrchestrator {
     }
   }
 
+  /** Create the LaMa worker lazily (only when the router picks it). */
+  private createLamaWorker(): void {
+    if (this.lamaWorker) return;
+    this.lamaWorker = new Worker(
+      new URL('../workers/lama.worker.ts', import.meta.url),
+      { type: 'module' }
+    );
+    this.lamaWorker.onerror = (e) => this.rejectAllPending(`LaMa Worker error: ${e.message}`);
+    this.lamaWorker.onmessage = (e: MessageEvent<LamaWorkerResponse>) => {
+      const msg = e.data;
+
+      // Model download progress: forward to UI, don't resolve the pending request.
+      if (msg.type === 'lama-model-progress') {
+        const pct = msg.progress;
+        this.emit('inpaint', 'running', `Loading AI inpainting model... ${pct}% [${pct}%]`);
+        return;
+      }
+      if (msg.type === 'lama-model-ready') {
+        this.emit('inpaint', 'running', 'Reconstructing zone [AI]...');
+        return;
+      }
+      if (msg.type === 'lama-inpaint-progress') {
+        // Stage strings are diagnostic only; keep the UI label stable.
+        this.emit('inpaint', 'running', 'Reconstructing zone [AI]...');
+        return;
+      }
+
+      const pending = this.pendingRequests.get(msg.id);
+      if (pending) {
+        if (msg.type === 'error') {
+          this.pendingRequests.delete(msg.id);
+          pending.reject(new Error(msg.error));
+        } else if (msg.type === 'lama-inpaint-result') {
+          this.pendingRequests.delete(msg.id);
+          pending.resolve(msg.result);
+        } else if (msg.type === 'lama-disposed') {
+          this.pendingRequests.delete(msg.id);
+          pending.resolve(undefined);
+        }
+      }
+    };
+  }
+
+  private lamaCall<T>(type: string, payload?: Record<string, unknown>): Promise<T> {
+    if (!this.lamaWorker) throw new Error('LaMa worker not created');
+    return new Promise((resolve, reject) => {
+      const id = generateUUID();
+      this.pendingRequests.set(id, { resolve: resolve as (val: unknown) => void, reject, expectedType: type });
+      const transferables = PipelineOrchestrator.extractTransferables(payload);
+      this.lamaWorker!.postMessage({ id, type, payload }, transferables);
+
+      const timer = setTimeout(() => {
+        this.pendingTimers.delete(timer);
+        if (this.pendingRequests.has(id)) {
+          this.pendingRequests.delete(id);
+          reject(new Error(`LaMa Worker timeout after ${LAMA_TIMEOUT_MS}ms: ${type}`));
+        }
+      }, LAMA_TIMEOUT_MS);
+      this.pendingTimers.add(timer);
+    });
+  }
+
+  /** Dispose LaMa worker (terminating the worker also frees the ONNX session). */
+  private disposeLamaWorker(): void {
+    if (this.lamaWorker) {
+      this.lamaWorker.terminate();
+      this.lamaWorker = null;
+    }
+  }
+
   private emit(stage: PipelineStage, status: StageStatus, message?: string): void {
     this.onStageChange(stage, status, message);
   }
@@ -398,46 +474,69 @@ export class PipelineOrchestrator {
         this.emit('watermark-scan', 'done', `Watermark detected [${sources.join(', ')}]`);
         stageTiming['watermark-scan'] = performance.now() - t;
 
-        // ── Stage 3: Inpaint watermark (Telea FMM, puro CV) ──
+        // ── Stage 3: Inpaint watermark ──
+        // Route: structured content (faces, text, objects) → LaMa (ONNX,
+        // content-aware). Uniform content (sky, wall, solid bg) → PatchMatch
+        // (CV, instant). See shouldUseLama() for the heuristic.
         t = performance.now();
-        this.emit('inpaint', 'running', 'Reconstructing watermark area...');
+        const routerDecision = shouldUseLama(originalPixels, width, height, combinedMask);
+        console.log(
+          `[NukeBG] Inpaint router: useLama=${routerDecision.useLama} ` +
+          `(variance=${routerDecision.variance.toFixed(1)}, ` +
+          `edgeDensity=${routerDecision.edgeDensity.toFixed(1)})`,
+        );
 
-        this.createInpaintWorker();
-        try {
-          // Inpaint over a dilated mask so the feather ring has clean
-          // reconstructed texture to blend with.
-          const dilated = dilateMask(combinedMask, width, height, INPAINT_PARAMS.FEATHER_RADIUS);
+        const dilated = dilateMask(combinedMask, width, height, INPAINT_PARAMS.FEATHER_RADIUS);
+        let inpaintedPixels: Uint8ClampedArray;
 
-          const inpaintedPixels = await this.inpaintCall<Uint8ClampedArray>('inpaint', {
-            pixels: new Uint8ClampedArray(originalPixels),
-            width,
-            height,
-            mask: new Uint8Array(dilated),
-          });
-
-          // Feathered composite: core mask fully replaced with inpainted
-          // texture (+ grain noise), feather ring softens the transition to
-          // the original photo, rest of the image untouched.
-          const blended = compositeWithFeather(
-            originalPixels,
-            inpaintedPixels,
-            combinedMask,
-            width,
-            height,
-            {
-              featherRadius: INPAINT_PARAMS.FEATHER_RADIUS,
-              noiseSigma: INPAINT_PARAMS.NOISE_SIGMA,
-            },
-          );
-          originalPixels.set(blended);
-
-          watermarkRemoved = true;
-          stageTiming['inpaint'] = performance.now() - t;
-          this.emit('inpaint', 'done', 'Watermark reconstructed');
-        } finally {
-          // Free the inpaint worker
-          this.disposeInpaintWorker();
+        if (routerDecision.useLama) {
+          this.emit('inpaint', 'running', 'Reconstructing zone [AI]...');
+          this.createLamaWorker();
+          try {
+            inpaintedPixels = await this.lamaCall<Uint8ClampedArray>('lama-inpaint', {
+              pixels: new Uint8ClampedArray(originalPixels),
+              width,
+              height,
+              mask: new Uint8Array(dilated),
+            });
+          } finally {
+            // Free ONNX session memory before RMBG loads next.
+            this.disposeLamaWorker();
+          }
+        } else {
+          this.emit('inpaint', 'running', 'Reconstructing watermark area...');
+          this.createInpaintWorker();
+          try {
+            inpaintedPixels = await this.inpaintCall<Uint8ClampedArray>('inpaint', {
+              pixels: new Uint8ClampedArray(originalPixels),
+              width,
+              height,
+              mask: new Uint8Array(dilated),
+            });
+          } finally {
+            this.disposeInpaintWorker();
+          }
         }
+
+        // Feathered composite: core mask fully replaced with inpainted
+        // texture (+ grain noise), feather ring softens the transition to
+        // the original photo, rest of the image untouched.
+        const blended = compositeWithFeather(
+          originalPixels,
+          inpaintedPixels,
+          combinedMask,
+          width,
+          height,
+          {
+            featherRadius: INPAINT_PARAMS.FEATHER_RADIUS,
+            noiseSigma: INPAINT_PARAMS.NOISE_SIGMA,
+          },
+        );
+        originalPixels.set(blended);
+
+        watermarkRemoved = true;
+        stageTiming['inpaint'] = performance.now() - t;
+        this.emit('inpaint', 'done', routerDecision.useLama ? 'Zone reconstructed [AI]' : 'Watermark reconstructed');
       } else {
         this.emit('watermark-scan', 'done', 'No watermarks found');
         stageTiming['watermark-scan'] = performance.now() - t;
@@ -536,5 +635,6 @@ export class PipelineOrchestrator {
     this.cvWorker.terminate();
     this.mlWorker.terminate();
     this.disposeInpaintWorker();
+    this.disposeLamaWorker();
   }
 }
