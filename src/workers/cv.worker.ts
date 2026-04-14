@@ -1,6 +1,7 @@
 import { detectBgColors } from './cv/detect-bg-colors';
 import { watermarkDetect } from './cv/watermark-detect';
 import { watermarkDetectDalle } from './cv/watermark-dalle';
+import { sparkleDetect } from './cv/sparkle-detect';
 import { alphaRefine } from './cv/alpha-refine';
 import { extractImageFeatures, classifyImage } from './cv/classify-image';
 import { signatureThreshold } from './cv/signature-threshold';
@@ -29,6 +30,14 @@ self.onmessage = (e: MessageEvent<CvWorkerRequest>) => {
       }
       case 'watermark-detect-dalle': {
         const result = watermarkDetectDalle(
+          payload.pixels, payload.width, payload.height
+        );
+        const transferables: Transferable[] = result.mask ? [result.mask.buffer] : [];
+        self.postMessage({ id, type, result }, transferables);
+        break;
+      }
+      case 'sparkle-detect': {
+        const result = sparkleDetect(
           payload.pixels, payload.width, payload.height
         );
         const transferables: Transferable[] = result.mask ? [result.mask.buffer] : [];

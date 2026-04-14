@@ -26,6 +26,22 @@ export const WATERMARK_PARAMS = {
   HALO_DEVIATION_THRESHOLD: 10,
 } as const;
 
+/** Shape-based Gemini sparkle detector — works on real photos where the
+ *  color-deviation detector fails (subject covers the bg-color reference). */
+export const SPARKLE_PARAMS = {
+  /** Fraction of width/height to scan from the bottom-right corner */
+  SCAN_WIDTH_FRACTION: 0.40,
+  SCAN_HEIGHT_FRACTION: 0.50,
+  /** Candidate sparkle radii (pixels). Multi-scale sweep. */
+  SCALE_RADII: [10, 16, 24, 36, 50, 70] as const,
+  /** Stride for the candidate sweep (pixels). Lower = slower but more accurate. */
+  CANDIDATE_STRIDE: 3,
+  /** Minimum starness score to consider a sparkle detected. */
+  MIN_STARNESS: 600,
+  /** Mask radius multiplier (applied to detected sparkle radius). */
+  MASK_RADIUS_MULTIPLIER: 1.4,
+} as const;
+
 export const DALLE_WATERMARK_PARAMS = {
   /** How many rows to scan from the bottom edge */
   SCAN_HEIGHT: 10,
