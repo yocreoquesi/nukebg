@@ -1,16 +1,14 @@
 /**
- * Inpaint Worker - Watermark zone reconstruction via Telea FMM.
+ * Inpaint Worker — Watermark zone reconstruction via PatchMatch.
  *
- * Uses the Telea algorithm (Fast Marching Method) to propagate known
- * neighboring pixels inward into the masked zone. Pure CV, no ML model
- * needed, works instantly for small regions like watermarks.
- *
- * Replaces the previous LaMa ONNX implementation that hung on
- * InferenceSession.create() due to a known onnxruntime-web bug with
- * large models in WASM (GitHub issue #26858).
+ * PatchMatch (Barnes et al. 2009) reconstructs the masked zone by finding,
+ * for every target patch, its nearest neighbor in the rest of the image and
+ * voting from those sources. Unlike Telea FMM it produces no radial streaks
+ * and preserves local texture across the fill. Pure CV, no model needed.
  */
-import { inpaintTelea } from './cv/inpaint-telea';
+import { patchMatchInpaint } from './cv/patchmatch-inpaint';
 import type { InpaintWorkerRequest, InpaintWorkerResponse } from '../types/worker-messages';
+import { PATCHMATCH_PARAMS } from '../pipeline/constants';
 
 async function inpaint(
   id: string,
@@ -21,8 +19,10 @@ async function inpaint(
 ): Promise<void> {
   self.postMessage({ id, type: 'inpaint-progress', stage: 'processing' } satisfies InpaintWorkerResponse);
 
-  // Telea FMM: puro CV, sin modelo, sin descarga, instantaneo
-  const resultPixels = inpaintTelea(pixels, width, height, mask);
+  const resultPixels = patchMatchInpaint(pixels, width, height, mask, {
+    iterations: PATCHMATCH_PARAMS.ITERATIONS,
+    patchRadius: PATCHMATCH_PARAMS.PATCH_RADIUS,
+  });
 
   self.postMessage(
     { id, type: 'inpaint-result', result: resultPixels } satisfies InpaintWorkerResponse,

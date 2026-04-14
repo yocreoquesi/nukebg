@@ -101,6 +101,16 @@ export const GUIDED_FILTER_PARAMS = {
 } as const;
 
 
+export const PATCHMATCH_PARAMS = {
+  /** Patch radius (pixels). 3 → 7×7 patches, the Barnes 2009 sweet-spot
+   *  for texture reconstruction on natural photos. */
+  PATCH_RADIUS: 3,
+  /** Number of propagation + random-search + voting iterations.
+   *  4-5 is enough on masks under ~150 px; more only helps pathological
+   *  textures. Each iteration is ~linear in masked-pixel count. */
+  ITERATIONS: 5,
+} as const;
+
 export const INPAINT_PARAMS = {
   /** Neighbor search radius for Telea FMM.
    *  Must be >= the thickness of the region to reconstruct.
