@@ -8,8 +8,9 @@ import type {
   ImageContentType,
 } from '../types/pipeline';
 import type { CvWorkerResponse, MlWorkerResponse, InpaintWorkerResponse, ModelId, ClassifyImageResult } from '../types/worker-messages';
-import { CV_PARAMS, IMAGE_CLASSIFY_PARAMS, PRECISION_PROFILES } from './constants';
+import { CV_PARAMS, IMAGE_CLASSIFY_PARAMS, INPAINT_PARAMS, PRECISION_PROFILES } from './constants';
 import type { PrecisionMode } from './constants';
+import { compositeWithFeather, dilateMask } from '../workers/cv/inpaint-blend';
 
 type StageCallback = (stage: PipelineStage, status: StageStatus, message?: string) => void;
 
@@ -363,7 +364,7 @@ export class PipelineOrchestrator {
       t = performance.now();
       this.emit('watermark-scan', 'running', 'Checking for watermarks...');
 
-      const [wmGemini, wmDalle] = await Promise.all([
+      const [wmGemini, wmDalle, wmSparkle] = await Promise.all([
         this.cvCall<WatermarkResult>('watermark-detect', {
           pixels: new Uint8ClampedArray(imageData.data),
           width,
@@ -376,11 +377,16 @@ export class PipelineOrchestrator {
           width,
           height,
         }),
+        this.cvCall<WatermarkResult>('sparkle-detect', {
+          pixels: new Uint8ClampedArray(imageData.data),
+          width,
+          height,
+        }),
       ]);
 
-      const anyWatermark = wmGemini.detected || wmDalle.detected;
+      const anyWatermark = wmGemini.detected || wmDalle.detected || wmSparkle.detected;
       const combinedMask = PipelineOrchestrator.combineMasks(
-        [wmGemini.mask, wmDalle.mask],
+        [wmGemini.mask, wmDalle.mask, wmSparkle.mask],
         width * height,
       );
 
@@ -388,6 +394,7 @@ export class PipelineOrchestrator {
         const sources: string[] = [];
         if (wmGemini.detected) sources.push('Gemini');
         if (wmDalle.detected) sources.push('DALL-E');
+        if (wmSparkle.detected) sources.push('Gemini-shape');
         this.emit('watermark-scan', 'done', `Watermark detected [${sources.join(', ')}]`);
         stageTiming['watermark-scan'] = performance.now() - t;
 
@@ -397,22 +404,32 @@ export class PipelineOrchestrator {
 
         this.createInpaintWorker();
         try {
+          // Inpaint over a dilated mask so the feather ring has clean
+          // reconstructed texture to blend with.
+          const dilated = dilateMask(combinedMask, width, height, INPAINT_PARAMS.FEATHER_RADIUS);
+
           const inpaintedPixels = await this.inpaintCall<Uint8ClampedArray>('inpaint', {
             pixels: new Uint8ClampedArray(originalPixels),
             width,
             height,
-            mask: new Uint8Array(combinedMask),
+            mask: new Uint8Array(dilated),
           });
 
-          // Replace watermark pixels in our working copy
-          for (let i = 0; i < width * height; i++) {
-            if (combinedMask[i]) {
-              originalPixels[i * 4] = inpaintedPixels[i * 4];
-              originalPixels[i * 4 + 1] = inpaintedPixels[i * 4 + 1];
-              originalPixels[i * 4 + 2] = inpaintedPixels[i * 4 + 2];
-              originalPixels[i * 4 + 3] = inpaintedPixels[i * 4 + 3];
-            }
-          }
+          // Feathered composite: core mask fully replaced with inpainted
+          // texture (+ grain noise), feather ring softens the transition to
+          // the original photo, rest of the image untouched.
+          const blended = compositeWithFeather(
+            originalPixels,
+            inpaintedPixels,
+            combinedMask,
+            width,
+            height,
+            {
+              featherRadius: INPAINT_PARAMS.FEATHER_RADIUS,
+              noiseSigma: INPAINT_PARAMS.NOISE_SIGMA,
+            },
+          );
+          originalPixels.set(blended);
 
           watermarkRemoved = true;
           stageTiming['inpaint'] = performance.now() - t;

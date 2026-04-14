@@ -26,6 +26,44 @@ export const WATERMARK_PARAMS = {
   HALO_DEVIATION_THRESHOLD: 10,
 } as const;
 
+/** Shape-based Gemini sparkle detector — works on real photos where the
+ *  color-deviation detector fails (subject covers the bg-color reference). */
+export const SPARKLE_PARAMS = {
+  /** Fraction of width/height to scan. Gemini always places the sparkle in
+   *  the bottom-right; keep this tight to reject distant features. */
+  SCAN_WIDTH_FRACTION: 0.20,
+  SCAN_HEIGHT_FRACTION: 0.25,
+  /** Candidate sparkle radii (pixels). Multi-scale sweep. */
+  SCALE_RADII: [10, 14, 20, 28, 40, 55] as const,
+  /** Candidate radius must be within this fraction range of min(width, height).
+   *  Gemini sparkles render at ~2-4% of the shorter side. */
+  MIN_RELATIVE_RADIUS: 0.015,
+  MAX_RELATIVE_RADIUS: 0.055,
+  /** Stride for the candidate sweep (pixels). Lower = slower but more accurate. */
+  CANDIDATE_STRIDE: 2,
+  /** Minimum starness score to consider a sparkle detected. */
+  MIN_STARNESS: 900,
+  /** Every cardinal arm must exceed every diagonal gap by at least this margin.
+   *  Higher = stricter concavity requirement. */
+  MIN_ARM_GAP_DELTA: 25,
+  /** Coefficient of variation cap for cardinals (4-fold rotational symmetry). */
+  MAX_ARM_CV: 0.18,
+  /** Center luminance must be at least this fraction of mean(cardinals). */
+  CENTER_PEAK_RATIO: 0.92,
+  /** Center luminance must exceed mean outer ring by this margin. */
+  MIN_CENTER_CONTRAST: 25,
+  /** Arm-isolation gate: the brightest pixel perpendicular to any arm (sampled
+   *  at ±0.35r offset from the arm midpoint) must be darker than the arm mean
+   *  by this ratio. Rejects SOLID shapes (nukebg trefoil, motorcycle rotors,
+   *  text characters) whose "arms" are actually wide blades with bright
+   *  neighbors. Real Gemini sparkle arms are narrow lines — perpendicular
+   *  samples land in dark gap territory. */
+  MAX_PERP_ARM_RATIO: 0.8,
+  /** Mask radius multiplier (applied to detected sparkle radius). Tight fit
+   *  minimises the area Telea has to reconstruct — less "flat patch" look. */
+  MASK_RADIUS_MULTIPLIER: 1.15,
+} as const;
+
 export const DALLE_WATERMARK_PARAMS = {
   /** How many rows to scan from the bottom edge */
   SCAN_HEIGHT: 10,
@@ -63,11 +101,30 @@ export const GUIDED_FILTER_PARAMS = {
 } as const;
 
 
+export const PATCHMATCH_PARAMS = {
+  /** Patch radius (pixels). 3 → 7×7 patches, the Barnes 2009 sweet-spot
+   *  for texture reconstruction on natural photos. */
+  PATCH_RADIUS: 3,
+  /** Number of propagation + random-search + voting iterations.
+   *  4-5 is enough on masks under ~150 px; more only helps pathological
+   *  textures. Each iteration is ~linear in masked-pixel count. */
+  ITERATIONS: 5,
+} as const;
+
 export const INPAINT_PARAMS = {
   /** Neighbor search radius for Telea FMM.
    *  Must be >= the thickness of the region to reconstruct.
    *  For typical watermarks (sparkle, DALL-E bar) 5-8px is enough. */
   TELEA_RADIUS: 7,
+  /** Dilation radius applied to the detected mask BEFORE inpainting. The
+   *  extra ring becomes the feather transition zone — Telea fills it with
+   *  the same texture flow as the core, and the compositor blends it back
+   *  into the original photo. */
+  FEATHER_RADIUS: 4,
+  /** Std-dev (in 0-255 luminance units) of per-channel Gaussian noise added
+   *  inside the inpainted core to restore film grain the inpaint erases.
+   *  Values ~4-8 match typical JPEG/camera noise; set to 0 to disable. */
+  NOISE_SIGMA: 6,
 } as const;
 
 export const REFINE_PARAMS = {

@@ -7,6 +7,7 @@ export type CvWorkerRequest =
   | CvDetectBgColorsRequest
   | CvWatermarkDetectRequest
   | CvWatermarkDetectDalleRequest
+  | CvSparkleDetectRequest
   | CvAlphaRefineRequest
   | CvClassifyImageRequest
   | CvSignatureThresholdRequest;
@@ -38,6 +39,15 @@ export interface CvWatermarkDetectRequest extends CvBaseRequest {
 
 export interface CvWatermarkDetectDalleRequest extends CvBaseRequest {
   type: 'watermark-detect-dalle';
+  payload: {
+    pixels: Uint8ClampedArray;
+    width: number;
+    height: number;
+  };
+}
+
+export interface CvSparkleDetectRequest extends CvBaseRequest {
+  type: 'sparkle-detect';
   payload: {
     pixels: Uint8ClampedArray;
     width: number;
