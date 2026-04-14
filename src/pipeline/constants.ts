@@ -29,15 +29,36 @@ export const WATERMARK_PARAMS = {
 /** Shape-based Gemini sparkle detector — works on real photos where the
  *  color-deviation detector fails (subject covers the bg-color reference). */
 export const SPARKLE_PARAMS = {
-  /** Fraction of width/height to scan from the bottom-right corner */
-  SCAN_WIDTH_FRACTION: 0.40,
-  SCAN_HEIGHT_FRACTION: 0.50,
+  /** Fraction of width/height to scan. Gemini always places the sparkle in
+   *  the bottom-right; keep this tight to reject distant features. */
+  SCAN_WIDTH_FRACTION: 0.20,
+  SCAN_HEIGHT_FRACTION: 0.25,
   /** Candidate sparkle radii (pixels). Multi-scale sweep. */
-  SCALE_RADII: [10, 16, 24, 36, 50, 70] as const,
+  SCALE_RADII: [10, 14, 20, 28, 40, 55] as const,
+  /** Candidate radius must be within this fraction range of min(width, height).
+   *  Gemini sparkles render at ~2-4% of the shorter side. */
+  MIN_RELATIVE_RADIUS: 0.015,
+  MAX_RELATIVE_RADIUS: 0.055,
   /** Stride for the candidate sweep (pixels). Lower = slower but more accurate. */
-  CANDIDATE_STRIDE: 3,
+  CANDIDATE_STRIDE: 2,
   /** Minimum starness score to consider a sparkle detected. */
-  MIN_STARNESS: 600,
+  MIN_STARNESS: 900,
+  /** Every cardinal arm must exceed every diagonal gap by at least this margin.
+   *  Higher = stricter concavity requirement. */
+  MIN_ARM_GAP_DELTA: 25,
+  /** Coefficient of variation cap for cardinals (4-fold rotational symmetry). */
+  MAX_ARM_CV: 0.18,
+  /** Center luminance must be at least this fraction of mean(cardinals). */
+  CENTER_PEAK_RATIO: 0.92,
+  /** Center luminance must exceed mean outer ring by this margin. */
+  MIN_CENTER_CONTRAST: 25,
+  /** Arm-isolation gate: the brightest pixel perpendicular to any arm (sampled
+   *  at ±0.35r offset from the arm midpoint) must be darker than the arm mean
+   *  by this ratio. Rejects SOLID shapes (nukebg trefoil, motorcycle rotors,
+   *  text characters) whose "arms" are actually wide blades with bright
+   *  neighbors. Real Gemini sparkle arms are narrow lines — perpendicular
+   *  samples land in dark gap territory. */
+  MAX_PERP_ARM_RATIO: 0.8,
   /** Mask radius multiplier (applied to detected sparkle radius). */
   MASK_RADIUS_MULTIPLIER: 1.4,
 } as const;

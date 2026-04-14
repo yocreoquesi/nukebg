@@ -344,9 +344,7 @@ export class PipelineOrchestrator {
       t = performance.now();
       this.emit('watermark-scan', 'running', 'Checking for watermarks...');
 
-      // NOTE: sparkle-detect (shape-based Gemini) temporarily disabled —
-      // too many false positives on real photos. See sparkle-detect.ts.
-      const [wmGemini, wmDalle] = await Promise.all([
+      const [wmGemini, wmDalle, wmSparkle] = await Promise.all([
         this.cvCall<WatermarkResult>('watermark-detect', {
           pixels: new Uint8ClampedArray(imageData.data),
           width,
@@ -359,11 +357,16 @@ export class PipelineOrchestrator {
           width,
           height,
         }),
+        this.cvCall<WatermarkResult>('sparkle-detect', {
+          pixels: new Uint8ClampedArray(imageData.data),
+          width,
+          height,
+        }),
       ]);
 
-      const anyWatermark = wmGemini.detected || wmDalle.detected;
+      const anyWatermark = wmGemini.detected || wmDalle.detected || wmSparkle.detected;
       const combinedMask = PipelineOrchestrator.combineMasks(
-        [wmGemini.mask, wmDalle.mask],
+        [wmGemini.mask, wmDalle.mask, wmSparkle.mask],
         width * height,
       );
 
@@ -371,6 +374,7 @@ export class PipelineOrchestrator {
         const sources: string[] = [];
         if (wmGemini.detected) sources.push('Gemini');
         if (wmDalle.detected) sources.push('DALL-E');
+        if (wmSparkle.detected) sources.push('Gemini-shape');
         this.emit('watermark-scan', 'done', `Watermark detected [${sources.join(', ')}]`);
         stageTiming['watermark-scan'] = performance.now() - t;
 
