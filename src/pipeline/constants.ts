@@ -59,8 +59,9 @@ export const SPARKLE_PARAMS = {
    *  neighbors. Real Gemini sparkle arms are narrow lines — perpendicular
    *  samples land in dark gap territory. */
   MAX_PERP_ARM_RATIO: 0.8,
-  /** Mask radius multiplier (applied to detected sparkle radius). */
-  MASK_RADIUS_MULTIPLIER: 1.4,
+  /** Mask radius multiplier (applied to detected sparkle radius). Tight fit
+   *  minimises the area Telea has to reconstruct — less "flat patch" look. */
+  MASK_RADIUS_MULTIPLIER: 1.15,
 } as const;
 
 export const DALLE_WATERMARK_PARAMS = {
@@ -105,6 +106,15 @@ export const INPAINT_PARAMS = {
    *  Must be >= the thickness of the region to reconstruct.
    *  For typical watermarks (sparkle, DALL-E bar) 5-8px is enough. */
   TELEA_RADIUS: 7,
+  /** Dilation radius applied to the detected mask BEFORE inpainting. The
+   *  extra ring becomes the feather transition zone — Telea fills it with
+   *  the same texture flow as the core, and the compositor blends it back
+   *  into the original photo. */
+  FEATHER_RADIUS: 4,
+  /** Std-dev (in 0-255 luminance units) of per-channel Gaussian noise added
+   *  inside the inpainted core to restore film grain the inpaint erases.
+   *  Values ~4-8 match typical JPEG/camera noise; set to 0 to disable. */
+  NOISE_SIGMA: 6,
 } as const;
 
 export const REFINE_PARAMS = {
