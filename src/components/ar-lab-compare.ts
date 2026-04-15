@@ -14,10 +14,16 @@ import { isLabVisible } from '../../exploration/lab-visibility';
 import { runLab } from '../../exploration/lab-pipeline';
 import type { ModelId, InferenceMode } from '../../exploration/loaders/types';
 import { composeAtOriginal } from '../utils/final-composite';
+import { hasHfToken } from '../../exploration/hf-token';
 
-const MODELS: { value: ModelId; label: string }[] = [
+interface ModelOption {
+  value: ModelId;
+  label: string;
+  gated?: boolean;
+}
+const MODELS: ModelOption[] = [
   { value: 'rmbg-1.4', label: 'RMBG-1.4 (baseline)' },
-  { value: 'rmbg-2.0', label: 'RMBG-2.0' },
+  { value: 'rmbg-2.0', label: 'RMBG-2.0', gated: true },
   { value: 'birefnet-general', label: 'BiRefNet-general' },
 ];
 
@@ -38,7 +44,9 @@ interface SlotConfig {
 
 export class ArLabCompare extends HTMLElement {
   private input: CompareInput | null = null;
-  private slotA: SlotConfig = { model: 'rmbg-2.0', mode: 'single-pass' };
+  private slotA: SlotConfig = hasHfToken()
+    ? { model: 'rmbg-2.0', mode: 'single-pass' }
+    : { model: 'rmbg-1.4', mode: 'single-pass' };
   private slotB: SlotConfig = { model: 'birefnet-general', mode: 'single-pass' };
   private running = false;
 
@@ -181,10 +189,11 @@ export class ArLabCompare extends HTMLElement {
       <div class="slot">
         <div class="slot-header">
           <label>Model<select id="model-${slot}">
-            ${MODELS.map(
-              (m) =>
-                `<option value="${m.value}"${m.value === config.model ? ' selected' : ''}>${m.label}</option>`,
-            ).join('')}
+            ${MODELS.map((m) => {
+              const disabled = m.gated && !hasHfToken();
+              const suffix = disabled ? ' — HF token required' : '';
+              return `<option value="${m.value}"${m.value === config.model ? ' selected' : ''}${disabled ? ' disabled' : ''}>${m.label}${suffix}</option>`;
+            }).join('')}
           </select></label>
           <label>Mode<select id="mode-${slot}">
             ${MODES.map(

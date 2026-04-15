@@ -19,6 +19,7 @@ import type { ModelLoader, SegmentInput, SegmentOutput } from './types';
 import { preprocessImageNet } from './preprocess';
 import { sigmoidResizeQuantize } from './postprocess';
 import { createOrtSession } from './ort-session';
+import { getHfToken } from '../hf-token';
 
 const MODEL_URL =
   'https://huggingface.co/briaai/RMBG-2.0/resolve/main/onnx/model_fp16.onnx';
@@ -30,7 +31,18 @@ export function createRmbg20Loader(): ModelLoader {
 
   async function ensureSession(): Promise<ort.InferenceSession> {
     if (session) return session;
-    const result = await createOrtSession({ url: MODEL_URL, preferWebGpu: true });
+    const token = getHfToken();
+    if (!token) {
+      throw new Error(
+        'RMBG-2.0 is a gated HF repo. Paste a read-scoped token in DevTools: ' +
+          `localStorage.setItem('nukebg:hf-token', 'hf_...') and reload.`,
+      );
+    }
+    const result = await createOrtSession({
+      url: MODEL_URL,
+      preferWebGpu: true,
+      bearerToken: token,
+    });
     session = result.session;
     backend = result.backend;
     return session;

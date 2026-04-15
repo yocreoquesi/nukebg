@@ -20,13 +20,18 @@ export interface SessionOptions {
   preferWebGpu?: boolean;
   /** Progress callback (0..1) during weight download. */
   onProgress?: (ratio: number) => void;
+  /** Optional bearer token for gated HF repos. Never baked at build time. */
+  bearerToken?: string;
 }
 
 async function fetchWithProgress(
   url: string,
   onProgress?: (ratio: number) => void,
+  bearerToken?: string,
 ): Promise<ArrayBuffer> {
-  const res = await fetch(url);
+  const headers: Record<string, string> = {};
+  if (bearerToken) headers.Authorization = `Bearer ${bearerToken}`;
+  const res = await fetch(url, { headers });
   if (!res.ok) throw new Error(`ORT fetch failed: ${res.status} ${res.statusText} (${url})`);
   if (!onProgress || !res.body) return res.arrayBuffer();
 
@@ -51,7 +56,7 @@ async function fetchWithProgress(
 }
 
 export async function createOrtSession(opts: SessionOptions): Promise<OrtSessionResult> {
-  const bytes = await fetchWithProgress(opts.url, opts.onProgress);
+  const bytes = await fetchWithProgress(opts.url, opts.onProgress, opts.bearerToken);
 
   const providers: ('webgpu' | 'wasm')[] = opts.preferWebGpu !== false
     ? ['webgpu', 'wasm']

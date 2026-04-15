@@ -1,9 +1,10 @@
 /**
  * BiRefNet-general loader via ONNX Runtime Web + WebGPU.
  *
- * Model: full Swin-L BiRefNet-general FP16 ONNX (~220 MB).
+ * Model: full Swin-L BiRefNet-general FP16 ONNX (~490 MB).
  * License: MIT.
- * Source: https://huggingface.co/ZhengPeng7/BiRefNet
+ * Source (weights): https://huggingface.co/onnx-community/BiRefNet-ONNX
+ * Original repo:    https://huggingface.co/ZhengPeng7/BiRefNet
  *
  * Implementation notes:
  *   - Weights live at a HuggingFace CDN URL (see MODEL_URL). If the ONNX isn't
@@ -22,7 +23,7 @@ import { sigmoidResizeQuantize } from './postprocess';
 import { createOrtSession } from './ort-session';
 
 const MODEL_URL =
-  'https://huggingface.co/ZhengPeng7/BiRefNet/resolve/main/onnx/model_fp16.onnx';
+  'https://huggingface.co/onnx-community/BiRefNet-ONNX/resolve/main/onnx/model_fp16.onnx';
 const MODEL_SIZE = 1024;
 
 export function createBiRefNetLoader(): ModelLoader {
@@ -40,7 +41,7 @@ export function createBiRefNetLoader(): ModelLoader {
   return {
     id: 'birefnet-general',
     label: 'BiRefNet-general (full, MIT)',
-    approxDownloadMb: 220,
+    approxDownloadMb: 490,
     requiresWebGpu: true,
 
     async warmup() {

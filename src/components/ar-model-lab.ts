@@ -16,11 +16,17 @@ import {
   onLabStateChange,
   type LabState,
 } from '../../exploration/lab-state';
+import { hasHfToken } from '../../exploration/hf-token';
 
-const MODELS: { value: LabState['model']; label: string }[] = [
+interface ModelOption {
+  value: LabState['model'];
+  label: string;
+  gated?: boolean;
+}
+const MODELS: ModelOption[] = [
   { value: 'baseline', label: 'RMBG-1.4 (baseline, prod)' },
-  { value: 'rmbg-2.0', label: 'RMBG-2.0 (~176 MB, CC BY-NC)' },
-  { value: 'birefnet-general', label: 'BiRefNet-general (~220 MB, MIT)' },
+  { value: 'rmbg-2.0', label: 'RMBG-2.0 (~176 MB, CC BY-NC)', gated: true },
+  { value: 'birefnet-general', label: 'BiRefNet-general (~490 MB, MIT)' },
 ];
 
 const MODES: { value: LabState['mode']; label: string }[] = [
@@ -93,10 +99,11 @@ export class ArModelLab extends HTMLElement {
       <label>
         Model
         <select id="model">
-          ${MODELS.map(
-            (m) =>
-              `<option value="${m.value}"${m.value === state.model ? ' selected' : ''}>${m.label}</option>`,
-          ).join('')}
+          ${MODELS.map((m) => {
+            const disabled = m.gated && !hasHfToken();
+            const suffix = disabled ? ' — HF token required' : '';
+            return `<option value="${m.value}"${m.value === state.model ? ' selected' : ''}${disabled ? ' disabled' : ''}>${m.label}${suffix}</option>`;
+          }).join('')}
         </select>
       </label>
       <label>
