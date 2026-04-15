@@ -535,23 +535,26 @@ export class ArApp extends HTMLElement {
           cursor: pointer;
           transition: color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
         }
-        .advanced-btn {
-          font-family: 'JetBrains Mono', monospace;
-          font-size: 11px;
+        .advanced-cta {
+          width: 100%;
           background: transparent;
           color: var(--color-accent, #ffd700);
           border: 1px dashed var(--color-accent, #ffd700);
-          border-radius: 2px;
-          padding: 4px 10px;
+          border-radius: 0;
+          padding: var(--space-3, 0.75rem);
+          font-size: 12px;
+          font-family: 'JetBrains Mono', monospace;
+          text-transform: uppercase;
           letter-spacing: 0.05em;
           cursor: pointer;
-          transition: background 0.2s ease, color 0.2s ease;
+          transition: background 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
         }
-        .advanced-btn:hover {
+        .advanced-cta:hover {
           background: var(--color-accent, #ffd700);
           color: #000;
+          box-shadow: 0 0 10px rgba(255, 215, 0, 0.2);
         }
-        .advanced-btn[data-active="true"] {
+        .advanced-cta[data-active="true"] {
           background: var(--color-accent, #ffd700);
           color: #000;
         }
@@ -1001,11 +1004,11 @@ export class ArApp extends HTMLElement {
               <input type="range" id="precision-slider-ws" min="0" max="3" value="1" step="1" aria-label="Reactor power level">
               <span class="precision-label" id="precision-label-ws">Normal</span>
             </div>
-            <button class="advanced-btn" id="advanced-btn" style="display:none" aria-label="Toggle advanced editor">[LAB] Modo avanzado</button>
           </div>
           <div class="precision-marquee" id="precision-marquee-ws"><span>☢ NUKEBG | DROP. NUKE. DOWNLOAD. | Your images never leave your device | nukebg.app ☢ NUKEBG | DROP. NUKE. DOWNLOAD. | Your images never leave your device | nukebg.app ☢</span></div>
           <ar-download></ar-download>
           <button class="edit-btn" id="edit-btn" style="display:none">${t('edit.btn')}</button>
+          <button class="advanced-cta" id="advanced-cta" style="display:none">${t('advanced.cta')}</button>
           <ar-editor style="display:none" id="editor-section"></ar-editor>
           <ar-editor-advanced id="editor-advanced"></ar-editor-advanced>
           </div>
@@ -1470,11 +1473,11 @@ export class ArApp extends HTMLElement {
       editBtn.textContent = t('edit.discard');
     }, { signal });
 
-    // [LAB] Advanced editor toggle
-    this.shadowRoot!.querySelector('#advanced-btn')?.addEventListener('click', () => {
+    // [LAB] Advanced editor CTA toggle
+    this.shadowRoot!.querySelector('#advanced-cta')?.addEventListener('click', () => {
       if (!isLabVisible()) return;
       const adv = this.shadowRoot!.querySelector('#editor-advanced') as ArEditorAdvanced | null;
-      const btn = this.shadowRoot!.querySelector('#advanced-btn') as HTMLElement | null;
+      const btn = this.shadowRoot!.querySelector('#advanced-cta') as HTMLElement | null;
       if (!adv || !btn) return;
       const isOpen = adv.hasAttribute('active');
       if (isOpen) {
@@ -1493,14 +1496,14 @@ export class ArApp extends HTMLElement {
 
     // [LAB] Advanced editor — cancel
     this.shadowRoot!.addEventListener('ar:advanced-cancel', () => {
-      const btn = this.shadowRoot!.querySelector('#advanced-btn') as HTMLElement | null;
+      const btn = this.shadowRoot!.querySelector('#advanced-cta') as HTMLElement | null;
       btn?.removeAttribute('data-active');
     }, { signal });
 
     // [LAB] Advanced editor — done (step 1 is a no-op roundtrip; real work in later steps)
     this.shadowRoot!.addEventListener('ar:advanced-done', async (e: Event) => {
       const detail = (e as CustomEvent<{ imageData: ImageData }>).detail;
-      const btn = this.shadowRoot!.querySelector('#advanced-btn') as HTMLElement | null;
+      const btn = this.shadowRoot!.querySelector('#advanced-cta') as HTMLElement | null;
       btn?.removeAttribute('data-active');
 
       const { exportPng } = await import('../utils/image-io');
@@ -1511,10 +1514,15 @@ export class ArApp extends HTMLElement {
     }, { signal });
   }
 
+  // In staging (lab visible), the advanced CTA replaces the edit-btn entirely.
+  // In prod, the CTA stays hidden and edit-btn is the only affordance.
   private setAdvancedBtnVisible(show: boolean): void {
-    const btn = this.shadowRoot?.querySelector('#advanced-btn') as HTMLElement | null;
-    if (!btn) return;
-    btn.style.display = show && isLabVisible() ? 'inline-block' : 'none';
+    const cta = this.shadowRoot?.querySelector('#advanced-cta') as HTMLElement | null;
+    const editBtn = this.shadowRoot?.querySelector('#edit-btn') as HTMLElement | null;
+    if (!cta) return;
+    const lab = isLabVisible();
+    cta.style.display = show && lab ? 'block' : 'none';
+    if (lab && editBtn) editBtn.style.display = 'none';
   }
 
   private startCrtFlicker(): void {

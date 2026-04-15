@@ -70,6 +70,12 @@ const translations: Translations = {
     // Edit button (ar-app)
     'edit.btn': 'Not clean enough? Edit manually',
     'edit.discard': '\u21A9 Discard edits',
+    'advanced.cta': 'Not satisfied with the result? Try our advanced editor',
+    'advanced.title': '[LAB] Advanced editor',
+    'advanced.toggleBefore': 'Before',
+    'advanced.toggleAfter': 'After',
+    'advanced.apply': 'Apply',
+    'advanced.cancel': 'Cancel',
 
     // Viewer
     'viewer.original': 'Before',
@@ -193,6 +199,12 @@ const translations: Translations = {
     // Edit button (ar-app)
     'edit.btn': '\u00BFNo qued\u00F3 limpio? Edita manualmente',
     'edit.discard': '\u21A9 Descartar edici\u00F3n',
+    'advanced.cta': '\u00BFInsatisfecho con el resultado? Us\u00E1 nuestro editor avanzado',
+    'advanced.title': '[LAB] Editor avanzado',
+    'advanced.toggleBefore': 'Antes',
+    'advanced.toggleAfter': 'Despu\u00E9s',
+    'advanced.apply': 'Aplicar',
+    'advanced.cancel': 'Cancelar',
 
     // Viewer
     'viewer.original': 'Antes',
@@ -316,6 +328,12 @@ const translations: Translations = {
     // Edit button (ar-app)
     'edit.btn': 'Pas assez propre ? \u00C9dite \u00E0 la main',
     'edit.discard': '\u21A9 Annuler les modifications',
+    'advanced.cta': 'R\u00E9sultat pas convaincant ? Essaie notre \u00E9diteur avanc\u00E9',
+    'advanced.title': '[LAB] \u00C9diteur avanc\u00E9',
+    'advanced.toggleBefore': 'Avant',
+    'advanced.toggleAfter': 'Apr\u00E8s',
+    'advanced.apply': 'Appliquer',
+    'advanced.cancel': 'Annuler',
 
     // Viewer
     'viewer.original': 'Avant',
@@ -439,6 +457,12 @@ const translations: Translations = {
     // Edit button (ar-app)
     'edit.btn': 'Nicht sauber genug? Manuell nachbessern',
     'edit.discard': '\u21A9 \u00C4nderungen verwerfen',
+    'advanced.cta': 'Nicht zufrieden mit dem Ergebnis? Probier unseren erweiterten Editor',
+    'advanced.title': '[LAB] Erweiterter Editor',
+    'advanced.toggleBefore': 'Vorher',
+    'advanced.toggleAfter': 'Nachher',
+    'advanced.apply': 'Anwenden',
+    'advanced.cancel': 'Abbrechen',
 
     // Viewer
     'viewer.original': 'Vorher',
@@ -562,6 +586,12 @@ const translations: Translations = {
     // Edit button (ar-app)
     'edit.btn': 'N\u00E3o ficou limpo? Edita na m\u00E3o',
     'edit.discard': '\u21A9 Descartar edi\u00E7\u00E3o',
+    'advanced.cta': 'N\u00E3o satisfeito com o resultado? Usa o nosso editor avan\u00E7ado',
+    'advanced.title': '[LAB] Editor avan\u00E7ado',
+    'advanced.toggleBefore': 'Antes',
+    'advanced.toggleAfter': 'Depois',
+    'advanced.apply': 'Aplicar',
+    'advanced.cancel': 'Cancelar',
 
     // Viewer
     'viewer.original': 'Antes',
@@ -685,6 +715,12 @@ const translations: Translations = {
     // Edit button (ar-app)
     'edit.btn': '\u4E0D\u591F\u5E72\u51C0\uFF1F\u624B\u52A8\u7F16\u8F91',
     'edit.discard': '\u21A9 \u4E22\u5F03\u7F16\u8F91',
+    'advanced.cta': '\u5BF9\u7ED3\u679C\u4E0D\u6EE1\u610F\uFF1F\u8BD5\u8BD5\u6211\u4EEC\u7684\u9AD8\u7EA7\u7F16\u8F91\u5668',
+    'advanced.title': '[LAB] \u9AD8\u7EA7\u7F16\u8F91\u5668',
+    'advanced.toggleBefore': '\u4E4B\u524D',
+    'advanced.toggleAfter': '\u4E4B\u540E',
+    'advanced.apply': '\u5E94\u7528',
+    'advanced.cancel': '\u53D6\u6D88',
 
     // Viewer
     'viewer.original': '\u539F\u56FE',
