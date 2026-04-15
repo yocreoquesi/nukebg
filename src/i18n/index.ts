@@ -89,6 +89,10 @@ const translations: Translations = {
     'advanced.refineError': 'Re-detect failed',
     'advanced.undo': 'Undo',
     'advanced.redo': 'Redo',
+    'advanced.zoom': 'Zoom',
+    'advanced.zoomIn': 'Zoom in',
+    'advanced.zoomOut': 'Zoom out',
+    'advanced.zoomFit': 'Fit to view',
 
     // Viewer
     'viewer.original': 'Before',
@@ -231,6 +235,10 @@ const translations: Translations = {
     'advanced.refineError': 'Fall\u00F3 la re-detecci\u00F3n',
     'advanced.undo': 'Deshacer',
     'advanced.redo': 'Rehacer',
+    'advanced.zoom': 'Zoom',
+    'advanced.zoomIn': 'Acercar',
+    'advanced.zoomOut': 'Alejar',
+    'advanced.zoomFit': 'Ajustar a la vista',
 
     // Viewer
     'viewer.original': 'Antes',
@@ -373,6 +381,10 @@ const translations: Translations = {
     'advanced.refineError': '\u00C9chec de la red\u00E9tection',
     'advanced.undo': 'Annuler',
     'advanced.redo': 'R\u00E9tablir',
+    'advanced.zoom': 'Zoom',
+    'advanced.zoomIn': 'Zoom avant',
+    'advanced.zoomOut': 'Zoom arri\u00E8re',
+    'advanced.zoomFit': 'Ajuster \u00E0 la vue',
 
     // Viewer
     'viewer.original': 'Avant',
@@ -515,6 +527,10 @@ const translations: Translations = {
     'advanced.refineError': 'Neuerkennung fehlgeschlagen',
     'advanced.undo': 'R\u00FCckg\u00E4ngig',
     'advanced.redo': 'Wiederholen',
+    'advanced.zoom': 'Zoom',
+    'advanced.zoomIn': 'Vergr\u00F6\u00DFern',
+    'advanced.zoomOut': 'Verkleinern',
+    'advanced.zoomFit': 'An Ansicht anpassen',
 
     // Viewer
     'viewer.original': 'Vorher',
@@ -657,6 +673,10 @@ const translations: Translations = {
     'advanced.refineError': 'Falhou a re-dete\u00E7\u00E3o',
     'advanced.undo': 'Desfazer',
     'advanced.redo': 'Refazer',
+    'advanced.zoom': 'Zoom',
+    'advanced.zoomIn': 'Aproximar',
+    'advanced.zoomOut': 'Afastar',
+    'advanced.zoomFit': 'Ajustar \u00E0 vista',
 
     // Viewer
     'viewer.original': 'Antes',
@@ -799,6 +819,10 @@ const translations: Translations = {
     'advanced.refineError': '\u91CD\u65B0\u68C0\u6D4B\u5931\u8D25',
     'advanced.undo': '\u64A4\u9500',
     'advanced.redo': '\u91CD\u505A',
+    'advanced.zoom': '\u7F29\u653E',
+    'advanced.zoomIn': '\u653E\u5927',
+    'advanced.zoomOut': '\u7F29\u5C0F',
+    'advanced.zoomFit': '\u9002\u5408\u89C6\u56FE',
 
     // Viewer
     'viewer.original': '\u539F\u56FE',

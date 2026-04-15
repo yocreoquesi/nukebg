@@ -48,6 +48,12 @@ const LASSO_EPS_RATIO = 0.006;
 // the polygon stops being meaningful.
 const MIN_ANCHORS = 3;
 
+// View transform. 1 = natural fit (max-width / max-height); zoom multiplies
+// that via a CSS transform on the canvas. Keep in sync with ar-editor.ts.
+const MIN_ZOOM = 0.1;
+const MAX_ZOOM = 10;
+const ZOOM_STEP = 1.15;
+
 type ViewMode = 'before' | 'after';
 type Tool = 'brush' | 'eraser' | 'lasso';
 
@@ -74,6 +80,24 @@ export class ArEditorAdvanced extends HTMLElement {
   private lastImgY = 0;
   private cursorCanvasX: number | null = null;
   private cursorCanvasY: number | null = null;
+
+  // View transform: CSS `transform: translate(panX, panY) scale(zoom)` is
+  // applied to the canvas. Default = 1 / 0 / 0 means "natural fit, centered".
+  // Coordinate math in eventToImageCoords stays zoom-agnostic because
+  // getBoundingClientRect already returns the post-transform rect.
+  private zoom = 1;
+  private panX = 0;
+  private panY = 0;
+
+  // Middle-click pan bookkeeping.
+  private panning = false;
+  private lastPanClientX = 0;
+  private lastPanClientY = 0;
+
+  // Touch pinch tracking. We avoid setPointerCapture during pinch so both
+  // fingers keep generating events.
+  private lastPinchDist = 0;
+  private pinching = false;
 
   // Lasso state (all coordinates in image-space — may be outside [0..w/h]
   // because the canvas is padded and loops can cross the image edge).
@@ -118,6 +142,7 @@ export class ArEditorAdvanced extends HTMLElement {
     this.syncToggleUI();
     this.syncToolUI();
     this.paintCanvas();
+    this.resetView();
   }
 
   private computeMaxHistory(w: number, h: number): number {
@@ -358,7 +383,9 @@ export class ArEditorAdvanced extends HTMLElement {
           justify-content: center;
           align-items: center;
           min-height: 200px;
+          max-height: 70vh;
           position: relative;
+          overflow: hidden;
         }
         canvas {
           max-width: 100%;
@@ -366,8 +393,44 @@ export class ArEditorAdvanced extends HTMLElement {
           display: block;
           touch-action: none;
           cursor: crosshair;
+          transform-origin: center center;
+          will-change: transform;
         }
         canvas.disabled { cursor: not-allowed; }
+        canvas.panning { cursor: grabbing; }
+        .zoom-group {
+          display: inline-flex;
+          border: 1px solid var(--color-accent, #ffd700);
+          border-radius: 2px;
+          overflow: hidden;
+          margin-left: auto;
+        }
+        .zoom-btn {
+          font-family: inherit;
+          font-size: 11px;
+          background: transparent;
+          color: var(--color-accent, #ffd700);
+          border: none;
+          padding: 4px 10px;
+          cursor: pointer;
+          letter-spacing: 0.05em;
+          min-width: 28px;
+          text-align: center;
+        }
+        .zoom-btn + .zoom-btn { border-left: 1px solid var(--color-accent, #ffd700); }
+        .zoom-btn:hover:not(:disabled) { background: var(--color-accent, #ffd700); color: #000; }
+        .zoom-display {
+          font-family: inherit;
+          font-size: 11px;
+          background: transparent;
+          color: var(--color-text, #ddd);
+          border: none;
+          padding: 4px 8px;
+          min-width: 44px;
+          text-align: center;
+          font-variant-numeric: tabular-nums;
+          pointer-events: none;
+        }
         .controls {
           display: flex;
           gap: 8px;
@@ -419,6 +482,12 @@ export class ArEditorAdvanced extends HTMLElement {
           <button type="button" class="action-btn danger" id="action-erase-area">${t('advanced.actionEraseArea')}</button>
           <span class="busy-indicator hidden" id="busy">${t('advanced.working')}</span>
         </div>
+        <div class="zoom-group" role="group" aria-label="${t('advanced.zoom')}">
+          <button type="button" class="zoom-btn" id="zoom-out" title="${t('advanced.zoomOut')}" aria-label="${t('advanced.zoomOut')}">−</button>
+          <span class="zoom-display" id="zoom-display">100%</span>
+          <button type="button" class="zoom-btn" id="zoom-in" title="${t('advanced.zoomIn')}" aria-label="${t('advanced.zoomIn')}">+</button>
+          <button type="button" class="zoom-btn" id="zoom-fit" title="${t('advanced.zoomFit')}" aria-label="${t('advanced.zoomFit')}">⌂</button>
+        </div>
       </div>
       <div class="canvas-wrap"><canvas></canvas></div>
       <div class="controls">
@@ -447,6 +516,26 @@ export class ArEditorAdvanced extends HTMLElement {
     shadow.getElementById('action-erase-area')!.addEventListener('click', () => this.runAction('erase'), { signal });
     shadow.getElementById('undo')!.addEventListener('click', () => this.undo(), { signal });
     shadow.getElementById('redo')!.addEventListener('click', () => this.redo(), { signal });
+    shadow.getElementById('zoom-in')!.addEventListener('click', () => this.setZoom(this.zoom * ZOOM_STEP), { signal });
+    shadow.getElementById('zoom-out')!.addEventListener('click', () => this.setZoom(this.zoom / ZOOM_STEP), { signal });
+    shadow.getElementById('zoom-fit')!.addEventListener('click', () => this.resetView(), { signal });
+
+    const wrap = shadow.querySelector('.canvas-wrap') as HTMLElement;
+    wrap.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      const factor = e.deltaY < 0 ? ZOOM_STEP : 1 / ZOOM_STEP;
+      this.setZoom(this.zoom * factor);
+    }, { passive: false, signal });
+
+    // Pinch-to-zoom via native touch events. We use touch events (not
+    // pointer events) because setPointerCapture in onPointerDown would
+    // eat the second finger. touchstart.preventDefault suppresses the
+    // synthesized pointer sequence, so drawing pointer events won't fire
+    // while two fingers are down.
+    wrap.addEventListener('touchstart', (e) => this.onTouchStart(e), { passive: false, signal });
+    wrap.addEventListener('touchmove', (e) => this.onTouchMove(e), { passive: false, signal });
+    wrap.addEventListener('touchend', () => this.onTouchEnd(), { signal });
+    wrap.addEventListener('touchcancel', () => this.onTouchEnd(), { signal });
 
     const sizeInput = shadow.getElementById('brush-size') as HTMLInputElement;
     const sizeVal = shadow.getElementById('brush-size-val')!;
@@ -471,6 +560,13 @@ export class ArEditorAdvanced extends HTMLElement {
     c.addEventListener('pointerleave', () => {
       this.cursorCanvasX = null;
       this.cursorCanvasY = null;
+      // If pointer leaves without an up event (rare under capture, but
+      // happens on some touch → synthetic-mouse paths), flush any pan
+      // state so the cursor doesn't stay locked in "grabbing" style.
+      if (this.panning) {
+        this.panning = false;
+        if (this.canvas) this.canvas.classList.remove('panning');
+      }
       this.redrawDisplay();
     }, { signal });
     c.addEventListener('dblclick', (e) => this.onDblClick(e), { signal });
@@ -503,6 +599,21 @@ export class ArEditorAdvanced extends HTMLElement {
         }
         return;
       }
+      if (e.key === '0' || e.key === 'Home') {
+        e.preventDefault();
+        this.resetView();
+        return;
+      }
+      if (mod && (e.key === '=' || e.key === '+')) {
+        e.preventDefault();
+        this.setZoom(this.zoom * ZOOM_STEP);
+        return;
+      }
+      if (mod && e.key === '-') {
+        e.preventDefault();
+        this.setZoom(this.zoom / ZOOM_STEP);
+        return;
+      }
       // Brush size hotkeys only meaningful for brush/eraser
       if (this.tool !== 'lasso' && (e.key === '[' || e.key === ']')) {
         e.preventDefault();
@@ -513,7 +624,20 @@ export class ArEditorAdvanced extends HTMLElement {
   }
 
   private onPointerDown(e: PointerEvent): void {
-    if (this.viewMode === 'before' || !this.canvas) return;
+    if (!this.canvas) return;
+
+    // Middle-click pan works regardless of view mode or tool.
+    if (e.button === 1) {
+      e.preventDefault();
+      this.panning = true;
+      this.lastPanClientX = e.clientX;
+      this.lastPanClientY = e.clientY;
+      this.canvas.classList.add('panning');
+      try { this.canvas.setPointerCapture(e.pointerId); } catch { /* noop */ }
+      return;
+    }
+
+    if (this.viewMode === 'before' || this.pinching) return;
     const [ix, iy] = this.eventToImageCoords(e);
     this.updateCursor(e);
 
@@ -550,6 +674,18 @@ export class ArEditorAdvanced extends HTMLElement {
   }
 
   private onPointerMove(e: PointerEvent): void {
+    if (this.panning) {
+      const dx = e.clientX - this.lastPanClientX;
+      const dy = e.clientY - this.lastPanClientY;
+      this.lastPanClientX = e.clientX;
+      this.lastPanClientY = e.clientY;
+      this.panX += dx;
+      this.panY += dy;
+      this.applyTransform();
+      return;
+    }
+    if (this.pinching) return;
+
     this.updateCursor(e);
     const [ix, iy] = this.eventToImageCoords(e);
 
@@ -585,6 +721,12 @@ export class ArEditorAdvanced extends HTMLElement {
   private onPointerEnd(e: PointerEvent): void {
     if (!this.canvas) return;
     try { this.canvas.releasePointerCapture(e.pointerId); } catch { /* noop */ }
+
+    if (this.panning) {
+      this.panning = false;
+      this.canvas.classList.remove('panning');
+      return;
+    }
 
     if (this.tool === 'lasso') {
       if (this.dragAnchorIndex !== null) {
@@ -707,6 +849,63 @@ export class ArEditorAdvanced extends HTMLElement {
       wctx.drawImage(this.originalBacking, 0, 0);
       wctx.restore();
     }
+  }
+
+  private applyTransform(): void {
+    if (!this.canvas) return;
+    this.canvas.style.transform = `translate(${this.panX}px, ${this.panY}px) scale(${this.zoom})`;
+  }
+
+  private setZoom(z: number): void {
+    this.zoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, z));
+    this.applyTransform();
+    this.updateZoomDisplay();
+  }
+
+  private resetView(): void {
+    this.zoom = 1;
+    this.panX = 0;
+    this.panY = 0;
+    this.applyTransform();
+    this.updateZoomDisplay();
+  }
+
+  private updateZoomDisplay(): void {
+    const el = this.shadowRoot?.getElementById('zoom-display');
+    if (el) el.textContent = `${Math.round(this.zoom * 100)}%`;
+  }
+
+  private getPinchDist(touches: TouchList): number {
+    const dx = touches[0].clientX - touches[1].clientX;
+    const dy = touches[0].clientY - touches[1].clientY;
+    return Math.sqrt(dx * dx + dy * dy);
+  }
+
+  private onTouchStart(e: TouchEvent): void {
+    if (e.touches.length !== 2) return;
+    // Two fingers down: start pinch-to-zoom, suppress pointer draw path.
+    e.preventDefault();
+    this.pinching = true;
+    this.lastPinchDist = this.getPinchDist(e.touches);
+    // Cancel any brush stroke that might have started on the first touch.
+    this.drawing = false;
+    this.dragAnchorIndex = null;
+  }
+
+  private onTouchMove(e: TouchEvent): void {
+    if (e.touches.length !== 2 || !this.pinching) return;
+    e.preventDefault();
+    const dist = this.getPinchDist(e.touches);
+    if (this.lastPinchDist > 0) {
+      const scale = dist / this.lastPinchDist;
+      this.setZoom(this.zoom * scale);
+    }
+    this.lastPinchDist = dist;
+  }
+
+  private onTouchEnd(): void {
+    this.pinching = false;
+    this.lastPinchDist = 0;
   }
 
   private setViewMode(mode: ViewMode): void {
