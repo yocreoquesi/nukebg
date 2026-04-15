@@ -80,6 +80,8 @@ const translations: Translations = {
     'advanced.toolEraser': 'Eraser',
     'advanced.size': 'Size',
     'advanced.hint': 'Brush restores from original. Eraser removes pixels.',
+    'advanced.toolLasso': 'Lasso',
+    'advanced.hintLasso': 'Draw a freehand loop. Drag handles to adjust. Double-click a handle to remove it.',
 
     // Viewer
     'viewer.original': 'Before',
@@ -213,6 +215,8 @@ const translations: Translations = {
     'advanced.toolEraser': 'Borrador',
     'advanced.size': 'Tama\u00F1o',
     'advanced.hint': 'El pincel restaura desde el original. El borrador quita p\u00EDxeles.',
+    'advanced.toolLasso': 'Lazo',
+    'advanced.hintLasso': 'Dibuj\u00E1 un lazo a mano alzada. Arrastr\u00E1 los puntos para ajustar. Doble clic borra un punto.',
 
     // Viewer
     'viewer.original': 'Antes',
@@ -346,6 +350,8 @@ const translations: Translations = {
     'advanced.toolEraser': 'Gomme',
     'advanced.size': 'Taille',
     'advanced.hint': 'Le pinceau restaure depuis l\u2019original. La gomme efface les pixels.',
+    'advanced.toolLasso': 'Lasso',
+    'advanced.hintLasso': 'Dessine une boucle \u00E0 main lev\u00E9e. Glisse les poign\u00E9es pour ajuster. Double-clic pour supprimer une poign\u00E9e.',
 
     // Viewer
     'viewer.original': 'Avant',
@@ -479,6 +485,8 @@ const translations: Translations = {
     'advanced.toolEraser': 'Radierer',
     'advanced.size': 'Gr\u00F6\u00DFe',
     'advanced.hint': 'Pinsel stellt aus dem Original wieder her. Radierer entfernt Pixel.',
+    'advanced.toolLasso': 'Lasso',
+    'advanced.hintLasso': 'Zieh eine Freihandschleife. Zieh an den Griffen zum Anpassen. Doppelklick entfernt einen Griff.',
 
     // Viewer
     'viewer.original': 'Vorher',
@@ -612,6 +620,8 @@ const translations: Translations = {
     'advanced.toolEraser': 'Borracha',
     'advanced.size': 'Tamanho',
     'advanced.hint': 'O pincel restaura do original. A borracha remove p\u00EDxeis.',
+    'advanced.toolLasso': 'La\u00E7o',
+    'advanced.hintLasso': 'Desenha um la\u00E7o \u00E0 m\u00E3o. Arrasta as al\u00E7as para ajustar. Duplo clique remove uma al\u00E7a.',
 
     // Viewer
     'viewer.original': 'Antes',
@@ -745,6 +755,8 @@ const translations: Translations = {
     'advanced.toolEraser': '\u6A61\u76AE\u64E6',
     'advanced.size': '\u5927\u5C0F',
     'advanced.hint': '\u753B\u7B14\u4ECE\u539F\u56FE\u6062\u590D\u50CF\u7D20\u3002\u6A61\u76AE\u64E6\u79FB\u9664\u50CF\u7D20\u3002',
+    'advanced.toolLasso': '\u5957\u7D22',
+    'advanced.hintLasso': '\u7ED8\u5236\u4E00\u4E2A\u624B\u7ED8\u73AF\u3002\u62D6\u52A8\u624B\u67C4\u8FDB\u884C\u8C03\u6574\u3002\u53CC\u51FB\u624B\u67C4\u5220\u9664\u3002',
 
     // Viewer
     'viewer.original': '\u539F\u56FE',
