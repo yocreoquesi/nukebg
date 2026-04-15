@@ -12,6 +12,7 @@ import type { ArDropzone } from './ar-dropzone';
 import type { ArBatchGrid } from './ar-batch-grid';
 import type { BatchItem, StageSnapshot } from '../types/batch';
 import { createZip, safeZipEntryName, downloadBlob } from '../utils/zip';
+import { composeAtOriginal } from '../utils/final-composite';
 
 export class ArApp extends HTMLElement {
   private static readonly MODEL_ID: ModelId = 'briaai/RMBG-1.4';
@@ -23,6 +24,7 @@ export class ArApp extends HTMLElement {
   private dropzone!: ArDropzone;
   private currentFileName = 'image.png';
   private currentImageData: ImageData | null = null;
+  private currentOriginalImageData: ImageData | null = null;
   private currentFileSize = 0;
   private selectedPrecision: PrecisionMode = 'normal';
   private lastResultImageData: ImageData | null = null;
@@ -1159,7 +1161,7 @@ export class ArApp extends HTMLElement {
         this.enableWorkspaceButtons();
       }
 
-      await this.processImage(detail.imageData, detail.file.size);
+      await this.processImage(detail.imageData, detail.originalImageData ?? detail.imageData, detail.file.size);
     }, { signal });
 
     this.shadowRoot!.addEventListener('ar:images-loaded', async (e: Event) => {
@@ -1167,6 +1169,7 @@ export class ArApp extends HTMLElement {
         images: Array<{
           file: File;
           imageData: ImageData;
+          originalImageData: ImageData;
           originalWidth: number;
           originalHeight: number;
           wasDownsampled: boolean;
@@ -1392,7 +1395,8 @@ export class ArApp extends HTMLElement {
 
         const { exportPng } = await import('../utils/image-io');
         const blob = await exportPng(this.lastResultImageData);
-        if (this.currentImageData) this.viewer.setOriginal(this.currentImageData, this.currentFileSize);
+        const originalForViewer = this.currentOriginalImageData ?? this.currentImageData;
+        if (originalForViewer) this.viewer.setOriginal(originalForViewer, this.currentFileSize);
         this.viewer.setResult(this.lastResultImageData, blob);
         await this.download.setResult(this.lastResultImageData, this.currentFileName, 0, blob);
 
@@ -1405,7 +1409,7 @@ export class ArApp extends HTMLElement {
         editorSection.style.display = 'block';
         this.editor.setImage(
           this.cachedEditResult ?? this.lastResultImageData,
-          this.currentImageData!,
+          (this.currentOriginalImageData ?? this.currentImageData)!,
         );
         this.cachedEditResult = null;
         (this.shadowRoot!.querySelector('#edit-btn') as HTMLElement).style.display = 'none';
@@ -1519,12 +1523,13 @@ export class ArApp extends HTMLElement {
     }
   }
 
-  private async processImage(imageData: ImageData, fileSize: number): Promise<void> {
+  private async processImage(imageData: ImageData, originalImageData: ImageData, fileSize: number): Promise<void> {
     this.processingAborted = false;
     this.isProcessing = true;
     this.disableWorkspaceButtons();
 
     this.currentImageData = imageData;
+    this.currentOriginalImageData = originalImageData;
     this.currentFileSize = fileSize;
     this.preEditResult = null;
     this.cachedEditResult = null;
@@ -1536,7 +1541,9 @@ export class ArApp extends HTMLElement {
     workspace.classList.add('visible');
 
     this.viewer.clearResult();
-    this.viewer.setOriginal(imageData, fileSize);
+    // Show the full-resolution original in the viewer regardless of
+    // whether the pipeline worked on a downscaled copy.
+    this.viewer.setOriginal(originalImageData, fileSize);
     this.progress.reset();
     this.download.reset();
 
@@ -1557,17 +1564,40 @@ export class ArApp extends HTMLElement {
     }
 
     try {
+      if (originalImageData.width !== imageData.width || originalImageData.height !== imageData.height) {
+        const msg = t('progress.downscaled', {
+          w: String(imageData.width),
+          h: String(imageData.height),
+          ow: String(originalImageData.width),
+          oh: String(originalImageData.height),
+        });
+        console.info(`[NukeBG] ${msg}`);
+      }
+
       const result = await this.pipeline.process(imageData, ArApp.MODEL_ID, this.selectedPrecision);
       if (this.processingAborted) return;
+
+      // Upscale alpha + composite onto pristine original RGB when the
+      // pipeline worked on a downscaled copy. Fast no-op when sizes match.
+      const finalImageData = composeAtOriginal({
+        originalRgba: originalImageData.data,
+        originalWidth: originalImageData.width,
+        originalHeight: originalImageData.height,
+        workingRgba: result.workingPixels,
+        workingWidth: result.workingWidth,
+        workingHeight: result.workingHeight,
+        workingAlpha: result.workingAlpha,
+        inpaintMask: result.watermarkMask,
+      });
 
       const { exportPng } = await import('../utils/image-io');
       if (this.processingAborted) return;
 
-      const blob = await exportPng(result.imageData);
+      const blob = await exportPng(finalImageData);
       if (this.processingAborted) return;
 
-      this.viewer.setResult(result.imageData, blob);
-      await this.download.setResult(result.imageData, this.currentFileName, result.totalTimeMs, blob);
+      this.viewer.setResult(finalImageData, blob);
+      await this.download.setResult(finalImageData, this.currentFileName, result.totalTimeMs, blob);
       if (this.processingAborted) return;
 
       // Show nuke percentage if background was removed
@@ -1575,7 +1605,7 @@ export class ArApp extends HTMLElement {
         this.progress.setStage('ml-segmentation', 'done', `${result.nukedPct}% nuked`);
       }
 
-      this.lastResultImageData = result.imageData;
+      this.lastResultImageData = finalImageData;
 
       // Show edit button
       const editBtn = this.shadowRoot!.querySelector('#edit-btn') as HTMLElement;
@@ -1649,6 +1679,7 @@ export class ArApp extends HTMLElement {
   private async startBatch(images: Array<{
     file: File;
     imageData: ImageData;
+    originalImageData: ImageData;
     originalWidth: number;
     originalHeight: number;
     wasDownsampled: boolean;
@@ -1659,9 +1690,11 @@ export class ArApp extends HTMLElement {
       originalName: img.file.name || `image-${i + 1}.png`,
       file: img.file,
       imageData: img.imageData,
+      originalImageData: img.originalImageData ?? img.imageData,
       state: 'pending',
       result: null,
-      thumbnailUrl: this.makeThumbnail(img.imageData),
+      finalImageData: null,
+      thumbnailUrl: this.makeThumbnail(img.originalImageData ?? img.imageData),
       stageHistory: [],
     }));
 
@@ -1711,8 +1744,19 @@ export class ArApp extends HTMLElement {
           this.selectedPrecision,
         );
         if (this.batchAborted) return;
+        const finalImageData = composeAtOriginal({
+          originalRgba: item.originalImageData.data,
+          originalWidth: item.originalImageData.width,
+          originalHeight: item.originalImageData.height,
+          workingRgba: result.workingPixels,
+          workingWidth: result.workingWidth,
+          workingHeight: result.workingHeight,
+          workingAlpha: result.workingAlpha,
+          inpaintMask: result.watermarkMask,
+        });
         item.result = result;
-        item.thumbnailUrl = this.makeThumbnail(result.imageData);
+        item.finalImageData = finalImageData;
+        item.thumbnailUrl = this.makeThumbnail(finalImageData);
         item.state = 'done';
         if (this.batchGrid) this.batchGrid.updateItem(item.id, 'done', item.thumbnailUrl);
         // If the user is currently watching this item's live detail view,
@@ -1756,7 +1800,7 @@ export class ArApp extends HTMLElement {
       // keep updating the progress console, hide result-only actions.
       failedBar.style.display = 'none';
       this.viewer.clearResult();
-      this.viewer.setOriginal(item.imageData, item.file.size);
+      this.viewer.setOriginal(item.originalImageData, item.file.size);
       this.download.reset();
       const editBtn = this.shadowRoot!.querySelector('#edit-btn') as HTMLElement;
       if (editBtn) editBtn.style.display = 'none';
@@ -1769,7 +1813,7 @@ export class ArApp extends HTMLElement {
       failedBar.style.display = 'flex';
       if (retryBtn) retryBtn.style.display = 'inline-block';
       this.viewer.clearResult();
-      this.viewer.setOriginal(item.imageData, item.file.size);
+      this.viewer.setOriginal(item.originalImageData, item.file.size);
       this.download.reset();
       // Replay captured history so the console shows the real sequence
       // (e.g. detect-bg done → watermark-scan done → ml-segmentation error).
@@ -1796,24 +1840,26 @@ export class ArApp extends HTMLElement {
       if (retryBtn) retryBtn.style.display = 'none';
       this.currentFileName = item.originalName;
       this.currentImageData = item.imageData;
+      this.currentOriginalImageData = item.originalImageData;
       this.currentFileSize = item.file.size;
       this.viewer.clearResult();
-      this.viewer.setOriginal(item.imageData, item.file.size);
+      this.viewer.setOriginal(item.originalImageData, item.file.size);
       // Replay per-item stage history so each finished image shows its own
       // icons (done/skipped) and timings — previously we just reset(),
       // which left every stage 'pending' and blanked out every icon.
       this.replayStageHistory(item.stageHistory);
       this.download.reset();
       const { exportPng } = await import('../utils/image-io');
-      const blob = await exportPng(item.result.imageData);
-      this.viewer.setResult(item.result.imageData, blob);
+      const finalImageData = item.finalImageData ?? item.result.imageData;
+      const blob = await exportPng(finalImageData);
+      this.viewer.setResult(finalImageData, blob);
       await this.download.setResult(
-        item.result.imageData,
+        finalImageData,
         item.originalName,
         item.result.totalTimeMs,
         blob,
       );
-      this.lastResultImageData = item.result.imageData;
+      this.lastResultImageData = finalImageData;
       const editBtn = this.shadowRoot!.querySelector('#edit-btn') as HTMLElement;
       if (editBtn) editBtn.style.display = 'block';
       const editorSection = this.shadowRoot!.querySelector('#editor-section') as HTMLElement;
@@ -1827,6 +1873,7 @@ export class ArApp extends HTMLElement {
     this.cachedEditResult = null;
     this.lastResultImageData = null;
     this.currentImageData = null;
+    this.currentOriginalImageData = null;
     const editorSection = this.shadowRoot!.querySelector('#editor-section') as HTMLElement;
     if (editorSection) editorSection.style.display = 'none';
     const editBtn = this.shadowRoot!.querySelector('#edit-btn') as HTMLElement;
@@ -1862,7 +1909,7 @@ export class ArApp extends HTMLElement {
     const files = await Promise.all(
       done.map(async (item, idx) => ({
         name: safeZipEntryName(idx + 1, done.length, item.originalName),
-        blob: await exportPng(item.result!.imageData),
+        blob: await exportPng(item.finalImageData ?? item.result!.imageData),
       })),
     );
     const zip = await createZip(files);
@@ -1892,6 +1939,7 @@ export class ArApp extends HTMLElement {
     this.cachedEditResult = null;
     this.lastResultImageData = null;
     this.currentImageData = null;
+    this.currentOriginalImageData = null;
 
     if (this.batchMode !== 'off') {
       this.batchAborted = true;

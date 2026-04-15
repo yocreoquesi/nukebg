@@ -17,7 +17,7 @@ const translations: Translations = {
     // Dropzone
     'dropzone.title': 'Drop your image here',
     'dropzone.subtitle': "or click to browse. We'll nuke the background",
-    'dropzone.formats': 'PNG, JPG, WebP up to 4096x4096',
+    'dropzone.formats': 'PNG, JPG, WebP up to 100 MP / 80 MB',
     'dropzone.clipboard': 'Ctrl+V to paste from clipboard',
     'dropzone.dragover': 'Drop to process',
     'dropzone.ariaLabel': 'Upload image for background removal',
@@ -32,6 +32,7 @@ const translations: Translations = {
     'progress.bgRemovalML': 'Removing background [ML]',
     'progress.initAI': 'Initializing AI engine...',
     'progress.total': 'Total:',
+    'progress.downscaled': 'Large image: processing at {w}\u00D7{h} to fit memory (output at original {ow}\u00D7{oh}).',
 
     // Download
     'download.btn': '\u2193 Download Clean PNG',
@@ -139,7 +140,7 @@ const translations: Translations = {
     // Dropzone
     'dropzone.title': 'Arrastra tu imagen aqu\u00ED',
     'dropzone.subtitle': 'o haz clic para buscar. Nukearemos el fondo',
-    'dropzone.formats': 'PNG, JPG, WebP hasta 4096x4096',
+    'dropzone.formats': 'PNG, JPG, WebP hasta 100 MP / 80 MB',
     'dropzone.clipboard': 'Ctrl+V para pegar del portapapeles',
     'dropzone.dragover': 'Suelta para procesar',
     'dropzone.ariaLabel': 'Subir imagen para eliminar fondo',
@@ -154,6 +155,7 @@ const translations: Translations = {
     'progress.bgRemovalML': 'Eliminando fondo [ML]',
     'progress.initAI': 'Inicializando motor IA...',
     'progress.total': 'Total:',
+    'progress.downscaled': 'Imagen grande: procesando en {w}\u00D7{h} para ahorrar memoria (salida a {ow}\u00D7{oh} original).',
 
     // Download
     'download.btn': '\u2193 Descargar PNG limpio',
@@ -261,7 +263,7 @@ const translations: Translations = {
     // Dropzone
     'dropzone.title': 'D\u00E9pose ton image ici',
     'dropzone.subtitle': 'ou clique pour parcourir. On atomise le fond',
-    'dropzone.formats': 'PNG, JPG, WebP jusqu\u2019\u00E0 4096x4096',
+    'dropzone.formats': 'PNG, JPG, WebP jusqu\u2019\u00E0 100 MP / 80 Mo',
     'dropzone.clipboard': 'Ctrl+V pour coller depuis le presse-papiers',
     'dropzone.dragover': 'L\u00E2che pour traiter',
     'dropzone.ariaLabel': "Charger une image pour supprimer l'arri\u00E8re-plan",
@@ -276,6 +278,7 @@ const translations: Translations = {
     'progress.bgRemovalML': "Suppression de l'arri\u00E8re-plan [ML]",
     'progress.initAI': "Initialisation du moteur IA...",
     'progress.total': 'Total :',
+    'progress.downscaled': 'Grande image : traitement en {w}\u00D7{h} pour la m\u00E9moire (sortie en {ow}\u00D7{oh} d\u2019origine).',
 
     // Download
     'download.btn': '\u2193 T\u00E9l\u00E9charger PNG propre',
@@ -383,7 +386,7 @@ const translations: Translations = {
     // Dropzone
     'dropzone.title': 'Bild hier ablegen',
     'dropzone.subtitle': 'oder klicken zum Ausw\u00E4hlen. Wir nuken den Hintergrund',
-    'dropzone.formats': 'PNG, JPG, WebP bis 4096x4096',
+    'dropzone.formats': 'PNG, JPG, WebP bis 100 MP / 80 MB',
     'dropzone.clipboard': 'Strg+V zum Einf\u00FCgen aus Zwischenablage',
     'dropzone.dragover': 'Loslassen zum Verarbeiten',
     'dropzone.ariaLabel': 'Bild hochladen zur Hintergrundentfernung',
@@ -398,6 +401,7 @@ const translations: Translations = {
     'progress.bgRemovalML': 'Hintergrund entfernen [ML]',
     'progress.initAI': 'KI-Engine wird initialisiert...',
     'progress.total': 'Gesamt:',
+    'progress.downscaled': 'Gro\u00DFes Bild: Verarbeitung bei {w}\u00D7{h} zur Speicherschonung (Ausgabe in Original {ow}\u00D7{oh}).',
 
     // Download
     'download.btn': '\u2193 Sauberes PNG laden',
@@ -505,7 +509,7 @@ const translations: Translations = {
     // Dropzone
     'dropzone.title': 'Solta a imagem aqui',
     'dropzone.subtitle': 'ou clica pra escolher. A gente nukeia o fundo',
-    'dropzone.formats': 'PNG, JPG, WebP at\u00E9 4096x4096',
+    'dropzone.formats': 'PNG, JPG, WebP at\u00E9 100 MP / 80 MB',
     'dropzone.clipboard': 'Ctrl+V pra colar da \u00E1rea de transfer\u00EAncia',
     'dropzone.dragover': 'Solta pra processar',
     'dropzone.ariaLabel': 'Enviar imagem para remover fundo',
@@ -520,6 +524,7 @@ const translations: Translations = {
     'progress.bgRemovalML': 'Removendo fundo [ML]',
     'progress.initAI': 'Inicializando motor de IA...',
     'progress.total': 'Total:',
+    'progress.downscaled': 'Imagem grande: processando em {w}\u00D7{h} para economizar mem\u00F3ria (sa\u00EDda em {ow}\u00D7{oh} original).',
 
     // Download
     'download.btn': '\u2193 Baixar PNG limpo',
@@ -627,7 +632,7 @@ const translations: Translations = {
     // Dropzone
     'dropzone.title': '\u628A\u56FE\u7247\u4E22\u8FD9\u91CC',
     'dropzone.subtitle': '\u6216\u8005\u70B9\u51FB\u9009\u62E9\uFF0C\u6211\u4EEC\u6765\u6838\u7206\u80CC\u666F',
-    'dropzone.formats': 'PNG, JPG, WebP \u6700\u5927 4096x4096',
+    'dropzone.formats': 'PNG, JPG, WebP \u6700\u5927 100 MP / 80 MB',
     'dropzone.clipboard': 'Ctrl+V \u4ECE\u526A\u8D34\u677F\u7C98\u8D34',
     'dropzone.dragover': '\u677E\u624B\u5F00\u59CB\u5904\u7406',
     'dropzone.ariaLabel': '\u4E0A\u4F20\u56FE\u7247\u4EE5\u53BB\u9664\u80CC\u666F',
@@ -642,6 +647,7 @@ const translations: Translations = {
     'progress.bgRemovalML': '\u53BB\u9664\u80CC\u666F [ML]',
     'progress.initAI': 'AI \u5F15\u64CE\u521D\u59CB\u5316\u4E2D...',
     'progress.total': '\u603B\u8BA1:',
+    'progress.downscaled': '\u5927\u56FE\u50CF\uFF1A\u4EE5 {w}\u00D7{h} \u5904\u7406\u4EE5\u8282\u7701\u5185\u5B58\uFF08\u8F93\u51FA\u4F4D\u539F\u59CB {ow}\u00D7{oh}\uFF09\u3002',
 
     // Download
     'download.btn': '\u2193 \u4E0B\u8F7D\u5E72\u51C0 PNG',

@@ -430,11 +430,12 @@ export class PipelineOrchestrator {
       stageTiming['ml-segmentation'] = performance.now() - t;
       this.emit('ml-segmentation', 'done', 'Signature extracted');
 
-      return this.composeResult(originalPixels, sigAlpha, width, height, bgType, contentType, false, startTime, stageTiming);
+      return this.composeResult(originalPixels, sigAlpha, width, height, bgType, contentType, false, null, startTime, stageTiming);
     }
 
     // ── Stage 2: Watermark detection (CV, no ML, instant) - skip for ICON ──
     let watermarkRemoved = false;
+    let appliedWatermarkMask: Uint8Array | null = null;
 
     if (contentType !== 'ICON') {
       t = performance.now();
@@ -535,6 +536,7 @@ export class PipelineOrchestrator {
         originalPixels.set(blended);
 
         watermarkRemoved = true;
+        appliedWatermarkMask = combinedMask;
         stageTiming['inpaint'] = performance.now() - t;
         this.emit('inpaint', 'done', routerDecision.useLama ? 'Zone reconstructed [AI]' : 'Watermark reconstructed');
       } else {
@@ -579,7 +581,7 @@ export class PipelineOrchestrator {
 
     return this.composeResult(
       originalPixels, mlAlpha, width, height, bgType, contentType,
-      watermarkRemoved, startTime, stageTiming,
+      watermarkRemoved, appliedWatermarkMask, startTime, stageTiming,
     );
   }
 
@@ -592,6 +594,7 @@ export class PipelineOrchestrator {
     bgType: BackgroundType,
     contentType: ImageContentType,
     watermarkRemoved: boolean,
+    watermarkMask: Uint8Array | null,
     startTime: number,
     stageTiming: Partial<Record<PipelineStage, number>>,
   ): PipelineResult {
@@ -620,6 +623,11 @@ export class PipelineOrchestrator {
 
     return {
       imageData: resultImageData,
+      workingPixels: originalPixels,
+      workingAlpha: finalAlpha,
+      workingWidth: width,
+      workingHeight: height,
+      watermarkMask,
       totalTimeMs,
       backgroundType: bgType,
       watermarkRemoved,

@@ -298,6 +298,7 @@ export class ArDropzone extends HTMLElement {
         detail: {
           file,
           imageData: result.imageData,
+          originalImageData: result.originalImageData,
           originalWidth: result.originalWidth,
           originalHeight: result.originalHeight,
           wasDownsampled: result.wasDownsampled,
@@ -338,6 +339,7 @@ export class ArDropzone extends HTMLElement {
     const loaded: Array<{
       file: File;
       imageData: ImageData;
+      originalImageData: ImageData;
       originalWidth: number;
       originalHeight: number;
       wasDownsampled: boolean;
@@ -349,6 +351,7 @@ export class ArDropzone extends HTMLElement {
         loaded.push({
           file,
           imageData: result.imageData,
+          originalImageData: result.originalImageData,
           originalWidth: result.originalWidth,
           originalHeight: result.originalHeight,
           wasDownsampled: result.wasDownsampled,
