@@ -1335,7 +1335,7 @@ export class ArEditorAdvanced extends HTMLElement {
   }
 
   private applyPreview(): void {
-    if (!this.pendingPreview || !this.working || !this.current) return;
+    if (!this.pendingPreview || !this.working || !this.current || !this.original) return;
     const { newAlpha } = this.pendingPreview;
     // Committing is a single undo step — match brush/eraser contract.
     this.pushUndo();
@@ -1343,8 +1343,20 @@ export class ArEditorAdvanced extends HTMLElement {
     const h = this.current.height;
     const wctx = this.working.getContext('2d')!;
     const img = wctx.getImageData(0, 0, w, h);
+    const orig = this.original.data;
     for (let i = 0; i < newAlpha.length; i++) {
-      img.data[i * 4 + 3] = newAlpha[i];
+      const dstIdx = i * 4;
+      const prevA = img.data[dstIdx + 3];
+      const nextA = newAlpha[i];
+      // Canvas destination-out (how the eraser cuts alpha) also zeroes RGB,
+      // so erased pixels sit at (0,0,0,0). When a later action brings alpha
+      // back, we'd see black unless we refresh RGB from the original here.
+      if (prevA === 0 && nextA > 0) {
+        img.data[dstIdx] = orig[dstIdx];
+        img.data[dstIdx + 1] = orig[dstIdx + 1];
+        img.data[dstIdx + 2] = orig[dstIdx + 2];
+      }
+      img.data[dstIdx + 3] = nextA;
     }
     wctx.putImageData(img, 0, 0);
     this.pendingPreview = null;
