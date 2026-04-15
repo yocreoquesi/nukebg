@@ -2,9 +2,16 @@
  * Region-of-interest processing for the lab.
  *
  * Takes a user-drawn freehand polygon + the original image + an injected
- * segmenter and returns a final composited ImageData. Two modes:
- *   - 'crop':   transparent outside the polygon, segmentation inside.
- *   - 'refine': previous alpha outside the polygon, segmentation inside.
+ * segmenter and returns a final composited ImageData. Four modes:
+ *   - 'crop':         transparent outside the polygon, segmentation inside.
+ *   - 'refine':       previous alpha outside the polygon, segmentation inside.
+ *   - 'erase-object': previous alpha everywhere EXCEPT where the segmenter
+ *                     detects subject inside the polygon — there alpha=0.
+ *                     "Smart erase": cut the object, not the rectangle.
+ *   - 'erase-fill':   same mask as erase-object, but the caller post-
+ *                     processes the RGB pixels (LaMa inpaint) — this mode
+ *                     returns the computed mask + alpha=0 inside it so the
+ *                     caller can composite inpainted RGB back in.
  *
  * Pure function on top of:
  *   - rasterizePolygon(): renders the freehand path to a binary mask via
@@ -19,14 +26,14 @@ export interface PolygonPoint {
   y: number;
 }
 
-export type RoiMode = 'crop' | 'refine';
+export type RoiMode = 'crop' | 'refine' | 'erase-object' | 'erase-fill';
 
 export interface RoiInput {
-  /** Full-resolution input image. */
+  /** Full-resolution input image (untouched RGBA). */
   original: ImageData;
   /** Freehand path in original-image coordinates. Auto-closed if not already. */
   polygon: PolygonPoint[];
-  /** Previous alpha mask (same size as original). Required when mode === 'refine'. */
+  /** Previous alpha mask (same size as original). Required when mode !== 'crop'. */
   previousAlpha: Uint8Array | null;
   /** Output mode. */
   mode: RoiMode;
@@ -34,6 +41,9 @@ export interface RoiInput {
   segment: (pixels: Uint8ClampedArray, width: number, height: number) => Promise<Uint8Array>;
   /** Extra margin around the bbox fed to the segmenter (ratio). Default 0.08 (8%). */
   bboxMarginRatio?: number;
+  /** Binarization threshold for the segmenter alpha when building an "is-subject" mask
+   * for the erase modes. Values above => subject. Default 128. */
+  eraseThreshold?: number;
 }
 
 export interface RoiOutput {
@@ -42,6 +52,8 @@ export interface RoiOutput {
   alpha: Uint8Array;
   /** BBox actually fed to the segmenter (pre-expansion). */
   bbox: { x: number; y: number; width: number; height: number };
+  /** Binary "is-subject-inside-polygon" mask (1 = erased). Only populated for erase modes. */
+  eraseMask?: Uint8Array;
 }
 
 /**
@@ -148,12 +160,14 @@ function cropRgba(
 export async function processRoi(input: RoiInput): Promise<RoiOutput> {
   const { original, polygon, previousAlpha, mode, segment } = input;
   const marginRatio = input.bboxMarginRatio ?? 0.08;
+  const eraseThreshold = input.eraseThreshold ?? 128;
+  const isEraseMode = mode === 'erase-object' || mode === 'erase-fill';
 
   if (polygon.length < 3) {
     throw new Error('ROI polygon must have at least 3 points');
   }
-  if (mode === 'refine' && !previousAlpha) {
-    throw new Error('ROI refine mode requires previousAlpha');
+  if (mode !== 'crop' && !previousAlpha) {
+    throw new Error(`ROI ${mode} mode requires previousAlpha`);
   }
 
   const polyMask = rasterizePolygon(polygon, original.width, original.height);
@@ -171,7 +185,13 @@ export async function processRoi(input: RoiInput): Promise<RoiOutput> {
   }
 
   const alpha = new Uint8Array(original.width * original.height);
-  if (mode === 'refine' && previousAlpha) alpha.set(previousAlpha);
+  if (mode === 'refine' || isEraseMode) {
+    if (previousAlpha) alpha.set(previousAlpha);
+  }
+
+  // Erase modes compute a "subject-inside-polygon" mask the caller may use
+  // for downstream inpainting. Populated only for erase-object / erase-fill.
+  const eraseMask = isEraseMode ? new Uint8Array(original.width * original.height) : undefined;
 
   for (let y = 0; y < original.height; y++) {
     for (let x = 0; x < original.width; x++) {
@@ -183,11 +203,23 @@ export async function processRoi(input: RoiInput): Promise<RoiOutput> {
       if (x < bbox.x || y < bbox.y || x >= bbox.x + bbox.width || y >= bbox.y + bbox.height) {
         // Inside polygon but outside the expanded bbox — shouldn't happen because
         // bbox is the polygon bbox + margin, but guard anyway.
-        alpha[idx] = 0;
+        if (mode !== 'refine') alpha[idx] = 0;
         continue;
       }
       const segIdx = (y - bbox.y) * bbox.width + (x - bbox.x);
-      alpha[idx] = segAlpha[segIdx];
+      const segVal = segAlpha[segIdx];
+      if (isEraseMode) {
+        // Erase where the segmenter found a subject inside the polygon —
+        // leave the rest of the polygon untouched (conserve previousAlpha).
+        if (segVal >= eraseThreshold) {
+          if (mode === 'erase-object') alpha[idx] = 0;
+          // 'erase-fill' leaves alpha as previousAlpha; the caller inpaints
+          // the RGB pixels so the final image stays visible (opaque).
+          if (eraseMask) eraseMask[idx] = 1;
+        }
+      } else {
+        alpha[idx] = segVal;
+      }
     }
   }
 
@@ -201,5 +233,6 @@ export async function processRoi(input: RoiInput): Promise<RoiOutput> {
     imageData: new ImageData(out, original.width, original.height),
     alpha,
     bbox,
+    eraseMask,
   };
 }

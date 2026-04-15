@@ -30,7 +30,8 @@
 
 import { isLabVisible } from '../../exploration/lab-visibility';
 import { createLoader, type ModelLoader } from '../../exploration/loaders';
-import { processRoi, rasterizePolygon } from '../../exploration/roi-process';
+import { inpaintWithLama } from '../../exploration/loaders/lama-inpaint';
+import { processRoi } from '../../exploration/roi-process';
 import { t } from '../i18n';
 import { simplifyClosed, type Point } from './lasso-simplify';
 
@@ -54,8 +55,8 @@ const MIN_ZOOM = 0.1;
 const MAX_ZOOM = 10;
 const ZOOM_STEP = 1.15;
 
-type ViewMode = 'before' | 'after';
 type Tool = 'brush' | 'eraser' | 'lasso';
+type LassoAction = 'crop' | 'refine' | 'erase-object' | 'erase-fill';
 
 export class ArEditorAdvanced extends HTMLElement {
   private canvas: HTMLCanvasElement | null = null;
@@ -68,7 +69,6 @@ export class ArEditorAdvanced extends HTMLElement {
   private working: HTMLCanvasElement | null = null;
   private originalBacking: HTMLCanvasElement | null = null;
 
-  private viewMode: ViewMode = 'after';
   private tool: Tool = 'eraser';
   private brushRadius = DEFAULT_BRUSH;
 
@@ -135,11 +135,9 @@ export class ArEditorAdvanced extends HTMLElement {
   setImage(current: ImageData, original: ImageData): void {
     this.current = current;
     this.original = original;
-    this.viewMode = 'after';
     this.clearLasso();
     this.rebuildBackingBuffers();
     this.resetHistory();
-    this.syncToggleUI();
     this.syncToolUI();
     this.paintCanvas();
     this.resetView();
@@ -263,28 +261,24 @@ export class ArEditorAdvanced extends HTMLElement {
           text-transform: uppercase;
           letter-spacing: 0.5px;
         }
-        .view-toggle {
-          display: inline-flex;
-          border: 1px solid var(--color-accent, #ffd700);
-          border-radius: 2px;
-          overflow: hidden;
-        }
-        .toggle-btn {
+        .restore-btn {
           font-family: inherit;
           font-size: 11px;
           background: transparent;
           color: var(--color-accent, #ffd700);
-          border: none;
+          border: 1px solid var(--color-accent, #ffd700);
+          border-radius: 2px;
           padding: 4px 10px;
           cursor: pointer;
           letter-spacing: 0.05em;
           text-transform: uppercase;
+          transition: background 0.15s, color 0.15s;
         }
-        .toggle-btn + .toggle-btn { border-left: 1px solid var(--color-accent, #ffd700); }
-        .toggle-btn.active {
+        .restore-btn:hover:not(:disabled) {
           background: var(--color-accent, #ffd700);
           color: #000;
         }
+        .restore-btn:disabled { opacity: 0.4; cursor: not-allowed; }
         .toolbar {
           display: flex;
           gap: 10px;
@@ -460,10 +454,7 @@ export class ArEditorAdvanced extends HTMLElement {
       </style>
       <div class="header">
         <div class="title">${t('advanced.title')}</div>
-        <div class="view-toggle" role="group" aria-label="Before/after toggle">
-          <button type="button" class="toggle-btn" id="view-before">${t('advanced.toggleBefore')}</button>
-          <button type="button" class="toggle-btn active" id="view-after">${t('advanced.toggleAfter')}</button>
-        </div>
+        <button type="button" class="restore-btn" id="restore-original" title="${t('advanced.restoreHint')}">${t('advanced.restore')}</button>
       </div>
       <div class="toolbar">
         <div class="tool-group" role="group" aria-label="Tools">
@@ -477,9 +468,10 @@ export class ArEditorAdvanced extends HTMLElement {
           <span class="size-val" id="brush-size-val">${DEFAULT_BRUSH}</span>
         </div>
         <div class="lasso-actions" id="lasso-actions" role="group" aria-label="Lasso actions">
-          <button type="button" class="action-btn" id="action-crop">${t('advanced.actionCrop')}</button>
-          <button type="button" class="action-btn" id="action-refine">${t('advanced.actionRefine')}</button>
-          <button type="button" class="action-btn danger" id="action-erase-area">${t('advanced.actionEraseArea')}</button>
+          <button type="button" class="action-btn" id="action-crop" title="${t('advanced.actionCropHint')}">${t('advanced.actionCrop')}</button>
+          <button type="button" class="action-btn" id="action-refine" title="${t('advanced.actionRefineHint')}">${t('advanced.actionRefine')}</button>
+          <button type="button" class="action-btn danger" id="action-erase-object" title="${t('advanced.actionEraseObjectHint')}">${t('advanced.actionEraseObject')}</button>
+          <button type="button" class="action-btn danger" id="action-erase-fill" title="${t('advanced.actionEraseFillHint')}">${t('advanced.actionEraseFill')}</button>
           <span class="busy-indicator hidden" id="busy">${t('advanced.working')}</span>
         </div>
         <div class="zoom-group" role="group" aria-label="${t('advanced.zoom')}">
@@ -506,14 +498,14 @@ export class ArEditorAdvanced extends HTMLElement {
 
     shadow.getElementById('cancel')!.addEventListener('click', () => this.cancel(), { signal });
     shadow.getElementById('done')!.addEventListener('click', () => this.commit(), { signal });
-    shadow.getElementById('view-before')!.addEventListener('click', () => this.setViewMode('before'), { signal });
-    shadow.getElementById('view-after')!.addEventListener('click', () => this.setViewMode('after'), { signal });
+    shadow.getElementById('restore-original')!.addEventListener('click', () => this.restoreToOriginal(), { signal });
     shadow.getElementById('tool-brush')!.addEventListener('click', () => this.setTool('brush'), { signal });
     shadow.getElementById('tool-eraser')!.addEventListener('click', () => this.setTool('eraser'), { signal });
     shadow.getElementById('tool-lasso')!.addEventListener('click', () => this.setTool('lasso'), { signal });
     shadow.getElementById('action-crop')!.addEventListener('click', () => this.runAction('crop'), { signal });
     shadow.getElementById('action-refine')!.addEventListener('click', () => this.runAction('refine'), { signal });
-    shadow.getElementById('action-erase-area')!.addEventListener('click', () => this.runAction('erase'), { signal });
+    shadow.getElementById('action-erase-object')!.addEventListener('click', () => this.runAction('erase-object'), { signal });
+    shadow.getElementById('action-erase-fill')!.addEventListener('click', () => this.runAction('erase-fill'), { signal });
     shadow.getElementById('undo')!.addEventListener('click', () => this.undo(), { signal });
     shadow.getElementById('redo')!.addEventListener('click', () => this.redo(), { signal });
     shadow.getElementById('zoom-in')!.addEventListener('click', () => this.setZoom(this.zoom * ZOOM_STEP), { signal });
@@ -637,7 +629,7 @@ export class ArEditorAdvanced extends HTMLElement {
       return;
     }
 
-    if (this.viewMode === 'before' || this.pinching) return;
+    if (this.pinching) return;
     const [ix, iy] = this.eventToImageCoords(e);
     this.updateCursor(e);
 
@@ -708,7 +700,7 @@ export class ArEditorAdvanced extends HTMLElement {
       return;
     }
 
-    if (!this.drawing || this.viewMode === 'before') {
+    if (!this.drawing) {
       this.redrawDisplay();
       return;
     }
@@ -908,11 +900,16 @@ export class ArEditorAdvanced extends HTMLElement {
     this.lastPinchDist = 0;
   }
 
-  private setViewMode(mode: ViewMode): void {
-    if (this.viewMode === mode) return;
-    this.viewMode = mode;
-    this.syncToggleUI();
-    if (this.canvas) this.canvas.classList.toggle('disabled', mode === 'before');
+  private restoreToOriginal(): void {
+    if (this.busy) return;
+    if (!this.working || !this.original) return;
+    // Destructive — ask once. undo stack captures the pre-restore state so
+    // Ctrl+Z still gets them back if they changed their mind after confirming.
+    if (!window.confirm(t('advanced.restoreConfirm'))) return;
+    this.pushUndo();
+    const wctx = this.working.getContext('2d')!;
+    wctx.putImageData(this.original, 0, 0);
+    this.clearLasso();
     this.redrawDisplay();
   }
 
@@ -921,14 +918,6 @@ export class ArEditorAdvanced extends HTMLElement {
     this.tool = tool;
     this.syncToolUI();
     this.redrawDisplay();
-  }
-
-  private syncToggleUI(): void {
-    const before = this.shadowRoot?.getElementById('view-before');
-    const after = this.shadowRoot?.getElementById('view-after');
-    if (!before || !after) return;
-    before.classList.toggle('active', this.viewMode === 'before');
-    after.classList.toggle('active', this.viewMode === 'after');
   }
 
   private syncToolUI(): void {
@@ -978,10 +967,7 @@ export class ArEditorAdvanced extends HTMLElement {
   private redrawDisplay(): void {
     if (!this.canvas || !this.ctx) return;
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-
-    const source = this.viewMode === 'before' ? this.originalBacking : this.working;
-    if (source) this.ctx.drawImage(source, this.padX, this.padY);
-
+    if (this.working) this.ctx.drawImage(this.working, this.padX, this.padY);
     this.drawLassoOverlay();
     this.drawCursorPreview();
   }
@@ -1041,7 +1027,6 @@ export class ArEditorAdvanced extends HTMLElement {
   private drawCursorPreview(): void {
     if (!this.ctx) return;
     if (this.cursorCanvasX === null || this.cursorCanvasY === null) return;
-    if (this.viewMode === 'before') return;
     // Lasso doesn't need a size indicator — the pointer caret is enough.
     if (this.tool === 'lasso') return;
 
@@ -1055,7 +1040,7 @@ export class ArEditorAdvanced extends HTMLElement {
     this.ctx.restore();
   }
 
-  private async runAction(kind: 'crop' | 'refine' | 'erase'): Promise<void> {
+  private async runAction(kind: LassoAction): Promise<void> {
     if (this.busy) return;
     if (!this.lassoAnchors || this.lassoAnchors.length < MIN_ANCHORS) return;
     if (!this.working || !this.original || !this.current) return;
@@ -1067,33 +1052,16 @@ export class ArEditorAdvanced extends HTMLElement {
     // reverts the whole action atomically, same contract as brush/eraser.
     this.pushUndo();
 
-    // Mechanical erase — pure alpha mask, no ML, no RGB replacement.
-    if (kind === 'erase') {
-      const mask = rasterizePolygon(this.lassoAnchors, w, h);
-      const wctx = this.working.getContext('2d')!;
-      const img = wctx.getImageData(0, 0, w, h);
-      for (let i = 0; i < mask.length; i++) {
-        if (mask[i]) img.data[i * 4 + 3] = 0;
-      }
-      wctx.putImageData(img, 0, 0);
-      this.clearLasso();
-      this.redrawDisplay();
-      return;
-    }
-
     this.busy = true;
     this.syncLassoActionsUI();
     this.syncHistoryUI();
     try {
-      // Pull previous alpha from the working buffer (needed for refine; ignored
-      // for crop, but processRoi accepts null there anyway).
-      let prevAlpha: Uint8Array | null = null;
-      if (kind === 'refine') {
-        const wctx = this.working.getContext('2d')!;
-        const data = wctx.getImageData(0, 0, w, h).data;
-        prevAlpha = new Uint8Array(w * h);
-        for (let i = 0; i < prevAlpha.length; i++) prevAlpha[i] = data[i * 4 + 3];
-      }
+      // Pull previous alpha from the working buffer; crop ignores it, every
+      // other mode needs it so edits compose on top of prior work.
+      const wctx = this.working.getContext('2d')!;
+      const prevData = wctx.getImageData(0, 0, w, h).data;
+      const prevAlpha = new Uint8Array(w * h);
+      for (let i = 0; i < prevAlpha.length; i++) prevAlpha[i] = prevData[i * 4 + 3];
 
       const segment = async (pixels: Uint8ClampedArray, pw: number, ph: number) => {
         const loader = await this.getLoader();
@@ -1109,7 +1077,11 @@ export class ArEditorAdvanced extends HTMLElement {
         segment,
       });
 
-      this.working.getContext('2d')!.putImageData(result.imageData, 0, 0);
+      if (kind === 'erase-fill') {
+        await this.applyEraseFill(result.imageData, result.eraseMask!, prevAlpha);
+      } else {
+        this.working.getContext('2d')!.putImageData(result.imageData, 0, 0);
+      }
       this.clearLasso();
       this.redrawDisplay();
     } catch (err) {
@@ -1117,12 +1089,93 @@ export class ArEditorAdvanced extends HTMLElement {
       // Surface a minimal error in the hint row so the user sees something
       // went wrong without a full modal; they can redraw the lasso and retry.
       const hint = this.shadowRoot?.getElementById('hint');
-      if (hint) hint.textContent = t('advanced.refineError');
+      if (hint) {
+        const key = kind === 'erase-fill' ? 'advanced.inpaintError' : 'advanced.refineError';
+        hint.textContent = t(key);
+      }
     } finally {
       this.busy = false;
       this.syncLassoActionsUI();
       this.syncHistoryUI();
     }
+  }
+
+  /**
+   * Finish the erase-fill action: the working buffer already has alpha=prev
+   * with the subject mask computed. Crop the original around the mask, feed
+   * it to LaMa, and splice the reconstructed RGB back in. Alpha stays as
+   * previousAlpha (the fill must be visible).
+   */
+  private async applyEraseFill(
+    composedImage: ImageData,
+    eraseMask: Uint8Array,
+    previousAlpha: Uint8Array,
+  ): Promise<void> {
+    if (!this.working || !this.original) return;
+    const w = composedImage.width;
+    const h = composedImage.height;
+
+    // Tight bbox of the mask — the smaller the crop, the faster LaMa runs.
+    let minX = w, minY = h, maxX = -1, maxY = -1;
+    for (let y = 0; y < h; y++) {
+      for (let x = 0; x < w; x++) {
+        if (eraseMask[y * w + x]) {
+          if (x < minX) minX = x;
+          if (y < minY) minY = y;
+          if (x > maxX) maxX = x;
+          if (y > maxY) maxY = y;
+        }
+      }
+    }
+    if (maxX < 0) {
+      // No subject detected inside the lasso — nothing to inpaint.
+      this.working.getContext('2d')!.putImageData(composedImage, 0, 0);
+      return;
+    }
+
+    // Pad the crop so LaMa has context for the fill. 12% of the mask bbox,
+    // clamped to image bounds.
+    const pad = Math.max(8, Math.round(Math.max(maxX - minX, maxY - minY) * 0.12));
+    const cx = Math.max(0, minX - pad);
+    const cy = Math.max(0, minY - pad);
+    const cw = Math.min(w, maxX + 1 + pad) - cx;
+    const ch = Math.min(h, maxY + 1 + pad) - cy;
+
+    // Crop RGB from the ORIGINAL (pre-edit) image and the mask.
+    const cropPixels = new Uint8ClampedArray(cw * ch * 4);
+    const cropMask = new Uint8Array(cw * ch);
+    for (let y = 0; y < ch; y++) {
+      for (let x = 0; x < cw; x++) {
+        const srcIdx = ((cy + y) * w + (cx + x)) * 4;
+        const dstIdx = (y * cw + x) * 4;
+        cropPixels[dstIdx] = this.original.data[srcIdx];
+        cropPixels[dstIdx + 1] = this.original.data[srcIdx + 1];
+        cropPixels[dstIdx + 2] = this.original.data[srcIdx + 2];
+        cropPixels[dstIdx + 3] = 255;
+        cropMask[y * cw + x] = eraseMask[(cy + y) * w + (cx + x)];
+      }
+    }
+
+    const filled = await inpaintWithLama(cropPixels, cw, ch, cropMask);
+
+    // Splice reconstructed RGB back into working buffer. Alpha = previousAlpha
+    // so the inpaint is fully visible (opaque where previousAlpha was 255).
+    const wctx = this.working.getContext('2d')!;
+    const workImg = wctx.getImageData(0, 0, w, h);
+    for (let y = 0; y < ch; y++) {
+      for (let x = 0; x < cw; x++) {
+        if (!cropMask[y * cw + x]) continue;
+        const srcIdx = (y * cw + x) * 4;
+        const gx = cx + x;
+        const gy = cy + y;
+        const dstIdx = (gy * w + gx) * 4;
+        workImg.data[dstIdx] = filled[srcIdx];
+        workImg.data[dstIdx + 1] = filled[srcIdx + 1];
+        workImg.data[dstIdx + 2] = filled[srcIdx + 2];
+        workImg.data[dstIdx + 3] = previousAlpha[gy * w + gx];
+      }
+    }
+    wctx.putImageData(workImg, 0, 0);
   }
 
   private async getLoader(): Promise<ModelLoader> {
