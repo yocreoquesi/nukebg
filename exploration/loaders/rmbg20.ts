@@ -12,6 +12,10 @@
  *
  * Pre/post-processing is identical to BiRefNet (ImageNet normalized NCHW
  * 1024×1024 input, single-channel logits output) so the helpers are reused.
+ *
+ * ORT provider: WASM only, same reason as BiRefNet — ORT Web's WebGPU shader
+ * codegen emits invalid pipelines for the Slice/Concat-heavy graphs exported
+ * by briaai. Transformers.js pipeline can handle WebGPU — future migration.
  */
 
 import * as ort from 'onnxruntime-web/webgpu';
@@ -40,7 +44,7 @@ export function createRmbg20Loader(): ModelLoader {
     }
     const result = await createOrtSession({
       url: MODEL_URL,
-      preferWebGpu: true,
+      preferWebGpu: false,
       bearerToken: token,
     });
     session = result.session;
@@ -52,7 +56,7 @@ export function createRmbg20Loader(): ModelLoader {
     id: 'rmbg-2.0',
     label: 'RMBG-2.0 (CC BY-NC, staging only)',
     approxDownloadMb: 176,
-    requiresWebGpu: true,
+    requiresWebGpu: false,
 
     async warmup() {
       await ensureSession();

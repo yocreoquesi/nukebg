@@ -13,7 +13,11 @@
  *   - Input: NCHW float32 1x3x1024x1024, ImageNet-normalized.
  *   - BiRefNet emits multiple outputs; the final refined mask is last.
  *   - Output: sigmoid → bilinear upscale to input dims → Uint8 alpha 0..255.
- *   - ORT provider preference: WebGPU, fall back to WASM.
+ *   - ORT provider: WASM only. WebGPU path is blocked because ORT Web's
+ *     current shader codegen emits invalid pipelines for BiRefNet's Slice +
+ *     Concat ops (Firefox: too many storage buffers, Chrome: off-by-one on
+ *     binding index >1000). Transformers.js partitions the graph differently
+ *     and works on WebGPU — keep that as a future migration.
  */
 
 import * as ort from 'onnxruntime-web/webgpu';
@@ -32,7 +36,7 @@ export function createBiRefNetLoader(): ModelLoader {
 
   async function ensureSession(): Promise<ort.InferenceSession> {
     if (session) return session;
-    const result = await createOrtSession({ url: MODEL_URL, preferWebGpu: true });
+    const result = await createOrtSession({ url: MODEL_URL, preferWebGpu: false });
     session = result.session;
     backend = result.backend;
     return session;
@@ -42,7 +46,7 @@ export function createBiRefNetLoader(): ModelLoader {
     id: 'birefnet-general',
     label: 'BiRefNet-general (full, MIT)',
     approxDownloadMb: 490,
-    requiresWebGpu: true,
+    requiresWebGpu: false,
 
     async warmup() {
       await ensureSession();
