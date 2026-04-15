@@ -55,12 +55,41 @@ async function fetchWithProgress(
   return blob.buffer;
 }
 
+/**
+ * Some browsers (notably Firefox at the time of writing) expose WebGPU but
+ * with storage-buffer-per-shader-stage limits far below what BiRefNet/RMBG-2.0
+ * Concat graphs require (65+ bindings vs Firefox's 8). If we open a session on
+ * WebGPU there, individual compute shaders fail validation mid-inference.
+ *
+ * We probe the adapter limits up front and only claim WebGPU if there's enough
+ * headroom; otherwise we fall back to WASM cleanly.
+ */
+const MIN_STORAGE_BUFFERS = 64;
+
+async function webgpuCapable(): Promise<boolean> {
+  const maybeNav = globalThis.navigator as Navigator & {
+    gpu?: { requestAdapter(): Promise<GPUAdapterLike | null> };
+  };
+  if (!maybeNav?.gpu) return false;
+  try {
+    const adapter = await maybeNav.gpu.requestAdapter();
+    if (!adapter) return false;
+    const limit = adapter.limits?.maxStorageBuffersPerShaderStage ?? 0;
+    return limit >= MIN_STORAGE_BUFFERS;
+  } catch {
+    return false;
+  }
+}
+
+interface GPUAdapterLike {
+  limits?: { maxStorageBuffersPerShaderStage?: number };
+}
+
 export async function createOrtSession(opts: SessionOptions): Promise<OrtSessionResult> {
   const bytes = await fetchWithProgress(opts.url, opts.onProgress, opts.bearerToken);
 
-  const providers: ('webgpu' | 'wasm')[] = opts.preferWebGpu !== false
-    ? ['webgpu', 'wasm']
-    : ['wasm'];
+  const wantWebGpu = opts.preferWebGpu !== false && (await webgpuCapable());
+  const providers: ('webgpu' | 'wasm')[] = wantWebGpu ? ['webgpu', 'wasm'] : ['wasm'];
 
   for (const provider of providers) {
     try {
