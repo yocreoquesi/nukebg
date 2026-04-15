@@ -76,6 +76,10 @@ const translations: Translations = {
     'advanced.toggleAfter': 'After',
     'advanced.apply': 'Apply',
     'advanced.cancel': 'Cancel',
+    'advanced.toolBrush': 'Brush',
+    'advanced.toolEraser': 'Eraser',
+    'advanced.size': 'Size',
+    'advanced.hint': 'Brush restores from original. Eraser removes pixels.',
 
     // Viewer
     'viewer.original': 'Before',
@@ -205,6 +209,10 @@ const translations: Translations = {
     'advanced.toggleAfter': 'Despu\u00E9s',
     'advanced.apply': 'Aplicar',
     'advanced.cancel': 'Cancelar',
+    'advanced.toolBrush': 'Pincel',
+    'advanced.toolEraser': 'Borrador',
+    'advanced.size': 'Tama\u00F1o',
+    'advanced.hint': 'El pincel restaura desde el original. El borrador quita p\u00EDxeles.',
 
     // Viewer
     'viewer.original': 'Antes',
@@ -334,6 +342,10 @@ const translations: Translations = {
     'advanced.toggleAfter': 'Apr\u00E8s',
     'advanced.apply': 'Appliquer',
     'advanced.cancel': 'Annuler',
+    'advanced.toolBrush': 'Pinceau',
+    'advanced.toolEraser': 'Gomme',
+    'advanced.size': 'Taille',
+    'advanced.hint': 'Le pinceau restaure depuis l\u2019original. La gomme efface les pixels.',
 
     // Viewer
     'viewer.original': 'Avant',
@@ -463,6 +475,10 @@ const translations: Translations = {
     'advanced.toggleAfter': 'Nachher',
     'advanced.apply': 'Anwenden',
     'advanced.cancel': 'Abbrechen',
+    'advanced.toolBrush': 'Pinsel',
+    'advanced.toolEraser': 'Radierer',
+    'advanced.size': 'Gr\u00F6\u00DFe',
+    'advanced.hint': 'Pinsel stellt aus dem Original wieder her. Radierer entfernt Pixel.',
 
     // Viewer
     'viewer.original': 'Vorher',
@@ -592,6 +608,10 @@ const translations: Translations = {
     'advanced.toggleAfter': 'Depois',
     'advanced.apply': 'Aplicar',
     'advanced.cancel': 'Cancelar',
+    'advanced.toolBrush': 'Pincel',
+    'advanced.toolEraser': 'Borracha',
+    'advanced.size': 'Tamanho',
+    'advanced.hint': 'O pincel restaura do original. A borracha remove p\u00EDxeis.',
 
     // Viewer
     'viewer.original': 'Antes',
@@ -721,6 +741,10 @@ const translations: Translations = {
     'advanced.toggleAfter': '\u4E4B\u540E',
     'advanced.apply': '\u5E94\u7528',
     'advanced.cancel': '\u53D6\u6D88',
+    'advanced.toolBrush': '\u753B\u7B14',
+    'advanced.toolEraser': '\u6A61\u76AE\u64E6',
+    'advanced.size': '\u5927\u5C0F',
+    'advanced.hint': '\u753B\u7B14\u4ECE\u539F\u56FE\u6062\u590D\u50CF\u7D20\u3002\u6A61\u76AE\u64E6\u79FB\u9664\u50CF\u7D20\u3002',
 
     // Viewer
     'viewer.original': '\u539F\u56FE',
