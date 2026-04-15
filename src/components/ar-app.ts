@@ -13,14 +13,6 @@ import type { ArBatchGrid } from './ar-batch-grid';
 import type { BatchItem, StageSnapshot } from '../types/batch';
 import { createZip, safeZipEntryName, downloadBlob } from '../utils/zip';
 import { composeAtOriginal } from '../utils/final-composite';
-import { getLabState, isLabActive } from '../../exploration/lab-state';
-import { runLab } from '../../exploration/lab-pipeline';
-import { isLabVisible } from '../../exploration/lab-visibility';
-import { processRoi } from '../../exploration/roi-process';
-import { createRmbg14Loader } from '../../exploration/loaders/rmbg14';
-import type { ModelLoader } from '../../exploration/loaders/types';
-import type { ArRoiSelector, RoiDoneDetail } from './ar-roi-selector';
-import { exportPng } from '../utils/image-io';
 
 export class ArApp extends HTMLElement {
   private static readonly MODEL_ID: ModelId = 'briaai/RMBG-1.4';
@@ -36,9 +28,6 @@ export class ArApp extends HTMLElement {
   private currentFileSize = 0;
   private selectedPrecision: PrecisionMode = 'normal';
   private lastResultImageData: ImageData | null = null;
-  private lastAlpha: Uint8Array | null = null;
-  private roiLoader: ModelLoader | null = null;
-  private roiProcessing = false;
   private crtFlickerTimers: number[] = [];
   private isProcessing = false;
   private processingAborted = false;
@@ -996,10 +985,7 @@ export class ArApp extends HTMLElement {
           <div class="precision-marquee" id="precision-marquee-ws"><span>☢ NUKEBG | DROP. NUKE. DOWNLOAD. | Your images never leave your device | nukebg.app ☢ NUKEBG | DROP. NUKE. DOWNLOAD. | Your images never leave your device | nukebg.app ☢</span></div>
           <ar-download></ar-download>
           <button class="edit-btn" id="edit-btn" style="display:none">${t('edit.btn')}</button>
-          <button class="edit-btn" id="roi-btn" style="display:none">[LAB] Select area</button>
           <ar-editor style="display:none" id="editor-section"></ar-editor>
-          <ar-roi-selector id="roi-selector"></ar-roi-selector>
-          <ar-lab-compare id="lab-compare"></ar-lab-compare>
           </div>
         </div>
       </section>
@@ -1407,7 +1393,6 @@ export class ArApp extends HTMLElement {
         // Discard mode: restore pre-edit result, cache edit for instant re-apply
         this.cachedEditResult = this.lastResultImageData;
         this.lastResultImageData = this.preEditResult;
-        this.lastAlpha = this.lastResultImageData ? extractAlpha(this.lastResultImageData) : null;
         this.preEditResult = null;
 
         const { exportPng } = await import('../utils/image-io');
@@ -1451,7 +1436,6 @@ export class ArApp extends HTMLElement {
       this.preEditResult = this.lastResultImageData;
       this.cachedEditResult = editedData;
       this.lastResultImageData = editedData;
-      this.lastAlpha = extractAlpha(editedData);
 
       // "Before" stays as the original input image; only "after" updates
       this.viewer.setResult(editedData, blob);
@@ -1464,81 +1448,6 @@ export class ArApp extends HTMLElement {
       editBtn.textContent = t('edit.discard');
     }, { signal });
 
-    // [LAB] ROI button - open freehand selector over the source image
-    this.shadowRoot!.querySelector('#roi-btn')?.addEventListener('click', () => {
-      if (!isLabVisible()) return;
-      const source = this.currentOriginalImageData ?? this.currentImageData;
-      if (!source) return;
-      const roi = this.shadowRoot!.querySelector('#roi-selector') as ArRoiSelector | null;
-      if (!roi) return;
-      roi.setImage(source, !!this.lastAlpha);
-      roi.setAttribute('active', '');
-      roi.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }, { signal });
-
-    // [LAB] ROI selector - cancel
-    this.shadowRoot!.addEventListener('ar:roi-cancel', () => {
-      const roi = this.shadowRoot!.querySelector('#roi-selector') as HTMLElement | null;
-      roi?.removeAttribute('active');
-    }, { signal });
-
-    // [LAB] ROI selector - run segmentation on selected polygon
-    this.shadowRoot!.addEventListener('ar:roi-done', async (e: Event) => {
-      if (this.roiProcessing) return;
-      const detail = (e as CustomEvent<RoiDoneDetail>).detail;
-      const source = this.currentOriginalImageData ?? this.currentImageData;
-      if (!source) return;
-
-      this.roiProcessing = true;
-      const roiBtn = this.shadowRoot!.querySelector('#roi-btn') as HTMLButtonElement | null;
-      if (roiBtn) roiBtn.disabled = true;
-
-      try {
-        this.progress.setStage('ml-segmentation', 'running', '[LAB] ROI segmenting...');
-        if (!this.roiLoader) this.roiLoader = createRmbg14Loader();
-        const loader = this.roiLoader;
-
-        const { imageData } = await processRoi({
-          original: source,
-          polygon: detail.points,
-          previousAlpha: this.lastAlpha,
-          mode: detail.mode,
-          segment: async (pixels, width, height) => {
-            const out = await loader.segment({ pixels, width, height });
-            return out.alpha;
-          },
-        });
-
-        const blob = await exportPng(imageData);
-        const originalForViewer = this.currentOriginalImageData ?? this.currentImageData;
-        if (originalForViewer) this.viewer.setOriginal(originalForViewer, this.currentFileSize);
-        this.viewer.setResult(imageData, blob);
-        await this.download.setResult(imageData, this.currentFileName, 0, blob);
-
-        this.lastResultImageData = imageData;
-        this.lastAlpha = extractAlpha(imageData);
-        this.preEditResult = null;
-        this.cachedEditResult = null;
-
-        this.progress.setStage('ml-segmentation', 'done', `[LAB] ROI ${detail.mode} done`);
-
-        const roi = this.shadowRoot!.querySelector('#roi-selector') as HTMLElement | null;
-        roi?.removeAttribute('active');
-      } catch (err) {
-        console.error('ROI error:', err);
-        const msg = err instanceof Error ? err.message : String(err);
-        this.progress.setStage('ml-segmentation', 'error', `[LAB] ROI failed: ${msg}`);
-      } finally {
-        this.roiProcessing = false;
-        if (roiBtn) roiBtn.disabled = false;
-      }
-    }, { signal });
-  }
-
-  private updateRoiButtonVisibility(): void {
-    const roiBtn = this.shadowRoot?.querySelector('#roi-btn') as HTMLElement | null;
-    if (!roiBtn) return;
-    roiBtn.style.display = isLabVisible() ? 'block' : 'none';
   }
 
   private startCrtFlicker(): void {
@@ -1626,14 +1535,9 @@ export class ArApp extends HTMLElement {
     this.currentOriginalImageData = originalImageData;
     this.currentFileSize = fileSize;
 
-    const labCompare = this.shadowRoot!.getElementById('lab-compare') as
-      | (HTMLElement & { setInput?: (img: ImageData, orig: ImageData) => void })
-      | null;
-    labCompare?.setInput?.(imageData, originalImageData);
     this.preEditResult = null;
     this.cachedEditResult = null;
     this.lastResultImageData = null;
-    this.lastAlpha = null;
     const hero = this.shadowRoot!.querySelector('#hero')!;
     const workspace = this.shadowRoot!.querySelector('#workspace')!;
 
@@ -1674,62 +1578,21 @@ export class ArApp extends HTMLElement {
         console.info(`[NukeBG] ${msg}`);
       }
 
-      const labState = getLabState();
-      let finalImageData: ImageData;
-      let nukedPct = 0;
-      let totalTimeMs = 0;
+      const result = await this.pipeline.process(imageData, ArApp.MODEL_ID, this.selectedPrecision);
+      if (this.processingAborted) return;
 
-      if (isLabActive(labState) && labState.model !== 'baseline') {
-        this.progress.setStage(
-          'ml-segmentation',
-          'running',
-          `[LAB] ${labState.model} / ${labState.mode}`,
-        );
-        const lab = await runLab(labState.model, labState.mode, {
-          pixels: imageData.data,
-          width: imageData.width,
-          height: imageData.height,
-        });
-        if (this.processingAborted) return;
-
-        finalImageData = composeAtOriginal({
-          originalRgba: originalImageData.data,
-          originalWidth: originalImageData.width,
-          originalHeight: originalImageData.height,
-          workingRgba: imageData.data,
-          workingWidth: imageData.width,
-          workingHeight: imageData.height,
-          workingAlpha: lab.alpha,
-          inpaintMask: null,
-        });
-
-        let alphaSum = 0;
-        for (let i = 0; i < lab.alpha.length; i++) alphaSum += lab.alpha[i];
-        nukedPct = Math.round(100 * (1 - alphaSum / (255 * lab.alpha.length)));
-        totalTimeMs = Math.round(lab.latencyMs);
-
-        this.progress.setStage(
-          'ml-segmentation',
-          'done',
-          `[LAB] ${labState.model} ${labState.mode} · ${totalTimeMs}ms · ${lab.backend}`,
-        );
-      } else {
-        const result = await this.pipeline.process(imageData, ArApp.MODEL_ID, this.selectedPrecision);
-        if (this.processingAborted) return;
-
-        finalImageData = composeAtOriginal({
-          originalRgba: originalImageData.data,
-          originalWidth: originalImageData.width,
-          originalHeight: originalImageData.height,
-          workingRgba: result.workingPixels,
-          workingWidth: result.workingWidth,
-          workingHeight: result.workingHeight,
-          workingAlpha: result.workingAlpha,
-          inpaintMask: result.watermarkMask,
-        });
-        nukedPct = result.nukedPct;
-        totalTimeMs = result.totalTimeMs;
-      }
+      const finalImageData = composeAtOriginal({
+        originalRgba: originalImageData.data,
+        originalWidth: originalImageData.width,
+        originalHeight: originalImageData.height,
+        workingRgba: result.workingPixels,
+        workingWidth: result.workingWidth,
+        workingHeight: result.workingHeight,
+        workingAlpha: result.workingAlpha,
+        inpaintMask: result.watermarkMask,
+      });
+      const nukedPct = result.nukedPct;
+      const totalTimeMs = result.totalTimeMs;
 
       const { exportPng } = await import('../utils/image-io');
       if (this.processingAborted) return;
@@ -1747,12 +1610,10 @@ export class ArApp extends HTMLElement {
       }
 
       this.lastResultImageData = finalImageData;
-      this.lastAlpha = extractAlpha(finalImageData);
 
       // Show edit button
       const editBtn = this.shadowRoot!.querySelector('#edit-btn') as HTMLElement;
       if (editBtn) editBtn.style.display = 'block';
-      this.updateRoiButtonVisibility();
       // Hide editor if it was open from a previous edit
       const editorSection = this.shadowRoot!.querySelector('#editor-section') as HTMLElement;
       if (editorSection) editorSection.style.display = 'none';
@@ -1947,8 +1808,6 @@ export class ArApp extends HTMLElement {
       this.download.reset();
       const editBtn = this.shadowRoot!.querySelector('#edit-btn') as HTMLElement;
       if (editBtn) editBtn.style.display = 'none';
-      const roiBtn0 = this.shadowRoot!.querySelector('#roi-btn') as HTMLElement | null;
-      if (roiBtn0) roiBtn0.style.display = 'none';
       const editorSection = this.shadowRoot!.querySelector('#editor-section') as HTMLElement;
       if (editorSection) editorSection.style.display = 'none';
       return;
@@ -1976,8 +1835,6 @@ export class ArApp extends HTMLElement {
       }
       const editBtn = this.shadowRoot!.querySelector('#edit-btn') as HTMLElement;
       if (editBtn) editBtn.style.display = 'none';
-      const roiBtn0 = this.shadowRoot!.querySelector('#roi-btn') as HTMLElement | null;
-      if (roiBtn0) roiBtn0.style.display = 'none';
       return;
     }
 
@@ -2007,10 +1864,8 @@ export class ArApp extends HTMLElement {
         blob,
       );
       this.lastResultImageData = finalImageData;
-      this.lastAlpha = extractAlpha(finalImageData);
       const editBtn = this.shadowRoot!.querySelector('#edit-btn') as HTMLElement;
       if (editBtn) editBtn.style.display = 'block';
-      this.updateRoiButtonVisibility();
       const editorSection = this.shadowRoot!.querySelector('#editor-section') as HTMLElement;
       if (editorSection) editorSection.style.display = 'none';
     }
@@ -2021,17 +1876,12 @@ export class ArApp extends HTMLElement {
     this.preEditResult = null;
     this.cachedEditResult = null;
     this.lastResultImageData = null;
-    this.lastAlpha = null;
     this.currentImageData = null;
     this.currentOriginalImageData = null;
     const editorSection = this.shadowRoot!.querySelector('#editor-section') as HTMLElement;
     if (editorSection) editorSection.style.display = 'none';
     const editBtn = this.shadowRoot!.querySelector('#edit-btn') as HTMLElement;
     if (editBtn) editBtn.style.display = 'none';
-    const roiBtn0 = this.shadowRoot!.querySelector('#roi-btn') as HTMLElement | null;
-    if (roiBtn0) roiBtn0.style.display = 'none';
-    const roiSelector0 = this.shadowRoot!.querySelector('#roi-selector') as HTMLElement | null;
-    roiSelector0?.removeAttribute('active');
     this.setBatchUiMode('grid');
   }
 
@@ -2092,7 +1942,6 @@ export class ArApp extends HTMLElement {
     this.preEditResult = null;
     this.cachedEditResult = null;
     this.lastResultImageData = null;
-    this.lastAlpha = null;
     this.currentImageData = null;
     this.currentOriginalImageData = null;
 
@@ -2104,14 +1953,6 @@ export class ArApp extends HTMLElement {
     }
     // Keep pipeline alive for next image (model stays loaded)
   }
-}
-
-function extractAlpha(image: ImageData): Uint8Array {
-  const n = image.width * image.height;
-  const out = new Uint8Array(n);
-  const d = image.data;
-  for (let i = 0; i < n; i++) out[i] = d[i * 4 + 3];
-  return out;
 }
 
 customElements.define('ar-app', ArApp);
