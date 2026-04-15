@@ -988,6 +988,7 @@ export class ArApp extends HTMLElement {
           <ar-download></ar-download>
           <button class="edit-btn" id="edit-btn" style="display:none">${t('edit.btn')}</button>
           <ar-editor style="display:none" id="editor-section"></ar-editor>
+          <ar-lab-compare id="lab-compare"></ar-lab-compare>
           </div>
         </div>
       </section>
@@ -1535,6 +1536,11 @@ export class ArApp extends HTMLElement {
     this.currentImageData = imageData;
     this.currentOriginalImageData = originalImageData;
     this.currentFileSize = fileSize;
+
+    const labCompare = this.shadowRoot!.getElementById('lab-compare') as
+      | (HTMLElement & { setInput?: (img: ImageData, orig: ImageData) => void })
+      | null;
+    labCompare?.setInput?.(imageData, originalImageData);
     this.preEditResult = null;
     this.cachedEditResult = null;
     this.lastResultImageData = null;
