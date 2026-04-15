@@ -11,6 +11,7 @@ import { getLocale, setLocale, t } from './i18n';
 import './components/ar-dropzone';
 import './components/ar-model-lab';
 import './components/ar-lab-compare';
+import './components/ar-roi-selector';
 import './components/ar-viewer';
 import './components/ar-progress';
 import './components/ar-download';
