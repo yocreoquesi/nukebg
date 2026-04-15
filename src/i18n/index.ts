@@ -82,6 +82,11 @@ const translations: Translations = {
     'advanced.hint': 'Brush restores from original. Eraser removes pixels.',
     'advanced.toolLasso': 'Lasso',
     'advanced.hintLasso': 'Draw a freehand loop. Drag handles to adjust. Double-click a handle to remove it.',
+    'advanced.actionCrop': 'Crop',
+    'advanced.actionRefine': 'Re-detect',
+    'advanced.actionEraseArea': 'Erase area',
+    'advanced.working': 'Processing…',
+    'advanced.refineError': 'Re-detect failed',
 
     // Viewer
     'viewer.original': 'Before',
@@ -217,6 +222,11 @@ const translations: Translations = {
     'advanced.hint': 'El pincel restaura desde el original. El borrador quita p\u00EDxeles.',
     'advanced.toolLasso': 'Lazo',
     'advanced.hintLasso': 'Dibuj\u00E1 un lazo a mano alzada. Arrastr\u00E1 los puntos para ajustar. Doble clic borra un punto.',
+    'advanced.actionCrop': 'Recortar',
+    'advanced.actionRefine': 'Re-detectar',
+    'advanced.actionEraseArea': 'Borrar zona',
+    'advanced.working': 'Procesando\u2026',
+    'advanced.refineError': 'Fall\u00F3 la re-detecci\u00F3n',
 
     // Viewer
     'viewer.original': 'Antes',
@@ -352,6 +362,11 @@ const translations: Translations = {
     'advanced.hint': 'Le pinceau restaure depuis l\u2019original. La gomme efface les pixels.',
     'advanced.toolLasso': 'Lasso',
     'advanced.hintLasso': 'Dessine une boucle \u00E0 main lev\u00E9e. Glisse les poign\u00E9es pour ajuster. Double-clic pour supprimer une poign\u00E9e.',
+    'advanced.actionCrop': 'Recadrer',
+    'advanced.actionRefine': 'Red\u00E9tecter',
+    'advanced.actionEraseArea': 'Effacer la zone',
+    'advanced.working': 'Traitement\u2026',
+    'advanced.refineError': '\u00C9chec de la red\u00E9tection',
 
     // Viewer
     'viewer.original': 'Avant',
@@ -487,6 +502,11 @@ const translations: Translations = {
     'advanced.hint': 'Pinsel stellt aus dem Original wieder her. Radierer entfernt Pixel.',
     'advanced.toolLasso': 'Lasso',
     'advanced.hintLasso': 'Zieh eine Freihandschleife. Zieh an den Griffen zum Anpassen. Doppelklick entfernt einen Griff.',
+    'advanced.actionCrop': 'Zuschneiden',
+    'advanced.actionRefine': 'Neu erkennen',
+    'advanced.actionEraseArea': 'Bereich l\u00F6schen',
+    'advanced.working': 'Verarbeitung\u2026',
+    'advanced.refineError': 'Neuerkennung fehlgeschlagen',
 
     // Viewer
     'viewer.original': 'Vorher',
@@ -622,6 +642,11 @@ const translations: Translations = {
     'advanced.hint': 'O pincel restaura do original. A borracha remove p\u00EDxeis.',
     'advanced.toolLasso': 'La\u00E7o',
     'advanced.hintLasso': 'Desenha um la\u00E7o \u00E0 m\u00E3o. Arrasta as al\u00E7as para ajustar. Duplo clique remove uma al\u00E7a.',
+    'advanced.actionCrop': 'Recortar',
+    'advanced.actionRefine': 'Re-detetar',
+    'advanced.actionEraseArea': 'Apagar zona',
+    'advanced.working': 'A processar\u2026',
+    'advanced.refineError': 'Falhou a re-dete\u00E7\u00E3o',
 
     // Viewer
     'viewer.original': 'Antes',
@@ -757,6 +782,11 @@ const translations: Translations = {
     'advanced.hint': '\u753B\u7B14\u4ECE\u539F\u56FE\u6062\u590D\u50CF\u7D20\u3002\u6A61\u76AE\u64E6\u79FB\u9664\u50CF\u7D20\u3002',
     'advanced.toolLasso': '\u5957\u7D22',
     'advanced.hintLasso': '\u7ED8\u5236\u4E00\u4E2A\u624B\u7ED8\u73AF\u3002\u62D6\u52A8\u624B\u67C4\u8FDB\u884C\u8C03\u6574\u3002\u53CC\u51FB\u624B\u67C4\u5220\u9664\u3002',
+    'advanced.actionCrop': '\u88C1\u526A',
+    'advanced.actionRefine': '\u91CD\u65B0\u68C0\u6D4B',
+    'advanced.actionEraseArea': '\u64E6\u9664\u533A\u57DF',
+    'advanced.working': '\u5904\u7406\u4E2D\u2026',
+    'advanced.refineError': '\u91CD\u65B0\u68C0\u6D4B\u5931\u8D25',
 
     // Viewer
     'viewer.original': '\u539F\u56FE',

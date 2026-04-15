@@ -29,6 +29,8 @@
  */
 
 import { isLabVisible } from '../../exploration/lab-visibility';
+import { createLoader, type ModelLoader } from '../../exploration/loaders';
+import { processRoi, rasterizePolygon } from '../../exploration/roi-process';
 import { t } from '../i18n';
 import { simplifyClosed, type Point } from './lasso-simplify';
 
@@ -78,6 +80,10 @@ export class ArEditorAdvanced extends HTMLElement {
   private lassoRaw: Point[] | null = null;
   private lassoAnchors: Point[] | null = null;
   private dragAnchorIndex: number | null = null;
+
+  // Shared RMBG-1.4 loader, warmed on first refine and reused afterwards.
+  private loader: ModelLoader | null = null;
+  private busy = false;
 
   private abort: AbortController | null = null;
 
@@ -209,6 +215,38 @@ export class ArEditorAdvanced extends HTMLElement {
           gap: 6px;
         }
         .size-row.hidden { display: none; }
+        .lasso-actions {
+          display: none;
+          gap: 6px;
+          align-items: center;
+        }
+        .lasso-actions.visible { display: inline-flex; }
+        .action-btn {
+          font-family: inherit;
+          font-size: 11px;
+          background: transparent;
+          color: var(--color-accent, #ffd700);
+          border: 1px solid var(--color-accent, #ffd700);
+          border-radius: 2px;
+          padding: 4px 10px;
+          cursor: pointer;
+          letter-spacing: 0.05em;
+          text-transform: uppercase;
+          transition: background 0.15s, color 0.15s;
+        }
+        .action-btn:hover:not(:disabled) { background: var(--color-accent, #ffd700); color: #000; }
+        .action-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+        .action-btn.danger {
+          color: #ff6d6d;
+          border-color: #ff6d6d;
+        }
+        .action-btn.danger:hover:not(:disabled) { background: #ff6d6d; color: #000; }
+        .busy-indicator {
+          font-size: 10px;
+          color: var(--color-accent, #ffd700);
+          margin-left: 6px;
+        }
+        .busy-indicator.hidden { display: none; }
         .size-row label {
           font-size: 10px;
           text-transform: uppercase;
@@ -292,6 +330,12 @@ export class ArEditorAdvanced extends HTMLElement {
           <input type="range" id="brush-size" min="${MIN_BRUSH}" max="${MAX_BRUSH}" step="1" value="${DEFAULT_BRUSH}">
           <span class="size-val" id="brush-size-val">${DEFAULT_BRUSH}</span>
         </div>
+        <div class="lasso-actions" id="lasso-actions" role="group" aria-label="Lasso actions">
+          <button type="button" class="action-btn" id="action-crop">${t('advanced.actionCrop')}</button>
+          <button type="button" class="action-btn" id="action-refine">${t('advanced.actionRefine')}</button>
+          <button type="button" class="action-btn danger" id="action-erase-area">${t('advanced.actionEraseArea')}</button>
+          <span class="busy-indicator hidden" id="busy">${t('advanced.working')}</span>
+        </div>
       </div>
       <div class="canvas-wrap"><canvas></canvas></div>
       <div class="controls">
@@ -313,6 +357,9 @@ export class ArEditorAdvanced extends HTMLElement {
     shadow.getElementById('tool-brush')!.addEventListener('click', () => this.setTool('brush'), { signal });
     shadow.getElementById('tool-eraser')!.addEventListener('click', () => this.setTool('eraser'), { signal });
     shadow.getElementById('tool-lasso')!.addEventListener('click', () => this.setTool('lasso'), { signal });
+    shadow.getElementById('action-crop')!.addEventListener('click', () => this.runAction('crop'), { signal });
+    shadow.getElementById('action-refine')!.addEventListener('click', () => this.runAction('refine'), { signal });
+    shadow.getElementById('action-erase-area')!.addEventListener('click', () => this.runAction('erase'), { signal });
 
     const sizeInput = shadow.getElementById('brush-size') as HTMLInputElement;
     const sizeVal = shadow.getElementById('brush-size-val')!;
@@ -451,6 +498,7 @@ export class ArEditorAdvanced extends HTMLElement {
         this.lassoRaw = null;
       }
       this.drawing = false;
+      this.syncLassoActionsUI();
       this.redrawDisplay();
       return;
     }
@@ -465,6 +513,7 @@ export class ArEditorAdvanced extends HTMLElement {
     if (idx === null) return;
     if (this.lassoAnchors.length <= MIN_ANCHORS) return;
     this.lassoAnchors.splice(idx, 1);
+    this.syncLassoActionsUI();
     this.redrawDisplay();
   }
 
@@ -589,12 +638,26 @@ export class ArEditorAdvanced extends HTMLElement {
     if (lasso) lasso.classList.toggle('active', this.tool === 'lasso');
     if (sizeRow) sizeRow.classList.toggle('hidden', this.tool === 'lasso');
     if (hint) hint.textContent = this.tool === 'lasso' ? t('advanced.hintLasso') : t('advanced.hint');
+    this.syncLassoActionsUI();
+  }
+
+  private syncLassoActionsUI(): void {
+    const row = this.shadowRoot?.getElementById('lasso-actions');
+    const busy = this.shadowRoot?.getElementById('busy');
+    if (!row) return;
+    const show = this.tool === 'lasso' && this.lassoAnchors !== null && this.lassoAnchors.length >= MIN_ANCHORS;
+    row.classList.toggle('visible', show);
+    if (!show) return;
+    const buttons = row.querySelectorAll<HTMLButtonElement>('button.action-btn');
+    buttons.forEach((b) => { b.disabled = this.busy; });
+    if (busy) busy.classList.toggle('hidden', !this.busy);
   }
 
   private clearLasso(): void {
     this.lassoRaw = null;
     this.lassoAnchors = null;
     this.dragAnchorIndex = null;
+    this.syncLassoActionsUI();
   }
 
   private paintCanvas(): void {
@@ -686,6 +749,78 @@ export class ArEditorAdvanced extends HTMLElement {
     this.ctx.arc(this.cursorCanvasX, this.cursorCanvasY, this.brushRadius, 0, Math.PI * 2);
     this.ctx.stroke();
     this.ctx.restore();
+  }
+
+  private async runAction(kind: 'crop' | 'refine' | 'erase'): Promise<void> {
+    if (this.busy) return;
+    if (!this.lassoAnchors || this.lassoAnchors.length < MIN_ANCHORS) return;
+    if (!this.working || !this.original || !this.current) return;
+
+    const w = this.current.width;
+    const h = this.current.height;
+
+    // Mechanical erase — pure alpha mask, no ML, no RGB replacement.
+    if (kind === 'erase') {
+      const mask = rasterizePolygon(this.lassoAnchors, w, h);
+      const wctx = this.working.getContext('2d')!;
+      const img = wctx.getImageData(0, 0, w, h);
+      for (let i = 0; i < mask.length; i++) {
+        if (mask[i]) img.data[i * 4 + 3] = 0;
+      }
+      wctx.putImageData(img, 0, 0);
+      this.clearLasso();
+      this.redrawDisplay();
+      return;
+    }
+
+    this.busy = true;
+    this.syncLassoActionsUI();
+    try {
+      // Pull previous alpha from the working buffer (needed for refine; ignored
+      // for crop, but processRoi accepts null there anyway).
+      let prevAlpha: Uint8Array | null = null;
+      if (kind === 'refine') {
+        const wctx = this.working.getContext('2d')!;
+        const data = wctx.getImageData(0, 0, w, h).data;
+        prevAlpha = new Uint8Array(w * h);
+        for (let i = 0; i < prevAlpha.length; i++) prevAlpha[i] = data[i * 4 + 3];
+      }
+
+      const segment = async (pixels: Uint8ClampedArray, pw: number, ph: number) => {
+        const loader = await this.getLoader();
+        const res = await loader.segment({ pixels, width: pw, height: ph });
+        return res.alpha;
+      };
+
+      const result = await processRoi({
+        original: this.original,
+        polygon: this.lassoAnchors,
+        previousAlpha: prevAlpha,
+        mode: kind,
+        segment,
+      });
+
+      this.working.getContext('2d')!.putImageData(result.imageData, 0, 0);
+      this.clearLasso();
+      this.redrawDisplay();
+    } catch (err) {
+      console.error('[ar-editor-advanced] action failed', err);
+      // Surface a minimal error in the hint row so the user sees something
+      // went wrong without a full modal; they can redraw the lasso and retry.
+      const hint = this.shadowRoot?.getElementById('hint');
+      if (hint) hint.textContent = t('advanced.refineError');
+    } finally {
+      this.busy = false;
+      this.syncLassoActionsUI();
+    }
+  }
+
+  private async getLoader(): Promise<ModelLoader> {
+    if (this.loader) return this.loader;
+    const loader = createLoader('rmbg-1.4');
+    await loader.warmup();
+    this.loader = loader;
+    return loader;
   }
 
   private cancel(): void {
