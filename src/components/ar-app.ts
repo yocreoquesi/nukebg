@@ -13,6 +13,8 @@ import type { ArBatchGrid } from './ar-batch-grid';
 import type { BatchItem, StageSnapshot } from '../types/batch';
 import { createZip, safeZipEntryName, downloadBlob } from '../utils/zip';
 import { composeAtOriginal } from '../utils/final-composite';
+import { getLabState, isLabActive } from '../../exploration/lab-state';
+import { runLab } from '../../exploration/lab-pipeline';
 
 export class ArApp extends HTMLElement {
   private static readonly MODEL_ID: ModelId = 'briaai/RMBG-1.4';
@@ -951,6 +953,7 @@ export class ArApp extends HTMLElement {
             <input type="range" id="precision-slider" min="0" max="3" value="1" step="1" aria-label="Reactor power level">
             <span class="precision-label" id="precision-label">Normal</span>
           </div>
+          <ar-model-lab id="model-lab-hero"></ar-model-lab>
         </div>
         <ar-dropzone></ar-dropzone>
         <ar-batch-grid id="batch-grid" style="display:none"></ar-batch-grid>
@@ -979,6 +982,7 @@ export class ArApp extends HTMLElement {
               <input type="range" id="precision-slider-ws" min="0" max="3" value="1" step="1" aria-label="Reactor power level">
               <span class="precision-label" id="precision-label-ws">Normal</span>
             </div>
+            <ar-model-lab id="model-lab-ws"></ar-model-lab>
           </div>
           <div class="precision-marquee" id="precision-marquee-ws"><span>☢ NUKEBG | DROP. NUKE. DOWNLOAD. | Your images never leave your device | nukebg.app ☢ NUKEBG | DROP. NUKE. DOWNLOAD. | Your images never leave your device | nukebg.app ☢</span></div>
           <ar-download></ar-download>
@@ -1574,21 +1578,62 @@ export class ArApp extends HTMLElement {
         console.info(`[NukeBG] ${msg}`);
       }
 
-      const result = await this.pipeline.process(imageData, ArApp.MODEL_ID, this.selectedPrecision);
-      if (this.processingAborted) return;
+      const labState = getLabState();
+      let finalImageData: ImageData;
+      let nukedPct = 0;
+      let totalTimeMs = 0;
 
-      // Upscale alpha + composite onto pristine original RGB when the
-      // pipeline worked on a downscaled copy. Fast no-op when sizes match.
-      const finalImageData = composeAtOriginal({
-        originalRgba: originalImageData.data,
-        originalWidth: originalImageData.width,
-        originalHeight: originalImageData.height,
-        workingRgba: result.workingPixels,
-        workingWidth: result.workingWidth,
-        workingHeight: result.workingHeight,
-        workingAlpha: result.workingAlpha,
-        inpaintMask: result.watermarkMask,
-      });
+      if (isLabActive(labState) && labState.model !== 'baseline') {
+        this.progress.setStage(
+          'ml-segmentation',
+          'running',
+          `[LAB] ${labState.model} / ${labState.mode}`,
+        );
+        const lab = await runLab(labState.model, labState.mode, {
+          pixels: imageData.data,
+          width: imageData.width,
+          height: imageData.height,
+        });
+        if (this.processingAborted) return;
+
+        finalImageData = composeAtOriginal({
+          originalRgba: originalImageData.data,
+          originalWidth: originalImageData.width,
+          originalHeight: originalImageData.height,
+          workingRgba: imageData.data,
+          workingWidth: imageData.width,
+          workingHeight: imageData.height,
+          workingAlpha: lab.alpha,
+          inpaintMask: null,
+        });
+
+        let alphaSum = 0;
+        for (let i = 0; i < lab.alpha.length; i++) alphaSum += lab.alpha[i];
+        nukedPct = Math.round(100 * (1 - alphaSum / (255 * lab.alpha.length)));
+        totalTimeMs = Math.round(lab.latencyMs);
+
+        this.progress.setStage(
+          'ml-segmentation',
+          'done',
+          `[LAB] ${labState.model} ${labState.mode} · ${totalTimeMs}ms · ${lab.backend}`,
+        );
+      } else {
+        const result = await this.pipeline.process(imageData, ArApp.MODEL_ID, this.selectedPrecision);
+        if (this.processingAborted) return;
+
+        finalImageData = composeAtOriginal({
+          originalRgba: originalImageData.data,
+          originalWidth: originalImageData.width,
+          originalHeight: originalImageData.height,
+          workingRgba: result.workingPixels,
+          workingWidth: result.workingWidth,
+          workingHeight: result.workingHeight,
+          workingAlpha: result.workingAlpha,
+          inpaintMask: result.watermarkMask,
+        });
+        nukedPct = result.nukedPct;
+        totalTimeMs = result.totalTimeMs;
+      }
 
       const { exportPng } = await import('../utils/image-io');
       if (this.processingAborted) return;
@@ -1597,12 +1642,12 @@ export class ArApp extends HTMLElement {
       if (this.processingAborted) return;
 
       this.viewer.setResult(finalImageData, blob);
-      await this.download.setResult(finalImageData, this.currentFileName, result.totalTimeMs, blob);
+      await this.download.setResult(finalImageData, this.currentFileName, totalTimeMs, blob);
       if (this.processingAborted) return;
 
       // Show nuke percentage if background was removed
-      if (result.nukedPct > 0) {
-        this.progress.setStage('ml-segmentation', 'done', `${result.nukedPct}% nuked`);
+      if (nukedPct > 0) {
+        this.progress.setStage('ml-segmentation', 'done', `${nukedPct}% nuked`);
       }
 
       this.lastResultImageData = finalImageData;

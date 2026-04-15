@@ -9,6 +9,7 @@ import { getLocale, setLocale, t } from './i18n';
 
 // Register Web Components
 import './components/ar-dropzone';
+import './components/ar-model-lab';
 import './components/ar-viewer';
 import './components/ar-progress';
 import './components/ar-download';
