@@ -24,7 +24,8 @@ interface ModelOption {
 const MODELS: ModelOption[] = [
   { value: 'rmbg-1.4', label: 'RMBG-1.4 (baseline)' },
   { value: 'rmbg-2.0', label: 'RMBG-2.0', gated: true },
-  { value: 'birefnet-general', label: 'BiRefNet-general' },
+  { value: 'birefnet-lite', label: 'BiRefNet-lite' },
+  { value: 'birefnet-general', label: 'BiRefNet-general (may OOM)' },
 ];
 
 const MODES: { value: InferenceMode; label: string }[] = [
@@ -44,10 +45,8 @@ interface SlotConfig {
 
 export class ArLabCompare extends HTMLElement {
   private input: CompareInput | null = null;
-  private slotA: SlotConfig = hasHfToken()
-    ? { model: 'rmbg-2.0', mode: 'single-pass' }
-    : { model: 'rmbg-1.4', mode: 'single-pass' };
-  private slotB: SlotConfig = { model: 'birefnet-general', mode: 'single-pass' };
+  private slotA: SlotConfig = { model: 'rmbg-1.4', mode: 'single-pass' };
+  private slotB: SlotConfig = { model: 'rmbg-1.4', mode: 'bbox-refine' };
   private running = false;
 
   connectedCallback(): void {

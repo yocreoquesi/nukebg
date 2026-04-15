@@ -24,9 +24,11 @@ interface ModelOption {
   gated?: boolean;
 }
 const MODELS: ModelOption[] = [
-  { value: 'baseline', label: 'RMBG-1.4 (baseline, prod)' },
+  { value: 'baseline', label: 'RMBG-1.4 (baseline, prod pipeline)' },
+  { value: 'rmbg-1.4', label: 'RMBG-1.4 (lab, supports bbox-refine)' },
   { value: 'rmbg-2.0', label: 'RMBG-2.0 (~176 MB, CC BY-NC)', gated: true },
-  { value: 'birefnet-general', label: 'BiRefNet-general (~490 MB, MIT)' },
+  { value: 'birefnet-lite', label: 'BiRefNet-lite (Swin-T, ~115 MB, MIT)' },
+  { value: 'birefnet-general', label: 'BiRefNet-general (~490 MB, MIT, may OOM on WASM)' },
 ];
 
 const MODES: { value: LabState['mode']; label: string }[] = [

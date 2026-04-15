@@ -3,7 +3,7 @@
  * Keeps the UI selector and bbox-refine mode model-agnostic.
  */
 
-export type ModelId = 'rmbg-1.4' | 'rmbg-2.0' | 'birefnet-general';
+export type ModelId = 'rmbg-1.4' | 'rmbg-2.0' | 'birefnet-general' | 'birefnet-lite';
 export type InferenceMode = 'single-pass' | 'bbox-refine';
 
 export interface SegmentInput {
