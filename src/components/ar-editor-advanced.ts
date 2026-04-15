@@ -85,6 +85,14 @@ export class ArEditorAdvanced extends HTMLElement {
   private loader: ModelLoader | null = null;
   private busy = false;
 
+  // Undo/redo stacks of full RGBA snapshots (Uint8ClampedArray, image size).
+  // Full snapshots match ar-editor's pattern — simple, robust, and still
+  // cheap to swap in. Depth is budget-capped per-image so we don't OOM on
+  // 20-100MP payloads; see `computeMaxHistory`.
+  private undoStack: Uint8ClampedArray[] = [];
+  private redoStack: Uint8ClampedArray[] = [];
+  private maxHistory = 8;
+
   private abort: AbortController | null = null;
 
   connectedCallback(): void {
@@ -106,9 +114,84 @@ export class ArEditorAdvanced extends HTMLElement {
     this.viewMode = 'after';
     this.clearLasso();
     this.rebuildBackingBuffers();
+    this.resetHistory();
     this.syncToggleUI();
     this.syncToolUI();
     this.paintCanvas();
+  }
+
+  private computeMaxHistory(w: number, h: number): number {
+    const bytesPerSnapshot = w * h * 4;
+    // Hard cap at ~200MB total snapshot budget; keep at least 2 so undo
+    // always has some useful depth even on 100MP images.
+    const budget = 200 * 1024 * 1024;
+    return Math.max(2, Math.min(8, Math.floor(budget / Math.max(1, bytesPerSnapshot))));
+  }
+
+  private resetHistory(): void {
+    this.undoStack = [];
+    this.redoStack = [];
+    if (this.current) {
+      this.maxHistory = this.computeMaxHistory(this.current.width, this.current.height);
+    }
+    this.syncHistoryUI();
+  }
+
+  private snapshotWorking(): Uint8ClampedArray | null {
+    if (!this.working || !this.current) return null;
+    const w = this.current.width;
+    const h = this.current.height;
+    const data = this.working.getContext('2d')!.getImageData(0, 0, w, h).data;
+    return new Uint8ClampedArray(data);
+  }
+
+  private restoreWorking(rgba: Uint8ClampedArray): void {
+    if (!this.working || !this.current) return;
+    const w = this.current.width;
+    const h = this.current.height;
+    const img = new ImageData(new Uint8ClampedArray(rgba), w, h);
+    this.working.getContext('2d')!.putImageData(img, 0, 0);
+  }
+
+  private pushUndo(): void {
+    const snap = this.snapshotWorking();
+    if (!snap) return;
+    this.undoStack.push(snap);
+    if (this.undoStack.length > this.maxHistory) this.undoStack.shift();
+    // Any new action invalidates the redo branch.
+    this.redoStack = [];
+    this.syncHistoryUI();
+  }
+
+  private undo(): void {
+    if (this.undoStack.length === 0) return;
+    const before = this.undoStack.pop()!;
+    const after = this.snapshotWorking();
+    if (after) this.redoStack.push(after);
+    this.restoreWorking(before);
+    this.clearLasso();
+    this.redrawDisplay();
+    this.syncHistoryUI();
+  }
+
+  private redo(): void {
+    if (this.redoStack.length === 0) return;
+    const next = this.redoStack.pop()!;
+    const current = this.snapshotWorking();
+    if (current) this.undoStack.push(current);
+    this.restoreWorking(next);
+    this.clearLasso();
+    this.redrawDisplay();
+    this.syncHistoryUI();
+  }
+
+  private syncHistoryUI(): void {
+    const undoBtn = this.shadowRoot?.getElementById('undo') as HTMLButtonElement | null;
+    const redoBtn = this.shadowRoot?.getElementById('redo') as HTMLButtonElement | null;
+    // Lock history during async actions — an in-flight ML segmentation would
+    // finish after an undo and overwrite the rolled-back buffer.
+    if (undoBtn) undoBtn.disabled = this.busy || this.undoStack.length === 0;
+    if (redoBtn) redoBtn.disabled = this.busy || this.redoStack.length === 0;
   }
 
   private rebuildBackingBuffers(): void {
@@ -340,6 +423,8 @@ export class ArEditorAdvanced extends HTMLElement {
       <div class="canvas-wrap"><canvas></canvas></div>
       <div class="controls">
         <span class="hint" id="hint">${t('advanced.hint')}</span>
+        <button type="button" class="action secondary" id="undo" disabled>${t('advanced.undo')}</button>
+        <button type="button" class="action secondary" id="redo" disabled>${t('advanced.redo')}</button>
         <button type="button" class="action secondary" id="cancel">${t('advanced.cancel')}</button>
         <button type="button" class="action" id="done">${t('advanced.apply')}</button>
       </div>
@@ -360,6 +445,8 @@ export class ArEditorAdvanced extends HTMLElement {
     shadow.getElementById('action-crop')!.addEventListener('click', () => this.runAction('crop'), { signal });
     shadow.getElementById('action-refine')!.addEventListener('click', () => this.runAction('refine'), { signal });
     shadow.getElementById('action-erase-area')!.addEventListener('click', () => this.runAction('erase'), { signal });
+    shadow.getElementById('undo')!.addEventListener('click', () => this.undo(), { signal });
+    shadow.getElementById('redo')!.addEventListener('click', () => this.redo(), { signal });
 
     const sizeInput = shadow.getElementById('brush-size') as HTMLInputElement;
     const sizeVal = shadow.getElementById('brush-size-val')!;
@@ -392,6 +479,22 @@ export class ArEditorAdvanced extends HTMLElement {
   private attachKeyboardHandlers(signal: AbortSignal): void {
     window.addEventListener('keydown', (e) => {
       if (!this.hasAttribute('active')) return;
+
+      const mod = e.ctrlKey || e.metaKey;
+      if (mod && (e.key === 'z' || e.key === 'Z')) {
+        e.preventDefault();
+        if (this.busy) return;
+        if (e.shiftKey) this.redo();
+        else this.undo();
+        return;
+      }
+      if (mod && (e.key === 'y' || e.key === 'Y')) {
+        e.preventDefault();
+        if (this.busy) return;
+        this.redo();
+        return;
+      }
+
       if (e.key === 'Escape') {
         if (this.lassoAnchors || this.lassoRaw) {
           e.preventDefault();
@@ -435,8 +538,10 @@ export class ArEditorAdvanced extends HTMLElement {
       return;
     }
 
-    // brush / eraser
+    // brush / eraser — snapshot BEFORE the first stamp so undo takes us
+    // back to the state at the instant the user pressed down.
     try { this.canvas.setPointerCapture(e.pointerId); } catch { /* noop */ }
+    this.pushUndo();
     this.drawing = true;
     this.lastImgX = ix;
     this.lastImgY = iy;
@@ -759,6 +864,10 @@ export class ArEditorAdvanced extends HTMLElement {
     const w = this.current.width;
     const h = this.current.height;
 
+    // Every action is a single undo step. Push BEFORE mutating so undo
+    // reverts the whole action atomically, same contract as brush/eraser.
+    this.pushUndo();
+
     // Mechanical erase — pure alpha mask, no ML, no RGB replacement.
     if (kind === 'erase') {
       const mask = rasterizePolygon(this.lassoAnchors, w, h);
@@ -775,6 +884,7 @@ export class ArEditorAdvanced extends HTMLElement {
 
     this.busy = true;
     this.syncLassoActionsUI();
+    this.syncHistoryUI();
     try {
       // Pull previous alpha from the working buffer (needed for refine; ignored
       // for crop, but processRoi accepts null there anyway).
@@ -812,6 +922,7 @@ export class ArEditorAdvanced extends HTMLElement {
     } finally {
       this.busy = false;
       this.syncLassoActionsUI();
+      this.syncHistoryUI();
     }
   }
 

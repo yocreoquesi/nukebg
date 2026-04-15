@@ -87,6 +87,8 @@ const translations: Translations = {
     'advanced.actionEraseArea': 'Erase area',
     'advanced.working': 'Processing…',
     'advanced.refineError': 'Re-detect failed',
+    'advanced.undo': 'Undo',
+    'advanced.redo': 'Redo',
 
     // Viewer
     'viewer.original': 'Before',
@@ -227,6 +229,8 @@ const translations: Translations = {
     'advanced.actionEraseArea': 'Borrar zona',
     'advanced.working': 'Procesando\u2026',
     'advanced.refineError': 'Fall\u00F3 la re-detecci\u00F3n',
+    'advanced.undo': 'Deshacer',
+    'advanced.redo': 'Rehacer',
 
     // Viewer
     'viewer.original': 'Antes',
@@ -367,6 +371,8 @@ const translations: Translations = {
     'advanced.actionEraseArea': 'Effacer la zone',
     'advanced.working': 'Traitement\u2026',
     'advanced.refineError': '\u00C9chec de la red\u00E9tection',
+    'advanced.undo': 'Annuler',
+    'advanced.redo': 'R\u00E9tablir',
 
     // Viewer
     'viewer.original': 'Avant',
@@ -507,6 +513,8 @@ const translations: Translations = {
     'advanced.actionEraseArea': 'Bereich l\u00F6schen',
     'advanced.working': 'Verarbeitung\u2026',
     'advanced.refineError': 'Neuerkennung fehlgeschlagen',
+    'advanced.undo': 'R\u00FCckg\u00E4ngig',
+    'advanced.redo': 'Wiederholen',
 
     // Viewer
     'viewer.original': 'Vorher',
@@ -647,6 +655,8 @@ const translations: Translations = {
     'advanced.actionEraseArea': 'Apagar zona',
     'advanced.working': 'A processar\u2026',
     'advanced.refineError': 'Falhou a re-dete\u00E7\u00E3o',
+    'advanced.undo': 'Desfazer',
+    'advanced.redo': 'Refazer',
 
     // Viewer
     'viewer.original': 'Antes',
@@ -787,6 +797,8 @@ const translations: Translations = {
     'advanced.actionEraseArea': '\u64E6\u9664\u533A\u57DF',
     'advanced.working': '\u5904\u7406\u4E2D\u2026',
     'advanced.refineError': '\u91CD\u65B0\u68C0\u6D4B\u5931\u8D25',
+    'advanced.undo': '\u64A4\u9500',
+    'advanced.redo': '\u91CD\u505A',
 
     // Viewer
     'viewer.original': '\u539F\u56FE',
