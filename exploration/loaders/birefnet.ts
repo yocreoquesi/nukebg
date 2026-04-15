@@ -1,34 +1,82 @@
 /**
- * BiRefNet-general loader — to be implemented in Phase 2.
+ * BiRefNet-general loader via ONNX Runtime Web + WebGPU.
  *
- * Plan:
- *   - Fetch weights from https://huggingface.co/ZhengPeng7/BiRefNet (FP16 ONNX, full SWIN-L)
- *   - Create ort.InferenceSession with executionProviders: ['webgpu', 'wasm']
- *   - Preprocess: resize to 1024x1024, normalize with ImageNet mean/std
- *   - BiRefNet has multi-stage outputs; we take the final refined mask
- *   - Postprocess: sigmoid, resize back, quantize
+ * Model: full Swin-L BiRefNet-general FP16 ONNX (~220 MB).
+ * License: MIT.
+ * Source: https://huggingface.co/ZhengPeng7/BiRefNet
  *
- * If full weight (~220 MB) proves too slow or too heavy on mid-tier laptops,
- * we fall back to BiRefNet-lite (~80 MB) as a secondary option before killing
- * the candidate entirely.
+ * Implementation notes:
+ *   - Weights live at a HuggingFace CDN URL (see MODEL_URL). If the ONNX isn't
+ *     published under that exact path, the loader reports a clear error and the
+ *     lab falls back to the baseline. Export instructions in exploration/README.md.
+ *   - Input: NCHW float32 1x3x1024x1024, ImageNet-normalized.
+ *   - BiRefNet emits multiple outputs; the final refined mask is last.
+ *   - Output: sigmoid → bilinear upscale to input dims → Uint8 alpha 0..255.
+ *   - ORT provider preference: WebGPU, fall back to WASM.
  */
 
+import * as ort from 'onnxruntime-web/webgpu';
 import type { ModelLoader, SegmentInput, SegmentOutput } from './types';
+import { preprocessImageNet } from './preprocess';
+import { sigmoidResizeQuantize } from './postprocess';
+import { createOrtSession } from './ort-session';
+
+const MODEL_URL =
+  'https://huggingface.co/ZhengPeng7/BiRefNet/resolve/main/onnx/model_fp16.onnx';
+const MODEL_SIZE = 1024;
 
 export function createBiRefNetLoader(): ModelLoader {
+  let session: ort.InferenceSession | null = null;
+  let backend: 'webgpu' | 'wasm' = 'wasm';
+
+  async function ensureSession(): Promise<ort.InferenceSession> {
+    if (session) return session;
+    const result = await createOrtSession({ url: MODEL_URL, preferWebGpu: true });
+    session = result.session;
+    backend = result.backend;
+    return session;
+  }
+
   return {
     id: 'birefnet-general',
     label: 'BiRefNet-general (full, MIT)',
     approxDownloadMb: 220,
     requiresWebGpu: true,
+
     async warmup() {
-      throw new Error('birefnet loader: implement in Phase 2');
+      await ensureSession();
     },
-    async segment(_input: SegmentInput): Promise<SegmentOutput> {
-      throw new Error('birefnet loader: implement in Phase 2');
+
+    async segment(input: SegmentInput): Promise<SegmentOutput> {
+      const started = performance.now();
+      const sess = await ensureSession();
+
+      const { tensor } = preprocessImageNet(input.pixels, input.width, input.height, MODEL_SIZE);
+      const feeds: Record<string, ort.Tensor> = {
+        [sess.inputNames[0]]: new ort.Tensor('float32', tensor, [1, 3, MODEL_SIZE, MODEL_SIZE]),
+      };
+
+      const results = await sess.run(feeds);
+      // Final refined mask is conventionally the last output in BiRefNet exports.
+      const maskOutput = results[sess.outputNames[sess.outputNames.length - 1]];
+      const logits = maskOutput.data as Float32Array;
+
+      const alpha = sigmoidResizeQuantize(logits, MODEL_SIZE, input.width, input.height);
+
+      return {
+        alpha,
+        width: input.width,
+        height: input.height,
+        latencyMs: performance.now() - started,
+        backend,
+      };
     },
+
     async dispose() {
-      // released in Phase 2
+      if (session) {
+        await session.release();
+        session = null;
+      }
     },
   };
 }
