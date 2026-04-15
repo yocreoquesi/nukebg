@@ -291,6 +291,102 @@ export class ArEditorAdvanced extends HTMLElement {
           color: #000;
         }
         .restore-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+        .header-actions {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+        }
+        .help-btn {
+          font-family: inherit;
+          font-size: 12px;
+          font-weight: 700;
+          background: transparent;
+          color: var(--color-accent, #ffd700);
+          border: 1px solid var(--color-accent, #ffd700);
+          border-radius: 50%;
+          width: 22px;
+          height: 22px;
+          padding: 0;
+          cursor: pointer;
+          line-height: 1;
+          transition: background 0.15s, color 0.15s;
+        }
+        .help-btn:hover,
+        .help-btn[aria-expanded="true"] {
+          background: var(--color-accent, #ffd700);
+          color: #000;
+        }
+        .help-panel {
+          margin-bottom: 8px;
+          padding: 10px 12px;
+          border: 1px solid rgba(255, 215, 0, 0.35);
+          border-radius: 3px;
+          background: rgba(255, 215, 0, 0.03);
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+          gap: 14px;
+        }
+        .help-panel.hidden { display: none; }
+        .help-section h4 {
+          margin: 0 0 6px 0;
+          font-size: 10px;
+          color: var(--color-accent, #ffd700);
+          text-transform: uppercase;
+          letter-spacing: 0.08em;
+        }
+        .help-subhead {
+          font-size: 10px;
+          color: var(--color-text-secondary, #999);
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          margin: 8px 0 4px 0;
+        }
+        .help-section dl {
+          margin: 0;
+          display: grid;
+          grid-template-columns: max-content 1fr;
+          column-gap: 10px;
+          row-gap: 4px;
+          align-items: baseline;
+        }
+        .help-section dt {
+          font-size: 11px;
+          color: var(--color-text, #ddd);
+          white-space: nowrap;
+        }
+        .help-section dd {
+          margin: 0;
+          font-size: 11px;
+          color: var(--color-text-tertiary, #888);
+          line-height: 1.4;
+        }
+        .help-section kbd {
+          display: inline-block;
+          padding: 1px 5px;
+          border: 1px solid rgba(255, 215, 0, 0.45);
+          border-bottom-width: 2px;
+          border-radius: 3px;
+          background: rgba(0, 0, 0, 0.35);
+          color: var(--color-text, #ddd);
+          font-family: inherit;
+          font-size: 10px;
+          line-height: 1;
+        }
+        .help-note {
+          margin: 8px 0 0 0;
+          padding: 6px 8px;
+          border-left: 2px solid var(--color-accent, #ffd700);
+          background: rgba(255, 215, 0, 0.05);
+          font-size: 10px;
+          color: var(--color-text-secondary, #999);
+          line-height: 1.4;
+        }
+        /* Detect touch-primary devices — hide desktop controls there. */
+        .help-controls-touch { display: none; }
+        @media (pointer: coarse) {
+          .help-controls-desktop { display: none; }
+          .help-controls-touch { display: block; }
+        }
         .toolbar {
           display: flex;
           gap: 10px;
@@ -477,7 +573,54 @@ export class ArEditorAdvanced extends HTMLElement {
       </style>
       <div class="header">
         <div class="title">${t('advanced.title')}</div>
-        <button type="button" class="restore-btn" id="restore-original" title="${t('advanced.restoreHint')}">${t('advanced.restore')}</button>
+        <div class="header-actions">
+          <button type="button" class="help-btn" id="help-toggle" title="${t('advanced.help')}" aria-label="${t('advanced.help')}" aria-expanded="false">?</button>
+          <button type="button" class="restore-btn" id="restore-original" title="${t('advanced.restoreHint')}">${t('advanced.restore')}</button>
+        </div>
+      </div>
+      <div class="help-panel hidden" id="help-panel" role="region" aria-label="${t('advanced.helpTitle')}">
+        <div class="help-section">
+          <h4>${t('advanced.helpTools')}</h4>
+          <dl>
+            <dt>${t('advanced.toolBrush')}</dt><dd>${t('advanced.helpBrushDesc')}</dd>
+            <dt>${t('advanced.toolEraser')}</dt><dd>${t('advanced.helpEraserDesc')}</dd>
+            <dt>${t('advanced.toolLasso')}</dt><dd>${t('advanced.helpLassoDesc')}</dd>
+          </dl>
+        </div>
+        <div class="help-section">
+          <h4>${t('advanced.helpActions')}</h4>
+          <dl>
+            <dt>${t('advanced.actionCrop')}</dt><dd>${t('advanced.actionCropHint')}</dd>
+            <dt>${t('advanced.actionRefine')}</dt><dd>${t('advanced.actionRefineHint')}</dd>
+            <dt>${t('advanced.actionEraseObject')}</dt><dd>${t('advanced.actionEraseObjectHint')}</dd>
+          </dl>
+          <p class="help-note">${t('advanced.helpPreviewNote')}</p>
+        </div>
+        <div class="help-section">
+          <h4>${t('advanced.helpControls')}</h4>
+          <div class="help-controls-desktop">
+            <div class="help-subhead">${t('advanced.helpControlsDesktop')}</div>
+            <dl class="shortcut-list">
+              <dt><kbd>Ctrl</kbd>+<kbd>Z</kbd></dt><dd>${t('advanced.keyUndo')}</dd>
+              <dt><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Z</kbd></dt><dd>${t('advanced.keyRedo')}</dd>
+              <dt><kbd>Esc</kbd></dt><dd>${t('advanced.keyClearLasso')}</dd>
+              <dt><kbd>0</kbd></dt><dd>${t('advanced.keyResetZoom')}</dd>
+              <dt><kbd>Ctrl</kbd>+<kbd>+</kbd> / <kbd>−</kbd></dt><dd>${t('advanced.keyZoom')}</dd>
+              <dt><kbd>[</kbd> / <kbd>]</kbd></dt><dd>${t('advanced.keyBrushSize')}</dd>
+              <dt>Wheel</dt><dd>${t('advanced.keyZoom')}</dd>
+              <dt>Middle-click drag</dt><dd>${t('advanced.keyPan')}</dd>
+              <dt>Double-click</dt><dd>${t('advanced.keyDeleteAnchor')}</dd>
+            </dl>
+          </div>
+          <div class="help-controls-touch">
+            <div class="help-subhead">${t('advanced.helpControlsTouch')}</div>
+            <dl class="shortcut-list">
+              <dt>${t('advanced.gestureOneFinger')}</dt><dd>${t('advanced.gestureDraw')}</dd>
+              <dt>${t('advanced.gesturePinch')}</dt><dd>${t('advanced.gestureZoom')}</dd>
+              <dt>${t('advanced.gestureDoubleTap')}</dt><dd>${t('advanced.keyDeleteAnchor')}</dd>
+            </dl>
+          </div>
+        </div>
       </div>
       <div class="toolbar">
         <div class="tool-group" role="group" aria-label="Tools">
@@ -525,6 +668,7 @@ export class ArEditorAdvanced extends HTMLElement {
     shadow.getElementById('cancel')!.addEventListener('click', () => this.cancel(), { signal });
     shadow.getElementById('done')!.addEventListener('click', () => this.commit(), { signal });
     shadow.getElementById('restore-original')!.addEventListener('click', () => this.restoreToOriginal(), { signal });
+    shadow.getElementById('help-toggle')!.addEventListener('click', () => this.toggleHelp(), { signal });
     shadow.getElementById('tool-brush')!.addEventListener('click', () => this.setTool('brush'), { signal });
     shadow.getElementById('tool-eraser')!.addEventListener('click', () => this.setTool('eraser'), { signal });
     shadow.getElementById('tool-lasso')!.addEventListener('click', () => this.setTool('lasso'), { signal });
@@ -929,6 +1073,16 @@ export class ArEditorAdvanced extends HTMLElement {
   private onTouchEnd(): void {
     this.pinching = false;
     this.lastPinchDist = 0;
+  }
+
+  private toggleHelp(): void {
+    const panel = this.shadowRoot?.getElementById('help-panel');
+    const btn = this.shadowRoot?.getElementById('help-toggle');
+    if (!panel || !btn) return;
+    const open = panel.classList.toggle('hidden');
+    // toggle returns the new state of the class — true = hidden was just added.
+    const nowOpen = !open;
+    btn.setAttribute('aria-expanded', nowOpen ? 'true' : 'false');
   }
 
   private restoreToOriginal(): void {
