@@ -13,6 +13,8 @@ import type { ArBatchGrid } from './ar-batch-grid';
 import type { BatchItem, StageSnapshot } from '../types/batch';
 import { createZip, safeZipEntryName, downloadBlob } from '../utils/zip';
 import { composeAtOriginal } from '../utils/final-composite';
+import { isLabVisible } from '../../exploration/lab-visibility';
+import type { ArEditorAdvanced } from './ar-editor-advanced';
 
 export class ArApp extends HTMLElement {
   private static readonly MODEL_ID: ModelId = 'briaai/RMBG-1.4';
@@ -533,6 +535,26 @@ export class ArApp extends HTMLElement {
           cursor: pointer;
           transition: color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
         }
+        .advanced-btn {
+          font-family: 'JetBrains Mono', monospace;
+          font-size: 11px;
+          background: transparent;
+          color: var(--color-accent, #ffd700);
+          border: 1px dashed var(--color-accent, #ffd700);
+          border-radius: 2px;
+          padding: 4px 10px;
+          letter-spacing: 0.05em;
+          cursor: pointer;
+          transition: background 0.2s ease, color 0.2s ease;
+        }
+        .advanced-btn:hover {
+          background: var(--color-accent, #ffd700);
+          color: #000;
+        }
+        .advanced-btn[data-active="true"] {
+          background: var(--color-accent, #ffd700);
+          color: #000;
+        }
         .edit-btn:hover {
           color: var(--color-accent-primary, #00ff41);
           border-color: var(--color-accent-primary, #00ff41);
@@ -951,7 +973,6 @@ export class ArApp extends HTMLElement {
             <input type="range" id="precision-slider" min="0" max="3" value="1" step="1" aria-label="Reactor power level">
             <span class="precision-label" id="precision-label">Normal</span>
           </div>
-          <ar-model-lab id="model-lab-hero"></ar-model-lab>
         </div>
         <ar-dropzone></ar-dropzone>
         <ar-batch-grid id="batch-grid" style="display:none"></ar-batch-grid>
@@ -980,12 +1001,13 @@ export class ArApp extends HTMLElement {
               <input type="range" id="precision-slider-ws" min="0" max="3" value="1" step="1" aria-label="Reactor power level">
               <span class="precision-label" id="precision-label-ws">Normal</span>
             </div>
-            <ar-model-lab id="model-lab-ws"></ar-model-lab>
+            <button class="advanced-btn" id="advanced-btn" style="display:none" aria-label="Toggle advanced editor">[LAB] Modo avanzado</button>
           </div>
           <div class="precision-marquee" id="precision-marquee-ws"><span>☢ NUKEBG | DROP. NUKE. DOWNLOAD. | Your images never leave your device | nukebg.app ☢ NUKEBG | DROP. NUKE. DOWNLOAD. | Your images never leave your device | nukebg.app ☢</span></div>
           <ar-download></ar-download>
           <button class="edit-btn" id="edit-btn" style="display:none">${t('edit.btn')}</button>
           <ar-editor style="display:none" id="editor-section"></ar-editor>
+          <ar-editor-advanced id="editor-advanced"></ar-editor-advanced>
           </div>
         </div>
       </section>
@@ -1448,6 +1470,51 @@ export class ArApp extends HTMLElement {
       editBtn.textContent = t('edit.discard');
     }, { signal });
 
+    // [LAB] Advanced editor toggle
+    this.shadowRoot!.querySelector('#advanced-btn')?.addEventListener('click', () => {
+      if (!isLabVisible()) return;
+      const adv = this.shadowRoot!.querySelector('#editor-advanced') as ArEditorAdvanced | null;
+      const btn = this.shadowRoot!.querySelector('#advanced-btn') as HTMLElement | null;
+      if (!adv || !btn) return;
+      const isOpen = adv.hasAttribute('active');
+      if (isOpen) {
+        adv.removeAttribute('active');
+        btn.removeAttribute('data-active');
+        return;
+      }
+      const current = this.lastResultImageData ?? this.currentImageData;
+      const original = this.currentOriginalImageData ?? this.currentImageData;
+      if (!current || !original) return;
+      adv.setImage(current, original);
+      adv.setAttribute('active', '');
+      btn.setAttribute('data-active', 'true');
+      adv.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, { signal });
+
+    // [LAB] Advanced editor — cancel
+    this.shadowRoot!.addEventListener('ar:advanced-cancel', () => {
+      const btn = this.shadowRoot!.querySelector('#advanced-btn') as HTMLElement | null;
+      btn?.removeAttribute('data-active');
+    }, { signal });
+
+    // [LAB] Advanced editor — done (step 1 is a no-op roundtrip; real work in later steps)
+    this.shadowRoot!.addEventListener('ar:advanced-done', async (e: Event) => {
+      const detail = (e as CustomEvent<{ imageData: ImageData }>).detail;
+      const btn = this.shadowRoot!.querySelector('#advanced-btn') as HTMLElement | null;
+      btn?.removeAttribute('data-active');
+
+      const { exportPng } = await import('../utils/image-io');
+      const blob = await exportPng(detail.imageData);
+      this.viewer.setResult(detail.imageData, blob);
+      await this.download.setResult(detail.imageData, this.currentFileName, 0, blob);
+      this.lastResultImageData = detail.imageData;
+    }, { signal });
+  }
+
+  private setAdvancedBtnVisible(show: boolean): void {
+    const btn = this.shadowRoot?.querySelector('#advanced-btn') as HTMLElement | null;
+    if (!btn) return;
+    btn.style.display = show && isLabVisible() ? 'inline-block' : 'none';
   }
 
   private startCrtFlicker(): void {
@@ -1614,6 +1681,7 @@ export class ArApp extends HTMLElement {
       // Show edit button
       const editBtn = this.shadowRoot!.querySelector('#edit-btn') as HTMLElement;
       if (editBtn) editBtn.style.display = 'block';
+      this.setAdvancedBtnVisible(true);
       // Hide editor if it was open from a previous edit
       const editorSection = this.shadowRoot!.querySelector('#editor-section') as HTMLElement;
       if (editorSection) editorSection.style.display = 'none';
@@ -1808,6 +1876,7 @@ export class ArApp extends HTMLElement {
       this.download.reset();
       const editBtn = this.shadowRoot!.querySelector('#edit-btn') as HTMLElement;
       if (editBtn) editBtn.style.display = 'none';
+      this.setAdvancedBtnVisible(false);
       const editorSection = this.shadowRoot!.querySelector('#editor-section') as HTMLElement;
       if (editorSection) editorSection.style.display = 'none';
       return;
@@ -1835,6 +1904,7 @@ export class ArApp extends HTMLElement {
       }
       const editBtn = this.shadowRoot!.querySelector('#edit-btn') as HTMLElement;
       if (editBtn) editBtn.style.display = 'none';
+      this.setAdvancedBtnVisible(false);
       return;
     }
 
@@ -1866,6 +1936,7 @@ export class ArApp extends HTMLElement {
       this.lastResultImageData = finalImageData;
       const editBtn = this.shadowRoot!.querySelector('#edit-btn') as HTMLElement;
       if (editBtn) editBtn.style.display = 'block';
+      this.setAdvancedBtnVisible(true);
       const editorSection = this.shadowRoot!.querySelector('#editor-section') as HTMLElement;
       if (editorSection) editorSection.style.display = 'none';
     }
@@ -1882,6 +1953,9 @@ export class ArApp extends HTMLElement {
     if (editorSection) editorSection.style.display = 'none';
     const editBtn = this.shadowRoot!.querySelector('#edit-btn') as HTMLElement;
     if (editBtn) editBtn.style.display = 'none';
+    this.setAdvancedBtnVisible(false);
+    const adv = this.shadowRoot!.querySelector('#editor-advanced') as HTMLElement | null;
+    adv?.removeAttribute('active');
     this.setBatchUiMode('grid');
   }
 
