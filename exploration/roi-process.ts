@@ -2,16 +2,12 @@
  * Region-of-interest processing for the lab.
  *
  * Takes a user-drawn freehand polygon + the original image + an injected
- * segmenter and returns a final composited ImageData. Four modes:
+ * segmenter and returns a final composited ImageData. Three modes:
  *   - 'crop':         transparent outside the polygon, segmentation inside.
  *   - 'refine':       previous alpha outside the polygon, segmentation inside.
  *   - 'erase-object': previous alpha everywhere EXCEPT where the segmenter
  *                     detects subject inside the polygon — there alpha=0.
  *                     "Smart erase": cut the object, not the rectangle.
- *   - 'erase-fill':   same mask as erase-object, but the caller post-
- *                     processes the RGB pixels (LaMa inpaint) — this mode
- *                     returns the computed mask + alpha=0 inside it so the
- *                     caller can composite inpainted RGB back in.
  *
  * Pure function on top of:
  *   - rasterizePolygon(): renders the freehand path to a binary mask via
@@ -26,7 +22,7 @@ export interface PolygonPoint {
   y: number;
 }
 
-export type RoiMode = 'crop' | 'refine' | 'erase-object' | 'erase-fill';
+export type RoiMode = 'crop' | 'refine' | 'erase-object';
 
 export interface RoiInput {
   /** Full-resolution input image (untouched RGBA). */
@@ -161,7 +157,7 @@ export async function processRoi(input: RoiInput): Promise<RoiOutput> {
   const { original, polygon, previousAlpha, mode, segment } = input;
   const marginRatio = input.bboxMarginRatio ?? 0.08;
   const eraseThreshold = input.eraseThreshold ?? 128;
-  const isEraseMode = mode === 'erase-object' || mode === 'erase-fill';
+  const isEraseMode = mode === 'erase-object';
 
   if (polygon.length < 3) {
     throw new Error('ROI polygon must have at least 3 points');
@@ -212,9 +208,7 @@ export async function processRoi(input: RoiInput): Promise<RoiOutput> {
         // Erase where the segmenter found a subject inside the polygon —
         // leave the rest of the polygon untouched (conserve previousAlpha).
         if (segVal >= eraseThreshold) {
-          if (mode === 'erase-object') alpha[idx] = 0;
-          // 'erase-fill' leaves alpha as previousAlpha; the caller inpaints
-          // the RGB pixels so the final image stays visible (opaque).
+          alpha[idx] = 0;
           if (eraseMask) eraseMask[idx] = 1;
         }
       } else {

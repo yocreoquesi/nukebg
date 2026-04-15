@@ -30,7 +30,6 @@
 
 import { isLabVisible } from '../../exploration/lab-visibility';
 import { createLoader, type ModelLoader } from '../../exploration/loaders';
-import { inpaintWithLama } from '../../exploration/loaders/lama-inpaint';
 import { processRoi } from '../../exploration/roi-process';
 import { t } from '../i18n';
 import { simplifyClosed, type Point } from './lasso-simplify';
@@ -56,7 +55,15 @@ const MAX_ZOOM = 10;
 const ZOOM_STEP = 1.15;
 
 type Tool = 'brush' | 'eraser' | 'lasso';
-type LassoAction = 'crop' | 'refine' | 'erase-object' | 'erase-fill';
+type LassoAction = 'crop' | 'refine' | 'erase-object';
+
+interface PendingPreview {
+  kind: LassoAction;
+  /** Full-image alpha buffer to apply on confirm. Working buffer is unchanged. */
+  newAlpha: Uint8Array;
+  /** Cached tint overlay (image-sized) the display canvas composites on top. */
+  overlay: HTMLCanvasElement;
+}
 
 export class ArEditorAdvanced extends HTMLElement {
   private canvas: HTMLCanvasElement | null = null;
@@ -108,6 +115,11 @@ export class ArEditorAdvanced extends HTMLElement {
   // Shared RMBG-1.4 loader, warmed on first refine and reused afterwards.
   private loader: ModelLoader | null = null;
   private busy = false;
+
+  // Pending action awaiting user confirmation. While set, the display shows
+  // a red/green tint overlay on top of the working buffer; only Apply writes
+  // the new alpha to the buffer.
+  private pendingPreview: PendingPreview | null = null;
 
   // Undo/redo stacks of full RGBA snapshots (Uint8ClampedArray, image size).
   // Full snapshots match ar-editor's pattern — simple, robust, and still
@@ -343,6 +355,17 @@ export class ArEditorAdvanced extends HTMLElement {
           border-color: #ff6d6d;
         }
         .action-btn.danger:hover:not(:disabled) { background: #ff6d6d; color: #000; }
+        .action-btn.confirm {
+          color: #7bd37b;
+          border-color: #7bd37b;
+        }
+        .action-btn.confirm:hover:not(:disabled) { background: #7bd37b; color: #000; }
+        .preview-actions {
+          display: none;
+          gap: 6px;
+          align-items: center;
+        }
+        .preview-actions.visible { display: inline-flex; }
         .busy-indicator {
           font-size: 10px;
           color: var(--color-accent, #ffd700);
@@ -471,8 +494,11 @@ export class ArEditorAdvanced extends HTMLElement {
           <button type="button" class="action-btn" id="action-crop" title="${t('advanced.actionCropHint')}">${t('advanced.actionCrop')}</button>
           <button type="button" class="action-btn" id="action-refine" title="${t('advanced.actionRefineHint')}">${t('advanced.actionRefine')}</button>
           <button type="button" class="action-btn danger" id="action-erase-object" title="${t('advanced.actionEraseObjectHint')}">${t('advanced.actionEraseObject')}</button>
-          <button type="button" class="action-btn danger" id="action-erase-fill" title="${t('advanced.actionEraseFillHint')}">${t('advanced.actionEraseFill')}</button>
           <span class="busy-indicator hidden" id="busy">${t('advanced.working')}</span>
+        </div>
+        <div class="preview-actions" id="preview-actions" role="group" aria-label="Confirm preview">
+          <button type="button" class="action-btn confirm" id="action-apply-preview" title="${t('advanced.previewApplyHint')}">${t('advanced.previewApply')}</button>
+          <button type="button" class="action-btn" id="action-cancel-preview" title="${t('advanced.previewCancelHint')}">${t('advanced.previewCancel')}</button>
         </div>
         <div class="zoom-group" role="group" aria-label="${t('advanced.zoom')}">
           <button type="button" class="zoom-btn" id="zoom-out" title="${t('advanced.zoomOut')}" aria-label="${t('advanced.zoomOut')}">−</button>
@@ -502,10 +528,11 @@ export class ArEditorAdvanced extends HTMLElement {
     shadow.getElementById('tool-brush')!.addEventListener('click', () => this.setTool('brush'), { signal });
     shadow.getElementById('tool-eraser')!.addEventListener('click', () => this.setTool('eraser'), { signal });
     shadow.getElementById('tool-lasso')!.addEventListener('click', () => this.setTool('lasso'), { signal });
-    shadow.getElementById('action-crop')!.addEventListener('click', () => this.runAction('crop'), { signal });
-    shadow.getElementById('action-refine')!.addEventListener('click', () => this.runAction('refine'), { signal });
-    shadow.getElementById('action-erase-object')!.addEventListener('click', () => this.runAction('erase-object'), { signal });
-    shadow.getElementById('action-erase-fill')!.addEventListener('click', () => this.runAction('erase-fill'), { signal });
+    shadow.getElementById('action-crop')!.addEventListener('click', () => this.previewAction('crop'), { signal });
+    shadow.getElementById('action-refine')!.addEventListener('click', () => this.previewAction('refine'), { signal });
+    shadow.getElementById('action-erase-object')!.addEventListener('click', () => this.previewAction('erase-object'), { signal });
+    shadow.getElementById('action-apply-preview')!.addEventListener('click', () => this.applyPreview(), { signal });
+    shadow.getElementById('action-cancel-preview')!.addEventListener('click', () => this.cancelPreview(), { signal });
     shadow.getElementById('undo')!.addEventListener('click', () => this.undo(), { signal });
     shadow.getElementById('redo')!.addEventListener('click', () => this.redo(), { signal });
     shadow.getElementById('zoom-in')!.addEventListener('click', () => this.setZoom(this.zoom * ZOOM_STEP), { signal });
@@ -634,6 +661,10 @@ export class ArEditorAdvanced extends HTMLElement {
     this.updateCursor(e);
 
     if (this.tool === 'lasso') {
+      // Any interaction with the lasso while a preview is pending voids it —
+      // the preview was computed for a specific polygon shape, so moving
+      // anchors or starting a new stroke invalidates it.
+      if (this.pendingPreview) this.cancelPreview();
       // Hit-test existing anchors first — dragging one reshapes the polygon.
       if (this.lassoAnchors) {
         const idx = this.hitAnchor(ix, iy);
@@ -930,26 +961,42 @@ export class ArEditorAdvanced extends HTMLElement {
     if (eraser) eraser.classList.toggle('active', this.tool === 'eraser');
     if (lasso) lasso.classList.toggle('active', this.tool === 'lasso');
     if (sizeRow) sizeRow.classList.toggle('hidden', this.tool === 'lasso');
-    if (hint) hint.textContent = this.tool === 'lasso' ? t('advanced.hintLasso') : t('advanced.hint');
+    if (hint && this.tool !== 'lasso') hint.textContent = t('advanced.hint');
     this.syncLassoActionsUI();
   }
 
   private syncLassoActionsUI(): void {
     const row = this.shadowRoot?.getElementById('lasso-actions');
+    const previewRow = this.shadowRoot?.getElementById('preview-actions');
     const busy = this.shadowRoot?.getElementById('busy');
-    if (!row) return;
-    const show = this.tool === 'lasso' && this.lassoAnchors !== null && this.lassoAnchors.length >= MIN_ANCHORS;
-    row.classList.toggle('visible', show);
-    if (!show) return;
-    const buttons = row.querySelectorAll<HTMLButtonElement>('button.action-btn');
-    buttons.forEach((b) => { b.disabled = this.busy; });
+    const hint = this.shadowRoot?.getElementById('hint');
+    if (!row || !previewRow) return;
+    const hasAnchors =
+      this.tool === 'lasso' && this.lassoAnchors !== null && this.lassoAnchors.length >= MIN_ANCHORS;
+    const isPreviewing = this.pendingPreview !== null;
+    // Action row: visible only when we have anchors AND no preview pending.
+    row.classList.toggle('visible', hasAnchors && !isPreviewing);
+    row.querySelectorAll<HTMLButtonElement>('button.action-btn').forEach((b) => {
+      b.disabled = this.busy;
+    });
     if (busy) busy.classList.toggle('hidden', !this.busy);
+    // Preview row: visible only while a preview is staged.
+    previewRow.classList.toggle('visible', isPreviewing);
+    previewRow.querySelectorAll<HTMLButtonElement>('button.action-btn').forEach((b) => {
+      b.disabled = this.busy;
+    });
+    // Hint follows the lasso state: base hint while selecting, preview hint
+    // while awaiting confirm. Non-lasso tools set their own hint in syncToolUI.
+    if (hint && this.tool === 'lasso') {
+      hint.textContent = isPreviewing ? t('advanced.previewHint') : t('advanced.hintLasso');
+    }
   }
 
   private clearLasso(): void {
     this.lassoRaw = null;
     this.lassoAnchors = null;
     this.dragAnchorIndex = null;
+    this.pendingPreview = null;
     this.syncLassoActionsUI();
   }
 
@@ -968,6 +1015,9 @@ export class ArEditorAdvanced extends HTMLElement {
     if (!this.canvas || !this.ctx) return;
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
     if (this.working) this.ctx.drawImage(this.working, this.padX, this.padY);
+    if (this.pendingPreview) {
+      this.ctx.drawImage(this.pendingPreview.overlay, this.padX, this.padY);
+    }
     this.drawLassoOverlay();
     this.drawCursorPreview();
   }
@@ -1040,24 +1090,25 @@ export class ArEditorAdvanced extends HTMLElement {
     this.ctx.restore();
   }
 
-  private async runAction(kind: LassoAction): Promise<void> {
+  /**
+   * Run RMBG on the lasso region and stage the result as a pending preview:
+   * working buffer is NOT modified — the display renders a red/green tint
+   * overlay so the user can confirm or cancel before the action is committed.
+   */
+  private async previewAction(kind: LassoAction): Promise<void> {
     if (this.busy) return;
     if (!this.lassoAnchors || this.lassoAnchors.length < MIN_ANCHORS) return;
     if (!this.working || !this.original || !this.current) return;
+    // If there was a stale preview, drop it — the new action supersedes it.
+    this.pendingPreview = null;
 
     const w = this.current.width;
     const h = this.current.height;
-
-    // Every action is a single undo step. Push BEFORE mutating so undo
-    // reverts the whole action atomically, same contract as brush/eraser.
-    this.pushUndo();
 
     this.busy = true;
     this.syncLassoActionsUI();
     this.syncHistoryUI();
     try {
-      // Pull previous alpha from the working buffer; crop ignores it, every
-      // other mode needs it so edits compose on top of prior work.
       const wctx = this.working.getContext('2d')!;
       const prevData = wctx.getImageData(0, 0, w, h).data;
       const prevAlpha = new Uint8Array(w * h);
@@ -1077,22 +1128,13 @@ export class ArEditorAdvanced extends HTMLElement {
         segment,
       });
 
-      if (kind === 'erase-fill') {
-        await this.applyEraseFill(result.imageData, result.eraseMask!, prevAlpha);
-      } else {
-        this.working.getContext('2d')!.putImageData(result.imageData, 0, 0);
-      }
-      this.clearLasso();
+      const overlay = this.buildPreviewOverlay(prevAlpha, result.alpha, w, h);
+      this.pendingPreview = { kind, newAlpha: result.alpha, overlay };
       this.redrawDisplay();
     } catch (err) {
-      console.error('[ar-editor-advanced] action failed', err);
-      // Surface a minimal error in the hint row so the user sees something
-      // went wrong without a full modal; they can redraw the lasso and retry.
+      console.error('[ar-editor-advanced] preview failed', err);
       const hint = this.shadowRoot?.getElementById('hint');
-      if (hint) {
-        const key = kind === 'erase-fill' ? 'advanced.inpaintError' : 'advanced.refineError';
-        hint.textContent = t(key);
-      }
+      if (hint) hint.textContent = t('advanced.refineError');
     } finally {
       this.busy = false;
       this.syncLassoActionsUI();
@@ -1101,81 +1143,69 @@ export class ArEditorAdvanced extends HTMLElement {
   }
 
   /**
-   * Finish the erase-fill action: the working buffer already has alpha=prev
-   * with the subject mask computed. Crop the original around the mask, feed
-   * it to LaMa, and splice the reconstructed RGB back in. Alpha stays as
-   * previousAlpha (the fill must be visible).
+   * Render a transparent canvas the size of the image where pixels that will
+   * LOSE alpha are tinted red and pixels that will GAIN alpha are tinted green.
+   * Cached on the preview so it doesn't recompute on every redraw (panning,
+   * cursor updates, etc.).
    */
-  private async applyEraseFill(
-    composedImage: ImageData,
-    eraseMask: Uint8Array,
-    previousAlpha: Uint8Array,
-  ): Promise<void> {
-    if (!this.working || !this.original) return;
-    const w = composedImage.width;
-    const h = composedImage.height;
-
-    // Tight bbox of the mask — the smaller the crop, the faster LaMa runs.
-    let minX = w, minY = h, maxX = -1, maxY = -1;
-    for (let y = 0; y < h; y++) {
-      for (let x = 0; x < w; x++) {
-        if (eraseMask[y * w + x]) {
-          if (x < minX) minX = x;
-          if (y < minY) minY = y;
-          if (x > maxX) maxX = x;
-          if (y > maxY) maxY = y;
-        }
+  private buildPreviewOverlay(
+    prevAlpha: Uint8Array,
+    newAlpha: Uint8Array,
+    w: number,
+    h: number,
+  ): HTMLCanvasElement {
+    const canvas = document.createElement('canvas');
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext('2d')!;
+    const img = ctx.createImageData(w, h);
+    for (let i = 0; i < prevAlpha.length; i++) {
+      const delta = newAlpha[i] - prevAlpha[i];
+      const idx = i * 4;
+      if (delta <= -24) {
+        // Will be erased — red tint.
+        img.data[idx] = 255;
+        img.data[idx + 1] = 60;
+        img.data[idx + 2] = 60;
+        img.data[idx + 3] = 140;
+      } else if (delta >= 24) {
+        // Will be restored — green tint.
+        img.data[idx] = 80;
+        img.data[idx + 1] = 220;
+        img.data[idx + 2] = 120;
+        img.data[idx + 3] = 110;
       }
     }
-    if (maxX < 0) {
-      // No subject detected inside the lasso — nothing to inpaint.
-      this.working.getContext('2d')!.putImageData(composedImage, 0, 0);
-      return;
-    }
+    ctx.putImageData(img, 0, 0);
+    return canvas;
+  }
 
-    // Pad the crop so LaMa has context for the fill. 12% of the mask bbox,
-    // clamped to image bounds.
-    const pad = Math.max(8, Math.round(Math.max(maxX - minX, maxY - minY) * 0.12));
-    const cx = Math.max(0, minX - pad);
-    const cy = Math.max(0, minY - pad);
-    const cw = Math.min(w, maxX + 1 + pad) - cx;
-    const ch = Math.min(h, maxY + 1 + pad) - cy;
-
-    // Crop RGB from the ORIGINAL (pre-edit) image and the mask.
-    const cropPixels = new Uint8ClampedArray(cw * ch * 4);
-    const cropMask = new Uint8Array(cw * ch);
-    for (let y = 0; y < ch; y++) {
-      for (let x = 0; x < cw; x++) {
-        const srcIdx = ((cy + y) * w + (cx + x)) * 4;
-        const dstIdx = (y * cw + x) * 4;
-        cropPixels[dstIdx] = this.original.data[srcIdx];
-        cropPixels[dstIdx + 1] = this.original.data[srcIdx + 1];
-        cropPixels[dstIdx + 2] = this.original.data[srcIdx + 2];
-        cropPixels[dstIdx + 3] = 255;
-        cropMask[y * cw + x] = eraseMask[(cy + y) * w + (cx + x)];
-      }
-    }
-
-    const filled = await inpaintWithLama(cropPixels, cw, ch, cropMask);
-
-    // Splice reconstructed RGB back into working buffer. Alpha = previousAlpha
-    // so the inpaint is fully visible (opaque where previousAlpha was 255).
+  private applyPreview(): void {
+    if (!this.pendingPreview || !this.working || !this.current) return;
+    const { newAlpha } = this.pendingPreview;
+    // Committing is a single undo step — match brush/eraser contract.
+    this.pushUndo();
+    const w = this.current.width;
+    const h = this.current.height;
     const wctx = this.working.getContext('2d')!;
-    const workImg = wctx.getImageData(0, 0, w, h);
-    for (let y = 0; y < ch; y++) {
-      for (let x = 0; x < cw; x++) {
-        if (!cropMask[y * cw + x]) continue;
-        const srcIdx = (y * cw + x) * 4;
-        const gx = cx + x;
-        const gy = cy + y;
-        const dstIdx = (gy * w + gx) * 4;
-        workImg.data[dstIdx] = filled[srcIdx];
-        workImg.data[dstIdx + 1] = filled[srcIdx + 1];
-        workImg.data[dstIdx + 2] = filled[srcIdx + 2];
-        workImg.data[dstIdx + 3] = previousAlpha[gy * w + gx];
-      }
+    const img = wctx.getImageData(0, 0, w, h);
+    for (let i = 0; i < newAlpha.length; i++) {
+      img.data[i * 4 + 3] = newAlpha[i];
     }
-    wctx.putImageData(workImg, 0, 0);
+    wctx.putImageData(img, 0, 0);
+    this.pendingPreview = null;
+    this.clearLasso();
+    this.redrawDisplay();
+    this.syncHistoryUI();
+  }
+
+  private cancelPreview(): void {
+    if (!this.pendingPreview) return;
+    this.pendingPreview = null;
+    // Keep the lasso around so the user can try a different action without
+    // redrawing the loop.
+    this.redrawDisplay();
+    this.syncLassoActionsUI();
   }
 
   private async getLoader(): Promise<ModelLoader> {
