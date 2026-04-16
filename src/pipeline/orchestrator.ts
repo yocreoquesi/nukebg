@@ -356,6 +356,27 @@ export class PipelineOrchestrator {
   }
 
   /**
+   * Decontaminate foreground RGB from color bleed at partial-alpha edges.
+   * Runs the multi-level foreground estimator on the CV worker and returns
+   * a new RGBA buffer where the RGB is the estimated pure foreground and
+   * the alpha channel is preserved.
+   *
+   * Intended to be called at original resolution, AFTER the alpha mask has
+   * been upscaled and any inpainting composited. This is the final-stage
+   * cleanup that kills halos before export.
+   */
+  async estimateForeground(
+    pixels: Uint8ClampedArray,
+    alpha: Uint8Array,
+    width: number,
+    height: number,
+  ): Promise<Uint8ClampedArray> {
+    return this.cvCall<Uint8ClampedArray>('foreground-estimate', {
+      pixels, alpha, width, height,
+    });
+  }
+
+  /**
    * Combine N watermark masks with logical OR.
    * Returns null if all masks are null.
    */

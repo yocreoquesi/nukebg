@@ -1367,7 +1367,7 @@ export class ArApp extends HTMLElement {
       const result = await this.pipeline.process(imageData, ArApp.MODEL_ID, this.selectedPrecision);
       if (this.processingAborted) return;
 
-      const finalImageData = composeAtOriginal({
+      const finalImageData = await this.finalizeImageData({
         originalRgba: originalImageData.data,
         originalWidth: originalImageData.width,
         originalHeight: originalImageData.height,
@@ -1415,6 +1415,33 @@ export class ArApp extends HTMLElement {
         this.enableWorkspaceButtons();
       }
     }
+  }
+
+  /**
+   * Compose final RGBA at original resolution and run foreground estimation
+   * to strip halos/color-bleed from partial-alpha edge pixels.
+   *
+   * Without decontamination, pixels at α ≈ 0.5 still carry ~50% of the
+   * background color in their RGB — which shows through as a gray/colored
+   * fringe when compositing onto a new background. The estimator solves
+   * I = α·F + (1−α)·B per-pixel under a smoothness prior and returns the
+   * pure foreground.
+   */
+  private async finalizeImageData(
+    input: Parameters<typeof composeAtOriginal>[0],
+  ): Promise<ImageData> {
+    const composed = composeAtOriginal(input);
+    if (!this.pipeline) return composed;
+
+    const w = composed.width;
+    const h = composed.height;
+    const alpha = new Uint8Array(w * h);
+    for (let i = 0; i < w * h; i++) alpha[i] = composed.data[i * 4 + 3];
+
+    const observed = new Uint8ClampedArray(composed.data);
+    const decontam = await this.pipeline.estimateForeground(observed, alpha, w, h);
+    // Rewrap to pin the typed-array variance for ImageData (TS 6.x strict).
+    return new ImageData(new Uint8ClampedArray(decontam), w, h);
   }
 
   private makeThumbnail(imageData: ImageData, maxSide = 200): string {
@@ -1535,7 +1562,7 @@ export class ArApp extends HTMLElement {
           this.selectedPrecision,
         );
         if (this.batchAborted) return;
-        const finalImageData = composeAtOriginal({
+        const finalImageData = await this.finalizeImageData({
           originalRgba: item.originalImageData.data,
           originalWidth: item.originalImageData.width,
           originalHeight: item.originalImageData.height,

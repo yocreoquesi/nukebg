@@ -90,10 +90,10 @@ export interface CvForegroundEstimateRequest extends CvBaseRequest {
     alpha: Uint8Array;
     width: number;
     height: number;
+    /** Optional tuning; falls back to module defaults when omitted. */
+    iterationsPerLevel?: number;
+    lambda?: number;
   };
-  /** Optional tuning; falls back to module defaults when omitted. */
-  iterationsPerLevel?: number;
-  lambda?: number;
 }
 
 /** Result from image classification */

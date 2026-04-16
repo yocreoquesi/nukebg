@@ -62,10 +62,9 @@ self.onmessage = (e: MessageEvent<CvWorkerRequest>) => {
         break;
       }
       case 'foreground-estimate': {
-        const req = e.data;
         const result = estimateForeground(
           payload.pixels, payload.alpha, payload.width, payload.height,
-          { iterationsPerLevel: req.iterationsPerLevel, lambda: req.lambda },
+          { iterationsPerLevel: payload.iterationsPerLevel, lambda: payload.lambda },
         );
         self.postMessage({ id, type, result }, [result.buffer]);
         break;
