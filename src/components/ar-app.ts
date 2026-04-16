@@ -298,48 +298,6 @@ export class ArApp extends HTMLElement {
           max-width: 1200px;
           margin: 0 auto;
         }
-        .feature-card {
-          background: transparent;
-          border: none;
-          border-bottom: 1px solid #0d1a0d;
-          border-radius: 0;
-          padding: var(--space-3, 0.75rem) 0;
-          transition: border-color 0.3s ease;
-        }
-        .feature-card:hover {
-          border-color: #1a3a1a;
-          box-shadow: none;
-          transform: none;
-        }
-        .feature-card:hover .feature-icon {
-          filter: drop-shadow(0 0 4px rgba(0, 255, 65, 0.6));
-        }
-        .feature-icon {
-          font-size: 16px;
-          display: inline;
-          margin-right: 8px;
-          margin-bottom: 0;
-          transition: filter 0.3s ease;
-        }
-        .feature-title {
-          font-family: 'JetBrains Mono', monospace;
-          font-size: var(--text-sm, 0.875rem);
-          font-weight: var(--font-semibold, 600);
-          text-transform: uppercase;
-          letter-spacing: 0.05em;
-          color: var(--color-text-tertiary, #008830);
-          margin-bottom: var(--space-2, 0.5rem);
-        }
-        .feature-title::before {
-          content: '> ';
-          color: var(--color-text-tertiary, #008830);
-        }
-        .feature-desc {
-          font-family: 'JetBrains Mono', monospace;
-          font-size: 12px;
-          color: var(--color-text-tertiary, #008830);
-          line-height: 1.5;
-        }
         .features-disclaimer {
           text-align: center;
           font-family: 'JetBrains Mono', monospace;
@@ -474,8 +432,7 @@ export class ArApp extends HTMLElement {
           90% { transform: translate(2px, -2px); }
         }
         :host(.nuke-vibrate) h1,
-        :host(.nuke-vibrate) .subline,
-        :host(.nuke-vibrate) .feature-title {
+        :host(.nuke-vibrate) .subline {
           animation: nuke-shake 0.4s ease-in-out 3;
         }
 
@@ -570,8 +527,7 @@ export class ArApp extends HTMLElement {
           text-shadow: none;
         }
         :host(.precision-override) h1::before,
-        :host(.precision-override) .subline::before,
-        :host(.precision-override) .feature-title::before {
+        :host(.precision-override) .subline::before {
           color: var(--terminal-color-override, #008830);
         }
         :host(.precision-override) .subline,
@@ -579,14 +535,7 @@ export class ArApp extends HTMLElement {
         :host(.precision-override) .features-disclaimer {
           color: var(--terminal-color-override, #00dd44);
         }
-        :host(.precision-override) .feature-desc {
-          color: var(--terminal-color-override, #00dd44);
-          opacity: 0.7;
-        }
-        :host(.precision-override) .feature-title,
-        :host(.precision-override) .precision-label,
-        :host(.precision-override) .terminal-prefix,
-        :host(.precision-override) .feature-icon {
+        :host(.precision-override) .precision-label {
           color: var(--terminal-color-override, #00ff41);
         }
         :host(.precision-override) .reactor-label,
@@ -595,9 +544,6 @@ export class ArApp extends HTMLElement {
         }
         :host(.precision-override) .reactor-support a {
           color: var(--terminal-color-override, #00ff41);
-        }
-        :host(.precision-override) .feature-sep {
-          color: var(--terminal-color-override, #008830);
         }
         :host(.precision-override) .features-disclaimer a {
           color: var(--terminal-color-override, #00ff41);
@@ -617,32 +563,12 @@ export class ArApp extends HTMLElement {
           accent-color: var(--terminal-color-override, #00ff41);
         }
 
-        /* === CRT Flicker effect for feature cards === */
-        .feature-card .feature-title,
-        .feature-card .feature-desc,
-        .feature-card .feature-icon {
-          transition: opacity 0.05s ease;
-        }
         .crt-word-flicker {
           opacity: 0.05;
         }
         @media (prefers-reduced-motion: reduce) {
           .crt-word-flicker { opacity: 1; }
         }
-        .feature-card.crt-flicker .feature-title,
-        .feature-card.crt-flicker .feature-desc,
-        .feature-card.crt-flicker .feature-icon {
-          opacity: 0.05;
-        }
-        @media (prefers-reduced-motion: reduce) {
-          .feature-card.crt-flicker .feature-title,
-          .feature-card.crt-flicker .feature-desc,
-          .feature-card.crt-flicker .feature-icon {
-            opacity: 1;
-          }
-        }
-
-
         /* === Hero controls row (slider) === */
         .hero-controls {
           display: flex;
@@ -672,15 +598,6 @@ export class ArApp extends HTMLElement {
           }
           .features {
             padding: var(--space-3, 0.75rem);
-          }
-          .feature-card {
-            padding: var(--space-2, 0.5rem) 0;
-          }
-          .feature-title {
-            font-size: var(--text-xs, 0.75rem);
-          }
-          .feature-desc {
-            font-size: 12px;
           }
           .precision-label {
             min-width: auto;
@@ -739,234 +656,8 @@ export class ArApp extends HTMLElement {
         }
 
         @media (prefers-reduced-motion: reduce) {
-          .feature-card, .edit-btn {
+          .edit-btn {
             transition: none !important;
-          }
-        }
-
-        /* === Layout variants via data-card-layout === */
-
-        /* Hidden by default - shown per-layout */
-        .terminal-prefix,
-        .feature-sep {
-          display: none;
-        }
-
-        /* ──────────────────────────────────────────
-           LAYOUT A: Terminal list
-           One-liner per feature, no cards, no icons
-        ────────────────────────────────────────── */
-        :host .features[data-card-layout="A"] {
-          display: flex;
-          flex-direction: column;
-          gap: 0;
-          padding: var(--space-3, 0.75rem) var(--space-6, 1.5rem);
-        }
-        :host .features[data-card-layout="A"] .feature-card {
-          display: flex;
-          flex-wrap: wrap;
-          align-items: baseline;
-          background: transparent;
-          border: none;
-          border-bottom: none;
-          padding: var(--space-1, 0.25rem) 0;
-        }
-        :host .features[data-card-layout="A"] .feature-card:hover {
-          border-color: transparent;
-        }
-        :host .features[data-card-layout="A"] .terminal-prefix {
-          display: inline;
-          font-family: 'JetBrains Mono', monospace;
-          font-size: 12px;
-          color: var(--color-text-tertiary, #008830);
-          margin-right: 6px;
-          flex-shrink: 0;
-        }
-        :host .features[data-card-layout="A"] .feature-icon {
-          display: none;
-        }
-        :host .features[data-card-layout="A"] .feature-title {
-          display: inline;
-          font-size: 12px;
-          margin-bottom: 0;
-          text-transform: uppercase;
-          letter-spacing: 0.05em;
-        }
-        :host .features[data-card-layout="A"] .feature-title::before {
-          content: none;
-        }
-        :host .features[data-card-layout="A"] .feature-sep {
-          display: inline;
-          font-family: 'JetBrains Mono', monospace;
-          font-size: 12px;
-          color: var(--color-text-tertiary, #008830);
-        }
-        :host .features[data-card-layout="A"] .feature-desc {
-          display: inline;
-          font-size: 12px;
-          color: var(--color-text-secondary, #00dd44);
-        }
-
-        /* Layout A mobile */
-        @media (max-width: 480px) {
-          :host .features[data-card-layout="A"] {
-            padding: var(--space-2, 0.5rem) var(--space-3, 0.75rem);
-          }
-          :host .features[data-card-layout="A"] .feature-title,
-          :host .features[data-card-layout="A"] .feature-sep,
-          :host .features[data-card-layout="A"] .feature-desc,
-          :host .features[data-card-layout="A"] .terminal-prefix {
-            font-size: 12px;
-          }
-        }
-
-        /* ──────────────────────────────────────────
-           LAYOUT B: Inline cards
-           Icon left, title + desc stacked right, vertical list
-        ────────────────────────────────────────── */
-        :host .features[data-card-layout="B"] {
-          display: flex;
-          flex-direction: column;
-          gap: 0;
-          padding: var(--space-3, 0.75rem) var(--space-6, 1.5rem);
-        }
-        :host .features[data-card-layout="B"] .feature-card {
-          display: grid;
-          grid-template-columns: 24px 1fr;
-          grid-template-rows: auto auto;
-          column-gap: var(--space-2, 0.5rem);
-          row-gap: 0;
-          background: transparent;
-          border: none;
-          border-left: 1px solid transparent;
-          padding: var(--space-2, 0.5rem) var(--space-2, 0.5rem);
-          transition: border-color 0.3s ease;
-        }
-        :host .features[data-card-layout="B"] .feature-card:hover {
-          border-left-color: #1a3a1a;
-        }
-        :host .features[data-card-layout="B"] .terminal-prefix {
-          display: none;
-        }
-        :host .features[data-card-layout="B"] .feature-sep {
-          display: none;
-        }
-        :host .features[data-card-layout="B"] .feature-icon {
-          grid-row: 1 / 3;
-          grid-column: 1;
-          display: flex;
-          align-items: flex-start;
-          justify-content: center;
-          font-size: 14px;
-          margin: 0;
-          padding-top: 2px;
-        }
-        :host .features[data-card-layout="B"] .feature-title {
-          grid-column: 2;
-          grid-row: 1;
-          font-size: var(--text-sm, 0.875rem);
-          margin-bottom: 0;
-        }
-        :host .features[data-card-layout="B"] .feature-title::before {
-          content: none;
-        }
-        :host .features[data-card-layout="B"] .feature-desc {
-          grid-column: 2;
-          grid-row: 2;
-          font-size: 12px;
-          color: var(--color-text-secondary, #00dd44);
-          line-height: 1.4;
-        }
-
-        /* Layout B mobile */
-        @media (max-width: 480px) {
-          :host .features[data-card-layout="B"] {
-            padding: var(--space-2, 0.5rem) var(--space-3, 0.75rem);
-          }
-          :host .features[data-card-layout="B"] .feature-title {
-            font-size: var(--text-xs, 0.75rem);
-          }
-          :host .features[data-card-layout="B"] .feature-desc {
-            font-size: 12px;
-          }
-        }
-
-        /* ──────────────────────────────────────────
-           LAYOUT C: Compact grid
-           3 columns, icon+title inline, minimal padding
-        ────────────────────────────────────────── */
-        :host .features[data-card-layout="C"] {
-          display: grid;
-          grid-template-columns: repeat(3, 1fr);
-          gap: var(--space-2, 0.5rem);
-          padding: var(--space-3, 0.75rem) var(--space-6, 1.5rem);
-        }
-        :host .features[data-card-layout="C"] .feature-card {
-          background: transparent;
-          border: 1px solid transparent;
-          border-bottom: none;
-          padding: var(--space-2, 0.5rem);
-          transition: border-color 0.3s ease;
-        }
-        :host .features[data-card-layout="C"] .feature-card:hover {
-          border-color: #1a3a1a;
-        }
-        :host .features[data-card-layout="C"] .terminal-prefix {
-          display: none;
-        }
-        :host .features[data-card-layout="C"] .feature-sep {
-          display: none;
-        }
-        :host .features[data-card-layout="C"] .feature-icon {
-          display: inline;
-          font-size: 14px;
-          margin-right: 6px;
-        }
-        :host .features[data-card-layout="C"] .feature-title {
-          display: inline;
-          font-size: var(--text-sm, 0.875rem);
-          margin-bottom: 0;
-        }
-        :host .features[data-card-layout="C"] .feature-title::before {
-          content: none;
-        }
-        :host .features[data-card-layout="C"] .feature-desc {
-          display: block;
-          font-size: 12px;
-          color: var(--color-text-secondary, #00dd44);
-          line-height: 1.4;
-          margin-top: var(--space-1, 0.25rem);
-        }
-
-        /* Layout C mobile - stack to 1 column */
-        @media (max-width: 480px) {
-          :host .features[data-card-layout="C"] {
-            grid-template-columns: 1fr;
-            padding: var(--space-2, 0.5rem) var(--space-3, 0.75rem);
-          }
-          :host .features[data-card-layout="C"] .feature-title {
-            font-size: var(--text-xs, 0.75rem);
-          }
-          :host .features[data-card-layout="C"] .feature-desc {
-            font-size: 12px;
-          }
-        }
-        /* Layout C tablet - 2 columns */
-        @media (min-width: 481px) and (max-width: 768px) {
-          :host .features[data-card-layout="C"] {
-            grid-template-columns: repeat(2, 1fr);
-          }
-        }
-
-        /* === CRT flicker for all layouts === */
-        .feature-card.crt-flicker .terminal-prefix,
-        .feature-card.crt-flicker .feature-sep {
-          opacity: 0.3;
-        }
-        @media (prefers-reduced-motion: reduce) {
-          .feature-card.crt-flicker .terminal-prefix,
-          .feature-card.crt-flicker .feature-sep {
-            opacity: 1;
           }
         }
       </style>
@@ -1021,35 +712,7 @@ export class ArApp extends HTMLElement {
         </div>
       </section>
 
-      <section class="features" aria-label="Key features" data-card-layout="A" style="display:none">
-        <h2 class="sr-only">${t('features.srTitle')}</h2>
-        <article class="feature-card">
-          <span class="terminal-prefix" aria-hidden="true">[+]</span>
-          <div class="feature-icon" aria-hidden="true">&#129504;</div>
-          <h3 class="feature-title">${t('features.bgRemoval.title')}</h3>
-          <span class="feature-sep" aria-hidden="true"> | </span>
-          <p class="feature-desc">
-            ${t('features.bgRemoval.desc')}
-          </p>
-        </article>
-        <article class="feature-card">
-          <span class="terminal-prefix" aria-hidden="true">[+]</span>
-          <div class="feature-icon" aria-hidden="true">&#128274;</div>
-          <h3 class="feature-title">${t('features.aiArtifacts.title')}</h3>
-          <span class="feature-sep" aria-hidden="true"> | </span>
-          <p class="feature-desc">
-            ${t('features.aiArtifacts.desc')}
-          </p>
-        </article>
-        <article class="feature-card">
-          <span class="terminal-prefix" aria-hidden="true">[+]</span>
-          <div class="feature-icon" aria-hidden="true">&#9762;</div>
-          <h3 class="feature-title">${t('features.private.title')}</h3>
-          <span class="feature-sep" aria-hidden="true"> | </span>
-          <p class="feature-desc">
-            ${t('features.private.desc')}
-          </p>
-        </article>
+      <section class="features" aria-label="Key features">
         <p class="features-disclaimer" id="features-disclaimer">${t('features.disclaimer')}</p>
         <div class="limitations-detail" id="limitations-detail">${t('features.limitations')}</div>
         <p class="reactor-support" id="reactor-support"></p>
@@ -1077,16 +740,6 @@ export class ArApp extends HTMLElement {
     if (modelStatus) modelStatus.textContent = t('hero.modelStatus');
     const editBtn = root.querySelector('#edit-btn');
     if (editBtn) editBtn.textContent = this.preEditResult ? t('edit.discard') : t('edit.btn');
-    const srTitle = root.querySelector('.features .sr-only');
-    if (srTitle) srTitle.textContent = t('features.srTitle');
-    const featureCards = root.querySelectorAll('.feature-card');
-    const featureKeys = ['features.bgRemoval', 'features.aiArtifacts', 'features.private'];
-    featureCards.forEach((card, i) => {
-      const titleEl = card.querySelector('.feature-title');
-      const descEl = card.querySelector('.feature-desc');
-      if (titleEl && featureKeys[i]) titleEl.textContent = t(`${featureKeys[i]}.title`);
-      if (descEl && featureKeys[i]) descEl.textContent = t(`${featureKeys[i]}.desc`);
-    });
     const disclaimer = root.querySelector('#features-disclaimer');
     if (disclaimer) disclaimer.innerHTML = t('features.disclaimer');
     const limDetail = root.querySelector('#limitations-detail');
@@ -1313,8 +966,6 @@ export class ArApp extends HTMLElement {
           }, delay);
         }
         // Show features in Full Nuke
-        const featuresFN = this.shadowRoot!.querySelector('.features') as HTMLElement;
-        if (featuresFN) featuresFN.style.display = '';
       } else if (val === 2) {
         // High Power - orange/amber override (shadow DOM + global properties)
         document.documentElement.style.setProperty('--terminal-color-override', '#ff8c00');
@@ -1334,8 +985,6 @@ export class ArApp extends HTMLElement {
         // Hide smoke in High Power
         if (smoke) smoke.classList.remove('active');
         // Show features in non-Normal modes
-        const featuresHP = this.shadowRoot!.querySelector('.features') as HTMLElement;
-        if (featuresHP) featuresHP.style.display = '';
       } else if (val === 0) {
         // Low Power - yellow override (shadow DOM + global properties)
         document.documentElement.style.setProperty('--terminal-color-override', '#b8a500');
@@ -1348,8 +997,6 @@ export class ArApp extends HTMLElement {
         // Start CRT flicker only in Low Power
         this.startCrtFlicker();
         // Show features in non-Normal modes
-        const featuresLP = this.shadowRoot!.querySelector('.features') as HTMLElement;
-        if (featuresLP) featuresLP.style.display = '';
         updateMarquees('#b8a500', '<span>\u26A1 LOW POWER | Works offline after first visit | No account needed | nukebg.app \u26A1 LOW POWER | Works offline after first visit | No account needed | nukebg.app \u26A1</span>');
         console.log('%c[NukeBG] Mode: LOW POWER', 'color: #b8a500; font-family: monospace;');
         if (reactorSupport) {
@@ -1380,8 +1027,6 @@ export class ArApp extends HTMLElement {
         // Hide smoke in normal modes
         if (smoke) smoke.classList.remove('active');
         // Hide features in Normal mode - clean minimal view
-        const featuresSection = this.shadowRoot!.querySelector('.features') as HTMLElement;
-        if (featuresSection) featuresSection.style.display = 'none';
       }
     }, { signal });
 
@@ -1522,26 +1167,6 @@ export class ArApp extends HTMLElement {
     if (this.crtFlickerTimers.length > 0) return;
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 
-    const cards = this.shadowRoot!.querySelectorAll('.feature-card');
-    cards.forEach((card) => {
-      const scheduleFlicker = (): void => {
-        const delay = 2000 + Math.random() * 6000;
-        const timerId = window.setTimeout(() => {
-          const isBlackout = Math.random() < 0.3;
-          const duration = isBlackout
-            ? 300 + Math.random() * 500
-            : 80 + Math.random() * 80;
-          card.classList.add('crt-flicker');
-          window.setTimeout(() => {
-            card.classList.remove('crt-flicker');
-            scheduleFlicker();
-          }, duration);
-        }, delay);
-        this.crtFlickerTimers.push(timerId);
-      };
-      scheduleFlicker();
-    });
-
     const words = this.shadowRoot!.querySelectorAll('.flicker-word');
     words.forEach((word) => {
       const scheduleWordFlicker = (): void => {
@@ -1563,8 +1188,6 @@ export class ArApp extends HTMLElement {
   private stopCrtFlicker(): void {
     this.crtFlickerTimers.forEach(id => clearTimeout(id));
     this.crtFlickerTimers = [];
-    const allCards = this.shadowRoot!.querySelectorAll('.feature-card');
-    allCards.forEach(c => c.classList.remove('crt-flicker'));
     this.shadowRoot!.querySelectorAll('.flicker-word').forEach(w =>
       w.classList.remove('crt-word-flicker'),
     );
