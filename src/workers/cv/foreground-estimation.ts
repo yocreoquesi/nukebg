@@ -65,8 +65,11 @@ export function estimateForeground(
 
   // Initialize F = B = I at the coarsest level.
   const coarsest = pyramid[pyramid.length - 1];
-  let F = new Float32Array(coarsest.width * coarsest.height * 3);
-  let B = new Float32Array(coarsest.width * coarsest.height * 3);
+  // Typed as Float32Array<ArrayBuffer> explicitly so reassignments from
+  // upsample3 (which returns Float32Array<ArrayBufferLike>) don't trigger
+  // TS 6.x variance errors.
+  let F: Float32Array<ArrayBuffer> = new Float32Array(coarsest.width * coarsest.height * 3);
+  let B: Float32Array<ArrayBuffer> = new Float32Array(coarsest.width * coarsest.height * 3);
   initializeFromImage(coarsest.image, F);
   initializeFromImage(coarsest.image, B);
 
@@ -95,8 +98,8 @@ export function estimateForeground(
     // Upsample F and B to the next finer level (bilinear), unless we're at L0.
     if (level > 0) {
       const next = pyramid[level - 1];
-      F = upsample3(F, w, h, next.width, next.height);
-      B = upsample3(B, w, h, next.width, next.height);
+      F = new Float32Array(upsample3(F, w, h, next.width, next.height));
+      B = new Float32Array(upsample3(B, w, h, next.width, next.height));
     }
   }
 
@@ -240,56 +243,6 @@ function weightedBoxBlur3(
       }
     }
   }
-  return out;
-}
-
-/** 3-channel interleaved box blur with given radius. Separable (H then V). */
-function boxBlur3(src: Float32Array, width: number, height: number, radius: number): Float32Array {
-  const tmp = new Float32Array(src.length);
-  const out = new Float32Array(src.length);
-  const k = radius * 2 + 1;
-
-  // Horizontal pass
-  for (let y = 0; y < height; y++) {
-    for (let ch = 0; ch < 3; ch++) {
-      let sum = 0;
-      // Prime window
-      for (let x = -radius; x <= radius; x++) {
-        const xi = Math.min(Math.max(x, 0), width - 1);
-        sum += src[(y * width + xi) * 3 + ch];
-      }
-      tmp[(y * width) * 3 + ch] = sum / k;
-      for (let x = 1; x < width; x++) {
-        const xOut = x - radius - 1;
-        const xIn = x + radius;
-        const xiOut = Math.min(Math.max(xOut, 0), width - 1);
-        const xiIn = Math.min(Math.max(xIn, 0), width - 1);
-        sum += src[(y * width + xiIn) * 3 + ch] - src[(y * width + xiOut) * 3 + ch];
-        tmp[(y * width + x) * 3 + ch] = sum / k;
-      }
-    }
-  }
-
-  // Vertical pass
-  for (let x = 0; x < width; x++) {
-    for (let ch = 0; ch < 3; ch++) {
-      let sum = 0;
-      for (let y = -radius; y <= radius; y++) {
-        const yi = Math.min(Math.max(y, 0), height - 1);
-        sum += tmp[(yi * width + x) * 3 + ch];
-      }
-      out[(0 * width + x) * 3 + ch] = sum / k;
-      for (let y = 1; y < height; y++) {
-        const yOut = y - radius - 1;
-        const yIn = y + radius;
-        const yiOut = Math.min(Math.max(yOut, 0), height - 1);
-        const yiIn = Math.min(Math.max(yIn, 0), height - 1);
-        sum += tmp[(yiIn * width + x) * 3 + ch] - tmp[(yiOut * width + x) * 3 + ch];
-        out[(y * width + x) * 3 + ch] = sum / k;
-      }
-    }
-  }
-
   return out;
 }
 

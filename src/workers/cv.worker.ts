@@ -5,6 +5,7 @@ import { sparkleDetect } from './cv/sparkle-detect';
 import { alphaRefine } from './cv/alpha-refine';
 import { extractImageFeatures, classifyImage } from './cv/classify-image';
 import { signatureThreshold } from './cv/signature-threshold';
+import { estimateForeground } from './cv/foreground-estimation';
 import type { CvWorkerRequest } from '../types/worker-messages';
 
 self.onmessage = (e: MessageEvent<CvWorkerRequest>) => {
@@ -57,6 +58,15 @@ self.onmessage = (e: MessageEvent<CvWorkerRequest>) => {
       }
       case 'signature-threshold': {
         const result = signatureThreshold(payload.pixels, payload.width, payload.height);
+        self.postMessage({ id, type, result }, [result.buffer]);
+        break;
+      }
+      case 'foreground-estimate': {
+        const req = e.data;
+        const result = estimateForeground(
+          payload.pixels, payload.alpha, payload.width, payload.height,
+          { iterationsPerLevel: req.iterationsPerLevel, lambda: req.lambda },
+        );
         self.postMessage({ id, type, result }, [result.buffer]);
         break;
       }

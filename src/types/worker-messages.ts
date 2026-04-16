@@ -10,7 +10,8 @@ export type CvWorkerRequest =
   | CvSparkleDetectRequest
   | CvAlphaRefineRequest
   | CvClassifyImageRequest
-  | CvSignatureThresholdRequest;
+  | CvSignatureThresholdRequest
+  | CvForegroundEstimateRequest;
 
 interface CvBaseRequest {
   id: string;
@@ -82,6 +83,19 @@ export interface CvSignatureThresholdRequest extends CvBaseRequest {
   };
 }
 
+export interface CvForegroundEstimateRequest extends CvBaseRequest {
+  type: 'foreground-estimate';
+  payload: {
+    pixels: Uint8ClampedArray;
+    alpha: Uint8Array;
+    width: number;
+    height: number;
+  };
+  /** Optional tuning; falls back to module defaults when omitted. */
+  iterationsPerLevel?: number;
+  lambda?: number;
+}
+
 /** Result from image classification */
 export interface ClassifyImageResult {
   type: ImageContentType;
@@ -96,6 +110,7 @@ export type CvWorkerResponse =
   | { id: string; type: 'alpha-refine'; result: Uint8Array }
   | { id: string; type: 'classify-image'; result: ClassifyImageResult }
   | { id: string; type: 'signature-threshold'; result: Uint8Array }
+  | { id: string; type: 'foreground-estimate'; result: Uint8ClampedArray }
   | { id: string; type: 'error'; error: string };
 
 
