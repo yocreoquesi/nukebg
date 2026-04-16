@@ -21,34 +21,21 @@ if (typeof globalThis.ImageData === 'undefined') {
   };
 }
 
-describe('sharpenAlpha (quintic smoothstep)', () => {
+describe('sharpenAlpha (binary threshold at 128)', () => {
   it('preserves the 0 and 255 endpoints exactly', () => {
     const a = new Uint8Array([0, 255, 0, 255]);
     const out = sharpenAlpha(a);
     expect(Array.from(out)).toEqual([0, 255, 0, 255]);
   });
 
-  it('maps the midpoint 128 to approximately 128 (curve passes through (0.5, 0.5))', () => {
-    const out = sharpenAlpha(new Uint8Array([128]));
-    // Smoothstep at 0.5 = 0.5, so the output must land within ±1 of 128 (rounding).
-    expect(Math.abs(out[0] - 128)).toBeLessThanOrEqual(1);
+  it('maps α<128 to 0 (kills the soft halo tail)', () => {
+    const out = sharpenAlpha(new Uint8Array([1, 30, 60, 100, 127]));
+    expect(Array.from(out)).toEqual([0, 0, 0, 0, 0]);
   });
 
-  it('collapses the soft low tail aggressively (halo-killer)', () => {
-    // Input α=30 (a typical soft halo pixel) must drop below 10 after sharpen.
-    const out = sharpenAlpha(new Uint8Array([10, 20, 30, 40]));
-    expect(out[0]).toBeLessThan(2);
-    expect(out[1]).toBeLessThan(5);
-    expect(out[2]).toBeLessThan(10);
-    expect(out[3]).toBeLessThan(20);
-  });
-
-  it('pushes the high tail toward 255 (tight opaque edge)', () => {
-    const out = sharpenAlpha(new Uint8Array([215, 225, 235, 245]));
-    expect(out[0]).toBeGreaterThan(235);
-    expect(out[1]).toBeGreaterThan(245);
-    expect(out[2]).toBeGreaterThan(250);
-    expect(out[3]).toBeGreaterThan(253);
+  it('maps α>=128 to 255 (tight opaque interior)', () => {
+    const out = sharpenAlpha(new Uint8Array([128, 150, 200, 230, 254]));
+    expect(Array.from(out)).toEqual([255, 255, 255, 255, 255]);
   });
 
   it('is monotonic across the full 0..255 range', () => {
@@ -60,13 +47,9 @@ describe('sharpenAlpha (quintic smoothstep)', () => {
     }
   });
 
-  it('is symmetric around the midpoint: f(x) + f(255-x) ≈ 255', () => {
-    const input = new Uint8Array([20, 60, 100, 140, 180, 220]);
-    const out = sharpenAlpha(input);
-    for (let i = 0; i < input.length; i++) {
-      const mirror = sharpenAlpha(new Uint8Array([255 - input[i]]))[0];
-      expect(Math.abs(out[i] + mirror - 255)).toBeLessThanOrEqual(2);
-    }
+  it('has a single step discontinuity at α=128 (127→0, 128→255)', () => {
+    const out = sharpenAlpha(new Uint8Array([127, 128]));
+    expect(Array.from(out)).toEqual([0, 255]);
   });
 });
 

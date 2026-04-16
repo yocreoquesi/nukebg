@@ -35,21 +35,15 @@ export interface ForegroundEstimator {
 }
 
 /**
- * Apply a quintic smoothstep to an alpha plane: 6n⁵ − 15n⁴ + 10n³.
- * Hermite-style S-curve with zero first and second derivatives at both
- * endpoints, so α=0 stays 0 and α=255 stays 255 (no clipping artifacts).
- * The middle band is sharpened symmetrically.
+ * Binary threshold at α=128. Pixels with α≥128 become fully opaque, the rest
+ * fully transparent. The soft tail that a smoothstep would preserve is what
+ * shows up as a colored halo on white/black backgrounds, so we remove it
+ * entirely — hard studio-cut edge with zero residue.
  */
 export function sharpenAlpha(alpha: Uint8Array): Uint8Array {
   const out = new Uint8Array(alpha.length);
   for (let i = 0; i < alpha.length; i++) {
-    const a = alpha[i];
-    if (a === 0) { out[i] = 0; continue; }
-    if (a === 255) { out[i] = 255; continue; }
-    const n = a / 255;
-    const s = n * n * n * (n * (n * 6 - 15) + 10);
-    const v = Math.round(s * 255);
-    out[i] = v < 0 ? 0 : v > 255 ? 255 : v;
+    out[i] = alpha[i] >= 128 ? 255 : 0;
   }
   return out;
 }
