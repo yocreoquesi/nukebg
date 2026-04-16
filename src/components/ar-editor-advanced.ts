@@ -30,6 +30,10 @@
 
 import { isLabVisible } from '../../exploration/lab-visibility';
 import { createLoader, type ModelLoader } from '../../exploration/loaders';
+import {
+  loadSam, encodeSam, decodeSam, disposeSam,
+  onSamProgress, type SamMaskResult,
+} from '../../exploration/loaders/mobile-sam';
 import { processRoi } from '../../exploration/roi-process';
 import { t } from '../i18n';
 import { simplifyClosed, type Point } from './lasso-simplify';
@@ -54,7 +58,7 @@ const MIN_ZOOM = 0.1;
 const MAX_ZOOM = 10;
 const ZOOM_STEP = 1.15;
 
-type Tool = 'brush' | 'eraser' | 'lasso';
+type Tool = 'brush' | 'eraser' | 'lasso' | 'magic-select';
 type LassoAction = 'crop' | 'refine' | 'erase-object';
 
 interface PendingPreview {
@@ -121,6 +125,14 @@ export class ArEditorAdvanced extends HTMLElement {
   // the new alpha to the buffer.
   private pendingPreview: PendingPreview | null = null;
 
+  // MobileSAM state: accumulate click points (foreground/background) and
+  // keep the latest decoded mask for overlay / preview.
+  private samReady = false;
+  private samEncoded = false;
+  private samPoints: Array<{ x: number; y: number }> = [];
+  private samLabels: number[] = [];  // 1 = foreground, 0 = background
+  private samMask: Uint8Array | null = null;
+
   // Undo/redo stacks of full RGBA snapshots (Uint8ClampedArray, image size).
   // Full snapshots match ar-editor's pattern — simple, robust, and still
   // cheap to swap in. Depth is budget-capped per-image so we don't OOM on
@@ -142,6 +154,9 @@ export class ArEditorAdvanced extends HTMLElement {
   disconnectedCallback(): void {
     this.abort?.abort();
     this.abort = null;
+    disposeSam();
+    this.samReady = false;
+    this.samEncoded = false;
   }
 
   setImage(current: ImageData, original: ImageData): void {
@@ -431,6 +446,12 @@ export class ArEditorAdvanced extends HTMLElement {
           align-items: center;
         }
         .lasso-actions.visible { display: inline-flex; }
+        .sam-actions {
+          display: none;
+          gap: 6px;
+          align-items: center;
+        }
+        .sam-actions.visible { display: inline-flex; }
         .action-btn {
           font-family: inherit;
           font-size: 11px;
@@ -585,6 +606,7 @@ export class ArEditorAdvanced extends HTMLElement {
             <dt>${t('advanced.toolBrush')}</dt><dd>${t('advanced.helpBrushDesc')}</dd>
             <dt>${t('advanced.toolEraser')}</dt><dd>${t('advanced.helpEraserDesc')}</dd>
             <dt>${t('advanced.toolLasso')}</dt><dd>${t('advanced.helpLassoDesc')}</dd>
+            <dt>${t('advanced.toolMagicSelect')}</dt><dd>${t('advanced.helpMagicSelectDesc')}</dd>
           </dl>
         </div>
         <div class="help-section">
@@ -627,6 +649,7 @@ export class ArEditorAdvanced extends HTMLElement {
           <button type="button" class="tool-btn" id="tool-brush">${t('advanced.toolBrush')}</button>
           <button type="button" class="tool-btn active" id="tool-eraser">${t('advanced.toolEraser')}</button>
           <button type="button" class="tool-btn" id="tool-lasso">${t('advanced.toolLasso')}</button>
+          <button type="button" class="tool-btn" id="tool-magic-select">${t('advanced.toolMagicSelect')}</button>
         </div>
         <div class="size-row" id="size-row">
           <label for="brush-size">${t('advanced.size')}</label>
@@ -638,6 +661,12 @@ export class ArEditorAdvanced extends HTMLElement {
           <button type="button" class="action-btn" id="action-refine" title="${t('advanced.actionRefineHint')}">${t('advanced.actionRefine')}</button>
           <button type="button" class="action-btn danger" id="action-erase-object" title="${t('advanced.actionEraseObjectHint')}">${t('advanced.actionEraseObject')}</button>
           <span class="busy-indicator hidden" id="busy">${t('advanced.working')}</span>
+        </div>
+        <div class="sam-actions" id="sam-actions" role="group" aria-label="SAM actions">
+          <button type="button" class="action-btn" id="action-sam-crop" title="${t('advanced.actionCropHint')}">${t('advanced.actionCrop')}</button>
+          <button type="button" class="action-btn danger" id="action-sam-erase" title="${t('advanced.samEraseHint')}">${t('advanced.actionEraseObject')}</button>
+          <button type="button" class="action-btn" id="action-sam-clear" title="${t('advanced.samClearHint')}">${t('advanced.samClear')}</button>
+          <span class="busy-indicator hidden" id="sam-busy">${t('advanced.working')}</span>
         </div>
         <div class="preview-actions" id="preview-actions" role="group" aria-label="Confirm preview">
           <button type="button" class="action-btn confirm" id="action-apply-preview" title="${t('advanced.previewApplyHint')}">${t('advanced.previewApply')}</button>
@@ -672,6 +701,10 @@ export class ArEditorAdvanced extends HTMLElement {
     shadow.getElementById('tool-brush')!.addEventListener('click', () => this.setTool('brush'), { signal });
     shadow.getElementById('tool-eraser')!.addEventListener('click', () => this.setTool('eraser'), { signal });
     shadow.getElementById('tool-lasso')!.addEventListener('click', () => this.setTool('lasso'), { signal });
+    shadow.getElementById('tool-magic-select')!.addEventListener('click', () => this.setTool('magic-select'), { signal });
+    shadow.getElementById('action-sam-crop')!.addEventListener('click', () => this.previewSamAction('crop'), { signal });
+    shadow.getElementById('action-sam-erase')!.addEventListener('click', () => this.previewSamAction('erase-object'), { signal });
+    shadow.getElementById('action-sam-clear')!.addEventListener('click', () => this.clearSamSelection(), { signal });
     shadow.getElementById('action-crop')!.addEventListener('click', () => this.previewAction('crop'), { signal });
     shadow.getElementById('action-refine')!.addEventListener('click', () => this.previewAction('refine'), { signal });
     shadow.getElementById('action-erase-object')!.addEventListener('click', () => this.previewAction('erase-object'), { signal });
@@ -760,6 +793,10 @@ export class ArEditorAdvanced extends HTMLElement {
           this.clearLasso();
           this.redrawDisplay();
         }
+        if (this.samPoints.length > 0) {
+          e.preventDefault();
+          this.clearSamSelection();
+        }
         return;
       }
       if (e.key === '0' || e.key === 'Home') {
@@ -777,8 +814,7 @@ export class ArEditorAdvanced extends HTMLElement {
         this.setZoom(this.zoom / ZOOM_STEP);
         return;
       }
-      // Brush size hotkeys only meaningful for brush/eraser
-      if (this.tool !== 'lasso' && (e.key === '[' || e.key === ']')) {
+      if (this.tool !== 'lasso' && this.tool !== 'magic-select' && (e.key === '[' || e.key === ']')) {
         e.preventDefault();
         const delta = e.key === ']' ? 4 : -4;
         this.setBrushRadius(this.brushRadius + delta);
@@ -826,6 +862,16 @@ export class ArEditorAdvanced extends HTMLElement {
       this.drawing = true;
       this.lassoRaw = [{ x: ix, y: iy }];
       this.redrawDisplay();
+      return;
+    }
+
+    if (this.tool === 'magic-select') {
+      if (this.busy) return;
+      if (this.pendingPreview) this.cancelPreview();
+      const label = (e.shiftKey || e.altKey) ? 0 : 1;
+      this.samPoints.push({ x: ix, y: iy });
+      this.samLabels.push(label);
+      this.runSamDecode();
       return;
     }
 
@@ -1101,6 +1147,9 @@ export class ArEditorAdvanced extends HTMLElement {
   private setTool(tool: Tool): void {
     if (this.tool === tool) return;
     this.tool = tool;
+    if (tool === 'magic-select') {
+      this.initSam();
+    }
     this.syncToolUI();
     this.redrawDisplay();
   }
@@ -1109,14 +1158,19 @@ export class ArEditorAdvanced extends HTMLElement {
     const brush = this.shadowRoot?.getElementById('tool-brush');
     const eraser = this.shadowRoot?.getElementById('tool-eraser');
     const lasso = this.shadowRoot?.getElementById('tool-lasso');
+    const magic = this.shadowRoot?.getElementById('tool-magic-select');
     const sizeRow = this.shadowRoot?.getElementById('size-row');
     const hint = this.shadowRoot?.getElementById('hint');
     if (brush) brush.classList.toggle('active', this.tool === 'brush');
     if (eraser) eraser.classList.toggle('active', this.tool === 'eraser');
     if (lasso) lasso.classList.toggle('active', this.tool === 'lasso');
-    if (sizeRow) sizeRow.classList.toggle('hidden', this.tool === 'lasso');
-    if (hint && this.tool !== 'lasso') hint.textContent = t('advanced.hint');
+    if (magic) magic.classList.toggle('active', this.tool === 'magic-select');
+    if (sizeRow) sizeRow.classList.toggle('hidden', this.tool === 'lasso' || this.tool === 'magic-select');
+    if (hint && this.tool !== 'lasso' && this.tool !== 'magic-select') {
+      hint.textContent = t('advanced.hint');
+    }
     this.syncLassoActionsUI();
+    this.syncSamActionsUI();
   }
 
   private syncLassoActionsUI(): void {
@@ -1154,6 +1208,45 @@ export class ArEditorAdvanced extends HTMLElement {
     this.syncLassoActionsUI();
   }
 
+  private syncSamActionsUI(): void {
+    const row = this.shadowRoot?.getElementById('sam-actions');
+    const previewRow = this.shadowRoot?.getElementById('preview-actions');
+    const samBusy = this.shadowRoot?.getElementById('sam-busy');
+    const hint = this.shadowRoot?.getElementById('hint');
+    if (!row) return;
+    const isSam = this.tool === 'magic-select';
+    const hasMask = isSam && this.samMask !== null;
+    const isPreviewing = this.pendingPreview !== null;
+    row.classList.toggle('visible', hasMask && !isPreviewing);
+    row.querySelectorAll<HTMLButtonElement>('button.action-btn').forEach((b) => {
+      b.disabled = this.busy;
+    });
+    if (samBusy) samBusy.classList.toggle('hidden', !this.busy);
+    if (previewRow && isSam) {
+      previewRow.classList.toggle('visible', isPreviewing);
+    }
+    if (hint && isSam) {
+      if (isPreviewing) {
+        hint.textContent = t('advanced.previewHint');
+      } else if (!this.samReady) {
+        hint.textContent = t('advanced.samLoading');
+      } else if (!this.samEncoded) {
+        hint.textContent = t('advanced.samEncoding');
+      } else {
+        hint.textContent = t('advanced.hintMagicSelect');
+      }
+    }
+  }
+
+  private clearSamSelection(): void {
+    this.samPoints = [];
+    this.samLabels = [];
+    this.samMask = null;
+    this.pendingPreview = null;
+    this.syncSamActionsUI();
+    this.redrawDisplay();
+  }
+
   private paintCanvas(): void {
     if (!this.canvas || !this.ctx || !this.current) return;
     const w = this.current.width;
@@ -1173,6 +1266,7 @@ export class ArEditorAdvanced extends HTMLElement {
       this.ctx.drawImage(this.pendingPreview.overlay, this.padX, this.padY);
     }
     this.drawLassoOverlay();
+    this.drawSamOverlay();
     this.drawCursorPreview();
   }
 
@@ -1231,8 +1325,7 @@ export class ArEditorAdvanced extends HTMLElement {
   private drawCursorPreview(): void {
     if (!this.ctx) return;
     if (this.cursorCanvasX === null || this.cursorCanvasY === null) return;
-    // Lasso doesn't need a size indicator — the pointer caret is enough.
-    if (this.tool === 'lasso') return;
+    if (this.tool === 'lasso' || this.tool === 'magic-select') return;
 
     this.ctx.save();
     this.ctx.strokeStyle = this.tool === 'eraser' ? 'rgba(255, 80, 80, 0.95)' : 'rgba(255, 215, 0, 0.95)';
@@ -1380,6 +1473,146 @@ export class ArEditorAdvanced extends HTMLElement {
     await loader.warmup();
     this.loader = loader;
     return loader;
+  }
+
+  // ────────────────────────── MobileSAM lifecycle ──────────────────────────
+
+  private async initSam(): Promise<void> {
+    if (this.samReady) {
+      if (!this.samEncoded) this.encodeSamImage();
+      return;
+    }
+    this.syncSamActionsUI();
+    try {
+      onSamProgress((pct, stage) => {
+        const hint = this.shadowRoot?.getElementById('hint');
+        if (hint) hint.textContent = `Loading ${stage}… ${pct}%`;
+      });
+      await loadSam();
+      this.samReady = true;
+      onSamProgress(null);
+      this.encodeSamImage();
+    } catch (err) {
+      console.error('[ar-editor-advanced] SAM load failed', err);
+      const hint = this.shadowRoot?.getElementById('hint');
+      if (hint) hint.textContent = t('advanced.refineError');
+    }
+  }
+
+  private async encodeSamImage(): Promise<void> {
+    if (!this.original) return;
+    this.samEncoded = false;
+    this.syncSamActionsUI();
+    const { width: w, height: h, data } = this.original;
+    const pixels = new Uint8ClampedArray(data);
+    try {
+      await encodeSam(pixels, w, h);
+      this.samEncoded = true;
+      this.syncSamActionsUI();
+    } catch (err) {
+      console.error('[ar-editor-advanced] SAM encode failed', err);
+    }
+  }
+
+  private async runSamDecode(): Promise<void> {
+    if (!this.samEncoded || !this.current || this.samPoints.length === 0) return;
+    const w = this.current.width;
+    const h = this.current.height;
+    this.busy = true;
+    this.syncSamActionsUI();
+    try {
+      const result: SamMaskResult = await decodeSam(
+        this.samPoints, this.samLabels, w, h,
+      );
+      this.samMask = result.mask;
+      this.redrawDisplay();
+    } catch (err) {
+      console.error('[ar-editor-advanced] SAM decode failed', err);
+    } finally {
+      this.busy = false;
+      this.syncSamActionsUI();
+    }
+  }
+
+  private async previewSamAction(kind: LassoAction): Promise<void> {
+    if (this.busy || !this.samMask || !this.working || !this.current || !this.original) return;
+    this.pendingPreview = null;
+
+    const w = this.current.width;
+    const h = this.current.height;
+    const wctx = this.working.getContext('2d')!;
+    const prevData = wctx.getImageData(0, 0, w, h).data;
+    const prevAlpha = new Uint8Array(w * h);
+    for (let i = 0; i < prevAlpha.length; i++) prevAlpha[i] = prevData[i * 4 + 3];
+
+    const newAlpha = new Uint8Array(prevAlpha);
+    const mask = this.samMask;
+
+    if (kind === 'crop') {
+      for (let i = 0; i < newAlpha.length; i++) {
+        if (mask[i] === 0) newAlpha[i] = 0;
+      }
+    } else if (kind === 'erase-object') {
+      for (let i = 0; i < newAlpha.length; i++) {
+        if (mask[i] === 1) newAlpha[i] = 0;
+      }
+    }
+
+    const overlay = this.buildPreviewOverlay(prevAlpha, newAlpha, w, h);
+    this.pendingPreview = { kind, newAlpha, overlay };
+    this.syncSamActionsUI();
+    this.redrawDisplay();
+  }
+
+  private drawSamOverlay(): void {
+    if (!this.ctx || this.tool !== 'magic-select') return;
+
+    // Draw the mask as a semi-transparent blue overlay.
+    if (this.samMask && this.current && !this.pendingPreview) {
+      const w = this.current.width;
+      const h = this.current.height;
+      const overlay = document.createElement('canvas');
+      overlay.width = w;
+      overlay.height = h;
+      const octx = overlay.getContext('2d')!;
+      const img = octx.createImageData(w, h);
+      for (let i = 0; i < this.samMask.length; i++) {
+        if (this.samMask[i] === 1) {
+          const idx = i * 4;
+          img.data[idx] = 80;
+          img.data[idx + 1] = 160;
+          img.data[idx + 2] = 255;
+          img.data[idx + 3] = 90;
+        }
+      }
+      octx.putImageData(img, 0, 0);
+      this.ctx.drawImage(overlay, this.padX, this.padY);
+    }
+
+    // Draw click points.
+    for (let i = 0; i < this.samPoints.length; i++) {
+      const pt = this.samPoints[i];
+      const isFg = this.samLabels[i] === 1;
+      this.ctx.save();
+      this.ctx.fillStyle = isFg ? 'rgba(80, 220, 120, 0.95)' : 'rgba(255, 80, 80, 0.95)';
+      this.ctx.strokeStyle = '#000';
+      this.ctx.lineWidth = 1.5;
+      this.ctx.beginPath();
+      this.ctx.arc(pt.x + this.padX, pt.y + this.padY, 6, 0, Math.PI * 2);
+      this.ctx.fill();
+      this.ctx.stroke();
+      if (!isFg) {
+        this.ctx.strokeStyle = '#fff';
+        this.ctx.lineWidth = 2;
+        this.ctx.beginPath();
+        this.ctx.moveTo(pt.x + this.padX - 3, pt.y + this.padY - 3);
+        this.ctx.lineTo(pt.x + this.padX + 3, pt.y + this.padY + 3);
+        this.ctx.moveTo(pt.x + this.padX + 3, pt.y + this.padY - 3);
+        this.ctx.lineTo(pt.x + this.padX - 3, pt.y + this.padY + 3);
+        this.ctx.stroke();
+      }
+      this.ctx.restore();
+    }
   }
 
   private cancel(): void {
