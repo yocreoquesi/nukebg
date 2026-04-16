@@ -14,6 +14,7 @@ import './components/ar-progress';
 import './components/ar-download';
 import './components/ar-privacy';
 import './components/ar-editor';
+import './components/ar-editor-advanced';
 import './components/ar-batch-item';
 import './components/ar-batch-grid';
 import './components/ar-app';
@@ -58,7 +59,7 @@ function initKeyboardShortcuts(): void {
 function showConsoleLogo(): void {
   const logo = `
 %c    ☢ NUKEBG ☢
-    v2.6.0 | Terminal Edition
+    v2.7.1 | Terminal Edition
 
     Your images never leave this machine.
     Don't believe us? Read the source:

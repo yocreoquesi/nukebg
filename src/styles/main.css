@@ -18,24 +18,25 @@
   --color-text-inverse: #000000;
 
   /* Accent (Terminal Green) */
+  --color-accent-rgb: 0, 255, 65;
   --color-accent-primary: #00ff41;
   --color-accent-hover: #33ff66;
-  --color-accent-muted: rgba(0, 255, 65, 0.08);
-  --color-accent-glow: rgba(0, 255, 65, 0.35);
+  --color-accent-muted: rgba(var(--color-accent-rgb), 0.08);
+  --color-accent-glow: rgba(var(--color-accent-rgb), 0.35);
 
   /* Secondary accent (same green for terminal) */
   --color-hazard: #00ff41;
-  --color-hazard-muted: rgba(0, 255, 65, 0.08);
+  --color-hazard-muted: rgba(var(--color-accent-rgb), 0.08);
 
   /* Semantic */
   --color-success: #00ff41;
-  --color-success-muted: rgba(0, 255, 65, 0.10);
+  --color-success-muted: rgba(var(--color-accent-rgb), 0.10);
   --color-warning: #ffcc00;
   --color-warning-muted: rgba(255, 204, 0, 0.10);
   --color-error: #ff3131;
   --color-error-muted: rgba(255, 49, 49, 0.12);
   --color-info: #00ff41;
-  --color-info-muted: rgba(0, 255, 65, 0.10);
+  --color-info-muted: rgba(var(--color-accent-rgb), 0.10);
 
   /* Checkerboard Preview */
   --color-checker-light: #0a0a0a;
@@ -93,9 +94,9 @@
 
   /* Shadows */
   --shadow-sm: none;
-  --shadow-md: 0 0 10px rgba(0, 255, 65, 0.05);
-  --shadow-lg: 0 0 20px rgba(0, 255, 65, 0.08);
-  --shadow-glow: 0 0 15px rgba(0, 255, 65, 0.25);
+  --shadow-md: 0 0 10px rgba(var(--color-accent-rgb), 0.05);
+  --shadow-lg: 0 0 20px rgba(var(--color-accent-rgb), 0.08);
+  --shadow-glow: 0 0 15px rgba(var(--color-accent-rgb), 0.25);
 
   /* Transitions */
   --ease-default: cubic-bezier(0.4, 0, 0.2, 1);
@@ -118,7 +119,7 @@
   /* Terminal-specific tokens */
   --terminal-scanline-opacity: 0.03;
   --terminal-cursor-color: var(--color-accent-primary);
-  --terminal-border-style: 1px solid #1a3a1a;
+  --terminal-border-style: 1px solid var(--color-surface-border);
 }
 
 /* === Reset === */
@@ -156,8 +157,8 @@ body::after {
     0deg,
     transparent,
     transparent 2px,
-    rgba(0, 255, 65, 0.015) 2px,
-    rgba(0, 255, 65, 0.015) 4px
+    rgba(var(--color-accent-rgb), 0.015) 2px,
+    rgba(var(--color-accent-rgb), 0.015) 4px
   );
   pointer-events: none;
   z-index: 9998;
@@ -196,7 +197,7 @@ body::after {
   left: 0;
   right: 0;
   height: 1px;
-  background: #1a3a1a;
+  background: var(--color-surface-border, #1a3a1a);
   opacity: 1;
 }
 
@@ -212,7 +213,7 @@ body::after {
   left: 0;
   right: 0;
   height: 1px;
-  background: #1a3a1a;
+  background: var(--color-surface-border, #1a3a1a);
   opacity: 1;
 }
 
@@ -223,7 +224,7 @@ body::after {
   z-index: var(--z-sticky);
   background: #000000;
   backdrop-filter: none;
-  border-bottom: 1px solid #1a3a1a;
+  border-bottom: 1px solid var(--color-surface-border, #1a3a1a);
   height: 48px;
   display: flex;
   align-items: center;
@@ -291,7 +292,7 @@ body::after {
   color: var(--color-text-tertiary);
   background: #000;
   padding: 2px 6px;
-  border: 1px solid #1a3a1a;
+  border: 1px solid var(--color-surface-border, #1a3a1a);
   opacity: 0;
   transition: opacity 0.3s ease;
   pointer-events: none;
@@ -394,7 +395,7 @@ body::after {
 
 /* === Footer === */
 .footer {
-  border-top: 1px solid #1a3a1a;
+  border-top: 1px solid var(--color-surface-border, #1a3a1a);
   padding: var(--space-8) var(--space-6);
   text-align: center;
   font-family: var(--font-mono);
@@ -419,7 +420,7 @@ body::after {
 
 .footer-sep {
   margin: 0 var(--space-3);
-  color: #1a3a1a;
+  color: var(--color-surface-border, #1a3a1a);
 }
 
 .footer-cache-btn {
@@ -500,7 +501,7 @@ body::after {
   bottom: var(--space-6);
   right: var(--space-6);
   background: #0a0a0a;
-  border: 1px solid #1a3a1a;
+  border: 1px solid var(--color-surface-border, #1a3a1a);
   border-radius: 0;
   padding: var(--space-3) var(--space-4);
   font-size: var(--text-sm);

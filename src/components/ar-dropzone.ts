@@ -26,7 +26,7 @@ export class ArDropzone extends HTMLElement {
           width: 100%;
         }
         .dropzone {
-          border: 1px solid #1a3a1a;
+          border: 1px solid var(--color-surface-border, #1a3a1a);
           border-radius: 0;
           background: #000;
           padding: 2rem;
@@ -54,14 +54,14 @@ export class ArDropzone extends HTMLElement {
         }
         .dropzone:hover {
           border-color: var(--color-accent-primary, #00ff41);
-          background: rgba(0, 255, 65, 0.02);
-          box-shadow: 0 0 10px rgba(0, 255, 65, 0.1);
+          background: rgba(var(--color-accent-rgb, 0, 255, 65), 0.02);
+          box-shadow: 0 0 10px rgba(var(--color-accent-rgb, 0, 255, 65), 0.1);
         }
         .dropzone.dragover {
           border-color: var(--color-accent-primary, #00ff41);
           border-style: solid;
-          background: rgba(0, 255, 65, 0.04);
-          box-shadow: 0 0 15px rgba(0, 255, 65, 0.15);
+          background: rgba(var(--color-accent-rgb, 0, 255, 65), 0.04);
+          box-shadow: 0 0 15px rgba(var(--color-accent-rgb, 0, 255, 65), 0.15);
         }
         .dropzone.error {
           animation: shake 0.3s;
@@ -80,7 +80,7 @@ export class ArDropzone extends HTMLElement {
         }
         .dropzone:hover .icon {
           color: var(--color-accent-primary, #00ff41);
-          filter: drop-shadow(0 0 6px rgba(0, 255, 65, 0.5));
+          filter: drop-shadow(0 0 6px rgba(var(--color-accent-rgb, 0, 255, 65), 0.5));
         }
         .main-text {
           font-family: 'JetBrains Mono', monospace;
@@ -298,6 +298,7 @@ export class ArDropzone extends HTMLElement {
         detail: {
           file,
           imageData: result.imageData,
+          originalImageData: result.originalImageData,
           originalWidth: result.originalWidth,
           originalHeight: result.originalHeight,
           wasDownsampled: result.wasDownsampled,
@@ -338,6 +339,7 @@ export class ArDropzone extends HTMLElement {
     const loaded: Array<{
       file: File;
       imageData: ImageData;
+      originalImageData: ImageData;
       originalWidth: number;
       originalHeight: number;
       wasDownsampled: boolean;
@@ -349,6 +351,7 @@ export class ArDropzone extends HTMLElement {
         loaded.push({
           file,
           imageData: result.imageData,
+          originalImageData: result.originalImageData,
           originalWidth: result.originalWidth,
           originalHeight: result.originalHeight,
           wasDownsampled: result.wasDownsampled,

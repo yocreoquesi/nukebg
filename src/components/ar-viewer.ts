@@ -97,7 +97,7 @@ export class ArViewer extends HTMLElement {
           top: 0; bottom: 0;
           width: 2px;
           background: var(--color-accent-primary, #00ff41);
-          box-shadow: 0 0 6px rgba(0, 255, 65, 0.4);
+          box-shadow: 0 0 6px rgba(var(--color-accent-rgb, 0, 255, 65), 0.4);
           pointer-events: none;
           z-index: 10;
         }
@@ -116,7 +116,7 @@ export class ArViewer extends HTMLElement {
           justify-content: center;
           font-size: 12px;
           color: var(--color-bg-primary, #000);
-          box-shadow: 0 0 10px rgba(0, 255, 65, 0.4);
+          box-shadow: 0 0 10px rgba(var(--color-accent-rgb, 0, 255, 65), 0.4);
         }
         .label {
           position: absolute;

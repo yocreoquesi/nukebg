@@ -28,7 +28,8 @@ function makeBrushCursor(
   const center = svgSize / 2;
   // Erase stays green (default brand accent); Restore is cyan so the user
   // can tell at a glance which tool is active.
-  const stroke = tool === 'restore' ? '#00d4ff' : '#39ff14';
+  const accentRgb = getComputedStyle(document.documentElement).getPropertyValue('--color-accent-rgb').trim() || '0, 255, 65';
+  const stroke = tool === 'restore' ? '#00d4ff' : `rgb(${accentRgb})`;
 
   let shapeEl: string;
   if (shape === 'circle') {
@@ -182,7 +183,7 @@ export class ArEditor extends HTMLElement {
           gap: var(--space-3, 0.75rem);
           padding: var(--space-2, 0.5rem) var(--space-3, 0.75rem);
           background: #000;
-          border: 1px solid #1a3a1a;
+          border: 1px solid var(--color-surface-border, #1a3a1a);
           border-radius: 0;
           flex-wrap: wrap;
         }
@@ -201,7 +202,7 @@ export class ArEditor extends HTMLElement {
         .toolbar select, .toolbar input[type="range"] {
           background: #0a0a0a;
           color: var(--color-accent-primary, #00ff41);
-          border: 1px solid #1a3a1a;
+          border: 1px solid var(--color-surface-border, #1a3a1a);
           border-radius: 0;
           padding: 2px 6px;
           font-size: var(--text-xs, 0.75rem);
@@ -220,7 +221,7 @@ export class ArEditor extends HTMLElement {
         .toolbar-btn {
           background: #0a0a0a;
           color: var(--color-accent-primary, #00ff41);
-          border: 1px solid #1a3a1a;
+          border: 1px solid var(--color-surface-border, #1a3a1a);
           border-radius: 0;
           padding: 4px 10px;
           font-family: 'JetBrains Mono', monospace;
@@ -232,7 +233,7 @@ export class ArEditor extends HTMLElement {
           transition: background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
         }
         .toolbar-btn:hover {
-          background: rgba(0, 255, 65, 0.05);
+          background: rgba(var(--color-accent-rgb, 0, 255, 65), 0.05);
           border-color: var(--color-accent-primary, #00ff41);
         }
         .toolbar-btn:disabled {
@@ -246,7 +247,7 @@ export class ArEditor extends HTMLElement {
         }
         .toolbar-btn.primary:hover {
           background: var(--color-accent-hover, #33ff66);
-          box-shadow: 0 0 10px rgba(0, 255, 65, 0.3);
+          box-shadow: 0 0 10px rgba(var(--color-accent-rgb, 0, 255, 65), 0.3);
         }
         .help-wrap {
           position: relative;
@@ -258,7 +259,7 @@ export class ArEditor extends HTMLElement {
           right: 0;
           margin-bottom: 8px;
           background: #0a0a0a;
-          border: 1px solid #1a3a1a;
+          border: 1px solid var(--color-surface-border, #1a3a1a);
           border-radius: 0;
           padding: 12px 16px;
           font-size: var(--text-xs, 0.75rem);
@@ -277,7 +278,7 @@ export class ArEditor extends HTMLElement {
         .help-tooltip kbd {
           display: inline-block;
           background: #000;
-          border: 1px solid #1a3a1a;
+          border: 1px solid var(--color-surface-border, #1a3a1a);
           border-radius: 0;
           padding: 1px 5px;
           font-family: 'JetBrains Mono', monospace;
@@ -290,11 +291,11 @@ export class ArEditor extends HTMLElement {
         .separator {
           width: 1px;
           height: 20px;
-          background: #1a3a1a;
+          background: var(--color-surface-border, #1a3a1a);
         }
         .canvas-wrap {
           position: relative;
-          border: 1px solid #1a3a1a;
+          border: 1px solid var(--color-surface-border, #1a3a1a);
           border-radius: 0;
           overflow: hidden;
           background: #000;
@@ -311,7 +312,7 @@ export class ArEditor extends HTMLElement {
           justify-content: flex-end;
           padding: var(--space-2, 0.5rem) var(--space-3, 0.75rem);
           background: #000;
-          border: 1px solid #1a3a1a;
+          border: 1px solid var(--color-surface-border, #1a3a1a);
           border-radius: 0;
         }
         .bg-options {
@@ -329,7 +330,7 @@ export class ArEditor extends HTMLElement {
         }
         .bg-btn:hover, .bg-btn.active {
           border-color: var(--color-accent-primary, #00ff41);
-          box-shadow: 0 0 6px rgba(0, 255, 65, 0.2);
+          box-shadow: 0 0 6px rgba(var(--color-accent-rgb, 0, 255, 65), 0.2);
         }
         .bg-checker {
           background-image:
@@ -356,11 +357,11 @@ export class ArEditor extends HTMLElement {
         .touch-indicator {
           display: none;
           position: absolute;
-          border: 2px solid #39ff14;
+          border: 2px solid var(--color-accent-primary, #00ff41);
           pointer-events: none;
           z-index: 15;
           opacity: 0.8;
-          box-shadow: 0 0 6px rgba(57, 255, 20, 0.4);
+          box-shadow: 0 0 6px rgba(var(--color-accent-rgb, 0, 255, 65), 0.4);
         }
         .touch-indicator.circle {
           border-radius: 50%;

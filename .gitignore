@@ -40,3 +40,9 @@ LAUNCH-PLAN.md
 playwright-report/
 test-results/
 
+# Model-lab exploration: heavy binaries and comparison artifacts stay local
+exploration/models/
+exploration/samples/
+exploration/results/
+
+.gstack/

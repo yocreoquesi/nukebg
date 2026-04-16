@@ -1,10 +1,13 @@
 import type { SupportedFormat, ImageLoadResult, ExportFormat } from '../types/image';
-import { MAX_DIMENSION } from '../types/image';
+import { getCapability, computeTargetSize, ABSOLUTE_MAX_PIXELS } from './capability-detector';
 
 const SUPPORTED_FORMATS: SupportedFormat[] = ['image/png', 'image/jpeg', 'image/webp'];
 
-/** Max file size in bytes (20 MB, per security policy) */
-const MAX_FILE_SIZE = 20 * 1024 * 1024;
+/**
+ * Max file size in bytes (80 MB). A 32 MP JPEG at high quality lands
+ * around 20-40 MB; this gives headroom for PNG and very-high-res inputs.
+ */
+const MAX_FILE_SIZE = 80 * 1024 * 1024;
 
 export function isSupportedFormat(type: string): type is SupportedFormat {
   return SUPPORTED_FORMATS.includes(type as SupportedFormat);
@@ -19,45 +22,68 @@ export async function loadImage(file: File): Promise<ImageLoadResult> {
   }
 
   if (file.size > MAX_FILE_SIZE) {
-    throw new Error(`File too large: ${Math.round(file.size / 1024 / 1024)} MB. Maximum is 20 MB.`);
+    throw new Error(`File too large: ${Math.round(file.size / 1024 / 1024)} MB. Maximum is ${Math.round(MAX_FILE_SIZE / 1024 / 1024)} MB.`);
   }
 
   const bitmap = await createImageBitmap(file);
   const originalWidth = bitmap.width;
   const originalHeight = bitmap.height;
+  const origPixels = originalWidth * originalHeight;
 
-  let targetWidth = originalWidth;
-  let targetHeight = originalHeight;
-  let wasDownsampled = false;
-
-  if (originalWidth > MAX_DIMENSION || originalHeight > MAX_DIMENSION) {
-    const scale = MAX_DIMENSION / Math.max(originalWidth, originalHeight);
-    targetWidth = Math.round(originalWidth * scale);
-    targetHeight = Math.round(originalHeight * scale);
-    wasDownsampled = true;
+  // Hard ceiling: reject images above the absolute max, regardless of device.
+  // Chromium canvases top out around 16384 per side and ~268 MP area.
+  if (origPixels > ABSOLUTE_MAX_PIXELS) {
+    bitmap.close();
+    const mp = (origPixels / 1_000_000).toFixed(1);
+    const maxMp = Math.round(ABSOLUTE_MAX_PIXELS / 1_000_000);
+    throw new Error(`Image too large: ${mp} MP. Maximum supported is ${maxMp} MP.`);
   }
 
-  let canvas: OffscreenCanvas | HTMLCanvasElement;
-  if (typeof OffscreenCanvas !== 'undefined') {
-    canvas = new OffscreenCanvas(targetWidth, targetHeight);
+  const capability = getCapability();
+  const target = computeTargetSize(originalWidth, originalHeight, capability);
+
+  // Read original at full resolution first (used for final composite)
+  const originalImageData = await rasterizeBitmap(bitmap, originalWidth, originalHeight);
+
+  let imageData: ImageData;
+  if (target.needsDownscale) {
+    imageData = await rasterizeBitmap(bitmap, target.width, target.height);
   } else {
-    canvas = document.createElement('canvas');
-    canvas.width = targetWidth;
-    canvas.height = targetHeight;
+    // Share the same buffer — no extra memory cost.
+    imageData = originalImageData;
   }
-  const ctx = canvas.getContext('2d')! as CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D;
-  ctx.drawImage(bitmap, 0, 0, targetWidth, targetHeight);
   bitmap.close();
-
-  const imageData = ctx.getImageData(0, 0, targetWidth, targetHeight);
 
   return {
     imageData,
+    originalImageData,
     originalWidth,
     originalHeight,
-    wasDownsampled,
+    wasDownsampled: target.needsDownscale,
     format: file.type as SupportedFormat,
   };
+}
+
+/** Draw a bitmap into an ImageData at the given target size. */
+async function rasterizeBitmap(
+  bitmap: ImageBitmap,
+  width: number,
+  height: number,
+): Promise<ImageData> {
+  let canvas: OffscreenCanvas | HTMLCanvasElement;
+  if (typeof OffscreenCanvas !== 'undefined') {
+    canvas = new OffscreenCanvas(width, height);
+  } else {
+    canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+  }
+  const ctx = canvas.getContext('2d')! as CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D;
+  // High-quality downscale for better alpha-edge results after upscale.
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(bitmap, 0, 0, width, height);
+  return ctx.getImageData(0, 0, width, height);
 }
 
 /**
@@ -86,7 +112,7 @@ export async function exportPng(imageData: ImageData): Promise<Blob> {
     });
   }
   return injectPngMetadata(rawBlob, {
-    'Software': 'NukeBG v2.6.0',
+    'Software': 'NukeBG v2.7.1',
     'Source': 'https://nukebg.app',
   });
 }

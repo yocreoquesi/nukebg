@@ -28,8 +28,13 @@ export interface BatchItem {
   id: string;
   originalName: string;
   file: File;
+  /** Working (possibly downsampled) ImageData fed to the pipeline. */
   imageData: ImageData;
+  /** Full-resolution pixels used for the final composite. */
+  originalImageData: ImageData;
   state: BatchItemState;
+  /** Final ImageData at original resolution (after composite upscale). */
+  finalImageData: ImageData | null;
   result: PipelineResult | null;
   thumbnailUrl: string | null;
   errorMessage?: string;

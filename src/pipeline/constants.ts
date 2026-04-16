@@ -295,3 +295,9 @@ export const IMAGE_CLASSIFY_PARAMS = {
   /** Morphological close radius for filling stroke gaps */
   MORPH_RADIUS: 1,
 } as const;
+
+/**
+ * MobileSAM — interactive click-to-segment. Encoder runs once per image,
+ * decoder runs per click (~300ms). Models from Acly/MobileSAM on HuggingFace
+ * (MIT license, compatible with GPL-3.0). Lab-only for now.
+ */

@@ -133,7 +133,7 @@ export class ArProgress extends HTMLElement {
         .stage.running .stage-icon {
           color: var(--color-accent-primary, #00ff41);
           animation: spin 2s linear infinite;
-          filter: drop-shadow(0 0 4px rgba(0, 255, 65, 0.6));
+          filter: drop-shadow(0 0 4px rgba(var(--color-accent-rgb, 0, 255, 65), 0.6));
         }
         .stage.done .stage-icon {
           color: var(--color-accent-primary, #00ff41);
@@ -167,7 +167,7 @@ export class ArProgress extends HTMLElement {
           height: 100%;
           background: var(--color-accent-primary, #00ff41);
           border-radius: 0;
-          box-shadow: 0 0 4px rgba(0, 255, 65, 0.4);
+          box-shadow: 0 0 4px rgba(var(--color-accent-rgb, 0, 255, 65), 0.4);
           transition: width 0.3s ease;
         }
         @keyframes spin {
