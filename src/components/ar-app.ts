@@ -715,7 +715,7 @@ export class ArApp extends HTMLElement {
       <section class="features" aria-label="Key features">
         <p class="features-disclaimer" id="features-disclaimer">${t('features.disclaimer')}</p>
         <div class="limitations-detail" id="limitations-detail">${t('features.limitations')}</div>
-        <p class="reactor-support" id="reactor-support"></p>
+        <p class="reactor-support visible" id="reactor-support">${t('reactor.normal')}</p>
       </section>
     `;
   }
