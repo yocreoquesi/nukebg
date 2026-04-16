@@ -116,6 +116,7 @@ export class ArEditorAdvanced extends HTMLElement {
   // Shared RMBG-1.4 loader, warmed on first refine and reused afterwards.
   private loader: ModelLoader | null = null;
   private busy = false;
+  private actionAbort: AbortController | null = null;
 
   // Pending action awaiting user confirmation. While set, the display shows
   // a red/green tint overlay on top of the working buffer; only Apply writes
@@ -867,13 +868,16 @@ export class ArEditorAdvanced extends HTMLElement {
       }
 
       if (e.key === 'Escape') {
+        e.preventDefault();
+        if (this.busy) {
+          this.cancelAction();
+          return;
+        }
         if (this.lassoAnchors || this.lassoRaw) {
-          e.preventDefault();
           this.clearLasso();
           this.redrawDisplay();
         }
         if (this.selectionMask) {
-          e.preventDefault();
           this.clearSelection();
           this.syncLassoActionsUI();
           this.redrawDisplay();
@@ -1248,6 +1252,16 @@ export class ArEditorAdvanced extends HTMLElement {
     }
   }
 
+  private cancelAction(): void {
+    if (!this.busy) return;
+    this.actionAbort?.abort();
+    this.actionAbort = null;
+    this.busy = false;
+    this.clearLasso();
+    this.syncBusyUI();
+    this.redrawDisplay();
+  }
+
   private setTool(tool: Tool): void {
     if (this.tool === tool) return;
     this.tool = tool;
@@ -1291,9 +1305,7 @@ export class ArEditorAdvanced extends HTMLElement {
     previewRow.querySelectorAll<HTMLButtonElement>('button.action-btn').forEach((b) => {
       b.disabled = this.busy;
     });
-    // Hint follows the lasso state: base hint while selecting, preview hint
-    // while awaiting confirm. Non-lasso tools set their own hint in syncToolUI.
-    if (hint && this.tool === 'lasso') {
+    if (hint && this.tool === 'lasso' && !this.busy) {
       hint.textContent = isPreviewing ? t('advanced.previewHint') : t('advanced.hintLasso');
     }
   }
@@ -1422,6 +1434,10 @@ export class ArEditorAdvanced extends HTMLElement {
     const w = this.current.width;
     const h = this.current.height;
 
+    this.actionAbort?.abort();
+    const ac = new AbortController();
+    this.actionAbort = ac;
+
     this.busy = true;
     this.syncBusyUI();
     try {
@@ -1429,6 +1445,14 @@ export class ArEditorAdvanced extends HTMLElement {
       const workingData = wctx.getImageData(0, 0, w, h);
       const prevAlpha = new Uint8Array(w * h);
       for (let i = 0; i < prevAlpha.length; i++) prevAlpha[i] = workingData.data[i * 4 + 3];
+
+      const segment = async (pixels: Uint8ClampedArray, pw: number, ph: number) => {
+        if (ac.signal.aborted) throw new DOMException('Aborted', 'AbortError');
+        const loader = await this.getLoader();
+        if (ac.signal.aborted) throw new DOMException('Aborted', 'AbortError');
+        const res = await loader.segment({ pixels, width: pw, height: ph });
+        return res.alpha;
+      };
 
       let newAlpha: Uint8Array;
 
@@ -1445,11 +1469,6 @@ export class ArEditorAdvanced extends HTMLElement {
           }
         } else {
           const poly = this.maskToBboxPolygon(mask, w, h);
-          const segment = async (pixels: Uint8ClampedArray, pw: number, ph: number) => {
-            const loader = await this.getLoader();
-            const res = await loader.segment({ pixels, width: pw, height: ph });
-            return res.alpha;
-          };
           const result = await processRoi({
             original: workingData,
             polygon: poly,
@@ -1458,14 +1477,10 @@ export class ArEditorAdvanced extends HTMLElement {
             segment,
             bboxMarginRatio: 0.15,
           });
+          if (ac.signal.aborted) return;
           newAlpha = result.alpha;
         }
       } else {
-        const segment = async (pixels: Uint8ClampedArray, pw: number, ph: number) => {
-          const loader = await this.getLoader();
-          const res = await loader.segment({ pixels, width: pw, height: ph });
-          return res.alpha;
-        };
         const result = await processRoi({
           original: workingData,
           polygon: this.lassoAnchors!,
@@ -1473,6 +1488,7 @@ export class ArEditorAdvanced extends HTMLElement {
           mode: kind,
           segment,
         });
+        if (ac.signal.aborted) return;
         newAlpha = result.alpha;
       }
 
@@ -1484,12 +1500,15 @@ export class ArEditorAdvanced extends HTMLElement {
       this.pendingPreview = { kind, newAlpha, overlay };
       this.redrawDisplay();
     } catch (err) {
+      if (err instanceof DOMException && err.name === 'AbortError') return;
       console.error('[ar-editor-advanced] preview failed', err);
       const hint = this.shadowRoot?.getElementById('hint');
       if (hint) hint.textContent = t('advanced.refineError');
     } finally {
-      this.busy = false;
-      this.syncBusyUI();
+      if (!ac.signal.aborted) {
+        this.busy = false;
+        this.syncBusyUI();
+      }
     }
   }
 
@@ -1617,18 +1636,22 @@ export class ArEditorAdvanced extends HTMLElement {
     const w = this.current.width;
     const h = this.current.height;
 
+    this.actionAbort?.abort();
+    const ac = new AbortController();
+    this.actionAbort = ac;
+
     this.busy = true;
     this.syncBusyUI();
     try {
       const segment = async (pixels: Uint8ClampedArray, pw: number, ph: number) => {
+        if (ac.signal.aborted) throw new DOMException('Aborted', 'AbortError');
         const loader = await this.getLoader();
+        if (ac.signal.aborted) throw new DOMException('Aborted', 'AbortError');
         const res = await loader.segment({ pixels, width: pw, height: ph });
         return res.alpha;
       };
       const wctx = this.working!.getContext('2d')!;
       const workingData = wctx.getImageData(0, 0, w, h);
-      const prevAlpha = new Uint8Array(w * h);
-      for (let i = 0; i < prevAlpha.length; i++) prevAlpha[i] = workingData.data[i * 4 + 3];
 
       const result = await processRoi({
         original: workingData,
@@ -1637,6 +1660,7 @@ export class ArEditorAdvanced extends HTMLElement {
         mode: 'crop',
         segment,
       });
+      if (ac.signal.aborted) return;
 
       this.pushSelectionHistory();
       const segMask = new Uint8Array(w * h);
@@ -1655,10 +1679,13 @@ export class ArEditorAdvanced extends HTMLElement {
       this.rebuildSelectionOverlay();
       this.redrawDisplay();
     } catch (err) {
+      if (err instanceof DOMException && err.name === 'AbortError') return;
       console.error('[ar-editor-advanced] RMBG lasso decode failed', err);
     } finally {
-      this.busy = false;
-      this.syncBusyUI();
+      if (!ac.signal.aborted) {
+        this.busy = false;
+        this.syncBusyUI();
+      }
     }
   }
 
