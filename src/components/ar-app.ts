@@ -106,7 +106,6 @@ export class ArApp extends HTMLElement {
         :host {
           display: block;
           width: 100%;
-          --terminal-color-override: initial;
         }
         .hero {
           text-align: left;
@@ -521,44 +520,44 @@ export class ArApp extends HTMLElement {
         /* === Color override for extreme precision levels === */
         :host(.precision-override) h1,
         :host(.precision-override) h1 .accent {
-          color: var(--terminal-color-override, #00ff41);
+          color: var(--color-accent-primary, #00ff41);
           text-shadow: none;
         }
         :host(.precision-override) h1::before,
         :host(.precision-override) .subline::before {
-          color: var(--terminal-color-override, #008830);
+          color: var(--color-text-tertiary, #008830);
         }
         :host(.precision-override) .subline,
         :host(.precision-override) .model-status,
         :host(.precision-override) .features-disclaimer {
-          color: var(--terminal-color-override, #00dd44);
+          color: var(--color-text-secondary, #00dd44);
         }
         :host(.precision-override) .precision-label {
-          color: var(--terminal-color-override, #00ff41);
+          color: var(--color-accent-primary, #00ff41);
         }
         :host(.precision-override) .reactor-label,
         :host(.precision-override) .reactor-support {
-          color: var(--terminal-color-override, #008830);
+          color: var(--color-text-tertiary, #008830);
         }
         :host(.precision-override) .reactor-support a {
-          color: var(--terminal-color-override, #00ff41);
+          color: var(--color-accent-primary, #00ff41);
         }
         :host(.precision-override) .features-disclaimer a {
-          color: var(--terminal-color-override, #00ff41);
+          color: var(--color-accent-primary, #00ff41);
         }
         :host(.precision-override) .features-disclaimer s {
-          color: var(--terminal-color-override, #008830);
+          color: var(--color-text-tertiary, #008830);
         }
         :host(.precision-override) .edit-btn {
-          color: var(--terminal-color-override, #00dd44);
-          border-color: var(--terminal-color-override, #1a3a1a);
+          color: var(--color-text-secondary, #00dd44);
+          border-color: var(--color-surface-border, #1a3a1a);
         }
         :host(.precision-override) .model-status::before {
-          color: var(--terminal-color-override, #008830);
+          color: var(--color-text-tertiary, #008830);
         }
         :host(.precision-override) #precision-slider,
         :host(.precision-override) #precision-slider-ws {
-          accent-color: var(--terminal-color-override, #00ff41);
+          accent-color: var(--color-accent-primary, #00ff41);
         }
 
         .crt-word-flicker {

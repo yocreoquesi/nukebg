@@ -230,3 +230,41 @@ describe('color consistency — no non-existent CSS variables', () => {
     }
   }
 });
+
+describe('color consistency — :host must not shadow theme variables', () => {
+  const components = readComponentFiles('src/components');
+
+  // CSS custom properties declared on :host shadow inherited values from
+  // document.documentElement, breaking the power mode cascade.
+  // Only non-theme variables may be declared on :host.
+  const HOST_BLOCK = /:host\s*\{([^}]*)\}/g;
+  const CUSTOM_PROP_DECL = /--[\w-]+\s*:/g;
+  const THEME_VAR_PREFIXES = [
+    '--color-',
+    '--terminal-color-',
+  ];
+
+  for (const { name, content } of components) {
+    const cssBlocks = extractCssBlocks(content);
+    if (cssBlocks.length === 0) continue;
+
+    it(`${name} :host does not declare theme CSS custom properties`, () => {
+      for (const css of cssBlocks) {
+        let hostMatch;
+        const hostRegex = /:host\s*\{([^}]*)\}/g;
+        while ((hostMatch = hostRegex.exec(css)) !== null) {
+          const hostBody = hostMatch[1];
+          const propMatches = hostBody.match(CUSTOM_PROP_DECL) || [];
+          for (const prop of propMatches) {
+            const propName = prop.replace(/\s*:$/, '');
+            const isThemeVar = THEME_VAR_PREFIXES.some(prefix => propName.startsWith(prefix));
+            expect(
+              isThemeVar,
+              `${name} :host declares theme variable "${propName}" which shadows document-level power mode values`,
+            ).toBe(false);
+          }
+        }
+      }
+    });
+  }
+});
