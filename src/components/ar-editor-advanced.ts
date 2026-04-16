@@ -1426,9 +1426,9 @@ export class ArEditorAdvanced extends HTMLElement {
     this.syncBusyUI();
     try {
       const wctx = this.working.getContext('2d')!;
-      const prevData = wctx.getImageData(0, 0, w, h).data;
+      const workingData = wctx.getImageData(0, 0, w, h);
       const prevAlpha = new Uint8Array(w * h);
-      for (let i = 0; i < prevAlpha.length; i++) prevAlpha[i] = prevData[i * 4 + 3];
+      for (let i = 0; i < prevAlpha.length; i++) prevAlpha[i] = workingData.data[i * 4 + 3];
 
       let newAlpha: Uint8Array;
 
@@ -1451,7 +1451,7 @@ export class ArEditorAdvanced extends HTMLElement {
             return res.alpha;
           };
           const result = await processRoi({
-            original: this.original,
+            original: workingData,
             polygon: poly,
             previousAlpha: prevAlpha,
             mode: 'refine',
@@ -1467,7 +1467,7 @@ export class ArEditorAdvanced extends HTMLElement {
           return res.alpha;
         };
         const result = await processRoi({
-          original: this.original,
+          original: workingData,
           polygon: this.lassoAnchors!,
           previousAlpha: prevAlpha,
           mode: kind,
@@ -1626,12 +1626,12 @@ export class ArEditorAdvanced extends HTMLElement {
         return res.alpha;
       };
       const wctx = this.working!.getContext('2d')!;
-      const prevData = wctx.getImageData(0, 0, w, h).data;
+      const workingData = wctx.getImageData(0, 0, w, h);
       const prevAlpha = new Uint8Array(w * h);
-      for (let i = 0; i < prevAlpha.length; i++) prevAlpha[i] = prevData[i * 4 + 3];
+      for (let i = 0; i < prevAlpha.length; i++) prevAlpha[i] = workingData.data[i * 4 + 3];
 
       const result = await processRoi({
-        original: this.original,
+        original: workingData,
         polygon: this.lassoAnchors,
         previousAlpha: prevAlpha,
         mode: 'refine',

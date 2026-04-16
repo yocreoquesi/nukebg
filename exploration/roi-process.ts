@@ -211,6 +211,8 @@ export async function processRoi(input: RoiInput): Promise<RoiOutput> {
           alpha[idx] = 0;
           if (eraseMask) eraseMask[idx] = 1;
         }
+      } else if (mode === 'refine' && previousAlpha && previousAlpha[idx] === 0) {
+        alpha[idx] = 0;
       } else {
         alpha[idx] = segVal;
       }
