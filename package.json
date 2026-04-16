@@ -20,7 +20,7 @@
     "happy-dom": "^20.9.0",
     "sharp": "^0.34.5",
     "tsx": "^4.21.0",
-    "typescript": "^5.7.0",
+    "typescript": "^6.0.2",
     "vite": "^6.0.0",
     "vitest": "^4.1.4"
   },
