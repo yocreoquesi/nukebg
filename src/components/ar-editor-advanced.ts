@@ -130,6 +130,10 @@ export class ArEditorAdvanced extends HTMLElement {
   // MobileSAM state — preloaded on editor open, used by lasso.
   private samReady = false;
   private samEncoded = false;
+  // Accumulated SAM prompts for refinement clicks after initial lasso decode.
+  private samPoints: Array<{ x: number; y: number }> = [];
+  private samLabels: number[] = [];
+  private pointerDownImg: { x: number; y: number } | null = null;
 
   // Combined selection mask — accumulates SAM decodes from lasso loops.
   // selectionHistory stores previous mask states for undo.
@@ -592,6 +596,39 @@ export class ArEditorAdvanced extends HTMLElement {
         button.action:hover:not(:disabled) { background: var(--color-accent, #ffd700); color: #000; }
         button.action:disabled { opacity: 0.4; cursor: not-allowed; }
         button.action.secondary { color: var(--color-text-secondary, #999); border-color: var(--color-border, #444); }
+
+        @media (pointer: coarse) {
+          .toolbar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+            margin: 0;
+            padding: 10px 12px;
+            background: rgba(17, 17, 17, 0.95);
+            border: none;
+            border-top: 1px solid rgba(255, 215, 0, 0.3);
+            border-radius: 0;
+            justify-content: center;
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            gap: 8px;
+          }
+          .tool-btn {
+            font-size: 13px;
+            padding: 8px 16px;
+            min-height: 44px;
+          }
+          .action-btn {
+            font-size: 13px;
+            padding: 8px 14px;
+            min-height: 44px;
+          }
+          .zoom-group { display: none; }
+          .size-row input[type="range"] { width: 80px; }
+          .canvas-wrap { max-height: calc(70vh - 60px); }
+        }
       </style>
       <div class="header">
         <div class="title">${t('advanced.title')}</div>
@@ -832,11 +869,21 @@ export class ArEditorAdvanced extends HTMLElement {
     this.updateCursor(e);
 
     if (this.tool === 'lasso') {
-      // Any interaction with the lasso while a preview is pending voids it —
-      // the preview was computed for a specific polygon shape, so moving
-      // anchors or starting a new stroke invalidates it.
       if (this.pendingPreview) this.cancelPreview();
-      // Hit-test existing anchors first — dragging one reshapes the polygon.
+
+      // Refinement mode: if SAM mask exists, clicks add/subtract points.
+      // Shift or Alt = subtract (label 0), plain click = add (label 1).
+      // A drag (pointerMove distance > threshold) will start a new lasso
+      // to add another region, handled in onPointerEnd.
+      if (this.selectionMask && this.samEncoded && !this.busy) {
+        this.pointerDownImg = { x: ix, y: iy };
+        try { this.canvas.setPointerCapture(e.pointerId); } catch { /* noop */ }
+        this.drawing = true;
+        this.lassoRaw = [{ x: ix, y: iy }];
+        this.redrawDisplay();
+        return;
+      }
+
       if (this.lassoAnchors) {
         const idx = this.hitAnchor(ix, iy);
         if (idx !== null) {
@@ -928,6 +975,24 @@ export class ArEditorAdvanced extends HTMLElement {
         return;
       }
       if (this.drawing && this.lassoRaw) {
+        const [ix, iy] = this.eventToImageCoords(e);
+        const wasClick = this.pointerDownImg &&
+          Math.hypot(ix - this.pointerDownImg.x, iy - this.pointerDownImg.y) < 5 &&
+          this.lassoRaw.length < MIN_ANCHORS;
+        this.pointerDownImg = null;
+
+        if (wasClick && this.selectionMask && this.samEncoded && !this.busy) {
+          this.lassoRaw = null;
+          this.drawing = false;
+          if (this.samPoints.length < SAM_MAX_POINTS) {
+            const label = (e.shiftKey || e.altKey) ? 0 : 1;
+            this.samPoints.push({ x: ix, y: iy });
+            this.samLabels.push(label);
+            this.runSamRefine();
+          }
+          return;
+        }
+
         if (this.lassoRaw.length >= MIN_ANCHORS) {
           const w = this.current?.width ?? 0;
           const h = this.current?.height ?? 0;
@@ -1190,6 +1255,8 @@ export class ArEditorAdvanced extends HTMLElement {
     this.selectionOverlay = null;
     this.selectionHistory = [];
     this.pendingPreview = null;
+    this.samPoints = [];
+    this.samLabels = [];
   }
 
   private paintCanvas(): void {
@@ -1352,6 +1419,10 @@ export class ArEditorAdvanced extends HTMLElement {
         newAlpha = result.alpha;
       }
 
+      if (kind === 'crop' || kind === 'erase-object') {
+        this.applyAlphaDirectly(newAlpha);
+        return;
+      }
       const overlay = this.buildPreviewOverlay(prevAlpha, newAlpha, w, h);
       this.pendingPreview = { kind, newAlpha, overlay };
       this.redrawDisplay();
@@ -1405,9 +1476,14 @@ export class ArEditorAdvanced extends HTMLElement {
   }
 
   private applyPreview(): void {
-    if (!this.pendingPreview || !this.working || !this.current || !this.original) return;
+    if (!this.pendingPreview) return;
     const { newAlpha } = this.pendingPreview;
-    // Committing is a single undo step — match brush/eraser contract.
+    this.pendingPreview = null;
+    this.applyAlphaDirectly(newAlpha);
+  }
+
+  private applyAlphaDirectly(newAlpha: Uint8Array): void {
+    if (!this.working || !this.current || !this.original) return;
     this.pushUndo();
     const w = this.current.width;
     const h = this.current.height;
@@ -1418,9 +1494,6 @@ export class ArEditorAdvanced extends HTMLElement {
       const dstIdx = i * 4;
       const prevA = img.data[dstIdx + 3];
       const nextA = newAlpha[i];
-      // Canvas destination-out (how the eraser cuts alpha) also zeroes RGB,
-      // so erased pixels sit at (0,0,0,0). When a later action brings alpha
-      // back, we'd see black unless we refresh RGB from the original here.
       if (prevA === 0 && nextA > 0) {
         img.data[dstIdx] = orig[dstIdx];
         img.data[dstIdx + 1] = orig[dstIdx + 1];
@@ -1429,7 +1502,6 @@ export class ArEditorAdvanced extends HTMLElement {
       img.data[dstIdx + 3] = nextA;
     }
     wctx.putImageData(img, 0, 0);
-    this.pendingPreview = null;
     this.clearLasso();
     this.clearSelection();
     this.redrawDisplay();
@@ -1539,6 +1611,32 @@ export class ArEditorAdvanced extends HTMLElement {
     }
   }
 
+  private async runSamRefine(): Promise<void> {
+    if (!this.samEncoded || !this.current || this.samPoints.length === 0) return;
+    const w = this.current.width;
+    const h = this.current.height;
+
+    this.busy = true;
+    this.syncLassoActionsUI();
+    try {
+      const result: SamMaskResult = await decodeSam(
+        this.samPoints, this.samLabels, w, h,
+      );
+      this.pushSelectionHistory();
+      this.selectionMask = result.mask;
+      this.rebuildSelectionOverlay();
+      this.syncLassoActionsUI();
+      this.redrawDisplay();
+    } catch (err) {
+      console.error('[ar-editor-advanced] SAM refine failed', err);
+      this.samPoints.pop();
+      this.samLabels.pop();
+    } finally {
+      this.busy = false;
+      this.syncLassoActionsUI();
+    }
+  }
+
   private pushSelectionHistory(): void {
     if (this.selectionMask) {
       this.selectionHistory.push(new Uint8Array(this.selectionMask));
@@ -1551,6 +1649,10 @@ export class ArEditorAdvanced extends HTMLElement {
   private undoSelection(): boolean {
     if (this.selectionHistory.length === 0) return false;
     const prev = this.selectionHistory.pop()!;
+    if (this.samPoints.length > 0) {
+      this.samPoints.pop();
+      this.samLabels.pop();
+    }
     if (prev.length === 0) {
       this.selectionMask = null;
     } else {
@@ -1598,6 +1700,29 @@ export class ArEditorAdvanced extends HTMLElement {
       }
     }
     ctx.putImageData(img, 0, 0);
+
+    for (let i = 0; i < this.samPoints.length; i++) {
+      const pt = this.samPoints[i];
+      const fg = this.samLabels[i] === 1;
+      ctx.beginPath();
+      ctx.arc(pt.x, pt.y, 6, 0, Math.PI * 2);
+      ctx.fillStyle = fg ? 'rgba(0,220,80,0.9)' : 'rgba(255,60,60,0.9)';
+      ctx.fill();
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = '#fff';
+      ctx.stroke();
+      if (!fg) {
+        ctx.beginPath();
+        ctx.moveTo(pt.x - 3, pt.y - 3);
+        ctx.lineTo(pt.x + 3, pt.y + 3);
+        ctx.moveTo(pt.x + 3, pt.y - 3);
+        ctx.lineTo(pt.x - 3, pt.y + 3);
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = '#fff';
+        ctx.stroke();
+      }
+    }
+
     this.selectionOverlay = canvas;
   }
 

@@ -45,3 +45,4 @@ exploration/models/
 exploration/samples/
 exploration/results/
 
+.gstack/
