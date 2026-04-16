@@ -1633,8 +1633,8 @@ export class ArEditorAdvanced extends HTMLElement {
       const result = await processRoi({
         original: workingData,
         polygon: this.lassoAnchors,
-        previousAlpha: prevAlpha,
-        mode: 'refine',
+        previousAlpha: null,
+        mode: 'crop',
         segment,
       });
 
