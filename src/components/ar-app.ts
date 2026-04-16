@@ -13,6 +13,7 @@ import type { ArBatchGrid } from './ar-batch-grid';
 import type { BatchItem, StageSnapshot } from '../types/batch';
 import { createZip, safeZipEntryName, downloadBlob } from '../utils/zip';
 import { composeAtOriginal } from '../utils/final-composite';
+import { exportPng } from '../utils/image-io';
 import type { ArEditorAdvanced } from './ar-editor-advanced';
 
 export class ArApp extends HTMLElement {
@@ -1097,7 +1098,6 @@ export class ArApp extends HTMLElement {
         this.lastResultImageData = this.preEditResult;
         this.preEditResult = null;
 
-        const { exportPng } = await import('../utils/image-io');
         const blob = await exportPng(this.lastResultImageData);
         const originalForViewer = this.currentOriginalImageData ?? this.currentImageData;
         if (originalForViewer) this.viewer.setOriginal(originalForViewer, this.currentFileSize);
@@ -1131,7 +1131,6 @@ export class ArApp extends HTMLElement {
     // Editor done - update viewer and download with edited result
     this.shadowRoot!.addEventListener('ar:editor-done', async (e: Event) => {
       const editedData = (e as CustomEvent).detail.imageData as ImageData;
-      const { exportPng } = await import('../utils/image-io');
       const blob = await exportPng(editedData);
 
       // Save pre-edit for discard functionality
@@ -1182,7 +1181,6 @@ export class ArApp extends HTMLElement {
       const btn = this.shadowRoot!.querySelector('#advanced-cta') as HTMLElement | null;
       btn?.removeAttribute('data-active');
 
-      const { exportPng } = await import('../utils/image-io');
       const blob = await exportPng(detail.imageData);
       this.viewer.setResult(detail.imageData, blob);
       await this.download.setResult(detail.imageData, this.currentFileName, 0, blob);
@@ -1383,7 +1381,6 @@ export class ArApp extends HTMLElement {
       const nukedPct = result.nukedPct;
       const totalTimeMs = result.totalTimeMs;
 
-      const { exportPng } = await import('../utils/image-io');
       if (this.processingAborted) return;
 
       const blob = await exportPng(finalImageData);
@@ -1646,7 +1643,6 @@ export class ArApp extends HTMLElement {
       // which left every stage 'pending' and blanked out every icon.
       this.replayStageHistory(item.stageHistory);
       this.download.reset();
-      const { exportPng } = await import('../utils/image-io');
       const finalImageData = item.finalImageData ?? item.result.imageData;
       const blob = await exportPng(finalImageData);
       this.viewer.setResult(finalImageData, blob);
@@ -1706,7 +1702,6 @@ export class ArApp extends HTMLElement {
   private async downloadBatchZip(): Promise<void> {
     const done = this.batchItems.filter(i => i.state === 'done' && i.result);
     if (done.length === 0) return;
-    const { exportPng } = await import('../utils/image-io');
     const files = await Promise.all(
       done.map(async (item, idx) => ({
         name: safeZipEntryName(idx + 1, done.length, item.originalName),
