@@ -125,6 +125,8 @@ export class ArEditorAdvanced extends HTMLElement {
   // SAM state — lazy-loaded on first Refine, encoder runs once per image.
   private samEncoded = false;
 
+  private bgColor = 'transparent';
+
   // Pending action awaiting user confirmation. While set, the display shows
   // a red/green tint overlay on top of the working buffer; only Apply writes
   // the new alpha to the buffer.
@@ -533,6 +535,41 @@ export class ArEditorAdvanced extends HTMLElement {
           min-width: 28px;
           text-align: right;
         }
+        .bg-options {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          padding: 4px 0;
+        }
+        .bg-label {
+          font-size: 11px;
+          color: var(--color-text-muted, #888);
+          margin-right: 2px;
+        }
+        .bg-btn {
+          width: 18px; height: 18px;
+          border-radius: 0;
+          border: 2px solid transparent;
+          cursor: pointer;
+          transition: border-color 0.15s;
+          flex-shrink: 0;
+        }
+        .bg-btn:hover, .bg-btn.active {
+          border-color: var(--color-accent-primary, #00ff41);
+        }
+        .bg-checker {
+          background-image:
+            linear-gradient(45deg, #ccc 25%, transparent 25%),
+            linear-gradient(-45deg, #ccc 25%, transparent 25%),
+            linear-gradient(45deg, transparent 75%, #ccc 75%),
+            linear-gradient(-45deg, transparent 75%, #ccc 75%);
+          background-size: 6px 6px;
+          background-position: 0 0, 0 3px, 3px -3px, 3px 0;
+          background-color: #fff;
+        }
+        .bg-white { background: #fff; }
+        .bg-black { background: #000; }
+        .bg-red { background: #ff4444; }
         .canvas-wrap {
           background:
             linear-gradient(45deg, #1a1a1a 25%, transparent 25%) 0 0 / 12px 12px,
@@ -774,6 +811,14 @@ export class ArEditorAdvanced extends HTMLElement {
           <button type="button" class="zoom-btn" id="zoom-fit" title="${t('advanced.zoomFit')}" aria-label="${t('advanced.zoomFit')}">⌂</button>
         </div>
       </div>
+      <div class="bg-options" role="group" aria-label="${t('viewer.bg')}">
+        <span class="bg-label">${t('viewer.bg')}</span>
+        <div class="bg-btn bg-checker active" data-bg="transparent" title="Transparent"></div>
+        <div class="bg-btn bg-white" data-bg="white" title="White"></div>
+        <div class="bg-btn bg-black" data-bg="black" title="Black"></div>
+        <div class="bg-btn" style="background:#00b140" data-bg="#00b140" title="Green screen"></div>
+        <div class="bg-btn bg-red" data-bg="#ff4444" title="Red"></div>
+      </div>
       <div class="canvas-wrap"><canvas></canvas></div>
       <div class="controls">
         <span class="hint" id="hint">${t('advanced.hint')}</span>
@@ -812,6 +857,15 @@ export class ArEditorAdvanced extends HTMLElement {
     shadow.getElementById('zoom-in')!.addEventListener('click', () => this.setZoom(this.zoom * ZOOM_STEP), { signal });
     shadow.getElementById('zoom-out')!.addEventListener('click', () => this.setZoom(this.zoom / ZOOM_STEP), { signal });
     shadow.getElementById('zoom-fit')!.addEventListener('click', () => this.resetView(), { signal });
+
+    shadow.querySelectorAll('.bg-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        shadow.querySelectorAll('.bg-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        this.bgColor = (btn as HTMLElement).dataset.bg || 'transparent';
+        this.applyBgColor();
+      }, { signal });
+    });
 
     const wrap = shadow.querySelector('.canvas-wrap') as HTMLElement;
     wrap.addEventListener('wheel', (e) => {
@@ -1177,6 +1231,16 @@ export class ArEditorAdvanced extends HTMLElement {
   private updateZoomDisplay(): void {
     const el = this.shadowRoot?.getElementById('zoom-display');
     if (el) el.textContent = `${Math.round(this.zoom * 100)}%`;
+  }
+
+  private applyBgColor(): void {
+    const wrap = this.shadowRoot?.querySelector('.canvas-wrap') as HTMLElement | null;
+    if (!wrap) return;
+    if (this.bgColor === 'transparent') {
+      wrap.style.background = '';
+    } else {
+      wrap.style.background = this.bgColor;
+    }
   }
 
   private getPinchDist(touches: TouchList): number {
