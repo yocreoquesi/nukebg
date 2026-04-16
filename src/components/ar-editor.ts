@@ -342,13 +342,13 @@ export class ArEditor extends HTMLElement {
         }
         .bg-checker {
           background-image:
-            linear-gradient(45deg, #ccc 25%, transparent 25%),
-            linear-gradient(-45deg, #ccc 25%, transparent 25%),
-            linear-gradient(45deg, transparent 75%, #ccc 75%),
-            linear-gradient(-45deg, transparent 75%, #ccc 75%);
+            linear-gradient(45deg, var(--color-preview-checker-dark) 25%, transparent 25%),
+            linear-gradient(-45deg, var(--color-preview-checker-dark) 25%, transparent 25%),
+            linear-gradient(45deg, transparent 75%, var(--color-preview-checker-dark) 75%),
+            linear-gradient(-45deg, transparent 75%, var(--color-preview-checker-dark) 75%);
           background-size: 6px 6px;
           background-position: 0 0, 0 3px, 3px -3px, 3px 0;
-          background-color: #fff;
+          background-color: var(--color-preview-checker-light);
         }
         .hint {
           font-size: var(--text-xs, 0.75rem);

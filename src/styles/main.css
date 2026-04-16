@@ -48,6 +48,9 @@
   --color-preview-black: #000000;
   --color-preview-green: #00b140;
   --color-preview-red: #ff4444;
+  /* Light checkerboard used inside the BG-swatch buttons (not the terminal dark checker above) */
+  --color-preview-checker-light: #ffffff;
+  --color-preview-checker-dark: #cccccc;
 
   /* Restore tool accent (ar-editor cursor). Exposed as rgb list so SVG data URLs can read it via getComputedStyle. */
   --color-restore-rgb: 0, 212, 255;
