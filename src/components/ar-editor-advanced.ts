@@ -1284,13 +1284,14 @@ export class ArEditorAdvanced extends HTMLElement {
 
   private drawLassoOverlay(): void {
     if (!this.ctx) return;
-    if (this.selectionMask) return;
 
-    // Raw in-progress path — open polyline.
+    // Raw in-progress path — open polyline. Always visible, even over Quick Mask.
     if (this.lassoRaw && this.lassoRaw.length > 1) {
       this.ctx.save();
-      this.ctx.strokeStyle = 'rgba(255, 215, 0, 0.9)';
-      this.ctx.lineWidth = 2;
+      this.ctx.strokeStyle = 'rgba(255, 215, 0, 0.95)';
+      this.ctx.lineWidth = this.selectionMask ? 3 : 2;
+      this.ctx.shadowColor = 'rgba(0, 0, 0, 0.7)';
+      this.ctx.shadowBlur = 3;
       this.ctx.setLineDash([]);
       this.ctx.beginPath();
       const p0 = this.lassoRaw[0];
@@ -1304,7 +1305,8 @@ export class ArEditorAdvanced extends HTMLElement {
     }
 
     // Simplified anchors — filled polygon + marching-ants outline + handles.
-    if (this.lassoAnchors && this.lassoAnchors.length >= MIN_ANCHORS) {
+    // Skip when Quick Mask is active (anchors are cleared after SAM decode).
+    if (!this.selectionMask && this.lassoAnchors && this.lassoAnchors.length >= MIN_ANCHORS) {
       const pts = this.lassoAnchors;
       this.ctx.save();
       this.ctx.fillStyle = 'rgba(255, 215, 0, 0.15)';
@@ -1389,19 +1391,7 @@ export class ArEditorAdvanced extends HTMLElement {
             if (mask[i] === 1) newAlpha[i] = 0;
           }
         } else {
-          const segment = async (pixels: Uint8ClampedArray, pw: number, ph: number) => {
-            const loader = await this.getLoader();
-            const res = await loader.segment({ pixels, width: pw, height: ph });
-            return res.alpha;
-          };
-          const result = await processRoi({
-            original: this.original,
-            polygon: this.lassoAnchors!,
-            previousAlpha: prevAlpha,
-            mode: kind,
-            segment,
-          });
-          newAlpha = result.alpha;
+          newAlpha = await this.refineWithRmbg(mask, prevAlpha, w, h);
         }
       } else {
         const segment = async (pixels: Uint8ClampedArray, pw: number, ph: number) => {
@@ -1609,6 +1599,74 @@ export class ArEditorAdvanced extends HTMLElement {
       this.busy = false;
       this.syncLassoActionsUI();
     }
+  }
+
+  private async refineWithRmbg(
+    mask: Uint8Array,
+    prevAlpha: Uint8Array,
+    w: number,
+    h: number,
+  ): Promise<Uint8Array> {
+    const DILATE_R = 20;
+    const dilated = new Uint8Array(mask);
+    for (let y = 0; y < h; y++) {
+      for (let x = 0; x < w; x++) {
+        if (mask[y * w + x] === 1) continue;
+        let found = false;
+        const y0 = Math.max(0, y - DILATE_R);
+        const y1 = Math.min(h - 1, y + DILATE_R);
+        const x0 = Math.max(0, x - DILATE_R);
+        const x1 = Math.min(w - 1, x + DILATE_R);
+        for (let dy = y0; dy <= y1 && !found; dy++) {
+          for (let dx = x0; dx <= x1 && !found; dx++) {
+            if (mask[dy * w + dx] === 1) {
+              const dist = Math.hypot(dx - x, dy - y);
+              if (dist <= DILATE_R) found = true;
+            }
+          }
+        }
+        if (found) dilated[y * w + x] = 1;
+      }
+    }
+
+    let minX = w, minY = h, maxX = 0, maxY = 0;
+    for (let y = 0; y < h; y++) {
+      for (let x = 0; x < w; x++) {
+        if (dilated[y * w + x] === 1) {
+          if (x < minX) minX = x;
+          if (x > maxX) maxX = x;
+          if (y < minY) minY = y;
+          if (y > maxY) maxY = y;
+        }
+      }
+    }
+    const bx = Math.max(0, minX);
+    const by = Math.max(0, minY);
+    const bw = Math.min(w, maxX + 1) - bx;
+    const bh = Math.min(h, maxY + 1) - by;
+
+    const crop = new Uint8ClampedArray(bw * bh * 4);
+    const origData = this.original!.data;
+    for (let y = 0; y < bh; y++) {
+      const srcRow = ((by + y) * w + bx) * 4;
+      const dstRow = y * bw * 4;
+      crop.set(origData.subarray(srcRow, srcRow + bw * 4), dstRow);
+    }
+
+    const loader = await this.getLoader();
+    const res = await loader.segment({ pixels: crop, width: bw, height: bh });
+    const segAlpha = res.alpha;
+
+    const newAlpha = new Uint8Array(prevAlpha);
+    for (let y = 0; y < bh; y++) {
+      for (let x = 0; x < bw; x++) {
+        const gi = (by + y) * w + (bx + x);
+        if (dilated[gi] === 1) {
+          newAlpha[gi] = segAlpha[y * bw + x];
+        }
+      }
+    }
+    return newAlpha;
   }
 
   private async runSamRefine(): Promise<void> {
