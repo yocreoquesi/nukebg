@@ -12,7 +12,7 @@ import type { ArDropzone } from './ar-dropzone';
 import type { ArBatchGrid } from './ar-batch-grid';
 import type { BatchItem, StageSnapshot } from '../types/batch';
 import { createZip, safeZipEntryName, downloadBlob } from '../utils/zip';
-import { composeAtOriginal } from '../utils/final-composite';
+import { finalizeComposite, refineEdges } from '../pipeline/finalize';
 import { exportPng } from '../utils/image-io';
 import type { ArEditorAdvanced } from './ar-editor-advanced';
 
@@ -1130,7 +1130,10 @@ export class ArApp extends HTMLElement {
 
     // Editor done - update viewer and download with edited result
     this.shadowRoot!.addEventListener('ar:editor-done', async (e: Event) => {
-      const editedData = (e as CustomEvent).detail.imageData as ImageData;
+      const rawEdited = (e as CustomEvent).detail.imageData as ImageData;
+      // Refine: foreground decontamination + quintic alpha sharpening so manual
+      // brush strokes inherit the same studio-quality edge as the main pipeline.
+      const editedData = await refineEdges(this.pipeline, rawEdited);
       const blob = await exportPng(editedData);
 
       // Save pre-edit for discard functionality
@@ -1181,10 +1184,11 @@ export class ArApp extends HTMLElement {
       const btn = this.shadowRoot!.querySelector('#advanced-cta') as HTMLElement | null;
       btn?.removeAttribute('data-active');
 
-      const blob = await exportPng(detail.imageData);
-      this.viewer.setResult(detail.imageData, blob);
-      await this.download.setResult(detail.imageData, this.currentFileName, 0, blob);
-      this.lastResultImageData = detail.imageData;
+      const refined = await refineEdges(this.pipeline, detail.imageData);
+      const blob = await exportPng(refined);
+      this.viewer.setResult(refined, blob);
+      await this.download.setResult(refined, this.currentFileName, 0, blob);
+      this.lastResultImageData = refined;
     }, { signal });
   }
 
@@ -1417,31 +1421,10 @@ export class ArApp extends HTMLElement {
     }
   }
 
-  /**
-   * Compose final RGBA at original resolution and run foreground estimation
-   * to strip halos/color-bleed from partial-alpha edge pixels.
-   *
-   * Without decontamination, pixels at α ≈ 0.5 still carry ~50% of the
-   * background color in their RGB — which shows through as a gray/colored
-   * fringe when compositing onto a new background. The estimator solves
-   * I = α·F + (1−α)·B per-pixel under a smoothness prior and returns the
-   * pure foreground.
-   */
-  private async finalizeImageData(
-    input: Parameters<typeof composeAtOriginal>[0],
+  private finalizeImageData(
+    input: Parameters<typeof finalizeComposite>[1],
   ): Promise<ImageData> {
-    const composed = composeAtOriginal(input);
-    if (!this.pipeline) return composed;
-
-    const w = composed.width;
-    const h = composed.height;
-    const alpha = new Uint8Array(w * h);
-    for (let i = 0; i < w * h; i++) alpha[i] = composed.data[i * 4 + 3];
-
-    const observed = new Uint8ClampedArray(composed.data);
-    const decontam = await this.pipeline.estimateForeground(observed, alpha, w, h);
-    // Rewrap to pin the typed-array variance for ImageData (TS 6.x strict).
-    return new ImageData(new Uint8ClampedArray(decontam), w, h);
+    return finalizeComposite(this.pipeline, input);
   }
 
   private makeThumbnail(imageData: ImageData, maxSide = 200): string {
