@@ -118,7 +118,7 @@ function preprocessForEncoder(
     }
   }
   // Padded region stays at 0 — ImageNet-normalized black.
-  return { tensor: new ort.Tensor('float32', data, [1, 3, S, S]), scale };
+  return { tensor: new ort.Tensor('float32', data, [3, S, S]), scale };
 }
 
 function bilinearResize(
