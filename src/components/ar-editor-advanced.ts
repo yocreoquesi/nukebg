@@ -580,6 +580,48 @@ export class ArEditorAdvanced extends HTMLElement {
         button.action:disabled { opacity: 0.4; cursor: not-allowed; }
         button.action.secondary { color: var(--color-text-secondary, #999); border-color: var(--color-border, #444); }
 
+        .confirm-bar {
+          display: none;
+          align-items: center;
+          gap: 8px;
+          font-size: 11px;
+          animation: confirmFadeIn 0.2s ease;
+        }
+        .confirm-bar.visible {
+          display: inline-flex;
+        }
+        .confirm-bar.visible ~ #hint { display: none; }
+        .confirm-msg {
+          color: var(--color-accent, #ffd700);
+          letter-spacing: 0.03em;
+        }
+        .confirm-yes, .confirm-no {
+          font-family: inherit;
+          font-size: 11px;
+          border-radius: 2px;
+          padding: 3px 10px;
+          cursor: pointer;
+          border: 1px solid;
+          letter-spacing: 0.05em;
+          text-transform: uppercase;
+        }
+        .confirm-yes {
+          background: transparent;
+          color: #ff6d6d;
+          border-color: #ff6d6d;
+        }
+        .confirm-yes:hover { background: #ff6d6d; color: #000; }
+        .confirm-no {
+          background: transparent;
+          color: var(--color-text-secondary, #999);
+          border-color: var(--color-border, #444);
+        }
+        .confirm-no:hover { background: var(--color-border, #444); color: #fff; }
+        @keyframes confirmFadeIn {
+          from { opacity: 0; transform: translateY(4px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+
         @media (pointer: coarse) {
           .toolbar {
             position: fixed;
@@ -695,6 +737,11 @@ export class ArEditorAdvanced extends HTMLElement {
       <div class="canvas-wrap"><canvas></canvas></div>
       <div class="controls">
         <span class="hint" id="hint">${t('advanced.hint')}</span>
+        <span class="confirm-bar" id="confirm-bar">
+          <span class="confirm-msg" id="confirm-msg"></span>
+          <button type="button" class="confirm-yes" id="confirm-yes">${t('advanced.confirmYes')}</button>
+          <button type="button" class="confirm-no" id="confirm-no">${t('advanced.confirmNo')}</button>
+        </span>
         <button type="button" class="action secondary" id="undo" disabled>${t('advanced.undo')}</button>
         <button type="button" class="action secondary" id="redo" disabled>${t('advanced.redo')}</button>
         <button type="button" class="action secondary" id="cancel">${t('advanced.cancel')}</button>
@@ -1134,14 +1181,48 @@ export class ArEditorAdvanced extends HTMLElement {
   private restoreToOriginal(): void {
     if (this.busy) return;
     if (!this.working || !this.original) return;
-    // Destructive — ask once. undo stack captures the pre-restore state so
-    // Ctrl+Z still gets them back if they changed their mind after confirming.
-    if (!window.confirm(t('advanced.restoreConfirm'))) return;
-    this.pushUndo();
-    const wctx = this.working.getContext('2d')!;
-    wctx.putImageData(this.original, 0, 0);
-    this.clearLasso();
-    this.redrawDisplay();
+    this.showConfirm(t('advanced.restoreConfirm'), () => {
+      this.pushUndo();
+      const wctx = this.working!.getContext('2d')!;
+      wctx.putImageData(this.original!, 0, 0);
+      this.clearLasso();
+      this.redrawDisplay();
+    });
+  }
+
+  private confirmCleanup: (() => void) | null = null;
+
+  private showConfirm(msg: string, onYes: () => void): void {
+    this.dismissConfirm();
+    const bar = this.shadowRoot?.getElementById('confirm-bar');
+    const msgEl = this.shadowRoot?.getElementById('confirm-msg');
+    const yesBtn = this.shadowRoot?.getElementById('confirm-yes');
+    const noBtn = this.shadowRoot?.getElementById('confirm-no');
+    if (!bar || !msgEl || !yesBtn || !noBtn) return;
+
+    msgEl.textContent = msg;
+    bar.classList.add('visible');
+
+    const dismiss = () => this.dismissConfirm();
+    const accept = () => { dismiss(); onYes(); };
+
+    yesBtn.addEventListener('click', accept, { once: true });
+    noBtn.addEventListener('click', dismiss, { once: true });
+
+    const timer = setTimeout(dismiss, 8000);
+    this.confirmCleanup = () => {
+      clearTimeout(timer);
+      yesBtn.removeEventListener('click', accept);
+      noBtn.removeEventListener('click', dismiss);
+      bar.classList.remove('visible');
+    };
+  }
+
+  private dismissConfirm(): void {
+    if (this.confirmCleanup) {
+      this.confirmCleanup();
+      this.confirmCleanup = null;
+    }
   }
 
   private setTool(tool: Tool): void {
