@@ -21,21 +21,33 @@ if (typeof globalThis.ImageData === 'undefined') {
   };
 }
 
-describe('sharpenAlpha (binary threshold at 128)', () => {
+describe('sharpenAlpha (narrow-band smoothstep [100, 160])', () => {
   it('preserves the 0 and 255 endpoints exactly', () => {
     const a = new Uint8Array([0, 255, 0, 255]);
     const out = sharpenAlpha(a);
     expect(Array.from(out)).toEqual([0, 255, 0, 255]);
   });
 
-  it('maps α<128 to 0 (kills the soft halo tail)', () => {
-    const out = sharpenAlpha(new Uint8Array([1, 30, 60, 100, 127]));
+  it('clamps everything below the LOW bound to 0 (kills halo)', () => {
+    const out = sharpenAlpha(new Uint8Array([1, 30, 60, 99, 100]));
     expect(Array.from(out)).toEqual([0, 0, 0, 0, 0]);
   });
 
-  it('maps α>=128 to 255 (tight opaque interior)', () => {
-    const out = sharpenAlpha(new Uint8Array([128, 150, 200, 230, 254]));
+  it('clamps everything above the HIGH bound to 255 (tight interior)', () => {
+    const out = sharpenAlpha(new Uint8Array([160, 170, 200, 230, 254]));
     expect(Array.from(out)).toEqual([255, 255, 255, 255, 255]);
+  });
+
+  it('smooths the narrow band [100, 160] through a smoothstep', () => {
+    const out = sharpenAlpha(new Uint8Array([100, 115, 130, 145, 160]));
+    // 100 → 0, 160 → 255, 130 ≈ 128 (midpoint of smoothstep)
+    expect(out[0]).toBe(0);
+    expect(out[4]).toBe(255);
+    expect(Math.abs(out[2] - 128)).toBeLessThanOrEqual(2);
+    // smoothstep endpoints have zero slope, so 115 and 145 are pushed
+    // toward their nearer endpoint rather than landing linearly at 64/192
+    expect(out[1]).toBeLessThan(64);
+    expect(out[3]).toBeGreaterThan(192);
   });
 
   it('is monotonic across the full 0..255 range', () => {
@@ -47,9 +59,15 @@ describe('sharpenAlpha (binary threshold at 128)', () => {
     }
   });
 
-  it('has a single step discontinuity at α=128 (127→0, 128→255)', () => {
-    const out = sharpenAlpha(new Uint8Array([127, 128]));
-    expect(Array.from(out)).toEqual([0, 255]);
+  it('produces a narrow soft band: only ~60 input values map to soft α', () => {
+    const input = new Uint8Array(256);
+    for (let i = 0; i < 256; i++) input[i] = i;
+    const out = sharpenAlpha(input);
+    const soft = Array.from(out).filter((v) => v > 0 && v < 255).length;
+    // Band is [100, 160] exclusive endpoints, minus rounding to 0 or 255
+    // near the tails — expect somewhere in [40, 60] soft values.
+    expect(soft).toBeGreaterThan(35);
+    expect(soft).toBeLessThan(65);
   });
 });
 

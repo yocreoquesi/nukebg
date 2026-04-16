@@ -35,15 +35,35 @@ export interface ForegroundEstimator {
 }
 
 /**
- * Binary threshold at α=128. Pixels with α≥128 become fully opaque, the rest
- * fully transparent. The soft tail that a smoothstep would preserve is what
- * shows up as a colored halo on white/black backgrounds, so we remove it
- * entirely — hard studio-cut edge with zero residue.
+ * Narrow-band quintic smoothstep on the RMBG soft-alpha gradient.
+ *
+ *   α ≤ LOW  → 0          (kills the wide halo tail)
+ *   α ≥ HIGH → 255         (tight interior, no feathering into the body)
+ *   in-between → 6n⁵−15n⁴+10n³ normalized over [LOW, HIGH]
+ *
+ * RMBG emits a smooth ~3–5 px transition in alpha-value space (roughly
+ * covering [20, 230]). A full-range smoothstep over [0, 255] leaves a
+ * 3 px soft band that reads as color halo on flat backgrounds; a pure
+ * binary threshold at 128 removes that but exposes 1 px staircase
+ * aliasing on curved edges. This narrow band (width 60, centered at 130)
+ * covers ~30 % of the gradient, which collapses to roughly 1 output pixel
+ * of antialiasing — the same tightness you get from a 1 px feather on a
+ * Photoshop selection.
  */
+const SHARPEN_LOW = 100;
+const SHARPEN_HIGH = 160;
+
 export function sharpenAlpha(alpha: Uint8Array): Uint8Array {
   const out = new Uint8Array(alpha.length);
+  const range = SHARPEN_HIGH - SHARPEN_LOW;
   for (let i = 0; i < alpha.length; i++) {
-    out[i] = alpha[i] >= 128 ? 255 : 0;
+    const a = alpha[i];
+    if (a <= SHARPEN_LOW) { out[i] = 0; continue; }
+    if (a >= SHARPEN_HIGH) { out[i] = 255; continue; }
+    const n = (a - SHARPEN_LOW) / range;
+    const s = n * n * n * (n * (n * 6 - 15) + 10);
+    const v = Math.round(s * 255);
+    out[i] = v < 0 ? 0 : v > 255 ? 255 : v;
   }
   return out;
 }
