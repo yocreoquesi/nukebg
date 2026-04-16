@@ -30,7 +30,11 @@
 
 import { isLabVisible } from '../../exploration/lab-visibility';
 import { createLoader, type ModelLoader } from '../../exploration/loaders';
+import {
+  loadSam, encodeSam, decodeSam, disposeSam, onSamProgress,
+} from '../../exploration/loaders/mobile-sam';
 import { processRoi } from '../../exploration/roi-process';
+import { rasterizePolygon } from '../../exploration/roi-process';
 import { t } from '../i18n';
 import { simplifyClosed, type Point } from './lasso-simplify';
 
@@ -118,6 +122,9 @@ export class ArEditorAdvanced extends HTMLElement {
   private busy = false;
   private actionAbort: AbortController | null = null;
 
+  // SAM state — lazy-loaded on first Refine, encoder runs once per image.
+  private samEncoded = false;
+
   // Pending action awaiting user confirmation. While set, the display shows
   // a red/green tint overlay on top of the working buffer; only Apply writes
   // the new alpha to the buffer.
@@ -150,11 +157,14 @@ export class ArEditorAdvanced extends HTMLElement {
   disconnectedCallback(): void {
     this.abort?.abort();
     this.abort = null;
+    disposeSam();
+    this.samEncoded = false;
   }
 
   setImage(current: ImageData, original: ImageData): void {
     this.current = current;
     this.original = original;
+    this.samEncoded = false;
     this.clearLasso();
     this.clearSelection();
     this.rebuildBackingBuffers();
@@ -1463,19 +1473,21 @@ export class ArEditorAdvanced extends HTMLElement {
 
       let newAlpha: Uint8Array;
 
-      if (hasMask) {
+      if (kind === 'refine') {
+        const poly = this.lassoAnchors ?? this.selectionMaskToPolygon(w, h);
+        if (!poly || poly.length < MIN_ANCHORS) throw new Error('No region for refine');
+        newAlpha = await this.refineWithSam(poly, prevAlpha, w, h, ac.signal);
+      } else if (hasMask) {
         newAlpha = new Uint8Array(prevAlpha);
         const mask = this.selectionMask!;
         if (kind === 'crop') {
           for (let i = 0; i < newAlpha.length; i++) {
             if (mask[i] === 0) newAlpha[i] = 0;
           }
-        } else if (kind === 'erase-object') {
+        } else {
           for (let i = 0; i < newAlpha.length; i++) {
             if (mask[i] === 1) newAlpha[i] = 0;
           }
-        } else {
-          newAlpha = await this.refineSelection(mask, workingData, prevAlpha, w, h, ac.signal);
         }
       } else {
         const result = await processRoi({
@@ -1597,20 +1609,12 @@ export class ArEditorAdvanced extends HTMLElement {
     return loader;
   }
 
-  private async refineSelection(
-    mask: Uint8Array,
-    workingData: ImageData,
-    prevAlpha: Uint8Array,
-    w: number,
-    h: number,
-    signal: AbortSignal,
-  ): Promise<Uint8Array> {
-    const MARGIN = 20;
-
+  private selectionMaskToPolygon(w: number, h: number): Point[] | null {
+    if (!this.selectionMask) return null;
     let minX = w, minY = h, maxX = 0, maxY = 0;
     for (let y = 0; y < h; y++) {
       for (let x = 0; x < w; x++) {
-        if (mask[y * w + x] === 1) {
+        if (this.selectionMask[y * w + x] === 1) {
           if (x < minX) minX = x;
           if (x > maxX) maxX = x;
           if (y < minY) minY = y;
@@ -1618,43 +1622,73 @@ export class ArEditorAdvanced extends HTMLElement {
         }
       }
     }
-    const bx = Math.max(0, minX - MARGIN);
-    const by = Math.max(0, minY - MARGIN);
-    const bx2 = Math.min(w, maxX + 1 + MARGIN);
-    const by2 = Math.min(h, maxY + 1 + MARGIN);
-    const bw = bx2 - bx;
-    const bh = by2 - by;
+    if (maxX < minX) return null;
+    return [
+      { x: minX, y: minY }, { x: maxX, y: minY },
+      { x: maxX, y: maxY }, { x: minX, y: maxY },
+    ];
+  }
 
-    const crop = new Uint8ClampedArray(bw * bh * 4);
-    const src = workingData.data;
-    for (let y = 0; y < bh; y++) {
-      for (let x = 0; x < bw; x++) {
-        const gi = (by + y) * w + (bx + x);
-        const ci = (y * bw + x) * 4;
-        const si = gi * 4;
-        if (mask[gi] === 1) {
-          crop[ci] = src[si];
-          crop[ci + 1] = src[si + 1];
-          crop[ci + 2] = src[si + 2];
-          crop[ci + 3] = 255;
-        }
-      }
+  private async ensureSamEncoded(signal: AbortSignal): Promise<void> {
+    if (this.samEncoded) return;
+    if (!this.original) throw new Error('No image loaded');
+
+    const hint = this.shadowRoot?.getElementById('hint');
+
+    onSamProgress((pct, stage) => {
+      if (hint) hint.textContent = t('advanced.samLoading', { pct: String(pct), stage });
+    });
+
+    if (signal.aborted) throw new DOMException('Aborted', 'AbortError');
+    await loadSam();
+
+    if (signal.aborted) throw new DOMException('Aborted', 'AbortError');
+    if (hint) hint.textContent = t('advanced.samEncoding');
+    await encodeSam(this.original.data, this.original.width, this.original.height);
+
+    onSamProgress(null);
+    this.samEncoded = true;
+  }
+
+  private async refineWithSam(
+    polygon: Point[],
+    prevAlpha: Uint8Array,
+    w: number,
+    h: number,
+    signal: AbortSignal,
+  ): Promise<Uint8Array> {
+    await this.ensureSamEncoded(signal);
+    if (signal.aborted) throw new DOMException('Aborted', 'AbortError');
+
+    const hint = this.shadowRoot?.getElementById('hint');
+    if (hint) hint.textContent = t('advanced.working');
+
+    let minX = w, minY = h, maxX = 0, maxY = 0;
+    for (const p of polygon) {
+      if (p.x < minX) minX = p.x;
+      if (p.x > maxX) maxX = p.x;
+      if (p.y < minY) minY = p.y;
+      if (p.y > maxY) maxY = p.y;
     }
+    minX = Math.max(0, Math.floor(minX));
+    minY = Math.max(0, Math.floor(minY));
+    maxX = Math.min(w - 1, Math.ceil(maxX));
+    maxY = Math.min(h - 1, Math.ceil(maxY));
 
+    const samResult = await decodeSam(
+      [{ x: minX, y: minY }, { x: maxX, y: maxY }],
+      [2, 3],
+      w,
+      h,
+    );
     if (signal.aborted) throw new DOMException('Aborted', 'AbortError');
-    const loader = await this.getLoader();
-    if (signal.aborted) throw new DOMException('Aborted', 'AbortError');
-    const res = await loader.segment({ pixels: crop, width: bw, height: bh });
-    const segAlpha = res.alpha;
 
+    const polyMask = rasterizePolygon(polygon, w, h);
     const newAlpha = new Uint8Array(prevAlpha);
-    for (let y = 0; y < bh; y++) {
-      for (let x = 0; x < bw; x++) {
-        const gi = (by + y) * w + (bx + x);
-        if (mask[gi] === 1) {
-          newAlpha[gi] = segAlpha[y * bw + x];
-        }
-      }
+    for (let i = 0; i < newAlpha.length; i++) {
+      if (!polyMask[i]) continue;
+      if (prevAlpha[i] === 0) continue;
+      newAlpha[i] = samResult.mask[i] === 1 ? prevAlpha[i] : 0;
     }
     return newAlpha;
   }
