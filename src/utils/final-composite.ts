@@ -1,3 +1,6 @@
+import { guidedFilter } from '../workers/cv/alpha-matting';
+import { GUIDED_FILTER_PARAMS } from '../pipeline/constants';
+
 /**
  * Compose the final output at the original input resolution.
  *
@@ -6,6 +9,10 @@
  * resolution and composites it onto the original RGB pixels. Pristine
  * RGB is preserved outside the watermark region; inside the watermark
  * region we upscale the inpainted RGB and blend using the mask.
+ *
+ * When refineAlpha is true, applies a guided filter at original resolution
+ * to snap mask edges to the real image features — eliminates the mushy
+ * edges from bilinear upscale of the 1024px RMBG mask.
  */
 
 /**
@@ -118,6 +125,12 @@ export interface ComposeAtOriginalInput {
    * If omitted or null, original RGB is preserved everywhere.
    */
   inpaintMask?: Uint8Array | null;
+
+  /**
+   * When true, applies a guided filter at original resolution after
+   * bilinear upscale to snap alpha edges to real image features.
+   */
+  refineAlpha?: boolean;
 }
 
 /**
@@ -129,25 +142,34 @@ export function composeAtOriginal(input: ComposeAtOriginalInput): ImageData {
   const {
     originalRgba, originalWidth: oW, originalHeight: oH,
     workingRgba, workingWidth: wW, workingHeight: wH,
-    workingAlpha, inpaintMask,
+    workingAlpha, inpaintMask, refineAlpha,
   } = input;
 
   const sameSize = oW === wW && oH === wH;
 
   // Fast path: no upscale needed
   if (sameSize) {
+    const alpha = refineAlpha
+      ? guidedFilter(workingAlpha, originalRgba, oW, oH, GUIDED_FILTER_PARAMS.RADIUS, GUIDED_FILTER_PARAMS.EPSILON)
+      : workingAlpha;
     const out = new Uint8ClampedArray(oW * oH * 4);
     for (let i = 0; i < oW * oH; i++) {
       out[i * 4] = workingRgba[i * 4];
       out[i * 4 + 1] = workingRgba[i * 4 + 1];
       out[i * 4 + 2] = workingRgba[i * 4 + 2];
-      out[i * 4 + 3] = workingAlpha[i];
+      out[i * 4 + 3] = alpha[i];
     }
     return new ImageData(out, oW, oH);
   }
 
   // Upscale alpha (bilinear — preserves soft edges)
-  const upAlpha = bilinearUpscaleU8(workingAlpha, wW, wH, oW, oH);
+  let upAlpha = bilinearUpscaleU8(workingAlpha, wW, wH, oW, oH);
+
+  // Guided filter snaps the upscaled mask edges to real image features,
+  // eliminating the mushy edges from bilinear upscale of the 1024px RMBG mask.
+  if (refineAlpha) {
+    upAlpha = guidedFilter(upAlpha, originalRgba, oW, oH, GUIDED_FILTER_PARAMS.RADIUS, GUIDED_FILTER_PARAMS.EPSILON);
+  }
 
   // Base RGB: pristine original
   const out = new Uint8ClampedArray(originalRgba);

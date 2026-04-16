@@ -1371,6 +1371,7 @@ export class ArApp extends HTMLElement {
         workingHeight: result.workingHeight,
         workingAlpha: result.workingAlpha,
         inpaintMask: result.watermarkMask,
+        refineAlpha: true,
       });
       const nukedPct = result.nukedPct;
       const totalTimeMs = result.totalTimeMs;
@@ -1539,6 +1540,7 @@ export class ArApp extends HTMLElement {
           workingHeight: result.workingHeight,
           workingAlpha: result.workingAlpha,
           inpaintMask: result.watermarkMask,
+          refineAlpha: true,
         });
         item.result = result;
         item.finalImageData = finalImageData;
