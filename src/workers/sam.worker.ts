@@ -103,22 +103,20 @@ function preprocessForEncoder(
   const nw = Math.round(w * scale);
   const nh = Math.round(h * scale);
 
-  // Bilinear resize RGBA → then extract RGB into NCHW float32 with
-  // ImageNet normalization and zero-pad to 1024×1024.
+  // Bilinear resize RGBA → extract RGB into HWC float32, zero-pad to
+  // 1024×1024. The Acly encoder normalizes internally — we pass 0-255.
   const resized = bilinearResize(pixels, w, h, nw, nh);
-  const data = new Float32Array(3 * S * S);
-  const mean = SAM_PARAMS.PIXEL_MEAN;
-  const std = SAM_PARAMS.PIXEL_STD;
+  const data = new Float32Array(S * S * 3);
   for (let y = 0; y < nh; y++) {
     for (let x = 0; x < nw; x++) {
       const srcIdx = (y * nw + x) * 4;
-      for (let c = 0; c < 3; c++) {
-        data[c * S * S + y * S + x] = (resized[srcIdx + c] - mean[c]) / std[c];
-      }
+      const dstIdx = (y * S + x) * 3;
+      data[dstIdx] = resized[srcIdx];
+      data[dstIdx + 1] = resized[srcIdx + 1];
+      data[dstIdx + 2] = resized[srcIdx + 2];
     }
   }
-  // Padded region stays at 0 — ImageNet-normalized black.
-  return { tensor: new ort.Tensor('float32', data, [3, S, S]), scale };
+  return { tensor: new ort.Tensor('float32', data, [S, S, 3]), scale };
 }
 
 function bilinearResize(
