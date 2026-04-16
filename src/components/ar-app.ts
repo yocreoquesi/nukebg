@@ -494,8 +494,8 @@ export class ArApp extends HTMLElement {
         .advanced-cta {
           width: 100%;
           background: transparent;
-          color: var(--color-accent, #ffd700);
-          border: 1px dashed var(--color-accent, #ffd700);
+          color: var(--color-accent-primary, #00ff41);
+          border: 1px dashed var(--color-accent-primary, #00ff41);
           border-radius: 0;
           padding: var(--space-3, 0.75rem);
           font-size: 12px;
@@ -506,13 +506,12 @@ export class ArApp extends HTMLElement {
           transition: background 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
         }
         .advanced-cta:hover {
-          background: var(--color-accent, #ffd700);
+          background: var(--color-accent-primary, #00ff41);
           color: #000;
-          box-shadow: 0 0 10px rgba(255, 215, 0, 0.2);
+          box-shadow: 0 0 10px rgba(var(--color-accent-rgb, 0, 255, 65), 0.2);
         }
         .advanced-cta[data-active="true"] {
-          background: var(--color-accent, #ffd700);
-          color: #000;
+          display: none;
         }
         .edit-btn:hover {
           color: var(--color-accent-primary, #00ff41);
@@ -942,6 +941,8 @@ export class ArApp extends HTMLElement {
         document.documentElement.style.setProperty('--color-surface-border', '#3a1a1a');
         document.documentElement.style.setProperty('--color-surface-hover', '#2a0f0f');
         document.documentElement.style.setProperty('--color-surface-active', '#301515');
+        document.documentElement.style.setProperty('--color-success', '#cc3333');
+        document.documentElement.style.setProperty('--color-info', '#cc3333');
         this.classList.add('precision-override');
         // Stop CRT flicker in Full Nuke
         this.stopCrtFlicker();
@@ -988,6 +989,8 @@ export class ArApp extends HTMLElement {
         document.documentElement.style.setProperty('--color-surface-border', '#3a2a0a');
         document.documentElement.style.setProperty('--color-surface-hover', '#2a1f0a');
         document.documentElement.style.setProperty('--color-surface-active', '#302510');
+        document.documentElement.style.setProperty('--color-success', '#ff8c00');
+        document.documentElement.style.setProperty('--color-info', '#ff8c00');
         this.classList.add('precision-override');
         // Stop CRT flicker in High Power
         this.stopCrtFlicker();
@@ -1016,6 +1019,8 @@ export class ArApp extends HTMLElement {
         document.documentElement.style.setProperty('--color-surface-border', '#2a2800');
         document.documentElement.style.setProperty('--color-surface-hover', '#1f1d00');
         document.documentElement.style.setProperty('--color-surface-active', '#252300');
+        document.documentElement.style.setProperty('--color-success', '#b8a500');
+        document.documentElement.style.setProperty('--color-info', '#b8a500');
         this.classList.add('precision-override');
         // Start CRT flicker only in Low Power
         this.startCrtFlicker();
@@ -1044,6 +1049,8 @@ export class ArApp extends HTMLElement {
         document.documentElement.style.removeProperty('--color-surface-border');
         document.documentElement.style.removeProperty('--color-surface-hover');
         document.documentElement.style.removeProperty('--color-surface-active');
+        document.documentElement.style.removeProperty('--color-success');
+        document.documentElement.style.removeProperty('--color-info');
         this.classList.remove('precision-override');
         // Stop CRT flicker in normal modes
         this.stopCrtFlicker();
