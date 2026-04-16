@@ -295,14 +295,17 @@ export class ArEditorAdvanced extends HTMLElement {
           display: none;
           margin-top: 12px;
           padding: 12px;
-          border: 1px dashed var(--color-accent, #ffd700);
+          border: 1px dashed var(--color-accent-primary, #00ff41);
           border-radius: 4px;
-          background: rgba(255, 215, 0, 0.04);
+          background: rgba(var(--color-accent-rgb, 0, 255, 65), 0.04);
           font-family: 'JetBrains Mono', monospace;
           font-size: 12px;
           color: var(--color-text, #ddd);
         }
         :host([active]) { display: block; }
+        @media (pointer: coarse) {
+          :host([active]) { padding-bottom: 140px; }
+        }
         .header {
           display: flex;
           align-items: center;
@@ -311,7 +314,7 @@ export class ArEditorAdvanced extends HTMLElement {
           margin-bottom: 8px;
         }
         .title {
-          color: var(--color-accent, #ffd700);
+          color: var(--color-accent-primary, #00ff41);
           font-weight: 600;
           font-size: 11px;
           text-transform: uppercase;
@@ -321,8 +324,8 @@ export class ArEditorAdvanced extends HTMLElement {
           font-family: inherit;
           font-size: 11px;
           background: transparent;
-          color: var(--color-accent, #ffd700);
-          border: 1px solid var(--color-accent, #ffd700);
+          color: var(--color-accent-primary, #00ff41);
+          border: 1px solid var(--color-accent-primary, #00ff41);
           border-radius: 2px;
           padding: 4px 10px;
           cursor: pointer;
@@ -331,7 +334,7 @@ export class ArEditorAdvanced extends HTMLElement {
           transition: background 0.15s, color 0.15s;
         }
         .restore-btn:hover:not(:disabled) {
-          background: var(--color-accent, #ffd700);
+          background: var(--color-accent-primary, #00ff41);
           color: #000;
         }
         .restore-btn:disabled { opacity: 0.4; cursor: not-allowed; }
@@ -345,8 +348,8 @@ export class ArEditorAdvanced extends HTMLElement {
           font-size: 12px;
           font-weight: 700;
           background: transparent;
-          color: var(--color-accent, #ffd700);
-          border: 1px solid var(--color-accent, #ffd700);
+          color: var(--color-accent-primary, #00ff41);
+          border: 1px solid var(--color-accent-primary, #00ff41);
           border-radius: 50%;
           width: 22px;
           height: 22px;
@@ -357,15 +360,15 @@ export class ArEditorAdvanced extends HTMLElement {
         }
         .help-btn:hover,
         .help-btn[aria-expanded="true"] {
-          background: var(--color-accent, #ffd700);
+          background: var(--color-accent-primary, #00ff41);
           color: #000;
         }
         .help-panel {
           margin-bottom: 8px;
           padding: 10px 12px;
-          border: 1px solid rgba(255, 215, 0, 0.35);
+          border: 1px solid rgba(var(--color-accent-rgb, 0, 255, 65), 0.35);
           border-radius: 3px;
-          background: rgba(255, 215, 0, 0.03);
+          background: rgba(var(--color-accent-rgb, 0, 255, 65), 0.03);
           display: grid;
           grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
           gap: 14px;
@@ -374,7 +377,7 @@ export class ArEditorAdvanced extends HTMLElement {
         .help-section h4 {
           margin: 0 0 6px 0;
           font-size: 10px;
-          color: var(--color-accent, #ffd700);
+          color: var(--color-accent-primary, #00ff41);
           text-transform: uppercase;
           letter-spacing: 0.08em;
         }
@@ -407,7 +410,7 @@ export class ArEditorAdvanced extends HTMLElement {
         .help-section kbd {
           display: inline-block;
           padding: 1px 5px;
-          border: 1px solid rgba(255, 215, 0, 0.45);
+          border: 1px solid rgba(var(--color-accent-rgb, 0, 255, 65), 0.45);
           border-bottom-width: 2px;
           border-radius: 3px;
           background: rgba(0, 0, 0, 0.35);
@@ -419,8 +422,8 @@ export class ArEditorAdvanced extends HTMLElement {
         .help-note {
           margin: 8px 0 0 0;
           padding: 6px 8px;
-          border-left: 2px solid var(--color-accent, #ffd700);
-          background: rgba(255, 215, 0, 0.05);
+          border-left: 2px solid var(--color-accent-primary, #00ff41);
+          background: rgba(var(--color-accent-rgb, 0, 255, 65), 0.05);
           font-size: 10px;
           color: var(--color-text-secondary, #999);
           line-height: 1.4;
@@ -438,12 +441,12 @@ export class ArEditorAdvanced extends HTMLElement {
           flex-wrap: wrap;
           margin-bottom: 8px;
           padding: 6px 8px;
-          border: 1px solid rgba(255, 215, 0, 0.25);
+          border: 1px solid rgba(var(--color-accent-rgb, 0, 255, 65), 0.25);
           border-radius: 3px;
         }
         .tool-group {
           display: inline-flex;
-          border: 1px solid var(--color-accent, #ffd700);
+          border: 1px solid var(--color-accent-primary, #00ff41);
           border-radius: 2px;
           overflow: hidden;
         }
@@ -451,16 +454,16 @@ export class ArEditorAdvanced extends HTMLElement {
           font-family: inherit;
           font-size: 11px;
           background: transparent;
-          color: var(--color-accent, #ffd700);
+          color: var(--color-accent-primary, #00ff41);
           border: none;
           padding: 4px 10px;
           cursor: pointer;
           letter-spacing: 0.05em;
           text-transform: uppercase;
         }
-        .tool-btn + .tool-btn { border-left: 1px solid var(--color-accent, #ffd700); }
+        .tool-btn + .tool-btn { border-left: 1px solid var(--color-accent-primary, #00ff41); }
         .tool-btn.active {
-          background: var(--color-accent, #ffd700);
+          background: var(--color-accent-primary, #00ff41);
           color: #000;
         }
         .size-row {
@@ -479,8 +482,8 @@ export class ArEditorAdvanced extends HTMLElement {
           font-family: inherit;
           font-size: 11px;
           background: transparent;
-          color: var(--color-accent, #ffd700);
-          border: 1px solid var(--color-accent, #ffd700);
+          color: var(--color-accent-primary, #00ff41);
+          border: 1px solid var(--color-accent-primary, #00ff41);
           border-radius: 2px;
           padding: 4px 10px;
           cursor: pointer;
@@ -488,7 +491,7 @@ export class ArEditorAdvanced extends HTMLElement {
           text-transform: uppercase;
           transition: background 0.15s, color 0.15s;
         }
-        .action-btn:hover:not(:disabled) { background: var(--color-accent, #ffd700); color: #000; }
+        .action-btn:hover:not(:disabled) { background: var(--color-accent-primary, #00ff41); color: #000; }
         .action-btn:disabled { opacity: 0.4; cursor: not-allowed; }
         .action-btn.danger {
           color: #ff6d6d;
@@ -508,7 +511,7 @@ export class ArEditorAdvanced extends HTMLElement {
         .preview-actions.visible { display: inline-flex; }
         .busy-indicator {
           font-size: 10px;
-          color: var(--color-accent, #ffd700);
+          color: var(--color-accent-primary, #00ff41);
           margin-left: 6px;
         }
         .busy-indicator.hidden { display: none; }
@@ -521,7 +524,7 @@ export class ArEditorAdvanced extends HTMLElement {
           color: var(--color-text-secondary, #999);
         }
         .size-row input[type="range"] {
-          accent-color: var(--color-accent, #ffd700);
+          accent-color: var(--color-accent-primary, #00ff41);
           width: 120px;
         }
         .size-row .size-val {
@@ -594,7 +597,7 @@ export class ArEditorAdvanced extends HTMLElement {
         canvas.panning { cursor: grabbing; }
         .zoom-group {
           display: inline-flex;
-          border: 1px solid var(--color-accent, #ffd700);
+          border: 1px solid var(--color-accent-primary, #00ff41);
           border-radius: 2px;
           overflow: hidden;
           margin-left: auto;
@@ -603,7 +606,7 @@ export class ArEditorAdvanced extends HTMLElement {
           font-family: inherit;
           font-size: 11px;
           background: transparent;
-          color: var(--color-accent, #ffd700);
+          color: var(--color-accent-primary, #00ff41);
           border: none;
           padding: 4px 10px;
           cursor: pointer;
@@ -611,8 +614,8 @@ export class ArEditorAdvanced extends HTMLElement {
           min-width: 28px;
           text-align: center;
         }
-        .zoom-btn + .zoom-btn { border-left: 1px solid var(--color-accent, #ffd700); }
-        .zoom-btn:hover:not(:disabled) { background: var(--color-accent, #ffd700); color: #000; }
+        .zoom-btn + .zoom-btn { border-left: 1px solid var(--color-accent-primary, #00ff41); }
+        .zoom-btn:hover:not(:disabled) { background: var(--color-accent-primary, #00ff41); color: #000; }
         .zoom-display {
           font-family: inherit;
           font-size: 11px;
@@ -640,7 +643,7 @@ export class ArEditorAdvanced extends HTMLElement {
           transition: color 0.2s;
         }
         .hint.busy {
-          color: var(--color-accent, #ffd700);
+          color: var(--color-accent-primary, #00ff41);
           animation: hint-pulse 1.2s ease-in-out infinite;
         }
         @keyframes hint-pulse {
@@ -651,13 +654,13 @@ export class ArEditorAdvanced extends HTMLElement {
           font-family: inherit;
           font-size: 12px;
           background: var(--color-bg, #111);
-          color: var(--color-accent, #ffd700);
-          border: 1px solid var(--color-accent, #ffd700);
+          color: var(--color-accent-primary, #00ff41);
+          border: 1px solid var(--color-accent-primary, #00ff41);
           border-radius: 2px;
           padding: 5px 12px;
           cursor: pointer;
         }
-        button.action:hover:not(:disabled) { background: var(--color-accent, #ffd700); color: #000; }
+        button.action:hover:not(:disabled) { background: var(--color-accent-primary, #00ff41); color: #000; }
         button.action:disabled { opacity: 0.4; cursor: not-allowed; }
         button.action.secondary { color: var(--color-text-secondary, #999); border-color: var(--color-border, #444); }
 
@@ -673,7 +676,7 @@ export class ArEditorAdvanced extends HTMLElement {
         }
         .confirm-bar.visible ~ #hint { display: none; }
         .confirm-msg {
-          color: var(--color-accent, #ffd700);
+          color: var(--color-accent-primary, #00ff41);
           letter-spacing: 0.03em;
         }
         .confirm-yes, .confirm-no {
@@ -711,29 +714,53 @@ export class ArEditorAdvanced extends HTMLElement {
             right: 0;
             z-index: 100;
             margin: 0;
-            padding: 10px 12px;
+            padding: 8px 10px calc(8px + env(safe-area-inset-bottom, 0px)) 10px;
             background: rgba(17, 17, 17, 0.95);
             border: none;
-            border-top: 1px solid rgba(255, 215, 0, 0.3);
+            border-top: 1px solid rgba(var(--color-accent-rgb, 0, 255, 65), 0.3);
             border-radius: 0;
-            justify-content: center;
+            flex-direction: column;
+            align-items: stretch;
             backdrop-filter: blur(8px);
             -webkit-backdrop-filter: blur(8px);
-            gap: 8px;
+            gap: 6px;
+          }
+          .tool-group {
+            display: flex;
+            width: 100%;
           }
           .tool-btn {
-            font-size: 13px;
-            padding: 8px 16px;
+            flex: 1;
+            font-size: 12px;
+            padding: 8px 6px;
             min-height: 44px;
+            text-align: center;
+          }
+          .size-row {
+            width: 100%;
+            justify-content: center;
+          }
+          .size-row input[type="range"] { flex: 1; min-width: 0; }
+          .lasso-actions.visible {
+            display: flex;
+            flex-wrap: wrap;
+            width: 100%;
+            justify-content: center;
           }
           .action-btn {
-            font-size: 13px;
-            padding: 8px 14px;
+            font-size: 11px;
+            padding: 8px 10px;
             min-height: 44px;
+            flex: 1 1 auto;
+            text-align: center;
+          }
+          .preview-actions.visible {
+            display: flex;
+            width: 100%;
+            justify-content: center;
           }
           .zoom-group { display: none; }
-          .size-row input[type="range"] { width: 80px; }
-          .canvas-wrap { max-height: calc(70vh - 60px); }
+          .canvas-wrap { max-height: calc(100vh - 200px); }
         }
       </style>
       <div class="header">
@@ -1440,7 +1467,8 @@ export class ArEditorAdvanced extends HTMLElement {
     // Raw in-progress path — open polyline. Always visible, even over Quick Mask.
     if (this.lassoRaw && this.lassoRaw.length > 1) {
       this.ctx.save();
-      this.ctx.strokeStyle = 'rgba(255, 215, 0, 0.95)';
+      const accentRgb = getComputedStyle(document.documentElement).getPropertyValue('--color-accent-rgb').trim() || '0, 255, 65';
+      this.ctx.strokeStyle = `rgba(${accentRgb}, 0.95)`;
       this.ctx.lineWidth = this.selectionMask ? 3 : 2;
       this.ctx.shadowColor = 'rgba(0, 0, 0, 0.7)';
       this.ctx.shadowBlur = 3;
@@ -1461,8 +1489,9 @@ export class ArEditorAdvanced extends HTMLElement {
     if (!this.selectionMask && this.lassoAnchors && this.lassoAnchors.length >= MIN_ANCHORS) {
       const pts = this.lassoAnchors;
       this.ctx.save();
-      this.ctx.fillStyle = 'rgba(255, 215, 0, 0.15)';
-      this.ctx.strokeStyle = 'rgba(255, 215, 0, 0.95)';
+      const accentRgb2 = getComputedStyle(document.documentElement).getPropertyValue('--color-accent-rgb').trim() || '0, 255, 65';
+      this.ctx.fillStyle = `rgba(${accentRgb2}, 0.15)`;
+      this.ctx.strokeStyle = `rgba(${accentRgb2}, 0.95)`;
       this.ctx.lineWidth = 1.5;
       this.ctx.setLineDash([6, 4]);
       this.ctx.beginPath();
@@ -1475,7 +1504,7 @@ export class ArEditorAdvanced extends HTMLElement {
       this.ctx.stroke();
 
       this.ctx.setLineDash([]);
-      this.ctx.fillStyle = 'rgba(255, 215, 0, 0.95)';
+      this.ctx.fillStyle = `rgba(${accentRgb2}, 0.95)`;
       this.ctx.strokeStyle = '#000';
       this.ctx.lineWidth = 1.5;
       const r = this.anchorRadius();
@@ -1495,7 +1524,8 @@ export class ArEditorAdvanced extends HTMLElement {
     if (this.tool === 'lasso') return;
 
     this.ctx.save();
-    this.ctx.strokeStyle = this.tool === 'eraser' ? 'rgba(255, 80, 80, 0.95)' : 'rgba(255, 215, 0, 0.95)';
+    const cursorRgb = getComputedStyle(document.documentElement).getPropertyValue('--color-accent-rgb').trim() || '0, 255, 65';
+    this.ctx.strokeStyle = this.tool === 'eraser' ? 'rgba(255, 80, 80, 0.95)' : `rgba(${cursorRgb}, 0.95)`;
     this.ctx.lineWidth = 1;
     this.ctx.setLineDash([4, 4]);
     this.ctx.beginPath();
