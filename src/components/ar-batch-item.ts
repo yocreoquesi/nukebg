@@ -86,7 +86,7 @@ export class ArBatchItem extends HTMLElement {
         :host([data-clickable="true"]:hover),
         :host([data-clickable="true"]:focus-visible) {
           border-color: var(--color-accent-primary, #00ff41);
-          box-shadow: 0 0 8px rgba(0, 255, 65, 0.25);
+          box-shadow: 0 0 8px rgba(var(--color-accent-rgb, 0, 255, 65), 0.25);
         }
         :host([data-state="discarded"]) {
           opacity: 0.25;

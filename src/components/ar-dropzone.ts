@@ -54,14 +54,14 @@ export class ArDropzone extends HTMLElement {
         }
         .dropzone:hover {
           border-color: var(--color-accent-primary, #00ff41);
-          background: rgba(0, 255, 65, 0.02);
-          box-shadow: 0 0 10px rgba(0, 255, 65, 0.1);
+          background: rgba(var(--color-accent-rgb, 0, 255, 65), 0.02);
+          box-shadow: 0 0 10px rgba(var(--color-accent-rgb, 0, 255, 65), 0.1);
         }
         .dropzone.dragover {
           border-color: var(--color-accent-primary, #00ff41);
           border-style: solid;
-          background: rgba(0, 255, 65, 0.04);
-          box-shadow: 0 0 15px rgba(0, 255, 65, 0.15);
+          background: rgba(var(--color-accent-rgb, 0, 255, 65), 0.04);
+          box-shadow: 0 0 15px rgba(var(--color-accent-rgb, 0, 255, 65), 0.15);
         }
         .dropzone.error {
           animation: shake 0.3s;
@@ -80,7 +80,7 @@ export class ArDropzone extends HTMLElement {
         }
         .dropzone:hover .icon {
           color: var(--color-accent-primary, #00ff41);
-          filter: drop-shadow(0 0 6px rgba(0, 255, 65, 0.5));
+          filter: drop-shadow(0 0 6px rgba(var(--color-accent-rgb, 0, 255, 65), 0.5));
         }
         .main-text {
           font-family: 'JetBrains Mono', monospace;

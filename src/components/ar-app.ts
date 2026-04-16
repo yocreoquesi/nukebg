@@ -127,7 +127,7 @@ export class ArApp extends HTMLElement {
           line-height: var(--leading-tight, 1.25);
           font-family: 'JetBrains Mono', monospace;
           color: var(--color-accent-primary, #00ff41);
-          text-shadow: 0 0 10px rgba(0, 255, 65, 0.4);
+          text-shadow: 0 0 10px rgba(var(--color-accent-rgb, 0, 255, 65), 0.4);
         }
         h1::before {
           content: '$ ';
@@ -135,7 +135,7 @@ export class ArApp extends HTMLElement {
         }
         h1 .accent {
           color: var(--color-accent-primary, #00ff41);
-          text-shadow: 0 0 12px rgba(0, 255, 65, 0.5);
+          text-shadow: 0 0 12px rgba(var(--color-accent-rgb, 0, 255, 65), 0.5);
         }
         .subline {
           font-family: 'JetBrains Mono', monospace;
@@ -267,8 +267,8 @@ export class ArApp extends HTMLElement {
         .back-to-grid-btn:hover,
         .batch-retry-btn:hover,
         .batch-discard-btn:hover {
-          background: rgba(0, 255, 65, 0.08);
-          box-shadow: 0 0 8px rgba(0, 255, 65, 0.3);
+          background: rgba(var(--color-accent-rgb, 0, 255, 65), 0.08);
+          box-shadow: 0 0 8px rgba(var(--color-accent-rgb, 0, 255, 65), 0.3);
         }
         .batch-discard-btn {
           border-color: #3a1a1a;
@@ -518,7 +518,7 @@ export class ArApp extends HTMLElement {
         .edit-btn:hover {
           color: var(--color-accent-primary, #00ff41);
           border-color: var(--color-accent-primary, #00ff41);
-          box-shadow: 0 0 10px rgba(0, 255, 65, 0.1);
+          box-shadow: 0 0 10px rgba(var(--color-accent-rgb, 0, 255, 65), 0.1);
         }
         /* === Color override for extreme precision levels === */
         :host(.precision-override) h1,
@@ -936,7 +936,9 @@ export class ArApp extends HTMLElement {
         document.documentElement.style.setProperty('--color-text-secondary', '#aa2222');
         document.documentElement.style.setProperty('--color-text-tertiary', '#882222');
         document.documentElement.style.setProperty('--color-accent-primary', '#cc3333');
+        document.documentElement.style.setProperty('--color-accent-rgb', '204, 51, 51');
         document.documentElement.style.setProperty('--color-accent-glow', 'rgba(204,51,51,0.35)');
+        document.documentElement.style.setProperty('--color-accent-muted', 'rgba(204,51,51,0.08)');
         document.documentElement.style.setProperty('--color-accent-hover', '#ff4444');
         document.documentElement.style.setProperty('--color-surface-border', '#3a1a1a');
         document.documentElement.style.setProperty('--color-surface-hover', '#2a0f0f');
@@ -980,7 +982,9 @@ export class ArApp extends HTMLElement {
         document.documentElement.style.setProperty('--color-text-secondary', '#cc7000');
         document.documentElement.style.setProperty('--color-text-tertiary', '#995300');
         document.documentElement.style.setProperty('--color-accent-primary', '#ff8c00');
+        document.documentElement.style.setProperty('--color-accent-rgb', '255, 140, 0');
         document.documentElement.style.setProperty('--color-accent-glow', 'rgba(255,140,0,0.35)');
+        document.documentElement.style.setProperty('--color-accent-muted', 'rgba(255,140,0,0.08)');
         document.documentElement.style.setProperty('--color-accent-hover', '#ffaa33');
         document.documentElement.style.setProperty('--color-surface-border', '#3a2a0a');
         document.documentElement.style.setProperty('--color-surface-hover', '#2a1f0a');
@@ -1006,7 +1010,9 @@ export class ArApp extends HTMLElement {
         document.documentElement.style.setProperty('--color-text-secondary', '#8a7d00');
         document.documentElement.style.setProperty('--color-text-tertiary', '#6b5e00');
         document.documentElement.style.setProperty('--color-accent-primary', '#b8a500');
+        document.documentElement.style.setProperty('--color-accent-rgb', '184, 165, 0');
         document.documentElement.style.setProperty('--color-accent-glow', 'rgba(184,165,0,0.35)');
+        document.documentElement.style.setProperty('--color-accent-muted', 'rgba(184,165,0,0.08)');
         document.documentElement.style.setProperty('--color-accent-hover', '#d4c200');
         document.documentElement.style.setProperty('--color-surface-border', '#2a2800');
         document.documentElement.style.setProperty('--color-surface-hover', '#1f1d00');
@@ -1032,7 +1038,9 @@ export class ArApp extends HTMLElement {
         document.documentElement.style.removeProperty('--color-text-secondary');
         document.documentElement.style.removeProperty('--color-text-tertiary');
         document.documentElement.style.removeProperty('--color-accent-primary');
+        document.documentElement.style.removeProperty('--color-accent-rgb');
         document.documentElement.style.removeProperty('--color-accent-glow');
+        document.documentElement.style.removeProperty('--color-accent-muted');
         document.documentElement.style.removeProperty('--color-accent-hover');
         document.documentElement.style.removeProperty('--color-surface-border');
         document.documentElement.style.removeProperty('--color-surface-hover');
@@ -1041,7 +1049,7 @@ export class ArApp extends HTMLElement {
         // Stop CRT flicker in normal modes
         this.stopCrtFlicker();
         // Subtle green marquee for normal mode
-        updateMarquees('#008830', '<span>☢ NUKEBG | DROP. NUKE. DOWNLOAD. | Your images never leave your device | nukebg.app ☢ NUKEBG | DROP. NUKE. DOWNLOAD. | Your images never leave your device | nukebg.app ☢</span>');
+        updateMarquees('var(--color-text-tertiary, #008830)', '<span>☢ NUKEBG | DROP. NUKE. DOWNLOAD. | Your images never leave your device | nukebg.app ☢ NUKEBG | DROP. NUKE. DOWNLOAD. | Your images never leave your device | nukebg.app ☢</span>');
         console.log('%c[NukeBG] Mode: NORMAL', 'color: #00ff41; font-family: monospace;');
         if (reactorSupport) {
           reactorSupport.innerHTML = t('reactor.normal');

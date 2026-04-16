@@ -105,8 +105,8 @@ export class ArBatchGrid extends HTMLElement {
           transition: background 0.2s ease, box-shadow 0.2s ease;
         }
         button:hover:not(:disabled) {
-          background: rgba(0, 255, 65, 0.08);
-          box-shadow: 0 0 8px rgba(0, 255, 65, 0.3);
+          background: rgba(var(--color-accent-rgb, 0, 255, 65), 0.08);
+          box-shadow: 0 0 8px rgba(var(--color-accent-rgb, 0, 255, 65), 0.3);
         }
         button:disabled {
           border-color: var(--color-surface-border, #1a3a1a);

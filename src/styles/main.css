@@ -18,24 +18,25 @@
   --color-text-inverse: #000000;
 
   /* Accent (Terminal Green) */
+  --color-accent-rgb: 0, 255, 65;
   --color-accent-primary: #00ff41;
   --color-accent-hover: #33ff66;
-  --color-accent-muted: rgba(0, 255, 65, 0.08);
-  --color-accent-glow: rgba(0, 255, 65, 0.35);
+  --color-accent-muted: rgba(var(--color-accent-rgb), 0.08);
+  --color-accent-glow: rgba(var(--color-accent-rgb), 0.35);
 
   /* Secondary accent (same green for terminal) */
   --color-hazard: #00ff41;
-  --color-hazard-muted: rgba(0, 255, 65, 0.08);
+  --color-hazard-muted: rgba(var(--color-accent-rgb), 0.08);
 
   /* Semantic */
   --color-success: #00ff41;
-  --color-success-muted: rgba(0, 255, 65, 0.10);
+  --color-success-muted: rgba(var(--color-accent-rgb), 0.10);
   --color-warning: #ffcc00;
   --color-warning-muted: rgba(255, 204, 0, 0.10);
   --color-error: #ff3131;
   --color-error-muted: rgba(255, 49, 49, 0.12);
   --color-info: #00ff41;
-  --color-info-muted: rgba(0, 255, 65, 0.10);
+  --color-info-muted: rgba(var(--color-accent-rgb), 0.10);
 
   /* Checkerboard Preview */
   --color-checker-light: #0a0a0a;
@@ -93,9 +94,9 @@
 
   /* Shadows */
   --shadow-sm: none;
-  --shadow-md: 0 0 10px rgba(0, 255, 65, 0.05);
-  --shadow-lg: 0 0 20px rgba(0, 255, 65, 0.08);
-  --shadow-glow: 0 0 15px rgba(0, 255, 65, 0.25);
+  --shadow-md: 0 0 10px rgba(var(--color-accent-rgb), 0.05);
+  --shadow-lg: 0 0 20px rgba(var(--color-accent-rgb), 0.08);
+  --shadow-glow: 0 0 15px rgba(var(--color-accent-rgb), 0.25);
 
   /* Transitions */
   --ease-default: cubic-bezier(0.4, 0, 0.2, 1);
@@ -156,8 +157,8 @@ body::after {
     0deg,
     transparent,
     transparent 2px,
-    rgba(0, 255, 65, 0.015) 2px,
-    rgba(0, 255, 65, 0.015) 4px
+    rgba(var(--color-accent-rgb), 0.015) 2px,
+    rgba(var(--color-accent-rgb), 0.015) 4px
   );
   pointer-events: none;
   z-index: 9998;
