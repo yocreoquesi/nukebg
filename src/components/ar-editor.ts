@@ -182,7 +182,7 @@ export class ArEditor extends HTMLElement {
           gap: var(--space-3, 0.75rem);
           padding: var(--space-2, 0.5rem) var(--space-3, 0.75rem);
           background: #000;
-          border: 1px solid #1a3a1a;
+          border: 1px solid var(--color-surface-border, #1a3a1a);
           border-radius: 0;
           flex-wrap: wrap;
         }
@@ -201,7 +201,7 @@ export class ArEditor extends HTMLElement {
         .toolbar select, .toolbar input[type="range"] {
           background: #0a0a0a;
           color: var(--color-accent-primary, #00ff41);
-          border: 1px solid #1a3a1a;
+          border: 1px solid var(--color-surface-border, #1a3a1a);
           border-radius: 0;
           padding: 2px 6px;
           font-size: var(--text-xs, 0.75rem);
@@ -220,7 +220,7 @@ export class ArEditor extends HTMLElement {
         .toolbar-btn {
           background: #0a0a0a;
           color: var(--color-accent-primary, #00ff41);
-          border: 1px solid #1a3a1a;
+          border: 1px solid var(--color-surface-border, #1a3a1a);
           border-radius: 0;
           padding: 4px 10px;
           font-family: 'JetBrains Mono', monospace;
@@ -258,7 +258,7 @@ export class ArEditor extends HTMLElement {
           right: 0;
           margin-bottom: 8px;
           background: #0a0a0a;
-          border: 1px solid #1a3a1a;
+          border: 1px solid var(--color-surface-border, #1a3a1a);
           border-radius: 0;
           padding: 12px 16px;
           font-size: var(--text-xs, 0.75rem);
@@ -277,7 +277,7 @@ export class ArEditor extends HTMLElement {
         .help-tooltip kbd {
           display: inline-block;
           background: #000;
-          border: 1px solid #1a3a1a;
+          border: 1px solid var(--color-surface-border, #1a3a1a);
           border-radius: 0;
           padding: 1px 5px;
           font-family: 'JetBrains Mono', monospace;
@@ -290,11 +290,11 @@ export class ArEditor extends HTMLElement {
         .separator {
           width: 1px;
           height: 20px;
-          background: #1a3a1a;
+          background: var(--color-surface-border, #1a3a1a);
         }
         .canvas-wrap {
           position: relative;
-          border: 1px solid #1a3a1a;
+          border: 1px solid var(--color-surface-border, #1a3a1a);
           border-radius: 0;
           overflow: hidden;
           background: #000;
@@ -311,7 +311,7 @@ export class ArEditor extends HTMLElement {
           justify-content: flex-end;
           padding: var(--space-2, 0.5rem) var(--space-3, 0.75rem);
           background: #000;
-          border: 1px solid #1a3a1a;
+          border: 1px solid var(--color-surface-border, #1a3a1a);
           border-radius: 0;
         }
         .bg-options {

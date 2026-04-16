@@ -43,7 +43,7 @@ export class ArPrivacy extends HTMLElement {
           align-items: center;
           gap: 0.25rem;
           background: #000;
-          border: 1px solid #1a3a1a;
+          border: 1px solid var(--color-surface-border, #1a3a1a);
           border-radius: 0;
           padding: 0.25rem 0.75rem;
           font-family: 'JetBrains Mono', monospace;
@@ -83,7 +83,7 @@ export class ArPrivacy extends HTMLElement {
           top: calc(100% + 8px);
           right: 0;
           background: #0a0a0a;
-          border: 1px solid #1a3a1a;
+          border: 1px solid var(--color-surface-border, #1a3a1a);
           border-radius: 0;
           padding: 0.75rem;
           font-size: var(--text-xs, 0.75rem);

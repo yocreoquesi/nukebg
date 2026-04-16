@@ -74,7 +74,7 @@ export class ArBatchItem extends HTMLElement {
           display: block;
           aspect-ratio: 1 / 1;
           position: relative;
-          border: 1px solid #1a3a1a;
+          border: 1px solid var(--color-surface-border, #1a3a1a);
           background: #000;
           overflow: hidden;
           transition: border-color 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
@@ -145,14 +145,14 @@ export class ArBatchItem extends HTMLElement {
           transform: translate(-50%, -50%);
           width: 28px;
           height: 28px;
-          border: 2px solid #1a3a1a;
+          border: 2px solid var(--color-surface-border, #1a3a1a);
           border-top-color: var(--color-accent-primary, #00ff41);
           border-radius: 50%;
           animation: spin 0.8s linear infinite;
         }
         @keyframes spin { to { transform: translate(-50%, -50%) rotate(360deg); } }
         @media (prefers-reduced-motion: reduce) {
-          .spinner { animation: none; border-top-color: #1a3a1a; }
+          .spinner { animation: none; border-top-color: var(--color-surface-border, #1a3a1a); }
         }
         .fail-icon {
           position: absolute;

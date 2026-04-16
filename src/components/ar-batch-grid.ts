@@ -109,7 +109,7 @@ export class ArBatchGrid extends HTMLElement {
           box-shadow: 0 0 8px rgba(0, 255, 65, 0.3);
         }
         button:disabled {
-          border-color: #1a3a1a;
+          border-color: var(--color-surface-border, #1a3a1a);
           color: var(--color-text-tertiary, #008830);
           cursor: not-allowed;
         }

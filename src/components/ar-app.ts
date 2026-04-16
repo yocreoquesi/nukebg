@@ -197,7 +197,7 @@ export class ArApp extends HTMLElement {
           font-size: 12px;
           color: var(--color-text-secondary, #00dd44);
           background: rgba(0, 0, 0, 0.95);
-          border: 1px solid #1a3a1a;
+          border: 1px solid var(--color-surface-border, #1a3a1a);
           border-radius: 0;
           padding: var(--space-4, 1rem);
           margin: var(--space-2, 0.5rem) auto 0;
@@ -219,7 +219,7 @@ export class ArApp extends HTMLElement {
           display: block;
           margin: var(--space-3, 0.75rem) auto 0;
           background: transparent;
-          border: 1px solid #1a3a1a;
+          border: 1px solid var(--color-surface-border, #1a3a1a);
           color: var(--color-text-tertiary, #008830);
           font-family: 'JetBrains Mono', monospace;
           font-size: 12px;
@@ -482,7 +482,7 @@ export class ArApp extends HTMLElement {
           width: 100%;
           background: transparent;
           color: var(--color-text-secondary, #00dd44);
-          border: 1px solid #1a3a1a;
+          border: 1px solid var(--color-surface-border, #1a3a1a);
           border-radius: 0;
           padding: var(--space-3, 0.75rem);
           font-size: 12px;
@@ -937,12 +937,19 @@ export class ArApp extends HTMLElement {
         document.documentElement.style.setProperty('--color-text-tertiary', '#882222');
         document.documentElement.style.setProperty('--color-accent-primary', '#cc3333');
         document.documentElement.style.setProperty('--color-accent-glow', 'rgba(204,51,51,0.35)');
+        document.documentElement.style.setProperty('--color-accent-hover', '#ff4444');
+        document.documentElement.style.setProperty('--color-surface-border', '#3a1a1a');
+        document.documentElement.style.setProperty('--color-surface-hover', '#2a0f0f');
+        document.documentElement.style.setProperty('--color-surface-active', '#301515');
         this.classList.add('precision-override');
         // Stop CRT flicker in Full Nuke
         this.stopCrtFlicker();
         updateMarquees('#cc3333', '<span>\u26A0 MAXIMUM POWER | Your images never leave your device | 100% local processing | nukebg.app \u26A0 MAXIMUM POWER | Your images never leave your device | 100% local processing | nukebg.app \u26A0</span>');
         console.log('%c[NukeBG] Mode: FULL NUKE', 'color: #cc3333; font-family: monospace;');
-        if (reactorSupport) reactorSupport.classList.remove('visible');
+        if (reactorSupport) {
+          reactorSupport.innerHTML = t('reactor.fullNuke');
+          reactorSupport.classList.add('visible');
+        }
         this.unwrapFlickerWords(disclaimer);
         this.unwrapFlickerWords(reactorSupport);
 
@@ -974,12 +981,19 @@ export class ArApp extends HTMLElement {
         document.documentElement.style.setProperty('--color-text-tertiary', '#995300');
         document.documentElement.style.setProperty('--color-accent-primary', '#ff8c00');
         document.documentElement.style.setProperty('--color-accent-glow', 'rgba(255,140,0,0.35)');
+        document.documentElement.style.setProperty('--color-accent-hover', '#ffaa33');
+        document.documentElement.style.setProperty('--color-surface-border', '#3a2a0a');
+        document.documentElement.style.setProperty('--color-surface-hover', '#2a1f0a');
+        document.documentElement.style.setProperty('--color-surface-active', '#302510');
         this.classList.add('precision-override');
         // Stop CRT flicker in High Power
         this.stopCrtFlicker();
         updateMarquees('#ff8c00', '<span>\u26A1 HIGH POWER | Zero uploads, zero tracking | Free and open source | nukebg.app \u26A1 HIGH POWER | Zero uploads, zero tracking | Free and open source | nukebg.app \u26A1</span>');
         console.log('%c[NukeBG] Mode: HIGH POWER', 'color: #ff8c00; font-family: monospace;');
-        if (reactorSupport) reactorSupport.classList.remove('visible');
+        if (reactorSupport) {
+          reactorSupport.innerHTML = t('reactor.highPower');
+          reactorSupport.classList.add('visible');
+        }
         this.unwrapFlickerWords(disclaimer);
         this.unwrapFlickerWords(reactorSupport);
         // Hide smoke in High Power
@@ -993,6 +1007,10 @@ export class ArApp extends HTMLElement {
         document.documentElement.style.setProperty('--color-text-tertiary', '#6b5e00');
         document.documentElement.style.setProperty('--color-accent-primary', '#b8a500');
         document.documentElement.style.setProperty('--color-accent-glow', 'rgba(184,165,0,0.35)');
+        document.documentElement.style.setProperty('--color-accent-hover', '#d4c200');
+        document.documentElement.style.setProperty('--color-surface-border', '#2a2800');
+        document.documentElement.style.setProperty('--color-surface-hover', '#1f1d00');
+        document.documentElement.style.setProperty('--color-surface-active', '#252300');
         this.classList.add('precision-override');
         // Start CRT flicker only in Low Power
         this.startCrtFlicker();
@@ -1015,13 +1033,20 @@ export class ArApp extends HTMLElement {
         document.documentElement.style.removeProperty('--color-text-tertiary');
         document.documentElement.style.removeProperty('--color-accent-primary');
         document.documentElement.style.removeProperty('--color-accent-glow');
+        document.documentElement.style.removeProperty('--color-accent-hover');
+        document.documentElement.style.removeProperty('--color-surface-border');
+        document.documentElement.style.removeProperty('--color-surface-hover');
+        document.documentElement.style.removeProperty('--color-surface-active');
         this.classList.remove('precision-override');
         // Stop CRT flicker in normal modes
         this.stopCrtFlicker();
         // Subtle green marquee for normal mode
         updateMarquees('#008830', '<span>☢ NUKEBG | DROP. NUKE. DOWNLOAD. | Your images never leave your device | nukebg.app ☢ NUKEBG | DROP. NUKE. DOWNLOAD. | Your images never leave your device | nukebg.app ☢</span>');
         console.log('%c[NukeBG] Mode: NORMAL', 'color: #00ff41; font-family: monospace;');
-        if (reactorSupport) reactorSupport.classList.remove('visible');
+        if (reactorSupport) {
+          reactorSupport.innerHTML = t('reactor.normal');
+          reactorSupport.classList.add('visible');
+        }
         this.unwrapFlickerWords(disclaimer);
         this.unwrapFlickerWords(reactorSupport);
         // Hide smoke in normal modes

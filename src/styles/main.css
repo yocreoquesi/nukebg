@@ -118,7 +118,7 @@
   /* Terminal-specific tokens */
   --terminal-scanline-opacity: 0.03;
   --terminal-cursor-color: var(--color-accent-primary);
-  --terminal-border-style: 1px solid #1a3a1a;
+  --terminal-border-style: 1px solid var(--color-surface-border);
 }
 
 /* === Reset === */
@@ -196,7 +196,7 @@ body::after {
   left: 0;
   right: 0;
   height: 1px;
-  background: #1a3a1a;
+  background: var(--color-surface-border, #1a3a1a);
   opacity: 1;
 }
 
@@ -212,7 +212,7 @@ body::after {
   left: 0;
   right: 0;
   height: 1px;
-  background: #1a3a1a;
+  background: var(--color-surface-border, #1a3a1a);
   opacity: 1;
 }
 
@@ -223,7 +223,7 @@ body::after {
   z-index: var(--z-sticky);
   background: #000000;
   backdrop-filter: none;
-  border-bottom: 1px solid #1a3a1a;
+  border-bottom: 1px solid var(--color-surface-border, #1a3a1a);
   height: 48px;
   display: flex;
   align-items: center;
@@ -291,7 +291,7 @@ body::after {
   color: var(--color-text-tertiary);
   background: #000;
   padding: 2px 6px;
-  border: 1px solid #1a3a1a;
+  border: 1px solid var(--color-surface-border, #1a3a1a);
   opacity: 0;
   transition: opacity 0.3s ease;
   pointer-events: none;
@@ -394,7 +394,7 @@ body::after {
 
 /* === Footer === */
 .footer {
-  border-top: 1px solid #1a3a1a;
+  border-top: 1px solid var(--color-surface-border, #1a3a1a);
   padding: var(--space-8) var(--space-6);
   text-align: center;
   font-family: var(--font-mono);
@@ -419,7 +419,7 @@ body::after {
 
 .footer-sep {
   margin: 0 var(--space-3);
-  color: #1a3a1a;
+  color: var(--color-surface-border, #1a3a1a);
 }
 
 .footer-cache-btn {
@@ -500,7 +500,7 @@ body::after {
   bottom: var(--space-6);
   right: var(--space-6);
   background: #0a0a0a;
-  border: 1px solid #1a3a1a;
+  border: 1px solid var(--color-surface-border, #1a3a1a);
   border-radius: 0;
   padding: var(--space-3) var(--space-4);
   font-size: var(--text-sm);

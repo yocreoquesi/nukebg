@@ -26,7 +26,7 @@ export class ArDropzone extends HTMLElement {
           width: 100%;
         }
         .dropzone {
-          border: 1px solid #1a3a1a;
+          border: 1px solid var(--color-surface-border, #1a3a1a);
           border-radius: 0;
           background: #000;
           padding: 2rem;
