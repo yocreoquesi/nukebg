@@ -248,6 +248,9 @@ export class ArEditorAdvanced extends HTMLElement {
     }
     if (this.canvas) this.canvas.classList.toggle('disabled', this.busy);
 
+    const cancelBtn = shadow.getElementById('cancel-action');
+    if (cancelBtn) cancelBtn.classList.toggle('hidden', !this.busy);
+
     const hint = shadow.getElementById('hint');
     if (hint) {
       if (this.busy) {
@@ -501,6 +504,8 @@ export class ArEditorAdvanced extends HTMLElement {
           margin-left: 6px;
         }
         .busy-indicator.hidden { display: none; }
+        .cancel-action { margin-left: 2px; }
+        .cancel-action.hidden { display: none; }
         .size-row label {
           font-size: 10px;
           text-transform: uppercase;
@@ -746,6 +751,7 @@ export class ArEditorAdvanced extends HTMLElement {
           <button type="button" class="action-btn" id="action-refine" title="${t('advanced.actionRefineHint')}">${t('advanced.actionRefine')}</button>
           <button type="button" class="action-btn danger" id="action-erase-object" title="${t('advanced.actionEraseObjectHint')}">${t('advanced.actionEraseObject')}</button>
           <span class="busy-indicator hidden" id="busy">${t('advanced.working')}</span>
+          <button type="button" class="action-btn cancel-action hidden" id="cancel-action">${t('advanced.cancelAction')}</button>
         </div>
         <div class="preview-actions" id="preview-actions" role="group" aria-label="Confirm preview">
           <button type="button" class="action-btn confirm" id="action-apply-preview" title="${t('advanced.previewApplyHint')}">${t('advanced.previewApply')}</button>
@@ -790,6 +796,7 @@ export class ArEditorAdvanced extends HTMLElement {
     shadow.getElementById('action-erase-object')!.addEventListener('click', () => this.previewAction('erase-object'), { signal });
     shadow.getElementById('action-apply-preview')!.addEventListener('click', () => this.applyPreview(), { signal });
     shadow.getElementById('action-cancel-preview')!.addEventListener('click', () => this.cancelPreview(), { signal });
+    shadow.getElementById('cancel-action')!.addEventListener('click', () => this.cancelAction(), { signal });
     shadow.getElementById('undo')!.addEventListener('click', () => this.undo(), { signal });
     shadow.getElementById('redo')!.addEventListener('click', () => this.redo(), { signal });
     shadow.getElementById('zoom-in')!.addEventListener('click', () => this.setZoom(this.zoom * ZOOM_STEP), { signal });
@@ -1468,17 +1475,7 @@ export class ArEditorAdvanced extends HTMLElement {
             if (mask[i] === 1) newAlpha[i] = 0;
           }
         } else {
-          const poly = this.maskToBboxPolygon(mask, w, h);
-          const result = await processRoi({
-            original: workingData,
-            polygon: poly,
-            previousAlpha: prevAlpha,
-            mode: 'refine',
-            segment,
-            bboxMarginRatio: 0.15,
-          });
-          if (ac.signal.aborted) return;
-          newAlpha = result.alpha;
+          newAlpha = await this.refineSelection(mask, workingData, prevAlpha, w, h, ac.signal);
         }
       } else {
         const result = await processRoi({
@@ -1600,9 +1597,16 @@ export class ArEditorAdvanced extends HTMLElement {
     return loader;
   }
 
-  private maskToBboxPolygon(
-    mask: Uint8Array, w: number, h: number,
-  ): Array<{ x: number; y: number }> {
+  private async refineSelection(
+    mask: Uint8Array,
+    workingData: ImageData,
+    prevAlpha: Uint8Array,
+    w: number,
+    h: number,
+    signal: AbortSignal,
+  ): Promise<Uint8Array> {
+    const MARGIN = 20;
+
     let minX = w, minY = h, maxX = 0, maxY = 0;
     for (let y = 0; y < h; y++) {
       for (let x = 0; x < w; x++) {
@@ -1614,17 +1618,45 @@ export class ArEditorAdvanced extends HTMLElement {
         }
       }
     }
-    const pad = 10;
-    minX = Math.max(0, minX - pad);
-    minY = Math.max(0, minY - pad);
-    maxX = Math.min(w - 1, maxX + pad);
-    maxY = Math.min(h - 1, maxY + pad);
-    return [
-      { x: minX, y: minY },
-      { x: maxX, y: minY },
-      { x: maxX, y: maxY },
-      { x: minX, y: maxY },
-    ];
+    const bx = Math.max(0, minX - MARGIN);
+    const by = Math.max(0, minY - MARGIN);
+    const bx2 = Math.min(w, maxX + 1 + MARGIN);
+    const by2 = Math.min(h, maxY + 1 + MARGIN);
+    const bw = bx2 - bx;
+    const bh = by2 - by;
+
+    const crop = new Uint8ClampedArray(bw * bh * 4);
+    const src = workingData.data;
+    for (let y = 0; y < bh; y++) {
+      for (let x = 0; x < bw; x++) {
+        const gi = (by + y) * w + (bx + x);
+        const ci = (y * bw + x) * 4;
+        const si = gi * 4;
+        if (mask[gi] === 1) {
+          crop[ci] = src[si];
+          crop[ci + 1] = src[si + 1];
+          crop[ci + 2] = src[si + 2];
+          crop[ci + 3] = 255;
+        }
+      }
+    }
+
+    if (signal.aborted) throw new DOMException('Aborted', 'AbortError');
+    const loader = await this.getLoader();
+    if (signal.aborted) throw new DOMException('Aborted', 'AbortError');
+    const res = await loader.segment({ pixels: crop, width: bw, height: bh });
+    const segAlpha = res.alpha;
+
+    const newAlpha = new Uint8Array(prevAlpha);
+    for (let y = 0; y < bh; y++) {
+      for (let x = 0; x < bw; x++) {
+        const gi = (by + y) * w + (bx + x);
+        if (mask[gi] === 1) {
+          newAlpha[gi] = segAlpha[y * bw + x];
+        }
+      }
+    }
+    return newAlpha;
   }
 
   // ────────────────────── RMBG lasso selection ──────────────────────────
