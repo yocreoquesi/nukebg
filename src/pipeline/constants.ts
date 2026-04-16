@@ -100,6 +100,18 @@ export const GUIDED_FILTER_PARAMS = {
   EPSILON: 1e-4,
 } as const;
 
+export const JBU_PARAMS = {
+  /** Spatial kernel radius (pixels in the LOW-RES mask).
+   *  Larger = smoother but slower (O(r²) per pixel). 4-6 is sweet spot. */
+  RADIUS: 5,
+  /** Spatial Gaussian sigma (pixels in low-res space). */
+  SIGMA_SPATIAL: 3.0,
+  /** Range Gaussian sigma (intensity units 0-255 in the guidance image).
+   *  Controls edge sensitivity: lower = sharper edges, higher = smoother.
+   *  20-30 works well for natural images. */
+  SIGMA_RANGE: 25.0,
+} as const;
+
 
 export const PATCHMATCH_PARAMS = {
   /** Patch radius (pixels). 3 → 7×7 patches, the Barnes 2009 sweet-spot

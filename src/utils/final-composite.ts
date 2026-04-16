@@ -1,5 +1,5 @@
-import { guidedFilter } from '../workers/cv/alpha-matting';
-import { GUIDED_FILTER_PARAMS } from '../pipeline/constants';
+import { guidedFilter, jointBilateralUpsample } from '../workers/cv/alpha-matting';
+import { GUIDED_FILTER_PARAMS, JBU_PARAMS } from '../pipeline/constants';
 
 /**
  * Compose the final output at the original input resolution.
@@ -10,9 +10,11 @@ import { GUIDED_FILTER_PARAMS } from '../pipeline/constants';
  * RGB is preserved outside the watermark region; inside the watermark
  * region we upscale the inpainted RGB and blend using the mask.
  *
- * When refineAlpha is true, applies a guided filter at original resolution
- * to snap mask edges to the real image features — eliminates the mushy
- * edges from bilinear upscale of the 1024px RMBG mask.
+ * When refineAlpha is true, uses Joint Bilateral Upsampling (JBU) instead
+ * of bilinear to upscale the alpha mask, using the original image as
+ * guidance. JBU produces sharp edges at full resolution by weighting
+ * low-res samples with spatial distance + color similarity in the hi-res
+ * guide. For same-size inputs, applies a guided filter for edge cleanup.
  */
 
 /**
@@ -162,14 +164,14 @@ export function composeAtOriginal(input: ComposeAtOriginalInput): ImageData {
     return new ImageData(out, oW, oH);
   }
 
-  // Upscale alpha (bilinear — preserves soft edges)
-  let upAlpha = bilinearUpscaleU8(workingAlpha, wW, wH, oW, oH);
-
-  // Guided filter snaps the upscaled mask edges to real image features,
-  // eliminating the mushy edges from bilinear upscale of the 1024px RMBG mask.
-  if (refineAlpha) {
-    upAlpha = guidedFilter(upAlpha, originalRgba, oW, oH, GUIDED_FILTER_PARAMS.RADIUS, GUIDED_FILTER_PARAMS.EPSILON);
-  }
+  // Upscale alpha: JBU (edge-aware, uses original as guidance) or bilinear
+  const upAlpha = refineAlpha
+    ? jointBilateralUpsample(
+        workingAlpha, wW, wH,
+        originalRgba, oW, oH,
+        JBU_PARAMS.RADIUS, JBU_PARAMS.SIGMA_SPATIAL, JBU_PARAMS.SIGMA_RANGE,
+      )
+    : bilinearUpscaleU8(workingAlpha, wW, wH, oW, oH);
 
   // Base RGB: pristine original
   const out = new Uint8ClampedArray(originalRgba);
