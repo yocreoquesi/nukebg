@@ -623,6 +623,12 @@ export class ArApp extends HTMLElement {
         .feature-card .feature-icon {
           transition: opacity 0.05s ease;
         }
+        .crt-word-flicker {
+          opacity: 0.05;
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .crt-word-flicker { opacity: 1; }
+        }
         .feature-card.crt-flicker .feature-title,
         .feature-card.crt-flicker .feature-desc,
         .feature-card.crt-flicker .feature-icon {
@@ -1258,31 +1264,7 @@ export class ArApp extends HTMLElement {
       const marqueeWs = this.shadowRoot!.querySelector('#precision-marquee-ws') as HTMLElement;
       const smoke = document.getElementById('smoke-overlay');
       const reactorSupport = this.shadowRoot!.querySelector('#reactor-support') as HTMLElement;
-
-      // Ko-fi messages per power mode (not shown in Normal)
-      const supportMessages: Record<string, Record<number, string>> = {
-        en: { 0: 'The reactor is running cold. <a href="https://ko-fi.com/yocreoquesi" target="_blank" rel="noopener">Feed it on Ko-fi</a> to keep it alive.', 2: 'High power consumes more fuel. <a href="https://ko-fi.com/yocreoquesi" target="_blank" rel="noopener">Refuel on Ko-fi</a>.', 3: 'FULL NUKE MODE drains the core. <a href="https://ko-fi.com/yocreoquesi" target="_blank" rel="noopener">Prevent meltdown on Ko-fi</a>.' },
-        es: { 0: 'El reactor va fr\u00EDo. <a href="https://ko-fi.com/yocreoquesi" target="_blank" rel="noopener">Al\u00EDmentalo en Ko-fi</a> para mantenerlo vivo.', 2: 'Alta potencia consume m\u00E1s combustible. <a href="https://ko-fi.com/yocreoquesi" target="_blank" rel="noopener">Recarga en Ko-fi</a>.', 3: 'MODO NUKE TOTAL agota el n\u00FAcleo. <a href="https://ko-fi.com/yocreoquesi" target="_blank" rel="noopener">Evita el colapso en Ko-fi</a>.' },
-        fr: { 0: 'Le r\u00E9acteur tourne \u00E0 froid. <a href="https://ko-fi.com/yocreoquesi" target="_blank" rel="noopener">Alimente-le sur Ko-fi</a>.', 2: 'Haute puissance consomme plus. <a href="https://ko-fi.com/yocreoquesi" target="_blank" rel="noopener">Ravitaille sur Ko-fi</a>.', 3: 'MODE NUKE TOTAL \u00E9puise le noyau. <a href="https://ko-fi.com/yocreoquesi" target="_blank" rel="noopener">\u00C9vite la fusion sur Ko-fi</a>.' },
-        de: { 0: 'Der Reaktor l\u00E4uft kalt. <a href="https://ko-fi.com/yocreoquesi" target="_blank" rel="noopener">F\u00FCttere ihn auf Ko-fi</a>.', 2: 'Hohe Leistung braucht mehr Treibstoff. <a href="https://ko-fi.com/yocreoquesi" target="_blank" rel="noopener">Nachtanken auf Ko-fi</a>.', 3: 'VOLLE NUKE-KRAFT leert den Kern. <a href="https://ko-fi.com/yocreoquesi" target="_blank" rel="noopener">Kernschmelze verhindern auf Ko-fi</a>.' },
-        pt: { 0: 'O reator t\u00E1 frio. <a href="https://ko-fi.com/yocreoquesi" target="_blank" rel="noopener">Alimenta ele no Ko-fi</a>.', 2: 'Alta pot\u00EAncia consome mais combust\u00EDvel. <a href="https://ko-fi.com/yocreoquesi" target="_blank" rel="noopener">Reabastece no Ko-fi</a>.', 3: 'MODO NUKE TOTAL esgota o n\u00FAcleo. <a href="https://ko-fi.com/yocreoquesi" target="_blank" rel="noopener">Evita o colapso no Ko-fi</a>.' },
-        zh: { 0: '\u53CD\u5E94\u5806\u8FD0\u884C\u4F4E\u6E29\u3002<a href="https://ko-fi.com/yocreoquesi" target="_blank" rel="noopener">\u5728 Ko-fi \u4E0A\u7ED9\u5B83\u52A0\u71C3\u6599</a>\u3002', 2: '\u9AD8\u529F\u7387\u6D88\u8017\u66F4\u591A\u71C3\u6599\u3002<a href="https://ko-fi.com/yocreoquesi" target="_blank" rel="noopener">\u5728 Ko-fi \u4E0A\u8865\u5145\u80FD\u91CF</a>\u3002', 3: '\u5168\u529B\u6838\u7206\u6A21\u5F0F\u6D88\u8017\u6838\u5FC3\u3002<a href="https://ko-fi.com/yocreoquesi" target="_blank" rel="noopener">\u5728 Ko-fi \u4E0A\u9632\u6B62\u7194\u6BC1</a>\u3002' },
-      };
-
-      const updateReactorSupport = (modeVal: number): void => {
-        if (!reactorSupport) return;
-        if (modeVal === 1) {
-          reactorSupport.classList.remove('visible');
-          return;
-        }
-        const lang = document.documentElement.lang || 'en';
-        const msgs = supportMessages[lang] || supportMessages['en'];
-        const msg = msgs[modeVal];
-        if (msg) {
-          reactorSupport.innerHTML = msg;
-          reactorSupport.classList.add('visible');
-        }
-      };
+      const disclaimer = this.shadowRoot!.querySelector('#features-disclaimer') as HTMLElement;
 
       // Helper to update both marquees (hero + workspace)
       const updateMarquees = (color: string, html: string): void => {
@@ -1307,7 +1289,9 @@ export class ArApp extends HTMLElement {
         this.stopCrtFlicker();
         updateMarquees('#cc3333', '<span>\u26A0 MAXIMUM POWER | Your images never leave your device | 100% local processing | nukebg.app \u26A0 MAXIMUM POWER | Your images never leave your device | 100% local processing | nukebg.app \u26A0</span>');
         console.log('%c[NukeBG] Mode: FULL NUKE', 'color: #cc3333; font-family: monospace;');
-        updateReactorSupport(3);
+        if (reactorSupport) reactorSupport.classList.remove('visible');
+        this.unwrapFlickerWords(disclaimer);
+        this.unwrapFlickerWords(reactorSupport);
 
         // Vibration + smoke: trigger once per activation, after random 1-5s delay
         const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -1344,7 +1328,9 @@ export class ArApp extends HTMLElement {
         this.stopCrtFlicker();
         updateMarquees('#ff8c00', '<span>\u26A1 HIGH POWER | Zero uploads, zero tracking | Free and open source | nukebg.app \u26A1 HIGH POWER | Zero uploads, zero tracking | Free and open source | nukebg.app \u26A1</span>');
         console.log('%c[NukeBG] Mode: HIGH POWER', 'color: #ff8c00; font-family: monospace;');
-        updateReactorSupport(2);
+        if (reactorSupport) reactorSupport.classList.remove('visible');
+        this.unwrapFlickerWords(disclaimer);
+        this.unwrapFlickerWords(reactorSupport);
         // Hide smoke in High Power
         if (smoke) smoke.classList.remove('active');
         // Show features in non-Normal modes
@@ -1366,7 +1352,12 @@ export class ArApp extends HTMLElement {
         if (featuresLP) featuresLP.style.display = '';
         updateMarquees('#b8a500', '<span>\u26A1 LOW POWER | Works offline after first visit | No account needed | nukebg.app \u26A1 LOW POWER | Works offline after first visit | No account needed | nukebg.app \u26A1</span>');
         console.log('%c[NukeBG] Mode: LOW POWER', 'color: #b8a500; font-family: monospace;');
-        updateReactorSupport(0);
+        if (reactorSupport) {
+          reactorSupport.innerHTML = t('reactor.lowPower');
+          reactorSupport.classList.add('visible');
+        }
+        this.wrapFlickerWords(disclaimer);
+        this.wrapFlickerWords(reactorSupport);
         // Hide smoke in Low Power
         if (smoke) smoke.classList.remove('active');
       } else {
@@ -1383,7 +1374,9 @@ export class ArApp extends HTMLElement {
         // Subtle green marquee for normal mode
         updateMarquees('#008830', '<span>☢ NUKEBG | DROP. NUKE. DOWNLOAD. | Your images never leave your device | nukebg.app ☢ NUKEBG | DROP. NUKE. DOWNLOAD. | Your images never leave your device | nukebg.app ☢</span>');
         console.log('%c[NukeBG] Mode: NORMAL', 'color: #00ff41; font-family: monospace;');
-        updateReactorSupport(1);
+        if (reactorSupport) reactorSupport.classList.remove('visible');
+        this.unwrapFlickerWords(disclaimer);
+        this.unwrapFlickerWords(reactorSupport);
         // Hide smoke in normal modes
         if (smoke) smoke.classList.remove('active');
         // Hide features in Normal mode - clean minimal view
@@ -1532,23 +1525,38 @@ export class ArApp extends HTMLElement {
     const cards = this.shadowRoot!.querySelectorAll('.feature-card');
     cards.forEach((card) => {
       const scheduleFlicker = (): void => {
-        const delay = 2000 + Math.random() * 6000; // 2s-8s random
+        const delay = 2000 + Math.random() * 6000;
         const timerId = window.setTimeout(() => {
-          // Random: 70% quick flicker, 30% longer blackout
           const isBlackout = Math.random() < 0.3;
           const duration = isBlackout
-            ? 300 + Math.random() * 500  // 300-800ms blackout
-            : 80 + Math.random() * 80;   // 80-160ms flicker
-
+            ? 300 + Math.random() * 500
+            : 80 + Math.random() * 80;
           card.classList.add('crt-flicker');
           window.setTimeout(() => {
             card.classList.remove('crt-flicker');
-            scheduleFlicker(); // schedule next one
+            scheduleFlicker();
           }, duration);
         }, delay);
         this.crtFlickerTimers.push(timerId);
       };
       scheduleFlicker();
+    });
+
+    const words = this.shadowRoot!.querySelectorAll('.flicker-word');
+    words.forEach((word) => {
+      const scheduleWordFlicker = (): void => {
+        const delay = 800 + Math.random() * 4000;
+        const timerId = window.setTimeout(() => {
+          const duration = 60 + Math.random() * 120;
+          word.classList.add('crt-word-flicker');
+          window.setTimeout(() => {
+            word.classList.remove('crt-word-flicker');
+            scheduleWordFlicker();
+          }, duration);
+        }, delay);
+        this.crtFlickerTimers.push(timerId);
+      };
+      scheduleWordFlicker();
     });
   }
 
@@ -1557,6 +1565,52 @@ export class ArApp extends HTMLElement {
     this.crtFlickerTimers = [];
     const allCards = this.shadowRoot!.querySelectorAll('.feature-card');
     allCards.forEach(c => c.classList.remove('crt-flicker'));
+    this.shadowRoot!.querySelectorAll('.flicker-word').forEach(w =>
+      w.classList.remove('crt-word-flicker'),
+    );
+  }
+
+  private wrapFlickerWords(el: HTMLElement | null): void {
+    if (!el) return;
+    const walk = (node: Node): void => {
+      if (node.nodeType === Node.TEXT_NODE && node.textContent?.trim()) {
+        const frag = document.createDocumentFragment();
+        const words = node.textContent.split(/(\s+)/);
+        for (const w of words) {
+          if (/^\s+$/.test(w)) {
+            frag.appendChild(document.createTextNode(w));
+          } else {
+            const span = document.createElement('span');
+            span.className = 'flicker-word';
+            span.textContent = w;
+            frag.appendChild(span);
+          }
+        }
+        node.parentNode?.replaceChild(frag, node);
+      } else if (node.nodeType === Node.ELEMENT_NODE) {
+        const tag = (node as HTMLElement).tagName?.toLowerCase();
+        if (tag === 'a' || tag === 's') {
+          const span = document.createElement('span');
+          span.className = 'flicker-word';
+          span.appendChild(node.cloneNode(true));
+          node.parentNode?.replaceChild(span, node);
+        } else {
+          Array.from(node.childNodes).forEach(walk);
+        }
+      }
+    };
+    Array.from(el.childNodes).forEach(walk);
+  }
+
+  private unwrapFlickerWords(el: HTMLElement | null): void {
+    if (!el) return;
+    el.querySelectorAll('.flicker-word').forEach(span => {
+      const parent = span.parentNode;
+      if (!parent) return;
+      while (span.firstChild) parent.insertBefore(span.firstChild, span);
+      parent.removeChild(span);
+      parent.normalize();
+    });
   }
 
   /** Disable all workspace action buttons during processing */

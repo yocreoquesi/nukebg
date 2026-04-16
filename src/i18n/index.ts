@@ -153,6 +153,7 @@ const translations: Translations = {
     'features.private.desc': 'Unlimited uses, no watermarks on output, no credit system. GPL-3.0. Go read the code.',
     'features.disclaimer': 'We\'re <s>perfect</s> honest. Sometimes we miss. Fix it with the editor or <a href="https://github.com/yocreoquesi/nukebg/issues" target="_blank" rel="noopener">yell at the repo</a>.',
     'features.limitations': '\u2192 <strong>Works best with:</strong> clear subjects on contrasting backgrounds, photos, logos, signatures.<br>\u2192 <strong>May struggle with:</strong> hair on busy backgrounds, semi-transparent objects, very complex poses.<br>\u2192 <strong>Tip:</strong> use the manual editor to fix any rough spots. The eraser gives you pixel-level control.',
+    'reactor.lowPower': 'The reactor is running cold. <a href="https://ko-fi.com/yocreoquesi" target="_blank" rel="noopener">Feed it on Ko-fi</a> to keep it alive.',
 
     // Header / Footer (index.html)
     'header.skipLink': 'Skip to main content',
@@ -337,6 +338,7 @@ const translations: Translations = {
     'features.private.desc': 'Usos ilimitados, sin marca de agua en el resultado, sin sistema de cr\u00E9ditos. Es GPL-3.0. Lee el c\u00F3digo.',
     'features.disclaimer': 'Somos <s>perfectos</s> honestos. A veces fallamos. Arr\u00E9glalo con el editor o <a href="https://github.com/yocreoquesi/nukebg/issues" target="_blank" rel="noopener">grita en el repo</a>.',
     'features.limitations': '\u2192 <strong>Funciona mejor con:</strong> sujetos claros sobre fondos contrastados, fotos, logos, firmas.<br>\u2192 <strong>Puede fallar con:</strong> pelo sobre fondos complejos, objetos semitransparentes, poses muy complejas.<br>\u2192 <strong>Consejo:</strong> usa el editor manual para corregir las zonas que no queden bien. El borrador te da control pixel a pixel.',
+    'reactor.lowPower': 'El reactor va fr\u00EDo. <a href="https://ko-fi.com/yocreoquesi" target="_blank" rel="noopener">Al\u00EDmentalo en Ko-fi</a> para mantenerlo vivo.',
 
     // Header / Footer (index.html)
     'header.skipLink': 'Saltar al contenido principal',
@@ -521,6 +523,7 @@ const translations: Translations = {
     'features.private.desc': "Utilisations illimit\u00E9es, pas de filigrane sur le r\u00E9sultat, pas de syst\u00E8me de cr\u00E9dits. GPL-3.0. Va lire le code.",
     'features.disclaimer': "On est <s>parfaits</s> honn\u00EAtes. Parfois on rate. Corrige avec l'\u00E9diteur ou <a href=\"https://github.com/yocreoquesi/nukebg/issues\" target=\"_blank\" rel=\"noopener\">gueule sur le repo</a>.",
     'features.limitations': "\u2192 <strong>Marche mieux avec :</strong> sujets nets sur fond contrast\u00E9, photos, logos, signatures.<br>\u2192 <strong>Peut galérer avec :</strong> cheveux sur fonds charg\u00E9s, objets semi-transparents, poses tr\u00E8s complexes.<br>\u2192 <strong>Astuce :</strong> utilise l'\u00E9diteur manuel pour corriger les zones approximatives. La gomme te donne le contr\u00F4le au pixel.",
+    'reactor.lowPower': 'Le r\u00E9acteur tourne \u00E0 froid. <a href="https://ko-fi.com/yocreoquesi" target="_blank" rel="noopener">Alimente-le sur Ko-fi</a>.',
 
     // Header / Footer (index.html)
     'header.skipLink': 'Aller au contenu principal',
@@ -705,6 +708,7 @@ const translations: Translations = {
     'features.private.desc': 'Unbegrenzt nutzbar, kein Wasserzeichen, kein Credit-System. GPL-3.0. Lies den Code.',
     'features.disclaimer': 'Wir sind <s>perfekt</s> ehrlich. Manchmal daneben. Nachbessern im Editor oder <a href="https://github.com/yocreoquesi/nukebg/issues" target="_blank" rel="noopener">im Repo meckern</a>.',
     'features.limitations': '\u2192 <strong>Funktioniert am besten mit:</strong> klare Motive vor kontrastreichem Hintergrund, Fotos, Logos, Unterschriften.<br>\u2192 <strong>Kann Probleme haben mit:</strong> Haare vor unruhigem Hintergrund, halbtransparente Objekte, sehr komplexe Posen.<br>\u2192 <strong>Tipp:</strong> nutze den manuellen Editor f\u00FCr unsaubere Stellen. Der Radierer gibt dir Kontrolle auf Pixelebene.',
+    'reactor.lowPower': 'Der Reaktor l\u00E4uft kalt. <a href="https://ko-fi.com/yocreoquesi" target="_blank" rel="noopener">F\u00FCttere ihn auf Ko-fi</a>.',
 
     // Header / Footer (index.html)
     'header.skipLink': 'Zum Hauptinhalt springen',
@@ -889,6 +893,7 @@ const translations: Translations = {
     'features.private.desc': 'Uso ilimitado, sem marca d\u2019\u00E1gua no resultado, sem sistema de cr\u00E9ditos. GPL-3.0. Vai ler o c\u00F3digo.',
     'features.disclaimer': 'Somos <s>perfeitos</s> honestos. \u00C0s vezes erramos. Arruma no editor ou <a href="https://github.com/yocreoquesi/nukebg/issues" target="_blank" rel="noopener">xinga no repo</a>.',
     'features.limitations': '\u2192 <strong>Funciona melhor com:</strong> sujeitos n\u00EDtidos em fundos contrastados, fotos, logos, assinaturas.<br>\u2192 <strong>Pode penar com:</strong> cabelo em fundos complexos, objetos semitransparentes, poses muito complicadas.<br>\u2192 <strong>Dica:</strong> usa o editor manual pra corrigir as partes que ficaram estranhas. A borracha d\u00E1 controle pixel a pixel.',
+    'reactor.lowPower': 'O reator t\u00E1 frio. <a href="https://ko-fi.com/yocreoquesi" target="_blank" rel="noopener">Alimenta ele no Ko-fi</a>.',
 
     // Header / Footer (index.html)
     'header.skipLink': 'Pular para o conte\u00FAdo principal',
@@ -1073,6 +1078,7 @@ const translations: Translations = {
     'features.private.desc': '\u65E0\u9650\u4F7F\u7528\uFF0C\u8F93\u51FA\u65E0\u6C34\u5370\uFF0C\u6CA1\u6709\u79EF\u5206\u5236\u3002GPL-3.0\u3002\u53BB\u770B\u6E90\u7801\u3002',
     'features.disclaimer': '\u6211\u4EEC<s>\u5B8C\u7F8E</s>\u8BDA\u5B9E\u3002\u6709\u65F6\u7FFB\u8F66\u3002\u7528\u7F16\u8F91\u5668\u4FEE\uFF0C\u6216<a href="https://github.com/yocreoquesi/nukebg/issues" target="_blank" rel="noopener">\u53BB repo \u5410\u69FD</a>\u3002',
     'features.limitations': '\u2192 <strong>\u6700\u9002\u5408\uFF1A</strong>\u6E05\u6670\u4E3B\u4F53\u914D\u5BF9\u6BD4\u660E\u663E\u7684\u80CC\u666F\u3001\u7167\u7247\u3001logo\u3001\u7B7E\u540D\u3002<br>\u2192 <strong>\u53EF\u80FD\u7FFB\u8F66\uFF1A</strong>\u590D\u6742\u80CC\u666F\u4E0A\u7684\u5934\u53D1\u3001\u534A\u900F\u660E\u7269\u4F53\u3001\u975E\u5E38\u590D\u6742\u7684\u59FF\u52BF\u3002<br>\u2192 <strong>\u5C0F\u8D34\u58EB\uFF1A</strong>\u7528\u624B\u52A8\u7F16\u8F91\u5668\u4FEE\u590D\u4E0D\u5B8C\u7F8E\u7684\u5730\u65B9\u3002\u6A61\u76AE\u64E6\u7ED9\u4F60\u50CF\u7D20\u7EA7\u7684\u63A7\u5236\u3002',
+    'reactor.lowPower': '\u53CD\u5E94\u5806\u8FD0\u884C\u4F4E\u6E29\u3002<a href="https://ko-fi.com/yocreoquesi" target="_blank" rel="noopener">\u5728 Ko-fi \u4E0A\u7ED9\u5B83\u52A0\u71C3\u6599</a>\u3002',
 
     // Header / Footer (index.html)
     'header.skipLink': '\u8DF3\u8F6C\u5230\u4E3B\u8981\u5185\u5BB9',

@@ -265,6 +265,7 @@ export class ArEditorAdvanced extends HTMLElement {
 
     const hint = shadow.getElementById('hint');
     if (hint) {
+      hint.classList.toggle('busy', this.busy);
       if (this.busy) {
         hint.textContent = t('advanced.working');
       } else if (this.tool === 'lasso') {
@@ -641,6 +642,15 @@ export class ArEditorAdvanced extends HTMLElement {
           font-size: 10px;
           color: var(--color-text-tertiary, #888);
           align-self: center;
+          transition: color 0.2s;
+        }
+        .hint.busy {
+          color: var(--color-accent, #ffd700);
+          animation: hint-pulse 1.2s ease-in-out infinite;
+        }
+        @keyframes hint-pulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.5; }
         }
         button.action {
           font-family: inherit;
