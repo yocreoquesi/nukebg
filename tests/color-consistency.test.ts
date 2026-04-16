@@ -237,7 +237,6 @@ describe('color consistency — :host must not shadow theme variables', () => {
   // CSS custom properties declared on :host shadow inherited values from
   // document.documentElement, breaking the power mode cascade.
   // Only non-theme variables may be declared on :host.
-  const HOST_BLOCK = /:host\s*\{([^}]*)\}/g;
   const CUSTOM_PROP_DECL = /--[\w-]+\s*:/g;
   const THEME_VAR_PREFIXES = [
     '--color-',
