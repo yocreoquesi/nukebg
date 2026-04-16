@@ -1217,6 +1217,7 @@ export class ArEditorAdvanced extends HTMLElement {
 
   private drawLassoOverlay(): void {
     if (!this.ctx) return;
+    if (this.selectionMask) return;
 
     // Raw in-progress path — open polyline.
     if (this.lassoRaw && this.lassoRaw.length > 1) {
@@ -1525,7 +1526,10 @@ export class ArEditorAdvanced extends HTMLElement {
           if (result.mask[i] === 1) this.selectionMask[i] = 1;
         }
       }
+      this.lassoAnchors = null;
+      this.lassoRaw = null;
       this.rebuildSelectionOverlay();
+      this.syncLassoActionsUI();
       this.redrawDisplay();
     } catch (err) {
       console.error('[ar-editor-advanced] SAM decode failed', err);
@@ -1572,24 +1576,25 @@ export class ArEditorAdvanced extends HTMLElement {
     const img = ctx.createImageData(w, h);
     const mask = this.selectionMask;
     for (let i = 0; i < mask.length; i++) {
-      if (mask[i] !== 1) continue;
       const idx = i * 4;
       const x = i % w;
       const y = (i - x) / w;
-      const isEdge =
-        x === 0 || x === w - 1 || y === 0 || y === h - 1 ||
-        mask[i - 1] === 0 || mask[i + 1] === 0 ||
-        mask[i - w] === 0 || mask[i + w] === 0;
-      if (isEdge) {
-        img.data[idx] = 80;
-        img.data[idx + 1] = 200;
-        img.data[idx + 2] = 255;
-        img.data[idx + 3] = 200;
+      if (mask[i] === 1) {
+        const isEdge =
+          x === 0 || x === w - 1 || y === 0 || y === h - 1 ||
+          mask[i - 1] === 0 || mask[i + 1] === 0 ||
+          mask[i - w] === 0 || mask[i + w] === 0;
+        if (isEdge) {
+          img.data[idx] = 0;
+          img.data[idx + 1] = 255;
+          img.data[idx + 2] = 200;
+          img.data[idx + 3] = 220;
+        }
       } else {
-        img.data[idx] = 80;
-        img.data[idx + 1] = 160;
-        img.data[idx + 2] = 255;
-        img.data[idx + 3] = 60;
+        img.data[idx] = 255;
+        img.data[idx + 1] = 40;
+        img.data[idx + 2] = 40;
+        img.data[idx + 3] = 80;
       }
     }
     ctx.putImageData(img, 0, 0);
