@@ -22,14 +22,22 @@ function makeBrushCursor(
   zoom: number,
   tool: 'erase' | 'restore' = 'erase',
 ): string {
-  const displaySize = Math.min(64, Math.max(8, Math.round(size * zoom)));
+  const raw = size * zoom;
+  // Defensive: Number.isFinite guards against NaN from upstream state bugs.
+  // Math.round(NaN) → NaN, which poisons min/max and produces a NaN-sized SVG.
+  const displaySize = Number.isFinite(raw)
+    ? Math.min(64, Math.max(8, Math.round(raw)))
+    : 32;
   const r = displaySize / 2;
   const svgSize = displaySize + 2; // 1px padding
   const center = svgSize / 2;
   // Erase stays green (default brand accent); Restore is cyan so the user
-  // can tell at a glance which tool is active.
-  const accentRgb = getComputedStyle(document.documentElement).getPropertyValue('--color-accent-rgb').trim() || '0, 255, 65';
-  const stroke = tool === 'restore' ? '#00d4ff' : `rgb(${accentRgb})`;
+  // can tell at a glance which tool is active. Both colors resolved from CSS
+  // vars so power-mode theme switching cascades into the cursor.
+  const rootStyle = getComputedStyle(document.documentElement);
+  const accentRgb = rootStyle.getPropertyValue('--color-accent-rgb').trim() || '0, 255, 65';
+  const restoreRgb = rootStyle.getPropertyValue('--color-restore-rgb').trim() || '0, 212, 255';
+  const stroke = tool === 'restore' ? `rgb(${restoreRgb})` : `rgb(${accentRgb})`;
 
   let shapeEl: string;
   if (shape === 'circle') {
@@ -520,11 +528,11 @@ export class ArEditor extends HTMLElement {
         <div class="editor-footer">
           <div class="bg-options">
             <span id="ed-bg-label">${t('editor.bg')}</span>
-            <div class="bg-btn bg-checker active" data-bg="checker" title="Checkerboard"></div>
-            <div class="bg-btn" style="background:#fff" data-bg="#ffffff" title="White"></div>
-            <div class="bg-btn" style="background:#000" data-bg="#000000" title="Black"></div>
-            <div class="bg-btn" style="background:#00b140" data-bg="#00b140" title="Green screen"></div>
-            <div class="bg-btn" style="background:#ff4444" data-bg="#ff4444" title="Red (check edges)"></div>
+            <div class="bg-btn bg-checker active" data-bg="checker" title="${t('bg.checkerboard')}"></div>
+            <div class="bg-btn" style="background:var(--color-preview-white)" data-bg="#ffffff" title="${t('bg.white')}"></div>
+            <div class="bg-btn" style="background:var(--color-preview-black)" data-bg="#000000" title="${t('bg.black')}"></div>
+            <div class="bg-btn" style="background:var(--color-preview-green)" data-bg="#00b140" title="${t('bg.green')}"></div>
+            <div class="bg-btn" style="background:var(--color-preview-red)" data-bg="#ff4444" title="${t('bg.red')}"></div>
           </div>
         </div>
       </div>

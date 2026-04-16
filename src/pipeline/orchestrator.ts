@@ -412,7 +412,7 @@ export class PipelineOrchestrator {
         : 'complex';
     stageTiming['detect-background'] = performance.now() - t;
     this.emit('detect-background', 'done', `${bgType} detected [${contentType.toLowerCase()}]`);
-    console.log(`[NukeBG] Content type: ${contentType}, bg: ${bgType}`);
+    if (import.meta.env.DEV) console.log(`[NukeBG] Content type: ${contentType}, bg: ${bgType}`);
 
     // ── SIGNATURE path: skip ML entirely, use threshold-based extraction ──
     if (contentType === 'SIGNATURE') {
@@ -481,11 +481,13 @@ export class PipelineOrchestrator {
         // (CV, instant). See shouldUseLama() for the heuristic.
         t = performance.now();
         const routerDecision = shouldUseLama(originalPixels, width, height, combinedMask);
-        console.log(
-          `[NukeBG] Inpaint router: useLama=${routerDecision.useLama} ` +
-          `(variance=${routerDecision.variance.toFixed(1)}, ` +
-          `edgeDensity=${routerDecision.edgeDensity.toFixed(1)})`,
-        );
+        if (import.meta.env.DEV) {
+          console.log(
+            `[NukeBG] Inpaint router: useLama=${routerDecision.useLama} ` +
+            `(variance=${routerDecision.variance.toFixed(1)}, ` +
+            `edgeDensity=${routerDecision.edgeDensity.toFixed(1)})`,
+          );
+        }
 
         const dilated = dilateMask(combinedMask, width, height, INPAINT_PARAMS.FEATHER_RADIUS);
         let inpaintedPixels: Uint8ClampedArray;
@@ -616,7 +618,9 @@ export class PipelineOrchestrator {
     }
     const totalPixels = width * height;
     const nukedPct = Math.round(100 * transparentPixels / totalPixels);
-    console.log(`[NukeBG] Result: ${nukedPct}% nuked, ${Math.round(100 * opaquePixels / totalPixels)}% kept, ${totalPixels - opaquePixels - transparentPixels} edge pixels`);
+    if (import.meta.env.DEV) {
+      console.log(`[NukeBG] Result: ${nukedPct}% nuked, ${Math.round(100 * opaquePixels / totalPixels)}% kept, ${totalPixels - opaquePixels - transparentPixels} edge pixels`);
+    }
 
     const resultImageData = new ImageData(resultPixels, width, height);
     const totalTimeMs = performance.now() - startTime;

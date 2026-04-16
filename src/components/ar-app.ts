@@ -83,7 +83,8 @@ export class ArApp extends HTMLElement {
         s.classList.add('ready');
       }
       this.dropzone.setEnabled(true);
-    }).catch(() => {
+    }).catch((err: unknown) => {
+      console.error('[NukeBG] Model preload failed, falling back to lazy load:', err);
       const s = statusEl();
       if (s) s.textContent = '> model loads on first image';
       // Enable dropzone anyway so user can still try

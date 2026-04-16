@@ -43,6 +43,15 @@
   --color-checker-dark: #050505;
   --color-checker-size: 12px;
 
+  /* Background preview swatches (editor + viewer) */
+  --color-preview-white: #ffffff;
+  --color-preview-black: #000000;
+  --color-preview-green: #00b140;
+  --color-preview-red: #ff4444;
+
+  /* Restore tool accent (ar-editor cursor). Exposed as rgb list so SVG data URLs can read it via getComputedStyle. */
+  --color-restore-rgb: 0, 212, 255;
+
   /* Typography - JetBrains Mono everywhere */
   --font-sans: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
   --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;

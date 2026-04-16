@@ -288,8 +288,8 @@ async function loadModel(id: string, modelId: ModelId = DEFAULT_MODEL, emitReady
     status: 'ok',
     elapsedMs: 0,
     device,
-    userAgent: typeof self !== 'undefined' && (self as any).navigator ? (self as any).navigator.userAgent : undefined,
-    hardwareConcurrency: typeof self !== 'undefined' && (self as any).navigator ? (self as any).navigator.hardwareConcurrency : undefined,
+    userAgent: typeof self !== 'undefined' && self.navigator ? self.navigator.userAgent : undefined,
+    hardwareConcurrency: typeof self !== 'undefined' && self.navigator ? self.navigator.hardwareConcurrency : undefined,
   };
   try {
     if (RawImageClass) {

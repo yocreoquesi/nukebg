@@ -233,6 +233,11 @@ export function inpaintTelea(
       const ry = iy - nby;
       const dst2 = rx * rx + ry * ry;
 
+      // Self-reference guard: if offsets[k] === 0 or a duplicate neighbor index
+      // slips through, dst2 would be zero and geometricDst would be Infinity,
+      // poisoning the weighted average.
+      if (dst2 === 0) continue;
+
       const geometricDst = 1 / (dst2 * Math.sqrt(dst2));
       const levelsetDst = 1 / (1 + Math.abs(u[nb] - u[n]));
       const direction = Math.abs(rx * gradxU + ry * gradyU);
