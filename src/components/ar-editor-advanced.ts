@@ -232,10 +232,33 @@ export class ArEditorAdvanced extends HTMLElement {
   private syncHistoryUI(): void {
     const undoBtn = this.shadowRoot?.getElementById('undo') as HTMLButtonElement | null;
     const redoBtn = this.shadowRoot?.getElementById('redo') as HTMLButtonElement | null;
-    // Lock history during async actions — an in-flight ML segmentation would
-    // finish after an undo and overwrite the rolled-back buffer.
     if (undoBtn) undoBtn.disabled = this.busy || this.undoStack.length === 0;
     if (redoBtn) redoBtn.disabled = this.busy || this.redoStack.length === 0;
+  }
+
+  private syncBusyUI(): void {
+    const shadow = this.shadowRoot;
+    if (!shadow) return;
+
+    const ids = ['tool-brush', 'tool-eraser', 'tool-lasso', 'restore-original', 'cancel', 'done'];
+    for (const id of ids) {
+      const el = shadow.getElementById(id) as HTMLButtonElement | null;
+      if (el) el.disabled = this.busy;
+    }
+    if (this.canvas) this.canvas.classList.toggle('disabled', this.busy);
+
+    const hint = shadow.getElementById('hint');
+    if (hint) {
+      if (this.busy) {
+        hint.textContent = t('advanced.working');
+      } else if (this.tool === 'lasso') {
+        this.syncLassoActionsUI();
+      } else {
+        this.syncToolUI();
+      }
+    }
+    this.syncHistoryUI();
+    this.syncLassoActionsUI();
   }
 
   private rebuildBackingBuffers(): void {
@@ -518,7 +541,7 @@ export class ArEditorAdvanced extends HTMLElement {
           transform-origin: center center;
           will-change: transform;
         }
-        canvas.disabled { cursor: not-allowed; }
+        canvas.disabled { cursor: not-allowed; pointer-events: none; }
         canvas.panning { cursor: grabbing; }
         .zoom-group {
           display: inline-flex;
@@ -1400,8 +1423,7 @@ export class ArEditorAdvanced extends HTMLElement {
     const h = this.current.height;
 
     this.busy = true;
-    this.syncLassoActionsUI();
-    this.syncHistoryUI();
+    this.syncBusyUI();
     try {
       const wctx = this.working.getContext('2d')!;
       const prevData = wctx.getImageData(0, 0, w, h).data;
@@ -1467,8 +1489,7 @@ export class ArEditorAdvanced extends HTMLElement {
       if (hint) hint.textContent = t('advanced.refineError');
     } finally {
       this.busy = false;
-      this.syncLassoActionsUI();
-      this.syncHistoryUI();
+      this.syncBusyUI();
     }
   }
 
@@ -1597,7 +1618,7 @@ export class ArEditorAdvanced extends HTMLElement {
     const h = this.current.height;
 
     this.busy = true;
-    this.syncLassoActionsUI();
+    this.syncBusyUI();
     try {
       const segment = async (pixels: Uint8ClampedArray, pw: number, ph: number) => {
         const loader = await this.getLoader();
@@ -1632,13 +1653,12 @@ export class ArEditorAdvanced extends HTMLElement {
       this.lassoAnchors = null;
       this.lassoRaw = null;
       this.rebuildSelectionOverlay();
-      this.syncLassoActionsUI();
       this.redrawDisplay();
     } catch (err) {
       console.error('[ar-editor-advanced] RMBG lasso decode failed', err);
     } finally {
       this.busy = false;
-      this.syncLassoActionsUI();
+      this.syncBusyUI();
     }
   }
 
