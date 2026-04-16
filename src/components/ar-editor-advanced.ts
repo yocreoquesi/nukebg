@@ -1,5 +1,5 @@
 /**
- * Advanced editor — staging-only. Gated by isLabVisible().
+ * Advanced editor.
  *
  * Scope of this component (growing across sub-commits):
  *   [step 1]   Skeleton: padded canvas (+25% each side), shows current result.
@@ -28,7 +28,6 @@
  *     ar:advanced-cancel
  */
 
-import { isLabVisible } from '../../exploration/lab-visibility';
 import { createLoader, type ModelLoader } from '../../exploration/loaders';
 import {
   loadSam, encodeSam, decodeSam, disposeSam, onSamProgress,
@@ -149,10 +148,6 @@ export class ArEditorAdvanced extends HTMLElement {
   private abort: AbortController | null = null;
 
   connectedCallback(): void {
-    if (!isLabVisible()) {
-      this.style.display = 'none';
-      return;
-    }
     this.render();
   }
 

@@ -13,7 +13,6 @@ import type { ArBatchGrid } from './ar-batch-grid';
 import type { BatchItem, StageSnapshot } from '../types/batch';
 import { createZip, safeZipEntryName, downloadBlob } from '../utils/zip';
 import { composeAtOriginal } from '../utils/final-composite';
-import { isLabVisible } from '../../exploration/lab-visibility';
 import type { ArEditorAdvanced } from './ar-editor-advanced';
 
 export class ArApp extends HTMLElement {
@@ -1144,9 +1143,8 @@ export class ArApp extends HTMLElement {
       editBtn.textContent = t('edit.discard');
     }, { signal });
 
-    // [LAB] Advanced editor CTA toggle
+    // Advanced editor CTA toggle
     this.shadowRoot!.querySelector('#advanced-cta')?.addEventListener('click', () => {
-      if (!isLabVisible()) return;
       const adv = this.shadowRoot!.querySelector('#editor-advanced') as ArEditorAdvanced | null;
       const btn = this.shadowRoot!.querySelector('#advanced-cta') as HTMLElement | null;
       if (!adv || !btn) return;
@@ -1165,13 +1163,13 @@ export class ArApp extends HTMLElement {
       adv.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }, { signal });
 
-    // [LAB] Advanced editor — cancel
+    // Advanced editor — cancel
     this.shadowRoot!.addEventListener('ar:advanced-cancel', () => {
       const btn = this.shadowRoot!.querySelector('#advanced-cta') as HTMLElement | null;
       btn?.removeAttribute('data-active');
     }, { signal });
 
-    // [LAB] Advanced editor — done (step 1 is a no-op roundtrip; real work in later steps)
+    // Advanced editor — done
     this.shadowRoot!.addEventListener('ar:advanced-done', async (e: Event) => {
       const detail = (e as CustomEvent<{ imageData: ImageData }>).detail;
       const btn = this.shadowRoot!.querySelector('#advanced-cta') as HTMLElement | null;
@@ -1185,15 +1183,13 @@ export class ArApp extends HTMLElement {
     }, { signal });
   }
 
-  // In staging (lab visible), the advanced CTA replaces the edit-btn entirely.
-  // In prod, the CTA stays hidden and edit-btn is the only affordance.
+  // Advanced CTA replaces the edit-btn when visible.
   private setAdvancedBtnVisible(show: boolean): void {
     const cta = this.shadowRoot?.querySelector('#advanced-cta') as HTMLElement | null;
     const editBtn = this.shadowRoot?.querySelector('#edit-btn') as HTMLElement | null;
     if (!cta) return;
-    const lab = isLabVisible();
-    cta.style.display = show && lab ? 'block' : 'none';
-    if (lab && editBtn) editBtn.style.display = 'none';
+    cta.style.display = show ? 'block' : 'none';
+    if (editBtn) editBtn.style.display = 'none';
   }
 
   private startCrtFlicker(): void {
