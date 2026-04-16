@@ -221,3 +221,53 @@ export type LamaWorkerResponse =
   | { id: string; type: 'lama-inpaint-result'; result: Uint8ClampedArray }
   | { id: string; type: 'lama-disposed' }
   | { id: string; type: 'error'; error: string };
+
+/** ======== SAM (MobileSAM interactive segmentation) Worker Messages ======== */
+
+export type SamWorkerRequest =
+  | SamLoadRequest
+  | SamEncodeRequest
+  | SamDecodeRequest
+  | SamDisposeRequest;
+
+export interface SamLoadRequest {
+  id: string;
+  type: 'sam-load';
+}
+
+export interface SamEncodeRequest {
+  id: string;
+  type: 'sam-encode';
+  payload: {
+    pixels: Uint8ClampedArray;
+    width: number;
+    height: number;
+  };
+}
+
+export interface SamDecodeRequest {
+  id: string;
+  type: 'sam-decode';
+  payload: {
+    /** Click coordinates in original image space. */
+    points: Array<{ x: number; y: number }>;
+    /** 1 = foreground (include), 0 = background (exclude). */
+    labels: number[];
+    /** Original image dimensions the encoder processed. */
+    width: number;
+    height: number;
+  };
+}
+
+export interface SamDisposeRequest {
+  id: string;
+  type: 'sam-dispose';
+}
+
+export type SamWorkerResponse =
+  | { id: string; type: 'sam-load-progress'; progress: number; stage: 'encoder' | 'decoder' }
+  | { id: string; type: 'sam-ready' }
+  | { id: string; type: 'sam-encoded' }
+  | { id: string; type: 'sam-mask'; mask: Uint8Array; width: number; height: number }
+  | { id: string; type: 'sam-disposed' }
+  | { id: string; type: 'error'; error: string };
