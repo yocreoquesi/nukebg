@@ -13,7 +13,15 @@
  */
 import * as ort from 'onnxruntime-web';
 import type { SamWorkerRequest, SamWorkerResponse } from '../types/worker-messages';
-import { SAM_PARAMS } from '../pipeline/constants';
+const SAM_PARAMS = {
+  ENCODER_URL:
+    'https://huggingface.co/Acly/MobileSAM/resolve/main/mobile_sam_image_encoder.onnx',
+  DECODER_URL:
+    'https://huggingface.co/Acly/MobileSAM/resolve/main/sam_mask_decoder_single.onnx',
+  INPUT_SIZE: 1024,
+  MASK_SIZE: 256,
+  MASK_THRESHOLD: 0.0,
+} as const;
 
 ort.env.wasm.wasmPaths =
   'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.22.0-dev.20250409-89f8206ba4/dist/';

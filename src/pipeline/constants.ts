@@ -301,18 +301,3 @@ export const IMAGE_CLASSIFY_PARAMS = {
  * decoder runs per click (~300ms). Models from Acly/MobileSAM on HuggingFace
  * (MIT license, compatible with GPL-3.0). Lab-only for now.
  */
-export const SAM_PARAMS = {
-  ENCODER_URL:
-    'https://huggingface.co/Acly/MobileSAM/resolve/main/mobile_sam_image_encoder.onnx',
-  DECODER_URL:
-    'https://huggingface.co/Acly/MobileSAM/resolve/main/sam_mask_decoder_single.onnx',
-  /** Longest-side resize target for the encoder. */
-  INPUT_SIZE: 1024,
-  /** ImageNet normalization (pixel-level, 0-255 scale). */
-  PIXEL_MEAN: [123.675, 116.28, 103.53] as readonly number[],
-  PIXEL_STD: [58.395, 57.12, 57.375] as readonly number[],
-  /** Low-res mask output from the decoder. */
-  MASK_SIZE: 256,
-  /** Sigmoid threshold for binarizing the decoder mask logits. */
-  MASK_THRESHOLD: 0.0,
-} as const;

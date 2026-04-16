@@ -30,10 +30,6 @@
 
 import { isLabVisible } from '../../exploration/lab-visibility';
 import { createLoader, type ModelLoader } from '../../exploration/loaders';
-import {
-  loadSam, encodeSam, decodeSam, disposeSam,
-  onSamProgress, type SamMaskResult,
-} from '../../exploration/loaders/mobile-sam';
 import { processRoi } from '../../exploration/roi-process';
 import { t } from '../i18n';
 import { simplifyClosed, type Point } from './lasso-simplify';
@@ -61,7 +57,6 @@ const ZOOM_STEP = 1.15;
 type Tool = 'brush' | 'eraser' | 'lasso';
 type LassoAction = 'crop' | 'refine' | 'erase-object';
 
-const SAM_MAX_POINTS = 20;
 
 interface PendingPreview {
   kind: LassoAction;
@@ -127,15 +122,7 @@ export class ArEditorAdvanced extends HTMLElement {
   // the new alpha to the buffer.
   private pendingPreview: PendingPreview | null = null;
 
-  // MobileSAM state — preloaded on editor open, used by lasso.
-  private samReady = false;
-  private samEncoded = false;
-  // Accumulated SAM prompts for refinement clicks after initial lasso decode.
-  private samPoints: Array<{ x: number; y: number }> = [];
-  private samLabels: number[] = [];
-  private pointerDownImg: { x: number; y: number } | null = null;
-
-  // Combined selection mask — accumulates SAM decodes from lasso loops.
+  // Selection mask — accumulates RMBG decodes from lasso loops.
   // selectionHistory stores previous mask states for undo.
   private selectionMask: Uint8Array | null = null;
   private selectionOverlay: HTMLCanvasElement | null = null;
@@ -162,9 +149,6 @@ export class ArEditorAdvanced extends HTMLElement {
   disconnectedCallback(): void {
     this.abort?.abort();
     this.abort = null;
-    disposeSam();
-    this.samReady = false;
-    this.samEncoded = false;
   }
 
   setImage(current: ImageData, original: ImageData): void {
@@ -177,7 +161,6 @@ export class ArEditorAdvanced extends HTMLElement {
     this.syncToolUI();
     this.paintCanvas();
     this.resetView();
-    this.initSam();
   }
 
   private computeMaxHistory(w: number, h: number): number {
@@ -871,19 +854,6 @@ export class ArEditorAdvanced extends HTMLElement {
     if (this.tool === 'lasso') {
       if (this.pendingPreview) this.cancelPreview();
 
-      // Refinement mode: if SAM mask exists, clicks add/subtract points.
-      // Shift or Alt = subtract (label 0), plain click = add (label 1).
-      // A drag (pointerMove distance > threshold) will start a new lasso
-      // to add another region, handled in onPointerEnd.
-      if (this.selectionMask && this.samEncoded && !this.busy) {
-        this.pointerDownImg = { x: ix, y: iy };
-        try { this.canvas.setPointerCapture(e.pointerId); } catch { /* noop */ }
-        this.drawing = true;
-        this.lassoRaw = [{ x: ix, y: iy }];
-        this.redrawDisplay();
-        return;
-      }
-
       if (this.lassoAnchors) {
         const idx = this.hitAnchor(ix, iy);
         if (idx !== null) {
@@ -975,24 +945,6 @@ export class ArEditorAdvanced extends HTMLElement {
         return;
       }
       if (this.drawing && this.lassoRaw) {
-        const [ix, iy] = this.eventToImageCoords(e);
-        const wasClick = this.pointerDownImg &&
-          Math.hypot(ix - this.pointerDownImg.x, iy - this.pointerDownImg.y) < 5 &&
-          this.lassoRaw.length < MIN_ANCHORS;
-        this.pointerDownImg = null;
-
-        if (wasClick && this.selectionMask && this.samEncoded && !this.busy) {
-          this.lassoRaw = null;
-          this.drawing = false;
-          if (this.samPoints.length < SAM_MAX_POINTS) {
-            const label = (e.shiftKey || e.altKey) ? 0 : 1;
-            this.samPoints.push({ x: ix, y: iy });
-            this.samLabels.push(label);
-            this.runSamRefine();
-          }
-          return;
-        }
-
         if (this.lassoRaw.length >= MIN_ANCHORS) {
           const w = this.current?.width ?? 0;
           const h = this.current?.height ?? 0;
@@ -1005,8 +957,8 @@ export class ArEditorAdvanced extends HTMLElement {
       this.drawing = false;
       this.syncLassoActionsUI();
       this.redrawDisplay();
-      if (this.lassoAnchors && this.samEncoded) {
-        this.samDecodeFromLasso();
+      if (this.lassoAnchors) {
+        this.rmbgDecodeFromLasso();
       }
       return;
     }
@@ -1255,8 +1207,6 @@ export class ArEditorAdvanced extends HTMLElement {
     this.selectionOverlay = null;
     this.selectionHistory = [];
     this.pendingPreview = null;
-    this.samPoints = [];
-    this.samLabels = [];
   }
 
   private paintCanvas(): void {
@@ -1391,7 +1341,21 @@ export class ArEditorAdvanced extends HTMLElement {
             if (mask[i] === 1) newAlpha[i] = 0;
           }
         } else {
-          newAlpha = await this.refineWithRmbg(mask, prevAlpha, w, h);
+          const poly = this.maskToBboxPolygon(mask, w, h);
+          const segment = async (pixels: Uint8ClampedArray, pw: number, ph: number) => {
+            const loader = await this.getLoader();
+            const res = await loader.segment({ pixels, width: pw, height: ph });
+            return res.alpha;
+          };
+          const result = await processRoi({
+            original: this.original,
+            polygon: poly,
+            previousAlpha: prevAlpha,
+            mode: 'refine',
+            segment,
+            bboxMarginRatio: 0.15,
+          });
+          newAlpha = result.alpha;
         }
       } else {
         const segment = async (pixels: Uint8ClampedArray, pw: number, ph: number) => {
@@ -1515,77 +1479,73 @@ export class ArEditorAdvanced extends HTMLElement {
     return loader;
   }
 
-  // ────────────────────────── MobileSAM lifecycle ──────────────────────────
-
-  // ────────────────────────── MobileSAM lifecycle ──────────────────────────
-
-  private async initSam(): Promise<void> {
-    if (this.samReady) {
-      if (!this.samEncoded) this.encodeSamImage();
-      return;
+  private maskToBboxPolygon(
+    mask: Uint8Array, w: number, h: number,
+  ): Array<{ x: number; y: number }> {
+    let minX = w, minY = h, maxX = 0, maxY = 0;
+    for (let y = 0; y < h; y++) {
+      for (let x = 0; x < w; x++) {
+        if (mask[y * w + x] === 1) {
+          if (x < minX) minX = x;
+          if (x > maxX) maxX = x;
+          if (y < minY) minY = y;
+          if (y > maxY) maxY = y;
+        }
+      }
     }
-    const hint = this.shadowRoot?.getElementById('hint');
-    try {
-      onSamProgress((pct, stage) => {
-        if (hint) hint.textContent = t('advanced.samLoading') + ` ${stage} ${pct}%`;
-      });
-      await loadSam();
-      this.samReady = true;
-      onSamProgress(null);
-      this.encodeSamImage();
-    } catch (err) {
-      console.error('[ar-editor-advanced] SAM load failed', err);
-      if (hint) hint.textContent = t('advanced.refineError');
-    }
+    const pad = 10;
+    minX = Math.max(0, minX - pad);
+    minY = Math.max(0, minY - pad);
+    maxX = Math.min(w - 1, maxX + pad);
+    maxY = Math.min(h - 1, maxY + pad);
+    return [
+      { x: minX, y: minY },
+      { x: maxX, y: minY },
+      { x: maxX, y: maxY },
+      { x: minX, y: maxY },
+    ];
   }
 
-  private async encodeSamImage(): Promise<void> {
-    if (!this.original) return;
-    this.samEncoded = false;
-    const hint = this.shadowRoot?.getElementById('hint');
-    if (hint) hint.textContent = t('advanced.samEncoding');
-    const { width: w, height: h, data } = this.original;
-    const pixels = new Uint8ClampedArray(data);
-    try {
-      await encodeSam(pixels, w, h);
-      this.samEncoded = true;
-      this.syncToolUI();
-    } catch (err) {
-      console.error('[ar-editor-advanced] SAM encode failed', err);
-    }
-  }
+  // ────────────────────── RMBG lasso selection ──────────────────────────
 
-  private async samDecodeFromLasso(): Promise<void> {
-    if (!this.samEncoded || !this.current || !this.lassoAnchors) return;
+  private async rmbgDecodeFromLasso(): Promise<void> {
+    if (!this.current || !this.original || !this.lassoAnchors) return;
     if (this.lassoAnchors.length < MIN_ANCHORS) return;
 
     const w = this.current.width;
     const h = this.current.height;
-    const pts = this.lassoAnchors;
-
-    const cx = pts.reduce((s, p) => s + p.x, 0) / pts.length;
-    const cy = pts.reduce((s, p) => s + p.y, 0) / pts.length;
-    const points: Array<{ x: number; y: number }> = [{ x: cx, y: cy }];
-    const labels: number[] = [1];
-
-    const step = Math.max(1, Math.floor(pts.length / 4));
-    for (let i = 0; i < pts.length && points.length < SAM_MAX_POINTS; i += step) {
-      const mx = (pts[i].x + cx) / 2;
-      const my = (pts[i].y + cy) / 2;
-      points.push({ x: mx, y: my });
-      labels.push(1);
-    }
 
     this.busy = true;
     this.syncLassoActionsUI();
     try {
-      const result: SamMaskResult = await decodeSam(points, labels, w, h);
+      const segment = async (pixels: Uint8ClampedArray, pw: number, ph: number) => {
+        const loader = await this.getLoader();
+        const res = await loader.segment({ pixels, width: pw, height: ph });
+        return res.alpha;
+      };
+      const wctx = this.working!.getContext('2d')!;
+      const prevData = wctx.getImageData(0, 0, w, h).data;
+      const prevAlpha = new Uint8Array(w * h);
+      for (let i = 0; i < prevAlpha.length; i++) prevAlpha[i] = prevData[i * 4 + 3];
+
+      const result = await processRoi({
+        original: this.original,
+        polygon: this.lassoAnchors,
+        previousAlpha: prevAlpha,
+        mode: 'refine',
+        segment,
+      });
+
       this.pushSelectionHistory();
+      const segMask = new Uint8Array(w * h);
+      for (let i = 0; i < result.alpha.length; i++) {
+        segMask[i] = result.alpha[i] > 128 ? 1 : 0;
+      }
       if (!this.selectionMask) {
-        this.selectionMask = result.mask;
+        this.selectionMask = segMask;
       } else {
-        for (let i = 0; i < result.mask.length; i++) {
-          if (result.mask[i] === 1) this.selectionMask[i] = 1;
+        for (let i = 0; i < segMask.length; i++) {
+          if (segMask[i] === 1) this.selectionMask[i] = 1;
         }
       }
       this.lassoAnchors = null;
@@ -1594,101 +1554,7 @@ export class ArEditorAdvanced extends HTMLElement {
       this.syncLassoActionsUI();
       this.redrawDisplay();
     } catch (err) {
-      console.error('[ar-editor-advanced] SAM decode failed', err);
-    } finally {
-      this.busy = false;
-      this.syncLassoActionsUI();
-    }
-  }
-
-  private async refineWithRmbg(
-    mask: Uint8Array,
-    prevAlpha: Uint8Array,
-    w: number,
-    h: number,
-  ): Promise<Uint8Array> {
-    const DILATE_R = 20;
-    const dilated = new Uint8Array(mask);
-    for (let y = 0; y < h; y++) {
-      for (let x = 0; x < w; x++) {
-        if (mask[y * w + x] === 1) continue;
-        let found = false;
-        const y0 = Math.max(0, y - DILATE_R);
-        const y1 = Math.min(h - 1, y + DILATE_R);
-        const x0 = Math.max(0, x - DILATE_R);
-        const x1 = Math.min(w - 1, x + DILATE_R);
-        for (let dy = y0; dy <= y1 && !found; dy++) {
-          for (let dx = x0; dx <= x1 && !found; dx++) {
-            if (mask[dy * w + dx] === 1) {
-              const dist = Math.hypot(dx - x, dy - y);
-              if (dist <= DILATE_R) found = true;
-            }
-          }
-        }
-        if (found) dilated[y * w + x] = 1;
-      }
-    }
-
-    let minX = w, minY = h, maxX = 0, maxY = 0;
-    for (let y = 0; y < h; y++) {
-      for (let x = 0; x < w; x++) {
-        if (dilated[y * w + x] === 1) {
-          if (x < minX) minX = x;
-          if (x > maxX) maxX = x;
-          if (y < minY) minY = y;
-          if (y > maxY) maxY = y;
-        }
-      }
-    }
-    const bx = Math.max(0, minX);
-    const by = Math.max(0, minY);
-    const bw = Math.min(w, maxX + 1) - bx;
-    const bh = Math.min(h, maxY + 1) - by;
-
-    const crop = new Uint8ClampedArray(bw * bh * 4);
-    const origData = this.original!.data;
-    for (let y = 0; y < bh; y++) {
-      const srcRow = ((by + y) * w + bx) * 4;
-      const dstRow = y * bw * 4;
-      crop.set(origData.subarray(srcRow, srcRow + bw * 4), dstRow);
-    }
-
-    const loader = await this.getLoader();
-    const res = await loader.segment({ pixels: crop, width: bw, height: bh });
-    const segAlpha = res.alpha;
-
-    const newAlpha = new Uint8Array(prevAlpha);
-    for (let y = 0; y < bh; y++) {
-      for (let x = 0; x < bw; x++) {
-        const gi = (by + y) * w + (bx + x);
-        if (dilated[gi] === 1) {
-          newAlpha[gi] = segAlpha[y * bw + x];
-        }
-      }
-    }
-    return newAlpha;
-  }
-
-  private async runSamRefine(): Promise<void> {
-    if (!this.samEncoded || !this.current || this.samPoints.length === 0) return;
-    const w = this.current.width;
-    const h = this.current.height;
-
-    this.busy = true;
-    this.syncLassoActionsUI();
-    try {
-      const result: SamMaskResult = await decodeSam(
-        this.samPoints, this.samLabels, w, h,
-      );
-      this.pushSelectionHistory();
-      this.selectionMask = result.mask;
-      this.rebuildSelectionOverlay();
-      this.syncLassoActionsUI();
-      this.redrawDisplay();
-    } catch (err) {
-      console.error('[ar-editor-advanced] SAM refine failed', err);
-      this.samPoints.pop();
-      this.samLabels.pop();
+      console.error('[ar-editor-advanced] RMBG lasso decode failed', err);
     } finally {
       this.busy = false;
       this.syncLassoActionsUI();
@@ -1707,10 +1573,6 @@ export class ArEditorAdvanced extends HTMLElement {
   private undoSelection(): boolean {
     if (this.selectionHistory.length === 0) return false;
     const prev = this.selectionHistory.pop()!;
-    if (this.samPoints.length > 0) {
-      this.samPoints.pop();
-      this.samLabels.pop();
-    }
     if (prev.length === 0) {
       this.selectionMask = null;
     } else {
@@ -1758,29 +1620,6 @@ export class ArEditorAdvanced extends HTMLElement {
       }
     }
     ctx.putImageData(img, 0, 0);
-
-    for (let i = 0; i < this.samPoints.length; i++) {
-      const pt = this.samPoints[i];
-      const fg = this.samLabels[i] === 1;
-      ctx.beginPath();
-      ctx.arc(pt.x, pt.y, 6, 0, Math.PI * 2);
-      ctx.fillStyle = fg ? 'rgba(0,220,80,0.9)' : 'rgba(255,60,60,0.9)';
-      ctx.fill();
-      ctx.lineWidth = 2;
-      ctx.strokeStyle = '#fff';
-      ctx.stroke();
-      if (!fg) {
-        ctx.beginPath();
-        ctx.moveTo(pt.x - 3, pt.y - 3);
-        ctx.lineTo(pt.x + 3, pt.y + 3);
-        ctx.moveTo(pt.x + 3, pt.y - 3);
-        ctx.lineTo(pt.x - 3, pt.y + 3);
-        ctx.lineWidth = 2;
-        ctx.strokeStyle = '#fff';
-        ctx.stroke();
-      }
-    }
-
     this.selectionOverlay = canvas;
   }
 
