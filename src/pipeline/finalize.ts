@@ -35,23 +35,26 @@ export interface ForegroundEstimator {
 }
 
 /**
- * Narrow-band quintic smoothstep on the RMBG soft-alpha gradient.
+ * Wide-band quintic smoothstep on the RMBG soft-alpha gradient.
  *
- *   α ≤ LOW  → 0          (kills the wide halo tail)
- *   α ≥ HIGH → 255         (tight interior, no feathering into the body)
+ *   α ≤ LOW  → 0          (kills the wide halo tail, α<60 is always halo)
+ *   α ≥ HIGH → 255         (interior, no feathering into the body)
  *   in-between → 6n⁵−15n⁴+10n³ normalized over [LOW, HIGH]
  *
  * RMBG emits a smooth ~3–5 px transition in alpha-value space (roughly
- * covering [20, 230]). A full-range smoothstep over [0, 255] leaves a
- * 3 px soft band that reads as color halo on flat backgrounds; a pure
- * binary threshold at 128 removes that but exposes 1 px staircase
- * aliasing on curved edges. This narrow band (width 60, centered at 130)
- * covers ~30 % of the gradient, which collapses to roughly 1 output pixel
- * of antialiasing — the same tightness you get from a 1 px feather on a
- * Photoshop selection.
+ * covering [20, 230]) and on complex photos (e.g. football player with
+ * occluded elbow, arm-head gap, arm-torso gap) frequently produces
+ * weak-confidence body regions around α ∈ [60, 130]. A narrow band of
+ * [100, 160] killed every weak body pixel under 100, which visibly
+ * omits entire segments (elbow disappears, arm detaches, hair thins).
+ *
+ * The wider band [60, 190] preserves the weak body at the cost of a
+ * slightly softer AA ring (~2 px). On flat backgrounds this is still a
+ * clean composite — halos are cut at α=60, which is well below any
+ * legitimate body confidence from RMBG.
  */
-const SHARPEN_LOW = 100;
-const SHARPEN_HIGH = 160;
+const SHARPEN_LOW = 60;
+const SHARPEN_HIGH = 190;
 
 export function sharpenAlpha(alpha: Uint8Array): Uint8Array {
   const out = new Uint8Array(alpha.length);
@@ -190,11 +193,21 @@ export async function refineEdges(
     rgba = new Uint8ClampedArray(img.data);
   }
 
-  // Topology cleanup on the binary derivative: drop every opaque region
-  // that isn't the main subject, regardless of size. Dilate by 1 to keep
-  // the AA ring (α ∈ (0, 128)) that sits just outside the thresholded body.
+  // Topology cleanup on the binary derivative. Two-stage to preserve
+  // weakly-detected body parts (occluded elbow, faint arm-torso bridge):
+  //   1) bin = sharp > 0: ANY sharpened pixel registers (AA ring + body).
+  //      With SHARPEN_LOW=60, raw α under 60 is already killed — halos
+  //      and false positives don't survive this stage.
+  //   2) keepLargestComponent: drops detached blobs regardless of size.
+  //   3) dilate1: widens the keep zone by 1 px so the extreme edge of the
+  //      AA ring survives even if its immediate neighbor was zero-sharp.
+  //
+  // Binary threshold at 128 (the previous approach) killed every body
+  // pixel under mid-confidence, visibly omitting elbow/arm segments on
+  // complex photos. Using sharp>0 as the bin criterion keeps the full
+  // body footprint and lets CC operate on the same topology the user sees.
   const bin = new Uint8Array(n);
-  for (let i = 0; i < n; i++) bin[i] = sharp[i] >= 128 ? 1 : 0;
+  for (let i = 0; i < n; i++) bin[i] = sharp[i] > 0 ? 1 : 0;
   keepLargestComponent(bin, w, h);
   const keep = dilate1(bin, w, h);
 

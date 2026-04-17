@@ -21,7 +21,7 @@ if (typeof globalThis.ImageData === 'undefined') {
   };
 }
 
-describe('sharpenAlpha (narrow-band smoothstep [100, 160])', () => {
+describe('sharpenAlpha (wide-band smoothstep [60, 190])', () => {
   it('preserves the 0 and 255 endpoints exactly', () => {
     const a = new Uint8Array([0, 255, 0, 255]);
     const out = sharpenAlpha(a);
@@ -29,23 +29,24 @@ describe('sharpenAlpha (narrow-band smoothstep [100, 160])', () => {
   });
 
   it('clamps everything below the LOW bound to 0 (kills halo)', () => {
-    const out = sharpenAlpha(new Uint8Array([1, 30, 60, 99, 100]));
+    const out = sharpenAlpha(new Uint8Array([1, 15, 30, 45, 60]));
     expect(Array.from(out)).toEqual([0, 0, 0, 0, 0]);
   });
 
-  it('clamps everything above the HIGH bound to 255 (tight interior)', () => {
-    const out = sharpenAlpha(new Uint8Array([160, 170, 200, 230, 254]));
+  it('clamps everything above the HIGH bound to 255 (opaque interior)', () => {
+    const out = sharpenAlpha(new Uint8Array([190, 210, 225, 240, 254]));
     expect(Array.from(out)).toEqual([255, 255, 255, 255, 255]);
   });
 
-  it('smooths the narrow band [100, 160] through a smoothstep', () => {
-    const out = sharpenAlpha(new Uint8Array([100, 115, 130, 145, 160]));
-    // 100 → 0, 160 → 255, 130 ≈ 128 (midpoint of smoothstep)
+  it('smooths the soft band [60, 190] through a smoothstep', () => {
+    // Endpoints + midpoint + quarter points: normalized (a-60)/130
+    const out = sharpenAlpha(new Uint8Array([60, 92, 125, 157, 190]));
+    // 60 → 0, 190 → 255, 125 ≈ 128 (midpoint at n=0.5)
     expect(out[0]).toBe(0);
     expect(out[4]).toBe(255);
-    expect(Math.abs(out[2] - 128)).toBeLessThanOrEqual(2);
-    // smoothstep endpoints have zero slope, so 115 and 145 are pushed
-    // toward their nearer endpoint rather than landing linearly at 64/192
+    expect(Math.abs(out[2] - 128)).toBeLessThanOrEqual(4);
+    // smoothstep has zero slope at the endpoints: the quarter points
+    // are pushed toward their nearer endpoint, not the linear 64/192.
     expect(out[1]).toBeLessThan(64);
     expect(out[3]).toBeGreaterThan(192);
   });
@@ -59,15 +60,16 @@ describe('sharpenAlpha (narrow-band smoothstep [100, 160])', () => {
     }
   });
 
-  it('produces a narrow soft band: only ~60 input values map to soft α', () => {
+  it('preserves weakly-detected body: mid-alpha inputs survive as soft α', () => {
     const input = new Uint8Array(256);
     for (let i = 0; i < 256; i++) input[i] = i;
     const out = sharpenAlpha(input);
     const soft = Array.from(out).filter((v) => v > 0 && v < 255).length;
-    // Band is [100, 160] exclusive endpoints, minus rounding to 0 or 255
-    // near the tails — expect somewhere in [40, 60] soft values.
-    expect(soft).toBeGreaterThan(35);
-    expect(soft).toBeLessThan(65);
+    // Band is [60, 190] exclusive endpoints, minus rounding near the tails.
+    // Wide band preserves the weak-body range where RMBG emits mid-α on
+    // occluded edges (elbow, arm-torso gap) — critical for football, fur.
+    expect(soft).toBeGreaterThan(100);
+    expect(soft).toBeLessThan(135);
   });
 });
 
@@ -89,10 +91,10 @@ describe('refineEdges', () => {
       expect(out.data[i * 4 + 2]).toBe(data[i * 4 + 2]);
     }
 
-    // α=200 pushes toward ~231, α=30 collapses to near-0
+    // α=200 ≥ HIGH → 255, α=30 ≤ LOW → 0
     expect(out.data[3]).toBe(255);                // opaque endpoint
-    expect(out.data[7]).toBeGreaterThan(215);     // was 200
-    expect(out.data[11]).toBeLessThan(5);         // was 30
+    expect(out.data[7]).toBeGreaterThan(215);     // was 200, sharpened to 255
+    expect(out.data[11]).toBeLessThan(5);         // was 30, killed to 0
     expect(out.data[15]).toBe(0);                 // transparent endpoint
   });
 
@@ -127,11 +129,11 @@ describe('refineEdges', () => {
     expect(calls).toHaveLength(1);
     expect(calls[0].w).toBe(2);
     expect(calls[0].h).toBe(1);
-    // Alpha passed to the solver is post-sharpen (narrow-band smoothstep),
-    // not the raw RMBG value. Input α=128 is inside the band [100, 160]
-    // and maps to the smoothstep midpoint area (roughly 100..130).
-    expect(calls[0].alphaSample).toBeGreaterThan(90);
-    expect(calls[0].alphaSample).toBeLessThan(140);
+    // Alpha passed to the solver is post-sharpen (wide-band smoothstep),
+    // not the raw RMBG value. Input α=128 is inside the band [60, 190]
+    // and maps to roughly the smoothstep midpoint (~135..145).
+    expect(calls[0].alphaSample).toBeGreaterThan(100);
+    expect(calls[0].alphaSample).toBeLessThan(180);
     // RGB should be the stubbed 99s (proving estimateForeground was used).
     expect(out.data[0]).toBe(99);
     expect(out.data[4]).toBe(99);
