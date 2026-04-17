@@ -61,6 +61,19 @@ function isMobileUA(): boolean {
 }
 
 /**
+ * Safari/WebKit detection. iOS devices (iPhone, iPad) always run WebKit
+ * regardless of which browser label is shown. Desktop Safari on macOS
+ * also routes through this path. Chromium on iOS reports as CriOS,
+ * which we want to EXCLUDE — it behaves like Chromium, not Safari.
+ */
+function isSafari(): boolean {
+  if (typeof navigator === 'undefined') return false;
+  const ua = navigator.userAgent;
+  if (/CriOS|FxiOS|EdgiOS/i.test(ua)) return false;
+  return /Safari/i.test(ua) && /AppleWebKit/i.test(ua) && !/Chrome|Chromium/i.test(ua);
+}
+
+/**
  * Pick an initial tier from passive signals, before any probe.
  * This is a best-guess starting point; the probe can downgrade it.
  */
@@ -73,9 +86,19 @@ function guessTier(): { tier: CapabilityTier; reason: string } {
     | undefined;
 
   const mobile = isMobileUA();
+  const safari = isSafari();
   const memory = nav?.deviceMemory; // 0.25 | 0.5 | 1 | 2 | 4 | 8 | undefined
   const cores = nav?.hardwareConcurrency ?? 0;
   const heapLimit = perf?.memory?.jsHeapSizeLimit;
+
+  // iOS Safari: force low tier. iOS tabs have ~1 GB heap ceiling (lower
+  // on older devices) and Safari doesn't expose deviceMemory/heapLimit,
+  // so without this check we fall through to `mid` (16 MP, 64 MB per
+  // buffer) and hit OOM / canvas allocation failures mid-pipeline. Low
+  // (8 MP, 32 MB per buffer) is the only reliably-safe budget on iOS.
+  if (mobile && safari) {
+    return { tier: 'low', reason: 'iOS Safari (no memory API, ~1GB tab cap)' };
+  }
 
   // Low tier: explicit low memory or clearly constrained mobile
   if (memory !== undefined && memory <= 2) {
@@ -103,6 +126,13 @@ function guessTier(): { tier: CapabilityTier; reason: string } {
   }
   if (mobile) {
     return { tier: 'mid', reason: `mobile (no memory API)` };
+  }
+
+  // Desktop Safari — no memory API, but typically runs on 8+ GB
+  // machines. Default to `mid` instead of the `high` a Chromium heap
+  // hint would produce. Probe may promote if the machine is capable.
+  if (safari) {
+    return { tier: 'mid', reason: 'desktop Safari (no memory API)' };
   }
 
   // Desktop, unknown memory. Assume mid — probe will confirm.
