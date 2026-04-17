@@ -12,7 +12,7 @@ import type { ArDropzone } from './ar-dropzone';
 import type { ArBatchGrid } from './ar-batch-grid';
 import type { BatchItem, StageSnapshot } from '../types/batch';
 import { createZip, safeZipEntryName, downloadBlob } from '../utils/zip';
-import { refineEdges, dropOrphanBlobs } from '../pipeline/finalize';
+import { refineEdges, dropOrphanBlobs, fillSubjectHoles } from '../pipeline/finalize';
 import { composeAtOriginal } from '../utils/final-composite';
 import { exportPng } from '../utils/image-io';
 import type { ArEditorAdvanced } from './ar-editor-advanced';
@@ -1385,9 +1385,11 @@ export class ArApp extends HTMLElement {
       // Drop RMBG's disconnected false-positive blobs (e.g. horizon bands,
       // misfired watermark fragments) for classes where the subject is one
       // body. Signatures and icons may legitimately have multiple components.
+      // fillSubjectHoles then patches small (≤50 px) α=0 specks fully enclosed
+      // by the body (RMBG false negatives on specular highlights, etc).
       const finalImageData =
         result.contentType === 'PHOTO' || result.contentType === 'ILLUSTRATION'
-          ? dropOrphanBlobs(composed)
+          ? fillSubjectHoles(dropOrphanBlobs(composed))
           : composed;
       const nukedPct = result.nukedPct;
       const totalTimeMs = result.totalTimeMs;
@@ -1558,7 +1560,7 @@ export class ArApp extends HTMLElement {
         });
         const finalImageData =
           result.contentType === 'PHOTO' || result.contentType === 'ILLUSTRATION'
-            ? dropOrphanBlobs(composed)
+            ? fillSubjectHoles(dropOrphanBlobs(composed))
             : composed;
         item.result = result;
         item.finalImageData = finalImageData;

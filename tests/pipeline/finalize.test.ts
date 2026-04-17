@@ -6,6 +6,7 @@ import {
   tailLuminanceVariance,
   hasHaloRisk,
   dropOrphanBlobs,
+  fillSubjectHoles,
 } from '../../src/pipeline/finalize';
 
 // ImageData polyfill for happy-dom (see tests/components/ar-editor.test.ts).
@@ -336,6 +337,83 @@ describe('dropOrphanBlobs', () => {
     for (let i = 0; i < w * h; i++) data[i * 4 + 3] = 255;
     const snapshot = Array.from(data);
     dropOrphanBlobs(new ImageData(data, w, h));
+    expect(Array.from(data)).toEqual(snapshot);
+  });
+});
+
+describe('fillSubjectHoles', () => {
+  // Helper: 7x7 solid subject with a single α=0 speck at an interior pixel.
+  // Border pixels remain α=255, so the speck is topologically enclosed.
+  const makeBodyWithHole = (holeX: number, holeY: number) => {
+    const w = 7, h = 7;
+    const data = new Uint8ClampedArray(w * h * 4);
+    for (let i = 0; i < w * h; i++) {
+      data[i * 4 + 0] = 200;
+      data[i * 4 + 1] = 100;
+      data[i * 4 + 2] = 50;
+      data[i * 4 + 3] = 255;
+    }
+    data[(holeY * w + holeX) * 4 + 3] = 0;
+    return { w, h, data };
+  };
+
+  it('fills a small interior hole enclosed by the subject body', () => {
+    const { w, h, data } = makeBodyWithHole(3, 3);
+    const out = fillSubjectHoles(new ImageData(data, w, h));
+    expect(out.data[(3 * w + 3) * 4 + 3]).toBe(255);
+  });
+
+  it('preserves the surrounding RGB on a filled hole', () => {
+    const { w, h, data } = makeBodyWithHole(3, 3);
+    const out = fillSubjectHoles(new ImageData(data, w, h));
+    const idx = (3 * w + 3) * 4;
+    expect(out.data[idx + 0]).toBe(200);
+    expect(out.data[idx + 1]).toBe(100);
+    expect(out.data[idx + 2]).toBe(50);
+  });
+
+  it('leaves a large hole alone when it exceeds maxHoleSize', () => {
+    const w = 10, h = 10;
+    const data = new Uint8ClampedArray(w * h * 4);
+    for (let i = 0; i < w * h; i++) data[i * 4 + 3] = 255;
+    // Carve a 4x4 interior hole (16 px) at (3,3)-(6,6), border stays opaque.
+    for (let y = 3; y <= 6; y++) {
+      for (let x = 3; x <= 6; x++) data[(y * w + x) * 4 + 3] = 0;
+    }
+    const out = fillSubjectHoles(new ImageData(data, w, h), 4);
+    for (let y = 3; y <= 6; y++) {
+      for (let x = 3; x <= 6; x++) expect(out.data[(y * w + x) * 4 + 3]).toBe(0);
+    }
+  });
+
+  it('never fills α=0 regions that connect to the image border', () => {
+    const w = 5, h = 5;
+    const data = new Uint8ClampedArray(w * h * 4);
+    // Opaque 3x3 block at (1,1)-(3,3); everything else α=0 (connected to border).
+    for (let y = 1; y <= 3; y++) {
+      for (let x = 1; x <= 3; x++) data[(y * w + x) * 4 + 3] = 255;
+    }
+    const snapshot = Array.from(data);
+    const out = fillSubjectHoles(new ImageData(data, w, h));
+    expect(Array.from(out.data)).toEqual(snapshot);
+  });
+
+  it('does not mutate RGB on any pixel', () => {
+    const { w, h, data } = makeBodyWithHole(3, 3);
+    data[(3 * w + 3) * 4 + 0] = 77;
+    data[(3 * w + 3) * 4 + 1] = 88;
+    data[(3 * w + 3) * 4 + 2] = 99;
+    const out = fillSubjectHoles(new ImageData(data, w, h));
+    const idx = (3 * w + 3) * 4;
+    expect(out.data[idx + 0]).toBe(77);
+    expect(out.data[idx + 1]).toBe(88);
+    expect(out.data[idx + 2]).toBe(99);
+  });
+
+  it('returns a fresh ImageData (does not mutate input)', () => {
+    const { w, h, data } = makeBodyWithHole(3, 3);
+    const snapshot = Array.from(data);
+    fillSubjectHoles(new ImageData(data, w, h));
     expect(Array.from(data)).toEqual(snapshot);
   });
 });

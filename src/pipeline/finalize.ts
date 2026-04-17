@@ -107,6 +107,128 @@ export function hasHaloRisk(
 }
 
 /**
+ * Largest hole size to auto-fill. RMBG emits 1-50 px α=0 specks inside the
+ * subject when it confuses specular highlights with the background (car
+ * roof reflecting sky, chrome trim, etc). Anything larger is treated as
+ * intentional transparency (bike wheel spokes, donut hole, window cut-outs
+ * on product shots) and left alone.
+ */
+const MAX_HOLE_FILL_SIZE_PX = 50;
+
+/**
+ * Fill disconnected α=0 regions inside the subject. Runs a 4-connected
+ * BFS from the image border across α=0 pixels to mark "true background",
+ * then each unreached α=0 cluster is a hole. Small holes (≤ maxHoleSize)
+ * get α=255; their RGB was never touched so the original pixel reappears.
+ *
+ * Dual to dropOrphanBlobs: that one removes α>0 blobs outside the body;
+ * this one fills α=0 blobs inside the body. Together they enforce "subject
+ * is one topologically clean region" without mutating α on valid pixels.
+ *
+ * Caveat: same gating story as dropOrphanBlobs. Icons and signatures can
+ * have legitimate small interior holes (the enclosed counter of an 'o',
+ * dot stippling) — callers must guard by content type.
+ */
+export function fillSubjectHoles(
+  img: ImageData,
+  maxHoleSize: number = MAX_HOLE_FILL_SIZE_PX,
+): ImageData {
+  const { data, width, height } = img;
+  const n = width * height;
+  const queue = new Int32Array(n);
+  const bgVisited = new Uint8Array(n);
+  let head = 0, tail = 0;
+
+  const seedBg = (idx: number) => {
+    if (data[idx * 4 + 3] === 0 && !bgVisited[idx]) {
+      bgVisited[idx] = 1;
+      queue[tail++] = idx;
+    }
+  };
+  for (let x = 0; x < width; x++) {
+    seedBg(x);
+    if (height > 1) seedBg((height - 1) * width + x);
+  }
+  for (let y = 1; y < height - 1; y++) {
+    seedBg(y * width);
+    seedBg(y * width + width - 1);
+  }
+
+  while (head < tail) {
+    const idx = queue[head++];
+    const x = idx % width;
+    const y = (idx - x) / width;
+    if (x > 0) {
+      const ni = idx - 1;
+      if (!bgVisited[ni] && data[ni * 4 + 3] === 0) { bgVisited[ni] = 1; queue[tail++] = ni; }
+    }
+    if (x < width - 1) {
+      const ni = idx + 1;
+      if (!bgVisited[ni] && data[ni * 4 + 3] === 0) { bgVisited[ni] = 1; queue[tail++] = ni; }
+    }
+    if (y > 0) {
+      const ni = idx - width;
+      if (!bgVisited[ni] && data[ni * 4 + 3] === 0) { bgVisited[ni] = 1; queue[tail++] = ni; }
+    }
+    if (y < height - 1) {
+      const ni = idx + width;
+      if (!bgVisited[ni] && data[ni * 4 + 3] === 0) { bgVisited[ni] = 1; queue[tail++] = ni; }
+    }
+  }
+
+  const holeVisited = new Uint8Array(n);
+  const holeIndices = new Int32Array(n);
+  const out = new Uint8ClampedArray(data);
+
+  for (let start = 0; start < n; start++) {
+    if (data[start * 4 + 3] !== 0) continue;
+    if (bgVisited[start] || holeVisited[start]) continue;
+
+    head = 0; tail = 0;
+    let size = 0;
+    queue[tail++] = start;
+    holeVisited[start] = 1;
+    holeIndices[size++] = start;
+
+    while (head < tail) {
+      const idx = queue[head++];
+      const x = idx % width;
+      const y = (idx - x) / width;
+      if (x > 0) {
+        const ni = idx - 1;
+        if (!holeVisited[ni] && !bgVisited[ni] && data[ni * 4 + 3] === 0) {
+          holeVisited[ni] = 1; queue[tail++] = ni; holeIndices[size++] = ni;
+        }
+      }
+      if (x < width - 1) {
+        const ni = idx + 1;
+        if (!holeVisited[ni] && !bgVisited[ni] && data[ni * 4 + 3] === 0) {
+          holeVisited[ni] = 1; queue[tail++] = ni; holeIndices[size++] = ni;
+        }
+      }
+      if (y > 0) {
+        const ni = idx - width;
+        if (!holeVisited[ni] && !bgVisited[ni] && data[ni * 4 + 3] === 0) {
+          holeVisited[ni] = 1; queue[tail++] = ni; holeIndices[size++] = ni;
+        }
+      }
+      if (y < height - 1) {
+        const ni = idx + width;
+        if (!holeVisited[ni] && !bgVisited[ni] && data[ni * 4 + 3] === 0) {
+          holeVisited[ni] = 1; queue[tail++] = ni; holeIndices[size++] = ni;
+        }
+      }
+    }
+
+    if (size <= maxHoleSize) {
+      for (let i = 0; i < size; i++) out[holeIndices[i] * 4 + 3] = 255;
+    }
+  }
+
+  return new ImageData(out, width, height);
+}
+
+/**
  * Topology-only cleanup: zero α on any pixel that isn't part of the largest
  * 8-connected component of the subject mask. Does NOT modify RGB and does
  * NOT reshape α on surviving pixels — only drops orphan blobs that RMBG
