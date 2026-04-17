@@ -35,26 +35,78 @@ export interface ForegroundEstimator {
 }
 
 /**
- * Wide-band quintic smoothstep on the RMBG soft-alpha gradient.
+ * Mid-band quintic smoothstep on the RMBG soft-alpha gradient.
  *
- *   α ≤ LOW  → 0          (kills the wide halo tail, α<60 is always halo)
+ *   α ≤ LOW  → 0          (kills the halo tail; α<80 is halo on flat bg)
  *   α ≥ HIGH → 255         (interior, no feathering into the body)
  *   in-between → 6n⁵−15n⁴+10n³ normalized over [LOW, HIGH]
  *
- * RMBG emits a smooth ~3–5 px transition in alpha-value space (roughly
- * covering [20, 230]) and on complex photos (e.g. football player with
- * occluded elbow, arm-head gap, arm-torso gap) frequently produces
- * weak-confidence body regions around α ∈ [60, 130]. A narrow band of
- * [100, 160] killed every weak body pixel under 100, which visibly
- * omits entire segments (elbow disappears, arm detaches, hair thins).
+ * Compromise between two earlier configs:
+ *   - [100, 160] (narrow): halo tail 0.34%, but killed weak-body α<100
+ *     so occluded edges (elbow, arm-torso gap) disappeared.
+ *   - [60, 190] (wide): preserved the elbow, but re-introduced visible
+ *     halo because α=60..99 (which is halo on flat backgrounds) now
+ *     survived as semi-transparent.
  *
- * The wider band [60, 190] preserves the weak body at the cost of a
- * slightly softer AA ring (~2 px). On flat backgrounds this is still a
- * clean composite — halos are cut at α=60, which is well below any
- * legitimate body confidence from RMBG.
+ * [80, 180] keeps halo cut tight (α<80 always killed) while letting the
+ * weak-body band 80..130 survive as soft. If halo is still visible after
+ * this pass, the next move is dropping the finalize module entirely and
+ * relying on the worker-side spatialPass + morphOpen + guided filter.
  */
-const SHARPEN_LOW = 60;
-const SHARPEN_HIGH = 190;
+const SHARPEN_LOW = 80;
+const SHARPEN_HIGH = 180;
+
+/**
+ * Halo-risk gate: if the RGB luminance variance inside the soft-α tail is
+ * below this threshold, the background behind the subject is flat (sky,
+ * wall, uniform grass) and finalize's alpha sharpening + foreground
+ * decontamination will leave a visible halo band. In that case we skip
+ * refineEdges and compose directly — at the cost of a slightly softer
+ * edge, but without the halo. Textured backgrounds (foliage, crowd,
+ * pattern) exceed this and get the full refinement.
+ *
+ * Threshold calibrated empirically: uniform sky ~2-10, green grass field
+ * ~15-25, textured crowd/foliage ~40+. 25 is the line between "finalize
+ * hurts" and "finalize helps" for the RMBG-1.4 output we see.
+ */
+const HALO_RISK_VARIANCE_THRESHOLD = 25;
+
+/**
+ * Per-pixel Rec. 709 luminance of the soft-α tail (α ∈ [30, 100]), then
+ * variance across those samples. Low variance = flat bg behind the
+ * subject = halo risk. Returns Infinity if the tail is too small to be
+ * statistically meaningful (treat as safe → apply finalize).
+ */
+export function tailLuminanceVariance(
+  workingRgba: Uint8ClampedArray,
+  workingAlpha: Uint8Array,
+): number {
+  let sum = 0;
+  let sumSq = 0;
+  let count = 0;
+  for (let i = 0; i < workingAlpha.length; i++) {
+    const a = workingAlpha[i];
+    if (a < 30 || a > 100) continue;
+    const r = workingRgba[i * 4];
+    const g = workingRgba[i * 4 + 1];
+    const b = workingRgba[i * 4 + 2];
+    const y = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+    sum += y;
+    sumSq += y * y;
+    count++;
+  }
+  if (count < 100) return Infinity;
+  const mean = sum / count;
+  return sumSq / count - mean * mean;
+}
+
+export function hasHaloRisk(
+  workingRgba: Uint8ClampedArray,
+  workingAlpha: Uint8Array,
+  threshold: number = HALO_RISK_VARIANCE_THRESHOLD,
+): boolean {
+  return tailLuminanceVariance(workingRgba, workingAlpha) < threshold;
+}
 
 export function sharpenAlpha(alpha: Uint8Array): Uint8Array {
   const out = new Uint8Array(alpha.length);
@@ -193,21 +245,24 @@ export async function refineEdges(
     rgba = new Uint8ClampedArray(img.data);
   }
 
-  // Topology cleanup on the binary derivative. Two-stage to preserve
-  // weakly-detected body parts (occluded elbow, faint arm-torso bridge):
-  //   1) bin = sharp > 0: ANY sharpened pixel registers (AA ring + body).
-  //      With SHARPEN_LOW=60, raw α under 60 is already killed — halos
-  //      and false positives don't survive this stage.
+  // Topology cleanup on the binary derivative. Three stages balancing
+  // elbow preservation against halo elimination:
+  //   1) bin = sharp >= 96: pixel counts toward "body" only if the
+  //      sharpened α crossed into the upper half of the AA band. With
+  //      [80, 180], sharp=96 means raw α ≈ 110 — past the thin halo tail
+  //      but low enough to still include weakly-detected body regions.
+  //      bin = sharp > 0 (the wide-band attempt) re-admitted halo pixels
+  //      as first-class body and CC could not drop them because they
+  //      touched the main silhouette.
   //   2) keepLargestComponent: drops detached blobs regardless of size.
   //   3) dilate1: widens the keep zone by 1 px so the extreme edge of the
   //      AA ring survives even if its immediate neighbor was zero-sharp.
   //
-  // Binary threshold at 128 (the previous approach) killed every body
-  // pixel under mid-confidence, visibly omitting elbow/arm segments on
-  // complex photos. Using sharp>0 as the bin criterion keeps the full
-  // body footprint and lets CC operate on the same topology the user sees.
+  // Binary threshold at 128 killed every body pixel under mid-confidence
+  // (missing elbows/arms). sharp>0 brought back halo bands. sharp>=96 is
+  // the middle ground — covers weakly-detected body, excludes halo tail.
   const bin = new Uint8Array(n);
-  for (let i = 0; i < n; i++) bin[i] = sharp[i] > 0 ? 1 : 0;
+  for (let i = 0; i < n; i++) bin[i] = sharp[i] >= 96 ? 1 : 0;
   keepLargestComponent(bin, w, h);
   const keep = dilate1(bin, w, h);
 
@@ -220,11 +275,17 @@ export async function refineEdges(
  * Full-pipeline convenience: compose the final RGBA at original resolution,
  * then run refineEdges on it. Main and batch paths use this; editor commit
  * paths call refineEdges directly on the already-composed editor output.
+ *
+ * When the soft-α tail behind the subject has low luminance variance
+ * (flat background), we bypass refineEdges entirely. Finalize's sharpen
+ * + decontamination produces visible halos in that case — the raw
+ * JBU-upscaled alpha from composeAtOriginal reads cleaner on flat bg.
  */
 export async function finalizeComposite(
   pipeline: ForegroundEstimator | null,
   input: Parameters<typeof composeAtOriginal>[0],
 ): Promise<ImageData> {
   const composed = composeAtOriginal(input);
+  if (hasHaloRisk(input.workingRgba, input.workingAlpha)) return composed;
   return refineEdges(pipeline, composed);
 }

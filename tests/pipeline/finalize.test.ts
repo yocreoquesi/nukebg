@@ -1,5 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { sharpenAlpha, refineEdges, keepLargestComponent } from '../../src/pipeline/finalize';
+import {
+  sharpenAlpha,
+  refineEdges,
+  keepLargestComponent,
+  tailLuminanceVariance,
+  hasHaloRisk,
+} from '../../src/pipeline/finalize';
 
 // ImageData polyfill for happy-dom (see tests/components/ar-editor.test.ts).
 if (typeof globalThis.ImageData === 'undefined') {
@@ -21,7 +27,7 @@ if (typeof globalThis.ImageData === 'undefined') {
   };
 }
 
-describe('sharpenAlpha (wide-band smoothstep [60, 190])', () => {
+describe('sharpenAlpha (smoothstep [80, 180])', () => {
   it('preserves the 0 and 255 endpoints exactly', () => {
     const a = new Uint8Array([0, 255, 0, 255]);
     const out = sharpenAlpha(a);
@@ -29,19 +35,19 @@ describe('sharpenAlpha (wide-band smoothstep [60, 190])', () => {
   });
 
   it('clamps everything below the LOW bound to 0 (kills halo)', () => {
-    const out = sharpenAlpha(new Uint8Array([1, 15, 30, 45, 60]));
+    const out = sharpenAlpha(new Uint8Array([1, 20, 40, 60, 80]));
     expect(Array.from(out)).toEqual([0, 0, 0, 0, 0]);
   });
 
   it('clamps everything above the HIGH bound to 255 (opaque interior)', () => {
-    const out = sharpenAlpha(new Uint8Array([190, 210, 225, 240, 254]));
+    const out = sharpenAlpha(new Uint8Array([180, 200, 220, 240, 254]));
     expect(Array.from(out)).toEqual([255, 255, 255, 255, 255]);
   });
 
-  it('smooths the soft band [60, 190] through a smoothstep', () => {
-    // Endpoints + midpoint + quarter points: normalized (a-60)/130
-    const out = sharpenAlpha(new Uint8Array([60, 92, 125, 157, 190]));
-    // 60 → 0, 190 → 255, 125 ≈ 128 (midpoint at n=0.5)
+  it('smooths the soft band [80, 180] through a smoothstep', () => {
+    // Endpoints + midpoint + quarter points: normalized (a-80)/100
+    const out = sharpenAlpha(new Uint8Array([80, 105, 130, 155, 180]));
+    // 80 → 0, 180 → 255, 130 ≈ 128 (midpoint at n=0.5)
     expect(out[0]).toBe(0);
     expect(out[4]).toBe(255);
     expect(Math.abs(out[2] - 128)).toBeLessThanOrEqual(4);
@@ -65,11 +71,12 @@ describe('sharpenAlpha (wide-band smoothstep [60, 190])', () => {
     for (let i = 0; i < 256; i++) input[i] = i;
     const out = sharpenAlpha(input);
     const soft = Array.from(out).filter((v) => v > 0 && v < 255).length;
-    // Band is [60, 190] exclusive endpoints, minus rounding near the tails.
-    // Wide band preserves the weak-body range where RMBG emits mid-α on
-    // occluded edges (elbow, arm-torso gap) — critical for football, fur.
-    expect(soft).toBeGreaterThan(100);
-    expect(soft).toBeLessThan(135);
+    // Band is [80, 180] exclusive endpoints, minus rounding near the tails.
+    // Mid band keeps enough weak-body range to hold the occluded elbow /
+    // arm-torso gap while shaving the α=60..79 halo tail that survives
+    // on flat backgrounds.
+    expect(soft).toBeGreaterThan(75);
+    expect(soft).toBeLessThan(105);
   });
 });
 
@@ -129,9 +136,9 @@ describe('refineEdges', () => {
     expect(calls).toHaveLength(1);
     expect(calls[0].w).toBe(2);
     expect(calls[0].h).toBe(1);
-    // Alpha passed to the solver is post-sharpen (wide-band smoothstep),
-    // not the raw RMBG value. Input α=128 is inside the band [60, 190]
-    // and maps to roughly the smoothstep midpoint (~135..145).
+    // Alpha passed to the solver is post-sharpen (smoothstep [80, 180]),
+    // not the raw RMBG value. Input α=128 is inside the band and maps
+    // to roughly n=0.48 → ~118 (just below the midpoint).
     expect(calls[0].alphaSample).toBeGreaterThan(100);
     expect(calls[0].alphaSample).toBeLessThan(180);
     // RGB should be the stubbed 99s (proving estimateForeground was used).
@@ -174,6 +181,81 @@ describe('refineEdges', () => {
     }
     // Stray pixel: gone
     expect(out.data[(4 * w + 4) * 4 + 3]).toBe(0);
+  });
+});
+
+describe('tailLuminanceVariance / hasHaloRisk', () => {
+  // Build a synthetic frame: `tailCount` pixels with α in the tail range
+  // and the given RGB, padded with opaque and transparent filler so the
+  // tail-detector is the only thing that fires.
+  const makeFrame = (
+    tailCount: number,
+    tailRgb: (i: number) => [number, number, number],
+    tailAlpha: number = 60,
+  ): { rgba: Uint8ClampedArray; alpha: Uint8Array } => {
+    const n = Math.max(tailCount + 200, 400);
+    const rgba = new Uint8ClampedArray(n * 4);
+    const alpha = new Uint8Array(n);
+    for (let i = 0; i < n; i++) {
+      if (i < tailCount) {
+        const [r, g, b] = tailRgb(i);
+        rgba[i * 4] = r;
+        rgba[i * 4 + 1] = g;
+        rgba[i * 4 + 2] = b;
+        rgba[i * 4 + 3] = tailAlpha;
+        alpha[i] = tailAlpha;
+      } else if (i < tailCount + 100) {
+        rgba[i * 4 + 3] = 255;
+        alpha[i] = 255;
+      } else {
+        alpha[i] = 0;
+      }
+    }
+    return { rgba, alpha };
+  };
+
+  it('returns Infinity (safe) when the tail has fewer than 100 samples', () => {
+    const { rgba, alpha } = makeFrame(50, () => [100, 100, 100]);
+    expect(tailLuminanceVariance(rgba, alpha)).toBe(Infinity);
+    expect(hasHaloRisk(rgba, alpha)).toBe(false);
+  });
+
+  it('flags a uniform flat background (low variance) as halo risk', () => {
+    // All tail pixels identical RGB → variance ≈ 0
+    const { rgba, alpha } = makeFrame(300, () => [120, 120, 120]);
+    const v = tailLuminanceVariance(rgba, alpha);
+    expect(v).toBeLessThan(1);
+    expect(hasHaloRisk(rgba, alpha)).toBe(true);
+  });
+
+  it('passes a textured background (high variance) as safe to refine', () => {
+    // Wide spread of luminance values in the tail → high variance
+    const { rgba, alpha } = makeFrame(300, (i) => {
+      const v = (i * 37) % 256;
+      return [v, v, v];
+    });
+    const v = tailLuminanceVariance(rgba, alpha);
+    expect(v).toBeGreaterThan(1000);
+    expect(hasHaloRisk(rgba, alpha)).toBe(false);
+  });
+
+  it('ignores pixels outside the tail α range [30, 100]', () => {
+    // 200 opaque pixels + 200 transparent pixels — no tail samples at all
+    const n = 400;
+    const rgba = new Uint8ClampedArray(n * 4);
+    const alpha = new Uint8Array(n);
+    for (let i = 0; i < 200; i++) {
+      alpha[i] = 255;
+      rgba[i * 4 + 3] = 255;
+    }
+    expect(tailLuminanceVariance(rgba, alpha)).toBe(Infinity);
+  });
+
+  it('respects the caller-provided threshold override', () => {
+    // Variance ≈ 0 here; hasHaloRisk(threshold=0) should return false
+    const { rgba, alpha } = makeFrame(300, () => [50, 50, 50]);
+    expect(hasHaloRisk(rgba, alpha, 100)).toBe(true);
+    expect(hasHaloRisk(rgba, alpha, 0)).toBe(false);
   });
 });
 
