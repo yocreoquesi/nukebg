@@ -1,6 +1,3 @@
-/** Background type classification */
-export type BackgroundType = 'checkerboard' | 'solid' | 'complex';
-
 /** Image content type for auto-algorithm selection */
 export type ImageContentType = 'PHOTO' | 'ILLUSTRATION' | 'SIGNATURE' | 'ICON';
 
@@ -42,8 +39,6 @@ export interface PipelineResult {
   watermarkMask: Uint8Array | null;
   /** Total processing time in ms */
   totalTimeMs: number;
-  /** Background type that was detected */
-  backgroundType: BackgroundType;
   /** Whether watermark was found and removed */
   watermarkRemoved: boolean;
   /** Percentage of pixels made transparent */

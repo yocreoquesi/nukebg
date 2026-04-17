@@ -2,13 +2,12 @@ import type {
   PipelineStage,
   StageStatus,
   PipelineResult,
-  BackgroundType,
   BgColorResult,
   WatermarkResult,
   ImageContentType,
 } from '../types/pipeline';
 import type { CvWorkerResponse, MlWorkerResponse, InpaintWorkerResponse, LamaWorkerResponse, ModelId, ClassifyImageResult } from '../types/worker-messages';
-import { CV_PARAMS, IMAGE_CLASSIFY_PARAMS, INPAINT_PARAMS, PRECISION_PROFILES } from './constants';
+import { IMAGE_CLASSIFY_PARAMS, INPAINT_PARAMS, PRECISION_PROFILES } from './constants';
 import type { PrecisionMode } from './constants';
 import { compositeWithFeather, dilateMask } from '../workers/cv/inpaint-blend';
 import { shouldUseLama } from '../workers/cv/lama-router';
@@ -426,14 +425,9 @@ export class PipelineOrchestrator {
     ]);
 
     const contentType: ImageContentType = classifyResult.type;
-    const bgType: BackgroundType = bgInfo.isCheckerboard
-      ? 'checkerboard'
-      : bgInfo.cornerVariance < CV_PARAMS.SOLID_BG_VARIANCE
-        ? 'solid'
-        : 'complex';
     stageTiming['detect-background'] = performance.now() - t;
-    this.emit('detect-background', 'done', `${bgType} detected [${contentType.toLowerCase()}]`);
-    if (import.meta.env.DEV) console.log(`[NukeBG] Content type: ${contentType}, bg: ${bgType}`);
+    this.emit('detect-background', 'done', `${contentType.toLowerCase()} detected`);
+    if (import.meta.env.DEV) console.log(`[NukeBG] Content type: ${contentType}`);
 
     // ── SIGNATURE path: skip ML entirely, use threshold-based extraction ──
     if (contentType === 'SIGNATURE') {
@@ -451,7 +445,7 @@ export class PipelineOrchestrator {
       stageTiming['ml-segmentation'] = performance.now() - t;
       this.emit('ml-segmentation', 'done', 'Signature extracted');
 
-      return this.composeResult(originalPixels, sigAlpha, width, height, bgType, contentType, false, null, startTime, stageTiming);
+      return this.composeResult(originalPixels, sigAlpha, width, height, contentType, false, null, startTime, stageTiming);
     }
 
     // ── Stage 2: Watermark detection (CV, no ML, instant) - skip for ICON ──
@@ -603,7 +597,7 @@ export class PipelineOrchestrator {
     this.emit('ml-segmentation', 'done', 'Background removed');
 
     return this.composeResult(
-      originalPixels, mlAlpha, width, height, bgType, contentType,
+      originalPixels, mlAlpha, width, height, contentType,
       watermarkRemoved, appliedWatermarkMask, startTime, stageTiming,
     );
   }
@@ -614,7 +608,6 @@ export class PipelineOrchestrator {
     finalAlpha: Uint8Array,
     width: number,
     height: number,
-    bgType: BackgroundType,
     contentType: ImageContentType,
     watermarkRemoved: boolean,
     watermarkMask: Uint8Array | null,
@@ -654,7 +647,6 @@ export class PipelineOrchestrator {
       workingHeight: height,
       watermarkMask,
       totalTimeMs,
-      backgroundType: bgType,
       watermarkRemoved,
       nukedPct,
       stageTiming,
