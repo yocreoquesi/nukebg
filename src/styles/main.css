@@ -35,6 +35,7 @@
   --color-warning-muted: rgba(255, 204, 0, 0.10);
   --color-error: #ff3131;
   --color-error-muted: rgba(255, 49, 49, 0.12);
+  --color-error-border: #3a1a1a;
   --color-info: #00ff41;
   --color-info-muted: rgba(var(--color-accent-rgb), 0.10);
 
@@ -42,6 +43,18 @@
   --color-checker-light: #0a0a0a;
   --color-checker-dark: #050505;
   --color-checker-size: 12px;
+
+  /* Background preview swatches (editor + viewer) */
+  --color-preview-white: #ffffff;
+  --color-preview-black: #000000;
+  --color-preview-green: #00b140;
+  --color-preview-red: #ff4444;
+  /* Light checkerboard used inside the BG-swatch buttons (not the terminal dark checker above) */
+  --color-preview-checker-light: #ffffff;
+  --color-preview-checker-dark: #cccccc;
+
+  /* Restore tool accent (ar-editor cursor). Exposed as rgb list so SVG data URLs can read it via getComputedStyle. */
+  --color-restore-rgb: 0, 212, 255;
 
   /* Typography - JetBrains Mono everywhere */
   --font-sans: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
@@ -170,7 +183,7 @@ body::after {
   top: -100%;
   left: var(--space-4);
   background: var(--color-accent-primary);
-  color: #000;
+  color: var(--color-text-inverse);
   padding: var(--space-2) var(--space-4);
   border-radius: 0;
   z-index: 100;
@@ -376,7 +389,7 @@ body::after {
   white-space: nowrap;
 }
 .terminal-response.error {
-  color: #cc3333;
+  color: var(--color-error);
 }
 @keyframes blink-cursor {
   0%, 100% { opacity: 1; }

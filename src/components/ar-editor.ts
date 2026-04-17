@@ -22,14 +22,22 @@ function makeBrushCursor(
   zoom: number,
   tool: 'erase' | 'restore' = 'erase',
 ): string {
-  const displaySize = Math.min(64, Math.max(8, Math.round(size * zoom)));
+  const raw = size * zoom;
+  // Defensive: Number.isFinite guards against NaN from upstream state bugs.
+  // Math.round(NaN) → NaN, which poisons min/max and produces a NaN-sized SVG.
+  const displaySize = Number.isFinite(raw)
+    ? Math.min(64, Math.max(8, Math.round(raw)))
+    : 32;
   const r = displaySize / 2;
   const svgSize = displaySize + 2; // 1px padding
   const center = svgSize / 2;
   // Erase stays green (default brand accent); Restore is cyan so the user
-  // can tell at a glance which tool is active.
-  const accentRgb = getComputedStyle(document.documentElement).getPropertyValue('--color-accent-rgb').trim() || '0, 255, 65';
-  const stroke = tool === 'restore' ? '#00d4ff' : `rgb(${accentRgb})`;
+  // can tell at a glance which tool is active. Both colors resolved from CSS
+  // vars so power-mode theme switching cascades into the cursor.
+  const rootStyle = getComputedStyle(document.documentElement);
+  const accentRgb = rootStyle.getPropertyValue('--color-accent-rgb').trim() || '0, 255, 65';
+  const restoreRgb = rootStyle.getPropertyValue('--color-restore-rgb').trim() || '0, 212, 255';
+  const stroke = tool === 'restore' ? `rgb(${restoreRgb})` : `rgb(${accentRgb})`;
 
   let shapeEl: string;
   if (shape === 'circle') {
@@ -182,7 +190,7 @@ export class ArEditor extends HTMLElement {
           align-items: center;
           gap: var(--space-3, 0.75rem);
           padding: var(--space-2, 0.5rem) var(--space-3, 0.75rem);
-          background: #000;
+          background: var(--color-bg-primary, #000);
           border: 1px solid var(--color-surface-border, #1a3a1a);
           border-radius: 0;
           flex-wrap: wrap;
@@ -200,7 +208,7 @@ export class ArEditor extends HTMLElement {
           white-space: nowrap;
         }
         .toolbar select, .toolbar input[type="range"] {
-          background: #0a0a0a;
+          background: var(--color-bg-secondary, #0a0a0a);
           color: var(--color-accent-primary, #00ff41);
           border: 1px solid var(--color-surface-border, #1a3a1a);
           border-radius: 0;
@@ -219,7 +227,7 @@ export class ArEditor extends HTMLElement {
           text-align: center;
         }
         .toolbar-btn {
-          background: #0a0a0a;
+          background: var(--color-bg-secondary, #0a0a0a);
           color: var(--color-accent-primary, #00ff41);
           border: 1px solid var(--color-surface-border, #1a3a1a);
           border-radius: 0;
@@ -242,7 +250,7 @@ export class ArEditor extends HTMLElement {
         }
         .toolbar-btn.primary {
           background: var(--color-accent-primary, #00ff41);
-          color: #000;
+          color: var(--color-text-inverse, #000);
           border-color: var(--color-accent-primary, #00ff41);
         }
         .toolbar-btn.primary:hover {
@@ -258,7 +266,7 @@ export class ArEditor extends HTMLElement {
           bottom: 100%;
           right: 0;
           margin-bottom: 8px;
-          background: #0a0a0a;
+          background: var(--color-bg-secondary, #0a0a0a);
           border: 1px solid var(--color-surface-border, #1a3a1a);
           border-radius: 0;
           padding: 12px 16px;
@@ -277,7 +285,7 @@ export class ArEditor extends HTMLElement {
         }
         .help-tooltip kbd {
           display: inline-block;
-          background: #000;
+          background: var(--color-bg-primary, #000);
           border: 1px solid var(--color-surface-border, #1a3a1a);
           border-radius: 0;
           padding: 1px 5px;
@@ -298,7 +306,7 @@ export class ArEditor extends HTMLElement {
           border: 1px solid var(--color-surface-border, #1a3a1a);
           border-radius: 0;
           overflow: hidden;
-          background: #000;
+          background: var(--color-bg-primary, #000);
           min-height: 400px;
           display: flex;
           align-items: center;
@@ -311,7 +319,7 @@ export class ArEditor extends HTMLElement {
           display: flex;
           justify-content: flex-end;
           padding: var(--space-2, 0.5rem) var(--space-3, 0.75rem);
-          background: #000;
+          background: var(--color-bg-primary, #000);
           border: 1px solid var(--color-surface-border, #1a3a1a);
           border-radius: 0;
         }
@@ -334,13 +342,13 @@ export class ArEditor extends HTMLElement {
         }
         .bg-checker {
           background-image:
-            linear-gradient(45deg, #ccc 25%, transparent 25%),
-            linear-gradient(-45deg, #ccc 25%, transparent 25%),
-            linear-gradient(45deg, transparent 75%, #ccc 75%),
-            linear-gradient(-45deg, transparent 75%, #ccc 75%);
+            linear-gradient(45deg, var(--color-preview-checker-dark) 25%, transparent 25%),
+            linear-gradient(-45deg, var(--color-preview-checker-dark) 25%, transparent 25%),
+            linear-gradient(45deg, transparent 75%, var(--color-preview-checker-dark) 75%),
+            linear-gradient(-45deg, transparent 75%, var(--color-preview-checker-dark) 75%);
           background-size: 6px 6px;
           background-position: 0 0, 0 3px, 3px -3px, 3px 0;
-          background-color: #fff;
+          background-color: var(--color-preview-checker-light);
         }
         .hint {
           font-size: var(--text-xs, 0.75rem);
@@ -520,11 +528,11 @@ export class ArEditor extends HTMLElement {
         <div class="editor-footer">
           <div class="bg-options">
             <span id="ed-bg-label">${t('editor.bg')}</span>
-            <div class="bg-btn bg-checker active" data-bg="checker" title="Checkerboard"></div>
-            <div class="bg-btn" style="background:#fff" data-bg="#ffffff" title="White"></div>
-            <div class="bg-btn" style="background:#000" data-bg="#000000" title="Black"></div>
-            <div class="bg-btn" style="background:#00b140" data-bg="#00b140" title="Green screen"></div>
-            <div class="bg-btn" style="background:#ff4444" data-bg="#ff4444" title="Red (check edges)"></div>
+            <div class="bg-btn bg-checker active" data-bg="checker" title="${t('bg.checkerboard')}"></div>
+            <div class="bg-btn" style="background:var(--color-preview-white)" data-bg="#ffffff" title="${t('bg.white')}"></div>
+            <div class="bg-btn" style="background:var(--color-preview-black)" data-bg="#000000" title="${t('bg.black')}"></div>
+            <div class="bg-btn" style="background:var(--color-preview-green)" data-bg="#00b140" title="${t('bg.green')}"></div>
+            <div class="bg-btn" style="background:var(--color-preview-red)" data-bg="#ff4444" title="${t('bg.red')}"></div>
           </div>
         </div>
       </div>

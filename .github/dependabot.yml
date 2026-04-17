@@ -1,0 +1,40 @@
+version: 2
+updates:
+  # npm dependencies — patch and minor grouped, majors one-by-one.
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "Etc/UTC"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+    commit-message:
+      prefix: "chore"
+      include: "scope"
+    groups:
+      patch-and-minor:
+        update-types:
+          - "patch"
+          - "minor"
+    ignore:
+      # ONNX Runtime is pinned to a specific dev build on purpose
+      # (RMBG-1.4 WASM compatibility). Migrate manually, not via Dependabot.
+      - dependency-name: "onnxruntime-web"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+
+  # GitHub Actions versions — keep action pins fresh
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 3
+    labels:
+      - "dependencies"
+      - "ci"
+    commit-message:
+      prefix: "chore"
+      include: "scope"

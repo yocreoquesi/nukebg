@@ -46,3 +46,4 @@ exploration/samples/
 exploration/results/
 
 .gstack/
+.halo-check/

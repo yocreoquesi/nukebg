@@ -42,7 +42,7 @@ export class ArPrivacy extends HTMLElement {
           display: inline-flex;
           align-items: center;
           gap: 0.25rem;
-          background: #000;
+          background: var(--color-bg-primary, #000);
           border: 1px solid var(--color-surface-border, #1a3a1a);
           border-radius: 0;
           padding: 0.25rem 0.75rem;
@@ -63,7 +63,7 @@ export class ArPrivacy extends HTMLElement {
           position: absolute;
           top: calc(100% + 8px);
           right: 0;
-          background: #000;
+          background: var(--color-bg-primary, #000);
           border: 1px solid var(--color-accent-primary, #00ff41);
           padding: 0.5rem 0.75rem;
           font-size: 12px;
@@ -82,7 +82,7 @@ export class ArPrivacy extends HTMLElement {
           position: absolute;
           top: calc(100% + 8px);
           right: 0;
-          background: #0a0a0a;
+          background: var(--color-bg-secondary, #0a0a0a);
           border: 1px solid var(--color-surface-border, #1a3a1a);
           border-radius: 0;
           padding: 0.75rem;

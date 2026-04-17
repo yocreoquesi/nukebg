@@ -1,4 +1,4 @@
-import { generateOutputFilename } from '../utils/image-io';
+import { exportPng, exportWebp, generateOutputFilename } from '../utils/image-io';
 import { t, getLocale } from '../i18n';
 import type { ExportFormat } from '../types/image';
 
@@ -62,7 +62,6 @@ export class ArDownload extends HTMLElement {
     this.filename = generateOutputFilename(inputFilename, 'png', getLocale());
 
     if (!blob) {
-      const { exportPng } = await import('../utils/image-io');
       blob = await exportPng(imageData);
     }
     this.resultBlob = blob;
@@ -86,14 +85,12 @@ export class ArDownload extends HTMLElement {
 
     let newBlob: Blob;
     if (format === 'webp') {
-      const { exportWebp } = await import('../utils/image-io');
       newBlob = await exportWebp(this.currentImageData);
     } else {
       // Reuse cached PNG blob if available
       if (this.pngBlob) {
         newBlob = this.pngBlob;
       } else {
-        const { exportPng } = await import('../utils/image-io');
         newBlob = await exportPng(this.currentImageData);
         this.pngBlob = newBlob;
       }
@@ -138,7 +135,7 @@ export class ArDownload extends HTMLElement {
         .download-bar.visible { display: flex; }
         .btn-primary {
           background: var(--color-accent-primary, #00ff41);
-          color: #000;
+          color: var(--color-text-inverse, #000);
           border: none;
           padding: 12px 24px;
           border-radius: 0;
@@ -359,7 +356,6 @@ export class ArDownload extends HTMLElement {
       // Always copy as PNG for browser compatibility
       let pngBlob = this.pngBlob;
       if (!pngBlob) {
-        const { exportPng } = await import('../utils/image-io');
         pngBlob = await exportPng(this.currentImageData);
         this.pngBlob = pngBlob;
       }

@@ -2,6 +2,7 @@
 
 > Nuke backgrounds from any image. 100% client-side. Zero uploads. Zero BS.
 
+[![Version](https://img.shields.io/badge/version-2.7.2-brightgreen.svg)](https://github.com/yocreoquesi/nukebg/releases)
 [![License: GPL-3.0](https://img.shields.io/badge/License-GPL%20v3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![Client-Side](https://img.shields.io/badge/Processing-100%25%20Client--Side-green.svg)](#-privacy)
 [![Ko-fi](https://img.shields.io/badge/Ko--fi-Support%20NukeBG-FF5E5B?logo=ko-fi&logoColor=white)](https://ko-fi.com/yocreoquesi)

@@ -1,0 +1,475 @@
+/**
+ * Edge refinement for the final cutout: decontaminate foreground RGB, then
+ * sharpen the soft alpha tails so the exported image reads clean on any
+ * background (white, black, colored).
+ *
+ * The pipeline produces a soft, continuous alpha from RMBG-1.4 (and manual
+ * edits keep that soft band), which is great for natural antialiasing but
+ * leaves a visible "ghost" band on white when:
+ *   - rgb is still contaminated by the background color (halo of wall/sky),
+ *   - α extends a wide gradient so even a decontaminated F renders as a
+ *     faint FG-colored feather over many pixels.
+ *
+ * We fix both in two steps:
+ *   1) Decontaminate F per pixel by solving I = αF + (1−α)B under a
+ *      smoothness prior (see foreground-estimation.ts).
+ *   2) Sharpen α with a quintic smoothstep. Smoothstep preserves the 0 and
+ *      255 endpoints, squeezes the soft tails aggressively (α=30 → α≈4,
+ *      α=60 → α≈20), and keeps a ~2 px antialiased transition around the
+ *      midpoint — studio-quality edge without aliasing.
+ */
+/**
+ * Minimal pipeline surface the finalize step depends on. Decouples this
+ * module from the Orchestrator class so editor components (which hold the
+ * same orchestrator reference) can import this without a circular dep risk.
+ */
+export interface ForegroundEstimator {
+  estimateForeground(
+    pixels: Uint8ClampedArray,
+    alpha: Uint8Array,
+    width: number,
+    height: number,
+  ): Promise<Uint8ClampedArray>;
+}
+
+/**
+ * Mid-band quintic smoothstep on the RMBG soft-alpha gradient.
+ *
+ *   α ≤ LOW  → 0          (kills the halo tail; α<80 is halo on flat bg)
+ *   α ≥ HIGH → 255         (interior, no feathering into the body)
+ *   in-between → 6n⁵−15n⁴+10n³ normalized over [LOW, HIGH]
+ *
+ * Compromise between two earlier configs:
+ *   - [100, 160] (narrow): halo tail 0.34%, but killed weak-body α<100
+ *     so occluded edges (elbow, arm-torso gap) disappeared.
+ *   - [60, 190] (wide): preserved the elbow, but re-introduced visible
+ *     halo because α=60..99 (which is halo on flat backgrounds) now
+ *     survived as semi-transparent.
+ *
+ * [80, 180] keeps halo cut tight (α<80 always killed) while letting the
+ * weak-body band 80..130 survive as soft. If halo is still visible after
+ * this pass, the next move is dropping the finalize module entirely and
+ * relying on the worker-side spatialPass + morphOpen + guided filter.
+ */
+const SHARPEN_LOW = 80;
+const SHARPEN_HIGH = 180;
+
+/**
+ * Halo-risk gate: if the RGB luminance variance inside the soft-α tail is
+ * below this threshold, the background behind the subject is flat (sky,
+ * wall, uniform grass) and finalize's alpha sharpening + foreground
+ * decontamination will leave a visible halo band. In that case we skip
+ * refineEdges and compose directly — at the cost of a slightly softer
+ * edge, but without the halo. Textured backgrounds (foliage, crowd,
+ * pattern) exceed this and get the full refinement.
+ *
+ * Threshold calibrated empirically: uniform sky ~2-10, green grass field
+ * ~15-25, textured crowd/foliage ~40+. 25 is the line between "finalize
+ * hurts" and "finalize helps" for the RMBG-1.4 output we see.
+ */
+const HALO_RISK_VARIANCE_THRESHOLD = 25;
+
+/**
+ * Per-pixel Rec. 709 luminance of the soft-α tail (α ∈ [30, 100]), then
+ * variance across those samples. Low variance = flat bg behind the
+ * subject = halo risk. Returns Infinity if the tail is too small to be
+ * statistically meaningful (treat as safe → apply finalize).
+ */
+export function tailLuminanceVariance(
+  workingRgba: Uint8ClampedArray,
+  workingAlpha: Uint8Array,
+): number {
+  let sum = 0;
+  let sumSq = 0;
+  let count = 0;
+  for (let i = 0; i < workingAlpha.length; i++) {
+    const a = workingAlpha[i];
+    if (a < 30 || a > 100) continue;
+    const r = workingRgba[i * 4];
+    const g = workingRgba[i * 4 + 1];
+    const b = workingRgba[i * 4 + 2];
+    const y = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+    sum += y;
+    sumSq += y * y;
+    count++;
+  }
+  if (count < 100) return Infinity;
+  const mean = sum / count;
+  return sumSq / count - mean * mean;
+}
+
+export function hasHaloRisk(
+  workingRgba: Uint8ClampedArray,
+  workingAlpha: Uint8Array,
+  threshold: number = HALO_RISK_VARIANCE_THRESHOLD,
+): boolean {
+  return tailLuminanceVariance(workingRgba, workingAlpha) < threshold;
+}
+
+/**
+ * Largest hole size to auto-fill. RMBG emits 1-50 px α=0 specks inside the
+ * subject when it confuses specular highlights with the background (car
+ * roof reflecting sky, chrome trim, etc). Anything larger is treated as
+ * intentional transparency (bike wheel spokes, donut hole, window cut-outs
+ * on product shots) and left alone.
+ */
+const MAX_HOLE_FILL_SIZE_PX = 200;
+
+/**
+ * Fill disconnected α=0 regions inside the subject. Runs a 4-connected
+ * BFS from the image border across α=0 pixels to mark "true background",
+ * then each unreached α=0 cluster is a hole. Small holes (≤ maxHoleSize)
+ * get α=255; their RGB was never touched so the original pixel reappears.
+ *
+ * Dual to dropOrphanBlobs: that one removes α>0 blobs outside the body;
+ * this one fills α=0 blobs inside the body. Together they enforce "subject
+ * is one topologically clean region" without mutating α on valid pixels.
+ *
+ * Caveat: same gating story as dropOrphanBlobs. Icons and signatures can
+ * have legitimate small interior holes (the enclosed counter of an 'o',
+ * dot stippling) — callers must guard by content type.
+ */
+export function fillSubjectHoles(
+  img: ImageData,
+  maxHoleSize: number = MAX_HOLE_FILL_SIZE_PX,
+): ImageData {
+  const { data, width, height } = img;
+  const n = width * height;
+  const queue = new Int32Array(n);
+  const bgVisited = new Uint8Array(n);
+  let head = 0, tail = 0;
+
+  const seedBg = (idx: number) => {
+    if (data[idx * 4 + 3] === 0 && !bgVisited[idx]) {
+      bgVisited[idx] = 1;
+      queue[tail++] = idx;
+    }
+  };
+  for (let x = 0; x < width; x++) {
+    seedBg(x);
+    if (height > 1) seedBg((height - 1) * width + x);
+  }
+  for (let y = 1; y < height - 1; y++) {
+    seedBg(y * width);
+    seedBg(y * width + width - 1);
+  }
+
+  while (head < tail) {
+    const idx = queue[head++];
+    const x = idx % width;
+    const y = (idx - x) / width;
+    if (x > 0) {
+      const ni = idx - 1;
+      if (!bgVisited[ni] && data[ni * 4 + 3] === 0) { bgVisited[ni] = 1; queue[tail++] = ni; }
+    }
+    if (x < width - 1) {
+      const ni = idx + 1;
+      if (!bgVisited[ni] && data[ni * 4 + 3] === 0) { bgVisited[ni] = 1; queue[tail++] = ni; }
+    }
+    if (y > 0) {
+      const ni = idx - width;
+      if (!bgVisited[ni] && data[ni * 4 + 3] === 0) { bgVisited[ni] = 1; queue[tail++] = ni; }
+    }
+    if (y < height - 1) {
+      const ni = idx + width;
+      if (!bgVisited[ni] && data[ni * 4 + 3] === 0) { bgVisited[ni] = 1; queue[tail++] = ni; }
+    }
+  }
+
+  const holeVisited = new Uint8Array(n);
+  const holeIndices = new Int32Array(n);
+  const out = new Uint8ClampedArray(data);
+
+  for (let start = 0; start < n; start++) {
+    if (data[start * 4 + 3] !== 0) continue;
+    if (bgVisited[start] || holeVisited[start]) continue;
+
+    head = 0; tail = 0;
+    let size = 0;
+    queue[tail++] = start;
+    holeVisited[start] = 1;
+    holeIndices[size++] = start;
+
+    while (head < tail) {
+      const idx = queue[head++];
+      const x = idx % width;
+      const y = (idx - x) / width;
+      if (x > 0) {
+        const ni = idx - 1;
+        if (!holeVisited[ni] && !bgVisited[ni] && data[ni * 4 + 3] === 0) {
+          holeVisited[ni] = 1; queue[tail++] = ni; holeIndices[size++] = ni;
+        }
+      }
+      if (x < width - 1) {
+        const ni = idx + 1;
+        if (!holeVisited[ni] && !bgVisited[ni] && data[ni * 4 + 3] === 0) {
+          holeVisited[ni] = 1; queue[tail++] = ni; holeIndices[size++] = ni;
+        }
+      }
+      if (y > 0) {
+        const ni = idx - width;
+        if (!holeVisited[ni] && !bgVisited[ni] && data[ni * 4 + 3] === 0) {
+          holeVisited[ni] = 1; queue[tail++] = ni; holeIndices[size++] = ni;
+        }
+      }
+      if (y < height - 1) {
+        const ni = idx + width;
+        if (!holeVisited[ni] && !bgVisited[ni] && data[ni * 4 + 3] === 0) {
+          holeVisited[ni] = 1; queue[tail++] = ni; holeIndices[size++] = ni;
+        }
+      }
+    }
+
+    if (size <= maxHoleSize) {
+      for (let i = 0; i < size; i++) out[holeIndices[i] * 4 + 3] = 255;
+    }
+  }
+
+  return new ImageData(out, width, height);
+}
+
+/**
+ * Topology-only cleanup: zero α on any pixel that isn't part of the largest
+ * 8-connected component of the subject mask. Does NOT modify RGB and does
+ * NOT reshape α on surviving pixels — only drops orphan blobs that RMBG
+ * sometimes emits (horizontal background bands, detached watermark fragments,
+ * misclassified hotspots). Safe to apply unconditionally on any composed
+ * RGBA because it cannot introduce halos, cannot kill weak-body α, and
+ * cannot smear edges.
+ *
+ * Caveat: inappropriate for classes where legitimate subject lives in
+ * multiple disconnected components (signatures with accent dots, icon sets).
+ * Callers must gate by content type.
+ */
+export function dropOrphanBlobs(img: ImageData): ImageData {
+  const { data, width, height } = img;
+  const n = width * height;
+  const bin = new Uint8Array(n);
+  for (let i = 0; i < n; i++) bin[i] = data[i * 4 + 3] > 0 ? 1 : 0;
+  keepLargestComponent(bin, width, height);
+  const out = new Uint8ClampedArray(data);
+  for (let i = 0; i < n; i++) {
+    if (!bin[i]) out[i * 4 + 3] = 0;
+  }
+  return new ImageData(out, width, height);
+}
+
+/**
+ * Promote semi-transparent specks surrounded by a dense opaque neighborhood
+ * to α=255. Dual to `fillSubjectHoles`: that one patches α=0 holes; this one
+ * patches partial-α (e.g. α=150) specks that RMBG sometimes leaves on
+ * specular highlights, chrome, or reflective paint inside the subject body.
+ *
+ * Rule: for each pixel with α in (0, 255), if at least `ratio` of neighbors
+ * in a (2r+1)² window have α ≥ `opaqueAlphaThresh`, force α=255. RGB is
+ * never touched. Runs a single pass against a snapshot, so promotions never
+ * cascade through consecutive specks.
+ *
+ * Defaults tuned from coche.jpg analysis: r=2 (5×5 window), ratio=0.75,
+ * opaqueAlphaThresh=240. This matches the observed "mostly-inside the body"
+ * neighborhood signature and ignores AA edges (which sit on the boundary
+ * where neighbor opacity drops well below 75%).
+ *
+ * Caveat: assumes the subject is a solid body whose interior should be
+ * fully opaque. Callers must gate by content type — signatures, icons and
+ * line-art illustrations can have legitimate interior anti-aliasing.
+ */
+export function promoteSpeckleAlpha(
+  img: ImageData,
+  radius: number = 2,
+  ratio: number = 0.75,
+  opaqueAlphaThresh: number = 240,
+): ImageData {
+  const { data, width, height } = img;
+  const n = width * height;
+  const alphaSnapshot = new Uint8Array(n);
+  for (let i = 0; i < n; i++) alphaSnapshot[i] = data[i * 4 + 3];
+
+  const area = (2 * radius + 1) * (2 * radius + 1) - 1;
+  const minOpaque = Math.ceil(ratio * area);
+  const out = new Uint8ClampedArray(data);
+
+  for (let y = radius; y < height - radius; y++) {
+    for (let x = radius; x < width - radius; x++) {
+      const i = y * width + x;
+      const a = alphaSnapshot[i];
+      if (a === 0 || a === 255) continue;
+
+      let opaque = 0;
+      for (let dy = -radius; dy <= radius; dy++) {
+        const row = (y + dy) * width;
+        for (let dx = -radius; dx <= radius; dx++) {
+          if (dx === 0 && dy === 0) continue;
+          if (alphaSnapshot[row + x + dx] >= opaqueAlphaThresh) opaque++;
+        }
+      }
+      if (opaque >= minOpaque) out[i * 4 + 3] = 255;
+    }
+  }
+
+  return new ImageData(out, width, height);
+}
+
+export function sharpenAlpha(alpha: Uint8Array): Uint8Array {
+  const out = new Uint8Array(alpha.length);
+  const range = SHARPEN_HIGH - SHARPEN_LOW;
+  for (let i = 0; i < alpha.length; i++) {
+    const a = alpha[i];
+    if (a <= SHARPEN_LOW) { out[i] = 0; continue; }
+    if (a >= SHARPEN_HIGH) { out[i] = 255; continue; }
+    const n = (a - SHARPEN_LOW) / range;
+    const s = n * n * n * (n * (n * 6 - 15) + 10);
+    const v = Math.round(s * 255);
+    out[i] = v < 0 ? 0 : v > 255 ? 255 : v;
+  }
+  return out;
+}
+
+/**
+ * In-place 8-connected component labelling; keep only the largest
+ * component of 1-pixels, zero everything else. Handles the user's
+ * "no isolated elements" requirement: if RMBG leaves a detached blob
+ * (a piece of crowd, a misfired chunk of watermark), it goes away.
+ *
+ * Why 8-connectivity: a hair strand or antenna can attach to the body
+ * through a diagonal pixel; 4-connectivity would split it off.
+ */
+export function keepLargestComponent(bin: Uint8Array, w: number, h: number): void {
+  const labels = new Int32Array(bin.length);
+  const queue = new Int32Array(bin.length);
+  const sizes: number[] = [0]; // id 0 is reserved for background
+
+  let nextId = 0;
+  for (let i = 0; i < bin.length; i++) {
+    if (bin[i] === 0 || labels[i] !== 0) continue;
+    nextId++;
+    labels[i] = nextId;
+    let head = 0, tail = 0;
+    queue[tail++] = i;
+    let size = 0;
+    while (head < tail) {
+      const idx = queue[head++];
+      size++;
+      const x = idx % w;
+      const y = (idx - x) / w;
+      for (let dy = -1; dy <= 1; dy++) {
+        for (let dx = -1; dx <= 1; dx++) {
+          if (dx === 0 && dy === 0) continue;
+          const nx = x + dx;
+          const ny = y + dy;
+          if (nx < 0 || nx >= w || ny < 0 || ny >= h) continue;
+          const n = ny * w + nx;
+          if (bin[n] && labels[n] === 0) {
+            labels[n] = nextId;
+            queue[tail++] = n;
+          }
+        }
+      }
+    }
+    sizes.push(size);
+  }
+
+  if (nextId < 2) return;
+
+  let maxId = 1;
+  for (let id = 2; id <= nextId; id++) {
+    if (sizes[id] > sizes[maxId]) maxId = id;
+  }
+
+  for (let i = 0; i < bin.length; i++) {
+    if (bin[i] && labels[i] !== maxId) bin[i] = 0;
+  }
+}
+
+/**
+ * 3x3 dilation of a binary mask. Used after keepLargestComponent to
+ * widen the "keep" zone by 1 px so the narrow AA band that sits just
+ * outside the thresholded silhouette (α in (0, 128)) survives.
+ * Without this, zeroing everything outside the binary produces a
+ * pixelated edge because the sub-threshold AA ring gets zeroed too.
+ */
+function dilate1(bin: Uint8Array, w: number, h: number): Uint8Array {
+  const out = new Uint8Array(bin.length);
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const idx = y * w + x;
+      if (bin[idx]) { out[idx] = 1; continue; }
+      let has = 0;
+      for (let dy = -1; dy <= 1 && !has; dy++) {
+        for (let dx = -1; dx <= 1 && !has; dx++) {
+          if (dx === 0 && dy === 0) continue;
+          const nx = x + dx;
+          const ny = y + dy;
+          if (nx < 0 || nx >= w || ny < 0 || ny >= h) continue;
+          if (bin[ny * w + nx]) has = 1;
+        }
+      }
+      out[idx] = has;
+    }
+  }
+  return out;
+}
+
+/**
+ * Refine an already-composed RGBA ImageData: decontaminate RGB (if a
+ * pipeline is available to run the worker-side solver) and sharpen α.
+ *
+ * Returns a fresh ImageData; does not mutate the input.
+ */
+export async function refineEdges(
+  pipeline: ForegroundEstimator | null,
+  img: ImageData,
+): Promise<ImageData> {
+  const w = img.width;
+  const h = img.height;
+  const n = w * h;
+
+  // Sharpen alpha FIRST. The solver receives the post-sharpen alpha, not
+  // the raw RMBG output, so it only runs on the narrow AA band produced
+  // by the quintic smoothstep (~1 px). Pixels that end up fully opaque
+  // (sharp ≥ 254) keep their observed RGB verbatim — the estimator's
+  // copy-through branch guarantees a 1:1 crop on the interior.
+  //
+  // This is the v2.6 behavior contract: the pipeline CROPS the original,
+  // it never repaints the visible interior. We just also decontaminate
+  // the one-pixel AA ring for clean composites on any background.
+  const alphaRaw = new Uint8Array(n);
+  for (let i = 0; i < n; i++) alphaRaw[i] = img.data[i * 4 + 3];
+  const sharp = sharpenAlpha(alphaRaw);
+
+  let rgba: Uint8ClampedArray;
+  if (pipeline) {
+    const observed = new Uint8ClampedArray(img.data);
+    // The worker transfers (detaches) the alpha buffer, so pass a copy.
+    const sharpForWorker = new Uint8Array(sharp);
+    rgba = await pipeline.estimateForeground(observed, sharpForWorker, w, h);
+  } else {
+    rgba = new Uint8ClampedArray(img.data);
+  }
+
+  // Topology cleanup on the binary derivative. Three stages balancing
+  // elbow preservation against halo elimination:
+  //   1) bin = sharp >= 96: pixel counts toward "body" only if the
+  //      sharpened α crossed into the upper half of the AA band. With
+  //      [80, 180], sharp=96 means raw α ≈ 110 — past the thin halo tail
+  //      but low enough to still include weakly-detected body regions.
+  //      bin = sharp > 0 (the wide-band attempt) re-admitted halo pixels
+  //      as first-class body and CC could not drop them because they
+  //      touched the main silhouette.
+  //   2) keepLargestComponent: drops detached blobs regardless of size.
+  //   3) dilate1: widens the keep zone by 1 px so the extreme edge of the
+  //      AA ring survives even if its immediate neighbor was zero-sharp.
+  //
+  // Binary threshold at 128 killed every body pixel under mid-confidence
+  // (missing elbows/arms). sharp>0 brought back halo bands. sharp>=96 is
+  // the middle ground — covers weakly-detected body, excludes halo tail.
+  const bin = new Uint8Array(n);
+  for (let i = 0; i < n; i++) bin[i] = sharp[i] >= 96 ? 1 : 0;
+  keepLargestComponent(bin, w, h);
+  const keep = dilate1(bin, w, h);
+
+  for (let i = 0; i < n; i++) rgba[i * 4 + 3] = keep[i] ? sharp[i] : 0;
+
+  return new ImageData(new Uint8ClampedArray(rgba), w, h);
+}
+

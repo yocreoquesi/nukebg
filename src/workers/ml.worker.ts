@@ -283,13 +283,16 @@ async function loadModel(id: string, modelId: ModelId = DEFAULT_MODEL, emitReady
   // pipeline has been observed to hang at this step (stuck at 96%).
   self.postMessage({ id, type: 'model-progress', progress: 96 });
   const warmupStart = performance.now();
-  const warmupTimeoutMs = 15000;
+  // iOS Safari compiles the WASM pipeline substantially slower than
+  // desktop Chromium — 15 s was not enough on older iPhones and the
+  // warmup timed out, leaving the UI stuck at 96%.
+  const warmupTimeoutMs = 45000;
   let warmupDiagnostic: WarmupDiagnostic = {
     status: 'ok',
     elapsedMs: 0,
     device,
-    userAgent: typeof self !== 'undefined' && (self as any).navigator ? (self as any).navigator.userAgent : undefined,
-    hardwareConcurrency: typeof self !== 'undefined' && (self as any).navigator ? (self as any).navigator.hardwareConcurrency : undefined,
+    userAgent: typeof self !== 'undefined' && self.navigator ? self.navigator.userAgent : undefined,
+    hardwareConcurrency: typeof self !== 'undefined' && self.navigator ? self.navigator.hardwareConcurrency : undefined,
   };
   try {
     if (RawImageClass) {
@@ -342,10 +345,23 @@ async function segment(
   if (!RawImageClass) throw new Error('RawImage class not loaded');
   const image = new RawImageClass(pixels, width, height, 4);
 
-  const results = await entry.pipeline(image, {
+  // Wrap the real inference in a timeout. Warmup has its own timeout, but
+  // the first real segment on iOS Safari can still hang (seen: 90s+ stuck)
+  // after a successful warmup when heap pressure forces slow GC during
+  // tensor allocation. A hard ceiling lets the UI surface an actionable
+  // error instead of spinning forever.
+  const segmentTimeoutMs = 120000;
+  const segmentPromise = entry.pipeline(image, {
     threshold,
     return_mask: true,
   });
+  const segmentTimeout = new Promise<never>((_, reject) => {
+    setTimeout(
+      () => reject(new Error(`segment_timeout_${segmentTimeoutMs}ms`)),
+      segmentTimeoutMs,
+    );
+  });
+  const results = await Promise.race([segmentPromise, segmentTimeout]);
 
   const maskImage = results[0]?.mask;
   if (!maskImage) throw new Error('Model returned no mask');

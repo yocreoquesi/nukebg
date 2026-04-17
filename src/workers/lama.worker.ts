@@ -33,7 +33,7 @@ import {
 // Bump this version string in lockstep with package.json's onnxruntime-web
 // dependency so the runtime matches the JS API we link against.
 ort.env.wasm.wasmPaths =
-  'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.22.0-dev.20250409-89f8206ba4/dist/';
+  'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.24.3/dist/';
 
 // The LaMa graph has ~80 unused Conv shape initializers that ORT logs as
 // warnings at session-create time. They're harmless (graph optimiser

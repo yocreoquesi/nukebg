@@ -1,7 +1,7 @@
 {
   "name": "nukebg",
   "private": true,
-  "version": "2.7.1",
+  "version": "2.7.2",
   "type": "module",
   "description": "NukeBG: Nuke AI backgrounds, checkerboard patterns, and watermarks. 100% client-side. Zero uploads. Zero BS.",
   "license": "GPL-3.0",
@@ -17,16 +17,19 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.59.1",
-    "happy-dom": "^20.8.8",
+    "happy-dom": "^20.9.0",
     "sharp": "^0.34.5",
     "tsx": "^4.21.0",
-    "typescript": "^5.7.0",
-    "vite": "^6.0.0",
-    "vitest": "^4.1.1"
+    "typescript": "^6.0.2",
+    "vite": "^8.0.8",
+    "vitest": "^4.1.4"
   },
   "dependencies": {
     "@huggingface/transformers": "^3.8.1",
     "jszip": "^3.10.1",
-    "onnxruntime-web": "^1.22.0-dev.20250409-89f8206ba4"
+    "onnxruntime-web": "^1.24.3"
+  },
+  "overrides": {
+    "protobufjs": "^7.5.5"
   }
 }

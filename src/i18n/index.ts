@@ -137,6 +137,14 @@ const translations: Translations = {
     'viewer.result': 'After',
     'viewer.bg': 'BG:',
 
+    // Background preview swatches (editor + viewer)
+    'bg.checkerboard': 'Checkerboard',
+    'bg.transparent': 'Transparent',
+    'bg.white': 'White',
+    'bg.black': 'Black',
+    'bg.green': 'Green screen',
+    'bg.red': 'Red (check edges)',
+
     // Privacy
     'privacy.badge': '\uD83D\uDD12 100% Client-Side',
     'privacy.tooltip.line1': 'Your images never leave your device.',
@@ -324,6 +332,14 @@ const translations: Translations = {
     'viewer.original': 'Antes',
     'viewer.result': 'Despu\u00E9s',
     'viewer.bg': 'Fondo:',
+
+    // Background preview swatches (editor + viewer)
+    'bg.checkerboard': 'Tablero',
+    'bg.transparent': 'Transparente',
+    'bg.white': 'Blanco',
+    'bg.black': 'Negro',
+    'bg.green': 'Pantalla verde',
+    'bg.red': 'Rojo (revisar bordes)',
 
     // Privacy
     'privacy.badge': '\uD83D\uDD12 100% en tu navegador',
@@ -513,6 +529,14 @@ const translations: Translations = {
     'viewer.result': 'Apr\u00E8s',
     'viewer.bg': 'Fond :',
 
+    // Background preview swatches (editor + viewer)
+    'bg.checkerboard': 'Damier',
+    'bg.transparent': 'Transparent',
+    'bg.white': 'Blanc',
+    'bg.black': 'Noir',
+    'bg.green': 'Fond vert',
+    'bg.red': 'Rouge (v\u00E9rif bords)',
+
     // Privacy
     'privacy.badge': '\uD83D\uDD12 100% c\u00F4t\u00E9 client',
     'privacy.tooltip.line1': 'Tes images ne quittent jamais ton appareil.',
@@ -700,6 +724,14 @@ const translations: Translations = {
     'viewer.original': 'Vorher',
     'viewer.result': 'Nachher',
     'viewer.bg': 'HG:',
+
+    // Background preview swatches (editor + viewer)
+    'bg.checkerboard': 'Schachbrett',
+    'bg.transparent': 'Transparent',
+    'bg.white': 'Wei\u00DF',
+    'bg.black': 'Schwarz',
+    'bg.green': 'Gr\u00FCner Hintergrund',
+    'bg.red': 'Rot (Kanten pr\u00FCfen)',
 
     // Privacy
     'privacy.badge': '\uD83D\uDD12 100% Client-seitig',
@@ -889,6 +921,14 @@ const translations: Translations = {
     'viewer.result': 'Depois',
     'viewer.bg': 'Fundo:',
 
+    // Background preview swatches (editor + viewer)
+    'bg.checkerboard': 'Xadrez',
+    'bg.transparent': 'Transparente',
+    'bg.white': 'Branco',
+    'bg.black': 'Preto',
+    'bg.green': 'Tela verde',
+    'bg.red': 'Vermelho (ver bordas)',
+
     // Privacy
     'privacy.badge': '\uD83D\uDD12 100% no seu navegador',
     'privacy.tooltip.line1': 'Suas imagens nunca saem do seu dispositivo.',
@@ -1076,6 +1116,14 @@ const translations: Translations = {
     'viewer.original': '\u539F\u56FE',
     'viewer.result': '\u7ED3\u679C',
     'viewer.bg': '\u80CC\u666F:',
+
+    // Background preview swatches (editor + viewer)
+    'bg.checkerboard': '\u68CB\u76D8',
+    'bg.transparent': '\u900F\u660E',
+    'bg.white': '\u767D\u8272',
+    'bg.black': '\u9ED1\u8272',
+    'bg.green': '\u7EFF\u5E55',
+    'bg.red': '\u7EA2\u8272\uFF08\u68C0\u67E5\u8FB9\u7F18\uFF09',
 
     // Privacy
     'privacy.badge': '\uD83D\uDD12 100% \u672C\u5730\u5904\u7406',

@@ -558,17 +558,17 @@ export class ArEditorAdvanced extends HTMLElement {
         }
         .bg-checker {
           background-image:
-            linear-gradient(45deg, #ccc 25%, transparent 25%),
-            linear-gradient(-45deg, #ccc 25%, transparent 25%),
-            linear-gradient(45deg, transparent 75%, #ccc 75%),
-            linear-gradient(-45deg, transparent 75%, #ccc 75%);
+            linear-gradient(45deg, var(--color-preview-checker-dark) 25%, transparent 25%),
+            linear-gradient(-45deg, var(--color-preview-checker-dark) 25%, transparent 25%),
+            linear-gradient(45deg, transparent 75%, var(--color-preview-checker-dark) 75%),
+            linear-gradient(-45deg, transparent 75%, var(--color-preview-checker-dark) 75%);
           background-size: 6px 6px;
           background-position: 0 0, 0 3px, 3px -3px, 3px 0;
-          background-color: #fff;
+          background-color: var(--color-preview-checker-light);
         }
-        .bg-white { background: #fff; }
-        .bg-black { background: #000; }
-        .bg-red { background: #ff4444; }
+        .bg-white { background: var(--color-preview-white); }
+        .bg-black { background: var(--color-preview-black); }
+        .bg-red { background: var(--color-preview-red); }
         .canvas-wrap {
           background:
             linear-gradient(45deg, #1a1a1a 25%, transparent 25%) 0 0 / 12px 12px,
@@ -845,11 +845,11 @@ export class ArEditorAdvanced extends HTMLElement {
       </div>
       <div class="bg-options" role="group" aria-label="${t('viewer.bg')}">
         <span class="bg-label">${t('viewer.bg')}</span>
-        <div class="bg-btn bg-checker active" data-bg="transparent" title="Transparent"></div>
-        <div class="bg-btn bg-white" data-bg="white" title="White"></div>
-        <div class="bg-btn bg-black" data-bg="black" title="Black"></div>
-        <div class="bg-btn" style="background:#00b140" data-bg="#00b140" title="Green screen"></div>
-        <div class="bg-btn bg-red" data-bg="#ff4444" title="Red"></div>
+        <div class="bg-btn bg-checker active" data-bg="transparent" title="${t('bg.transparent')}"></div>
+        <div class="bg-btn bg-white" data-bg="white" title="${t('bg.white')}"></div>
+        <div class="bg-btn bg-black" data-bg="black" title="${t('bg.black')}"></div>
+        <div class="bg-btn" style="background:var(--color-preview-green)" data-bg="#00b140" title="${t('bg.green')}"></div>
+        <div class="bg-btn bg-red" data-bg="#ff4444" title="${t('bg.red')}"></div>
       </div>
       <div class="canvas-wrap"><canvas></canvas></div>
       <div class="controls">

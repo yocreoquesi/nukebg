@@ -12,7 +12,9 @@ import type { ArDropzone } from './ar-dropzone';
 import type { ArBatchGrid } from './ar-batch-grid';
 import type { BatchItem, StageSnapshot } from '../types/batch';
 import { createZip, safeZipEntryName, downloadBlob } from '../utils/zip';
+import { refineEdges, dropOrphanBlobs, fillSubjectHoles, promoteSpeckleAlpha } from '../pipeline/finalize';
 import { composeAtOriginal } from '../utils/final-composite';
+import { exportPng } from '../utils/image-io';
 import type { ArEditorAdvanced } from './ar-editor-advanced';
 
 export class ArApp extends HTMLElement {
@@ -83,7 +85,8 @@ export class ArApp extends HTMLElement {
         s.classList.add('ready');
       }
       this.dropzone.setEnabled(true);
-    }).catch(() => {
+    }).catch((err: unknown) => {
+      console.error('[NukeBG] Model preload failed, falling back to lazy load:', err);
       const s = statusEl();
       if (s) s.textContent = '> model loads on first image';
       // Enable dropzone anyway so user can still try
@@ -269,8 +272,8 @@ export class ArApp extends HTMLElement {
           box-shadow: 0 0 8px rgba(var(--color-accent-rgb, 0, 255, 65), 0.3);
         }
         .batch-discard-btn {
-          border-color: #3a1a1a;
-          color: #ff3131;
+          border-color: var(--color-error-border);
+          color: var(--color-error);
         }
         .batch-discard-btn:hover {
           background: rgba(255, 49, 49, 0.08);
@@ -506,7 +509,7 @@ export class ArApp extends HTMLElement {
         }
         .advanced-cta:hover {
           background: var(--color-accent-primary, #00ff41);
-          color: #000;
+          color: var(--color-text-inverse);
           box-shadow: 0 0 10px rgba(var(--color-accent-rgb, 0, 255, 65), 0.2);
         }
         .advanced-cta[data-active="true"] {
@@ -1096,7 +1099,6 @@ export class ArApp extends HTMLElement {
         this.lastResultImageData = this.preEditResult;
         this.preEditResult = null;
 
-        const { exportPng } = await import('../utils/image-io');
         const blob = await exportPng(this.lastResultImageData);
         const originalForViewer = this.currentOriginalImageData ?? this.currentImageData;
         if (originalForViewer) this.viewer.setOriginal(originalForViewer, this.currentFileSize);
@@ -1129,8 +1131,10 @@ export class ArApp extends HTMLElement {
 
     // Editor done - update viewer and download with edited result
     this.shadowRoot!.addEventListener('ar:editor-done', async (e: Event) => {
-      const editedData = (e as CustomEvent).detail.imageData as ImageData;
-      const { exportPng } = await import('../utils/image-io');
+      const rawEdited = (e as CustomEvent).detail.imageData as ImageData;
+      // Refine: foreground decontamination + quintic alpha sharpening so manual
+      // brush strokes inherit the same studio-quality edge as the main pipeline.
+      const editedData = await refineEdges(this.pipeline, rawEdited);
       const blob = await exportPng(editedData);
 
       // Save pre-edit for discard functionality
@@ -1181,11 +1185,11 @@ export class ArApp extends HTMLElement {
       const btn = this.shadowRoot!.querySelector('#advanced-cta') as HTMLElement | null;
       btn?.removeAttribute('data-active');
 
-      const { exportPng } = await import('../utils/image-io');
-      const blob = await exportPng(detail.imageData);
-      this.viewer.setResult(detail.imageData, blob);
-      await this.download.setResult(detail.imageData, this.currentFileName, 0, blob);
-      this.lastResultImageData = detail.imageData;
+      const refined = await refineEdges(this.pipeline, detail.imageData);
+      const blob = await exportPng(refined);
+      this.viewer.setResult(refined, blob);
+      await this.download.setResult(refined, this.currentFileName, 0, blob);
+      this.lastResultImageData = refined;
     }, { signal });
   }
 
@@ -1368,7 +1372,7 @@ export class ArApp extends HTMLElement {
       const result = await this.pipeline.process(imageData, ArApp.MODEL_ID, this.selectedPrecision);
       if (this.processingAborted) return;
 
-      const finalImageData = composeAtOriginal({
+      const composed = composeAtOriginal({
         originalRgba: originalImageData.data,
         originalWidth: originalImageData.width,
         originalHeight: originalImageData.height,
@@ -1377,12 +1381,21 @@ export class ArApp extends HTMLElement {
         workingHeight: result.workingHeight,
         workingAlpha: result.workingAlpha,
         inpaintMask: result.watermarkMask,
-        refineAlpha: true,
       });
+      // Drop RMBG's disconnected false-positive blobs (e.g. horizon bands,
+      // misfired watermark fragments) for classes where the subject is one
+      // body. Signatures and icons may legitimately have multiple components.
+      // fillSubjectHoles then patches α=0 holes enclosed by the body (RMBG
+      // false negatives on specular highlights). promoteSpeckleAlpha
+      // additionally promotes semi-transparent specks surrounded by dense
+      // opaque neighbors — same artefact class but partial-α instead of zero.
+      const finalImageData =
+        result.contentType === 'PHOTO' || result.contentType === 'ILLUSTRATION'
+          ? promoteSpeckleAlpha(fillSubjectHoles(dropOrphanBlobs(composed)))
+          : composed;
       const nukedPct = result.nukedPct;
       const totalTimeMs = result.totalTimeMs;
 
-      const { exportPng } = await import('../utils/image-io');
       if (this.processingAborted) return;
 
       const blob = await exportPng(finalImageData);
@@ -1537,7 +1550,7 @@ export class ArApp extends HTMLElement {
           this.selectedPrecision,
         );
         if (this.batchAborted) return;
-        const finalImageData = composeAtOriginal({
+        const composed = composeAtOriginal({
           originalRgba: item.originalImageData.data,
           originalWidth: item.originalImageData.width,
           originalHeight: item.originalImageData.height,
@@ -1546,8 +1559,11 @@ export class ArApp extends HTMLElement {
           workingHeight: result.workingHeight,
           workingAlpha: result.workingAlpha,
           inpaintMask: result.watermarkMask,
-          refineAlpha: true,
         });
+        const finalImageData =
+          result.contentType === 'PHOTO' || result.contentType === 'ILLUSTRATION'
+            ? promoteSpeckleAlpha(fillSubjectHoles(dropOrphanBlobs(composed)))
+            : composed;
         item.result = result;
         item.finalImageData = finalImageData;
         item.thumbnailUrl = this.makeThumbnail(finalImageData);
@@ -1645,7 +1661,6 @@ export class ArApp extends HTMLElement {
       // which left every stage 'pending' and blanked out every icon.
       this.replayStageHistory(item.stageHistory);
       this.download.reset();
-      const { exportPng } = await import('../utils/image-io');
       const finalImageData = item.finalImageData ?? item.result.imageData;
       const blob = await exportPng(finalImageData);
       this.viewer.setResult(finalImageData, blob);
@@ -1705,7 +1720,6 @@ export class ArApp extends HTMLElement {
   private async downloadBatchZip(): Promise<void> {
     const done = this.batchItems.filter(i => i.state === 'done' && i.result);
     if (done.length === 0) return;
-    const { exportPng } = await import('../utils/image-io');
     const files = await Promise.all(
       done.map(async (item, idx) => ({
         name: safeZipEntryName(idx + 1, done.length, item.originalName),

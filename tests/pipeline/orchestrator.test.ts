@@ -173,8 +173,12 @@ describe('Pipeline - flujo de decision (nuevo: ML soft alpha)', () => {
         }
       }
     }
-    // El test pasa si no crashea y la logica de branching funciona
-    expect(true).toBe(true);
+    // Regardless of branch, the background detector must have completed
+    // and returned structurally valid colors — this is the contract we
+    // actually care about when feeding a checkerboard into the pipeline.
+    expect(bgInfo.colorA).toHaveLength(3);
+    expect(bgInfo.colorB).toHaveLength(3);
+    expect(bgInfo.cornerVariance).toBeGreaterThanOrEqual(0);
   });
 });
 

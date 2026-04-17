@@ -2,13 +2,12 @@ import type {
   PipelineStage,
   StageStatus,
   PipelineResult,
-  BackgroundType,
   BgColorResult,
   WatermarkResult,
   ImageContentType,
 } from '../types/pipeline';
 import type { CvWorkerResponse, MlWorkerResponse, InpaintWorkerResponse, LamaWorkerResponse, ModelId, ClassifyImageResult } from '../types/worker-messages';
-import { CV_PARAMS, IMAGE_CLASSIFY_PARAMS, INPAINT_PARAMS, PRECISION_PROFILES } from './constants';
+import { IMAGE_CLASSIFY_PARAMS, INPAINT_PARAMS, PRECISION_PROFILES } from './constants';
 import type { PrecisionMode } from './constants';
 import { compositeWithFeather, dilateMask } from '../workers/cv/inpaint-blend';
 import { shouldUseLama } from '../workers/cv/lama-router';
@@ -356,6 +355,27 @@ export class PipelineOrchestrator {
   }
 
   /**
+   * Decontaminate foreground RGB from color bleed at partial-alpha edges.
+   * Runs the multi-level foreground estimator on the CV worker and returns
+   * a new RGBA buffer where the RGB is the estimated pure foreground and
+   * the alpha channel is preserved.
+   *
+   * Intended to be called at original resolution, AFTER the alpha mask has
+   * been upscaled and any inpainting composited. This is the final-stage
+   * cleanup that kills halos before export.
+   */
+  async estimateForeground(
+    pixels: Uint8ClampedArray,
+    alpha: Uint8Array,
+    width: number,
+    height: number,
+  ): Promise<Uint8ClampedArray> {
+    return this.cvCall<Uint8ClampedArray>('foreground-estimate', {
+      pixels, alpha, width, height,
+    });
+  }
+
+  /**
    * Combine N watermark masks with logical OR.
    * Returns null if all masks are null.
    */
@@ -405,14 +425,9 @@ export class PipelineOrchestrator {
     ]);
 
     const contentType: ImageContentType = classifyResult.type;
-    const bgType: BackgroundType = bgInfo.isCheckerboard
-      ? 'checkerboard'
-      : bgInfo.cornerVariance < CV_PARAMS.SOLID_BG_VARIANCE
-        ? 'solid'
-        : 'complex';
     stageTiming['detect-background'] = performance.now() - t;
-    this.emit('detect-background', 'done', `${bgType} detected [${contentType.toLowerCase()}]`);
-    console.log(`[NukeBG] Content type: ${contentType}, bg: ${bgType}`);
+    this.emit('detect-background', 'done', `${contentType.toLowerCase()} detected`);
+    if (import.meta.env.DEV) console.log(`[NukeBG] Content type: ${contentType}`);
 
     // ── SIGNATURE path: skip ML entirely, use threshold-based extraction ──
     if (contentType === 'SIGNATURE') {
@@ -430,7 +445,7 @@ export class PipelineOrchestrator {
       stageTiming['ml-segmentation'] = performance.now() - t;
       this.emit('ml-segmentation', 'done', 'Signature extracted');
 
-      return this.composeResult(originalPixels, sigAlpha, width, height, bgType, contentType, false, null, startTime, stageTiming);
+      return this.composeResult(originalPixels, sigAlpha, width, height, contentType, false, null, startTime, stageTiming);
     }
 
     // ── Stage 2: Watermark detection (CV, no ML, instant) - skip for ICON ──
@@ -481,11 +496,13 @@ export class PipelineOrchestrator {
         // (CV, instant). See shouldUseLama() for the heuristic.
         t = performance.now();
         const routerDecision = shouldUseLama(originalPixels, width, height, combinedMask);
-        console.log(
-          `[NukeBG] Inpaint router: useLama=${routerDecision.useLama} ` +
-          `(variance=${routerDecision.variance.toFixed(1)}, ` +
-          `edgeDensity=${routerDecision.edgeDensity.toFixed(1)})`,
-        );
+        if (import.meta.env.DEV) {
+          console.log(
+            `[NukeBG] Inpaint router: useLama=${routerDecision.useLama} ` +
+            `(variance=${routerDecision.variance.toFixed(1)}, ` +
+            `edgeDensity=${routerDecision.edgeDensity.toFixed(1)})`,
+          );
+        }
 
         const dilated = dilateMask(combinedMask, width, height, INPAINT_PARAMS.FEATHER_RADIUS);
         let inpaintedPixels: Uint8ClampedArray;
@@ -580,7 +597,7 @@ export class PipelineOrchestrator {
     this.emit('ml-segmentation', 'done', 'Background removed');
 
     return this.composeResult(
-      originalPixels, mlAlpha, width, height, bgType, contentType,
+      originalPixels, mlAlpha, width, height, contentType,
       watermarkRemoved, appliedWatermarkMask, startTime, stageTiming,
     );
   }
@@ -591,7 +608,6 @@ export class PipelineOrchestrator {
     finalAlpha: Uint8Array,
     width: number,
     height: number,
-    bgType: BackgroundType,
     contentType: ImageContentType,
     watermarkRemoved: boolean,
     watermarkMask: Uint8Array | null,
@@ -616,7 +632,9 @@ export class PipelineOrchestrator {
     }
     const totalPixels = width * height;
     const nukedPct = Math.round(100 * transparentPixels / totalPixels);
-    console.log(`[NukeBG] Result: ${nukedPct}% nuked, ${Math.round(100 * opaquePixels / totalPixels)}% kept, ${totalPixels - opaquePixels - transparentPixels} edge pixels`);
+    if (import.meta.env.DEV) {
+      console.log(`[NukeBG] Result: ${nukedPct}% nuked, ${Math.round(100 * opaquePixels / totalPixels)}% kept, ${totalPixels - opaquePixels - transparentPixels} edge pixels`);
+    }
 
     const resultImageData = new ImageData(resultPixels, width, height);
     const totalTimeMs = performance.now() - startTime;
@@ -629,7 +647,6 @@ export class PipelineOrchestrator {
       workingHeight: height,
       watermarkMask,
       totalTimeMs,
-      backgroundType: bgType,
       watermarkRemoved,
       nukedPct,
       stageTiming,
