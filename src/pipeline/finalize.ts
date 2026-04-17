@@ -18,8 +18,6 @@
  *      α=60 → α≈20), and keeps a ~2 px antialiased transition around the
  *      midpoint — studio-quality edge without aliasing.
  */
-import { composeAtOriginal } from '../utils/final-composite';
-
 /**
  * Minimal pipeline surface the finalize step depends on. Decouples this
  * module from the Orchestrator class so editor components (which hold the
@@ -271,21 +269,3 @@ export async function refineEdges(
   return new ImageData(new Uint8ClampedArray(rgba), w, h);
 }
 
-/**
- * Full-pipeline convenience: compose the final RGBA at original resolution,
- * then run refineEdges on it. Main and batch paths use this; editor commit
- * paths call refineEdges directly on the already-composed editor output.
- *
- * When the soft-α tail behind the subject has low luminance variance
- * (flat background), we bypass refineEdges entirely. Finalize's sharpen
- * + decontamination produces visible halos in that case — the raw
- * JBU-upscaled alpha from composeAtOriginal reads cleaner on flat bg.
- */
-export async function finalizeComposite(
-  pipeline: ForegroundEstimator | null,
-  input: Parameters<typeof composeAtOriginal>[0],
-): Promise<ImageData> {
-  const composed = composeAtOriginal(input);
-  if (hasHaloRisk(input.workingRgba, input.workingAlpha)) return composed;
-  return refineEdges(pipeline, composed);
-}
