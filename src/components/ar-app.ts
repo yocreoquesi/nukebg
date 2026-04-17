@@ -12,7 +12,8 @@ import type { ArDropzone } from './ar-dropzone';
 import type { ArBatchGrid } from './ar-batch-grid';
 import type { BatchItem, StageSnapshot } from '../types/batch';
 import { createZip, safeZipEntryName, downloadBlob } from '../utils/zip';
-import { finalizeComposite, refineEdges } from '../pipeline/finalize';
+import { refineEdges } from '../pipeline/finalize';
+import { composeAtOriginal } from '../utils/final-composite';
 import { exportPng } from '../utils/image-io';
 import type { ArEditorAdvanced } from './ar-editor-advanced';
 
@@ -1371,7 +1372,7 @@ export class ArApp extends HTMLElement {
       const result = await this.pipeline.process(imageData, ArApp.MODEL_ID, this.selectedPrecision);
       if (this.processingAborted) return;
 
-      const finalImageData = await this.finalizeImageData({
+      const finalImageData = composeAtOriginal({
         originalRgba: originalImageData.data,
         originalWidth: originalImageData.width,
         originalHeight: originalImageData.height,
@@ -1380,7 +1381,6 @@ export class ArApp extends HTMLElement {
         workingHeight: result.workingHeight,
         workingAlpha: result.workingAlpha,
         inpaintMask: result.watermarkMask,
-        refineAlpha: true,
       });
       const nukedPct = result.nukedPct;
       const totalTimeMs = result.totalTimeMs;
@@ -1419,12 +1419,6 @@ export class ArApp extends HTMLElement {
         this.enableWorkspaceButtons();
       }
     }
-  }
-
-  private finalizeImageData(
-    input: Parameters<typeof finalizeComposite>[1],
-  ): Promise<ImageData> {
-    return finalizeComposite(this.pipeline, input);
   }
 
   private makeThumbnail(imageData: ImageData, maxSide = 200): string {
@@ -1545,7 +1539,7 @@ export class ArApp extends HTMLElement {
           this.selectedPrecision,
         );
         if (this.batchAborted) return;
-        const finalImageData = await this.finalizeImageData({
+        const finalImageData = composeAtOriginal({
           originalRgba: item.originalImageData.data,
           originalWidth: item.originalImageData.width,
           originalHeight: item.originalImageData.height,
@@ -1554,7 +1548,6 @@ export class ArApp extends HTMLElement {
           workingHeight: result.workingHeight,
           workingAlpha: result.workingAlpha,
           inpaintMask: result.watermarkMask,
-          refineAlpha: true,
         });
         item.result = result;
         item.finalImageData = finalImageData;
