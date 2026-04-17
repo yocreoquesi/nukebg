@@ -167,22 +167,28 @@ export async function refineEdges(
   const h = img.height;
   const n = w * h;
 
-  // Alpha plane we pass TO the solver — its backing buffer gets transferred
-  // to the CV worker (and detached on return), so we keep a separate copy
-  // for sharpenAlpha to read from after the await.
-  const alphaForWorker = new Uint8Array(n);
-  for (let i = 0; i < n; i++) alphaForWorker[i] = img.data[i * 4 + 3];
-  const alphaForSharpen = new Uint8Array(alphaForWorker);
+  // Sharpen alpha FIRST. The solver receives the post-sharpen alpha, not
+  // the raw RMBG output, so it only runs on the narrow AA band produced
+  // by the quintic smoothstep (~1 px). Pixels that end up fully opaque
+  // (sharp ≥ 254) keep their observed RGB verbatim — the estimator's
+  // copy-through branch guarantees a 1:1 crop on the interior.
+  //
+  // This is the v2.6 behavior contract: the pipeline CROPS the original,
+  // it never repaints the visible interior. We just also decontaminate
+  // the one-pixel AA ring for clean composites on any background.
+  const alphaRaw = new Uint8Array(n);
+  for (let i = 0; i < n; i++) alphaRaw[i] = img.data[i * 4 + 3];
+  const sharp = sharpenAlpha(alphaRaw);
 
   let rgba: Uint8ClampedArray;
   if (pipeline) {
     const observed = new Uint8ClampedArray(img.data);
-    rgba = await pipeline.estimateForeground(observed, alphaForWorker, w, h);
+    // The worker transfers (detaches) the alpha buffer, so pass a copy.
+    const sharpForWorker = new Uint8Array(sharp);
+    rgba = await pipeline.estimateForeground(observed, sharpForWorker, w, h);
   } else {
     rgba = new Uint8ClampedArray(img.data);
   }
-
-  const sharp = sharpenAlpha(alphaForSharpen);
 
   // Topology cleanup on the binary derivative: drop every opaque region
   // that isn't the main subject, regardless of size. Dilate by 1 to keep

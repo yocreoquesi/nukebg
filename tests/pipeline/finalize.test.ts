@@ -125,7 +125,13 @@ describe('refineEdges', () => {
     const out = await refineEdges(stub, img);
 
     expect(calls).toHaveLength(1);
-    expect(calls[0]).toEqual({ w: 2, h: 1, alphaSample: 128 });
+    expect(calls[0].w).toBe(2);
+    expect(calls[0].h).toBe(1);
+    // Alpha passed to the solver is post-sharpen (narrow-band smoothstep),
+    // not the raw RMBG value. Input α=128 is inside the band [100, 160]
+    // and maps to the smoothstep midpoint area (roughly 100..130).
+    expect(calls[0].alphaSample).toBeGreaterThan(90);
+    expect(calls[0].alphaSample).toBeLessThan(140);
     // RGB should be the stubbed 99s (proving estimateForeground was used).
     expect(out.data[0]).toBe(99);
     expect(out.data[4]).toBe(99);
