@@ -7,6 +7,7 @@ import {
   hasHaloRisk,
   dropOrphanBlobs,
   fillSubjectHoles,
+  promoteSpeckleAlpha,
 } from '../../src/pipeline/finalize';
 
 // ImageData polyfill for happy-dom (see tests/components/ar-editor.test.ts).
@@ -415,6 +416,93 @@ describe('fillSubjectHoles', () => {
     const snapshot = Array.from(data);
     fillSubjectHoles(new ImageData(data, w, h));
     expect(Array.from(data)).toEqual(snapshot);
+  });
+});
+
+describe('promoteSpeckleAlpha', () => {
+  // Helper: 9x9 fully-opaque body with a single interior pixel at (cx, cy)
+  // holding α=alphaVal and full RGB. A 5x5 window around (cx, cy) is all α=255,
+  // so opaque_neighbors = 24/24 which clears the 75% ratio.
+  const makeBodyWithSpeck = (cx: number, cy: number, alphaVal: number) => {
+    const w = 9, h = 9;
+    const data = new Uint8ClampedArray(w * h * 4);
+    for (let i = 0; i < w * h; i++) {
+      data[i * 4 + 0] = 200;
+      data[i * 4 + 1] = 100;
+      data[i * 4 + 2] = 50;
+      data[i * 4 + 3] = 255;
+    }
+    data[(cy * w + cx) * 4 + 3] = alphaVal;
+    return { w, h, data };
+  };
+
+  it('promotes a semi-transparent speck surrounded by opaque neighbors to α=255', () => {
+    const { w, h, data } = makeBodyWithSpeck(4, 4, 150);
+    const out = promoteSpeckleAlpha(new ImageData(data, w, h));
+    expect(out.data[(4 * w + 4) * 4 + 3]).toBe(255);
+  });
+
+  it('leaves α=0 pixels alone (fillSubjectHoles handles those)', () => {
+    const { w, h, data } = makeBodyWithSpeck(4, 4, 0);
+    const out = promoteSpeckleAlpha(new ImageData(data, w, h));
+    expect(out.data[(4 * w + 4) * 4 + 3]).toBe(0);
+  });
+
+  it('leaves α=255 pixels alone (already opaque)', () => {
+    const { w, h, data } = makeBodyWithSpeck(4, 4, 255);
+    const out = promoteSpeckleAlpha(new ImageData(data, w, h));
+    expect(out.data[(4 * w + 4) * 4 + 3]).toBe(255);
+  });
+
+  it('does not promote AA edge pixels (neighborhood not opaque enough)', () => {
+    const w = 9, h = 9;
+    const data = new Uint8ClampedArray(w * h * 4);
+    // Half-plane opaque: left 5 columns α=255, right 4 columns α=0.
+    for (let y = 0; y < h; y++) {
+      for (let x = 0; x < w; x++) {
+        data[(y * w + x) * 4 + 3] = x < 5 ? 255 : 0;
+      }
+    }
+    // Put a soft AA pixel on the boundary at (4, 4) — it has ~half opaque
+    // neighbors (below 75%), so it must stay soft.
+    data[(4 * w + 4) * 4 + 3] = 180;
+    const out = promoteSpeckleAlpha(new ImageData(data, w, h));
+    expect(out.data[(4 * w + 4) * 4 + 3]).toBe(180);
+  });
+
+  it('does not mutate RGB on promoted pixels', () => {
+    const { w, h, data } = makeBodyWithSpeck(4, 4, 150);
+    data[(4 * w + 4) * 4 + 0] = 77;
+    data[(4 * w + 4) * 4 + 1] = 88;
+    data[(4 * w + 4) * 4 + 2] = 99;
+    const out = promoteSpeckleAlpha(new ImageData(data, w, h));
+    const idx = (4 * w + 4) * 4;
+    expect(out.data[idx + 0]).toBe(77);
+    expect(out.data[idx + 1]).toBe(88);
+    expect(out.data[idx + 2]).toBe(99);
+  });
+
+  it('returns a fresh ImageData (does not mutate input)', () => {
+    const { w, h, data } = makeBodyWithSpeck(4, 4, 150);
+    const snapshot = Array.from(data);
+    promoteSpeckleAlpha(new ImageData(data, w, h));
+    expect(Array.from(data)).toEqual(snapshot);
+  });
+
+  it('snapshots α before writing so promotions do not cascade through adjacent specks', () => {
+    // Two adjacent specks at (4,4) and (5,4). Without snapshotting, the first
+    // promotion would feed into the second's neighborhood count — we want the
+    // decision based on the ORIGINAL α only.
+    const w = 9, h = 9;
+    const data = new Uint8ClampedArray(w * h * 4);
+    for (let i = 0; i < w * h; i++) data[i * 4 + 3] = 255;
+    data[(4 * w + 4) * 4 + 3] = 100;
+    data[(4 * w + 5) * 4 + 3] = 100;
+    // Both have exactly 23/24 opaque neighbors under the snapshot (each sees
+    // the other as α=100, not ≥240), which is 95.8% — still ≥ 75%. Both promote.
+    const out = promoteSpeckleAlpha(new ImageData(data, w, h));
+    expect(out.data[(4 * w + 4) * 4 + 3]).toBe(255);
+    expect(out.data[(4 * w + 5) * 4 + 3]).toBe(255);
   });
 });
 

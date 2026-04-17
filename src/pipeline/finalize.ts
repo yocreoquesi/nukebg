@@ -254,6 +254,62 @@ export function dropOrphanBlobs(img: ImageData): ImageData {
   return new ImageData(out, width, height);
 }
 
+/**
+ * Promote semi-transparent specks surrounded by a dense opaque neighborhood
+ * to α=255. Dual to `fillSubjectHoles`: that one patches α=0 holes; this one
+ * patches partial-α (e.g. α=150) specks that RMBG sometimes leaves on
+ * specular highlights, chrome, or reflective paint inside the subject body.
+ *
+ * Rule: for each pixel with α in (0, 255), if at least `ratio` of neighbors
+ * in a (2r+1)² window have α ≥ `opaqueAlphaThresh`, force α=255. RGB is
+ * never touched. Runs a single pass against a snapshot, so promotions never
+ * cascade through consecutive specks.
+ *
+ * Defaults tuned from coche.jpg analysis: r=2 (5×5 window), ratio=0.75,
+ * opaqueAlphaThresh=240. This matches the observed "mostly-inside the body"
+ * neighborhood signature and ignores AA edges (which sit on the boundary
+ * where neighbor opacity drops well below 75%).
+ *
+ * Caveat: assumes the subject is a solid body whose interior should be
+ * fully opaque. Callers must gate by content type — signatures, icons and
+ * line-art illustrations can have legitimate interior anti-aliasing.
+ */
+export function promoteSpeckleAlpha(
+  img: ImageData,
+  radius: number = 2,
+  ratio: number = 0.75,
+  opaqueAlphaThresh: number = 240,
+): ImageData {
+  const { data, width, height } = img;
+  const n = width * height;
+  const alphaSnapshot = new Uint8Array(n);
+  for (let i = 0; i < n; i++) alphaSnapshot[i] = data[i * 4 + 3];
+
+  const area = (2 * radius + 1) * (2 * radius + 1) - 1;
+  const minOpaque = Math.ceil(ratio * area);
+  const out = new Uint8ClampedArray(data);
+
+  for (let y = radius; y < height - radius; y++) {
+    for (let x = radius; x < width - radius; x++) {
+      const i = y * width + x;
+      const a = alphaSnapshot[i];
+      if (a === 0 || a === 255) continue;
+
+      let opaque = 0;
+      for (let dy = -radius; dy <= radius; dy++) {
+        const row = (y + dy) * width;
+        for (let dx = -radius; dx <= radius; dx++) {
+          if (dx === 0 && dy === 0) continue;
+          if (alphaSnapshot[row + x + dx] >= opaqueAlphaThresh) opaque++;
+        }
+      }
+      if (opaque >= minOpaque) out[i * 4 + 3] = 255;
+    }
+  }
+
+  return new ImageData(out, width, height);
+}
+
 export function sharpenAlpha(alpha: Uint8Array): Uint8Array {
   const out = new Uint8Array(alpha.length);
   const range = SHARPEN_HIGH - SHARPEN_LOW;
