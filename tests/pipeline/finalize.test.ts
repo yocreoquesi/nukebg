@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { sharpenAlpha, refineEdges } from '../../src/pipeline/finalize';
+import { sharpenAlpha, refineEdges, keepLargestComponent } from '../../src/pipeline/finalize';
 
 // ImageData polyfill for happy-dom (see tests/components/ar-editor.test.ts).
 if (typeof globalThis.ImageData === 'undefined') {
@@ -75,8 +75,9 @@ describe('refineEdges', () => {
   it('without pipeline: RGB is untouched, α is sharpened', async () => {
     const w = 4, h = 1;
     const data = new Uint8ClampedArray(w * h * 4);
-    // One opaque, two soft, one transparent
-    data.set([255, 0, 0, 255,   100, 100, 100, 30,   50, 50, 50, 200,   0, 0, 0, 0]);
+    // Connected blob on the left (opaque + AA edge), halo tail + transparent on the right.
+    // Layout keeps both bin=1 pixels adjacent so the CC keep-largest pass preserves them.
+    data.set([255, 0, 0, 255,   100, 100, 100, 200,   50, 50, 50, 30,   0, 0, 0, 0]);
     const img = new ImageData(data, w, h);
 
     const out = await refineEdges(null, img);
@@ -88,10 +89,10 @@ describe('refineEdges', () => {
       expect(out.data[i * 4 + 2]).toBe(data[i * 4 + 2]);
     }
 
-    // α=30 collapses to near-0, α=200 pushes toward ~231
-    expect(out.data[7]).toBeLessThan(5);          // was 30
-    expect(out.data[11]).toBeGreaterThan(215);    // was 200
+    // α=200 pushes toward ~231, α=30 collapses to near-0
     expect(out.data[3]).toBe(255);                // opaque endpoint
+    expect(out.data[7]).toBeGreaterThan(215);     // was 200
+    expect(out.data[11]).toBeLessThan(5);         // was 30
     expect(out.data[15]).toBe(0);                 // transparent endpoint
   });
 
@@ -139,5 +140,77 @@ describe('refineEdges', () => {
     await refineEdges(null, img);
 
     expect(Array.from(img.data)).toEqual(snapshot);
+  });
+
+  it('removes isolated opaque blobs disconnected from the main subject', async () => {
+    // 5x5: a 3x3 opaque block in the middle (main subject) plus one
+    // opaque pixel in the bottom-right corner (stray RMBG artifact).
+    const w = 5, h = 5;
+    const data = new Uint8ClampedArray(w * h * 4);
+    const setPixel = (x: number, y: number, a: number) => {
+      const i = (y * w + x) * 4;
+      data[i] = 200; data[i + 1] = 100; data[i + 2] = 50; data[i + 3] = a;
+    };
+    // Main 2x2 blob at (0,0)-(1,1), fully opaque
+    for (let y = 0; y <= 1; y++) for (let x = 0; x <= 1; x++) setPixel(x, y, 255);
+    // Stray opaque pixel at (4,4), far from the blob (dilate1 radius is only 1 px)
+    setPixel(4, 4, 255);
+
+    const out = await refineEdges(null, new ImageData(data, w, h));
+
+    // Main blob: still opaque
+    for (let y = 0; y <= 1; y++) {
+      for (let x = 0; x <= 1; x++) {
+        expect(out.data[(y * w + x) * 4 + 3]).toBe(255);
+      }
+    }
+    // Stray pixel: gone
+    expect(out.data[(4 * w + 4) * 4 + 3]).toBe(0);
+  });
+});
+
+describe('keepLargestComponent', () => {
+  it('leaves a single component untouched', () => {
+    const bin = new Uint8Array([
+      0, 1, 1, 0,
+      0, 1, 1, 0,
+      0, 0, 0, 0,
+    ]);
+    const snapshot = Array.from(bin);
+    keepLargestComponent(bin, 4, 3);
+    expect(Array.from(bin)).toEqual(snapshot);
+  });
+
+  it('drops smaller components, keeps the largest', () => {
+    // Left 2x2 block (4 pixels) and right isolated pixel (1 pixel)
+    const bin = new Uint8Array([
+      1, 1, 0, 0, 1,
+      1, 1, 0, 0, 0,
+      0, 0, 0, 0, 0,
+    ]);
+    keepLargestComponent(bin, 5, 3);
+    expect(Array.from(bin)).toEqual([
+      1, 1, 0, 0, 0,
+      1, 1, 0, 0, 0,
+      0, 0, 0, 0, 0,
+    ]);
+  });
+
+  it('uses 8-connectivity (diagonal neighbors count as connected)', () => {
+    // Two pixels touching only diagonally — one component under 8-connectivity
+    const bin = new Uint8Array([
+      1, 0, 0,
+      0, 1, 0,
+      0, 0, 0,
+    ]);
+    const snapshot = Array.from(bin);
+    keepLargestComponent(bin, 3, 3);
+    expect(Array.from(bin)).toEqual(snapshot);
+  });
+
+  it('handles an empty mask without errors', () => {
+    const bin = new Uint8Array(9);
+    keepLargestComponent(bin, 3, 3);
+    expect(Array.from(bin)).toEqual([0, 0, 0, 0, 0, 0, 0, 0, 0]);
   });
 });
