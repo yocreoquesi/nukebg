@@ -113,7 +113,7 @@ export function hasHaloRisk(
  * intentional transparency (bike wheel spokes, donut hole, window cut-outs
  * on product shots) and left alone.
  */
-const MAX_HOLE_FILL_SIZE_PX = 50;
+const MAX_HOLE_FILL_SIZE_PX = 200;
 
 /**
  * Fill disconnected α=0 regions inside the subject. Runs a 4-connected
