@@ -106,6 +106,32 @@ export function hasHaloRisk(
   return tailLuminanceVariance(workingRgba, workingAlpha) < threshold;
 }
 
+/**
+ * Topology-only cleanup: zero α on any pixel that isn't part of the largest
+ * 8-connected component of the subject mask. Does NOT modify RGB and does
+ * NOT reshape α on surviving pixels — only drops orphan blobs that RMBG
+ * sometimes emits (horizontal background bands, detached watermark fragments,
+ * misclassified hotspots). Safe to apply unconditionally on any composed
+ * RGBA because it cannot introduce halos, cannot kill weak-body α, and
+ * cannot smear edges.
+ *
+ * Caveat: inappropriate for classes where legitimate subject lives in
+ * multiple disconnected components (signatures with accent dots, icon sets).
+ * Callers must gate by content type.
+ */
+export function dropOrphanBlobs(img: ImageData): ImageData {
+  const { data, width, height } = img;
+  const n = width * height;
+  const bin = new Uint8Array(n);
+  for (let i = 0; i < n; i++) bin[i] = data[i * 4 + 3] > 0 ? 1 : 0;
+  keepLargestComponent(bin, width, height);
+  const out = new Uint8ClampedArray(data);
+  for (let i = 0; i < n; i++) {
+    if (!bin[i]) out[i * 4 + 3] = 0;
+  }
+  return new ImageData(out, width, height);
+}
+
 export function sharpenAlpha(alpha: Uint8Array): Uint8Array {
   const out = new Uint8Array(alpha.length);
   const range = SHARPEN_HIGH - SHARPEN_LOW;

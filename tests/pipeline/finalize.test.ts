@@ -5,6 +5,7 @@ import {
   keepLargestComponent,
   tailLuminanceVariance,
   hasHaloRisk,
+  dropOrphanBlobs,
 } from '../../src/pipeline/finalize';
 
 // ImageData polyfill for happy-dom (see tests/components/ar-editor.test.ts).
@@ -256,6 +257,86 @@ describe('tailLuminanceVariance / hasHaloRisk', () => {
     const { rgba, alpha } = makeFrame(300, () => [50, 50, 50]);
     expect(hasHaloRisk(rgba, alpha, 100)).toBe(true);
     expect(hasHaloRisk(rgba, alpha, 0)).toBe(false);
+  });
+});
+
+describe('dropOrphanBlobs', () => {
+  it('zeros α on disconnected blobs and preserves the main body verbatim', () => {
+    // 5x5 canvas. Main 3x3 opaque block top-left, stray opaque pixel at (4,4).
+    const w = 5, h = 5;
+    const data = new Uint8ClampedArray(w * h * 4);
+    const paint = (x: number, y: number, r: number, g: number, b: number, a: number) => {
+      const i = (y * w + x) * 4;
+      data[i] = r; data[i + 1] = g; data[i + 2] = b; data[i + 3] = a;
+    };
+    for (let y = 0; y < 3; y++) for (let x = 0; x < 3; x++) paint(x, y, 200, 100, 50, 255);
+    paint(4, 4, 50, 50, 50, 128);
+
+    const out = dropOrphanBlobs(new ImageData(data, w, h));
+
+    // Main body: α preserved exactly
+    for (let y = 0; y < 3; y++) {
+      for (let x = 0; x < 3; x++) {
+        expect(out.data[(y * w + x) * 4 + 3]).toBe(255);
+      }
+    }
+    // Stray pixel: α zeroed
+    expect(out.data[(4 * w + 4) * 4 + 3]).toBe(0);
+  });
+
+  it('does not mutate RGB on any pixel', () => {
+    const w = 4, h = 4;
+    const data = new Uint8ClampedArray(w * h * 4);
+    for (let i = 0; i < w * h; i++) {
+      data[i * 4] = (i * 7) % 256;
+      data[i * 4 + 1] = (i * 13) % 256;
+      data[i * 4 + 2] = (i * 19) % 256;
+      data[i * 4 + 3] = i < 6 ? 200 : 0;
+    }
+    const snapshot = Array.from(data);
+
+    const out = dropOrphanBlobs(new ImageData(data, w, h));
+
+    for (let i = 0; i < w * h; i++) {
+      expect(out.data[i * 4]).toBe(snapshot[i * 4]);
+      expect(out.data[i * 4 + 1]).toBe(snapshot[i * 4 + 1]);
+      expect(out.data[i * 4 + 2]).toBe(snapshot[i * 4 + 2]);
+    }
+  });
+
+  it('preserves soft α on the AA ring of the kept component', () => {
+    // 7x7 canvas: 3x3 block at (1..3,1..3) with opaque center + AA ring,
+    // and a stray α=200 at (6,6) — Chebyshev distance 3 from the block,
+    // far enough to survive 8-connectivity's diagonal reach.
+    const w = 7, h = 7;
+    const data = new Uint8ClampedArray(w * h * 4);
+    const paint = (x: number, y: number, a: number) => {
+      const i = (y * w + x) * 4;
+      data[i] = 120; data[i + 1] = 120; data[i + 2] = 120; data[i + 3] = a;
+    };
+    for (let y = 1; y <= 3; y++) {
+      for (let x = 1; x <= 3; x++) {
+        paint(x, y, (x === 2 && y === 2) ? 255 : 64);
+      }
+    }
+    paint(6, 6, 200); // disconnected
+
+    const out = dropOrphanBlobs(new ImageData(data, w, h));
+
+    // AA ring around the main body kept (α=64 survives)
+    expect(out.data[(1 * w + 1) * 4 + 3]).toBe(64);
+    expect(out.data[(2 * w + 2) * 4 + 3]).toBe(255);
+    // Stray dropped
+    expect(out.data[(6 * w + 6) * 4 + 3]).toBe(0);
+  });
+
+  it('returns a fresh ImageData (does not mutate input)', () => {
+    const w = 3, h = 3;
+    const data = new Uint8ClampedArray(w * h * 4);
+    for (let i = 0; i < w * h; i++) data[i * 4 + 3] = 255;
+    const snapshot = Array.from(data);
+    dropOrphanBlobs(new ImageData(data, w, h));
+    expect(Array.from(data)).toEqual(snapshot);
   });
 });
 

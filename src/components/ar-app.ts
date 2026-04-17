@@ -12,7 +12,7 @@ import type { ArDropzone } from './ar-dropzone';
 import type { ArBatchGrid } from './ar-batch-grid';
 import type { BatchItem, StageSnapshot } from '../types/batch';
 import { createZip, safeZipEntryName, downloadBlob } from '../utils/zip';
-import { refineEdges } from '../pipeline/finalize';
+import { refineEdges, dropOrphanBlobs } from '../pipeline/finalize';
 import { composeAtOriginal } from '../utils/final-composite';
 import { exportPng } from '../utils/image-io';
 import type { ArEditorAdvanced } from './ar-editor-advanced';
@@ -1372,7 +1372,7 @@ export class ArApp extends HTMLElement {
       const result = await this.pipeline.process(imageData, ArApp.MODEL_ID, this.selectedPrecision);
       if (this.processingAborted) return;
 
-      const finalImageData = composeAtOriginal({
+      const composed = composeAtOriginal({
         originalRgba: originalImageData.data,
         originalWidth: originalImageData.width,
         originalHeight: originalImageData.height,
@@ -1382,6 +1382,13 @@ export class ArApp extends HTMLElement {
         workingAlpha: result.workingAlpha,
         inpaintMask: result.watermarkMask,
       });
+      // Drop RMBG's disconnected false-positive blobs (e.g. horizon bands,
+      // misfired watermark fragments) for classes where the subject is one
+      // body. Signatures and icons may legitimately have multiple components.
+      const finalImageData =
+        result.contentType === 'PHOTO' || result.contentType === 'ILLUSTRATION'
+          ? dropOrphanBlobs(composed)
+          : composed;
       const nukedPct = result.nukedPct;
       const totalTimeMs = result.totalTimeMs;
 
@@ -1539,7 +1546,7 @@ export class ArApp extends HTMLElement {
           this.selectedPrecision,
         );
         if (this.batchAborted) return;
-        const finalImageData = composeAtOriginal({
+        const composed = composeAtOriginal({
           originalRgba: item.originalImageData.data,
           originalWidth: item.originalImageData.width,
           originalHeight: item.originalImageData.height,
@@ -1549,6 +1556,10 @@ export class ArApp extends HTMLElement {
           workingAlpha: result.workingAlpha,
           inpaintMask: result.watermarkMask,
         });
+        const finalImageData =
+          result.contentType === 'PHOTO' || result.contentType === 'ILLUSTRATION'
+            ? dropOrphanBlobs(composed)
+            : composed;
         item.result = result;
         item.finalImageData = finalImageData;
         item.thumbnailUrl = this.makeThumbnail(finalImageData);
