@@ -27,6 +27,9 @@
   "dependencies": {
     "@huggingface/transformers": "^3.8.1",
     "jszip": "^3.10.1",
-    "onnxruntime-web": "^1.22.0-dev.20250409-89f8206ba4"
+    "onnxruntime-web": "^1.24.3"
+  },
+  "overrides": {
+    "protobufjs": "^7.5.5"
   }
 }

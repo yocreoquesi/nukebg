@@ -24,7 +24,7 @@ const SAM_PARAMS = {
 } as const;
 
 ort.env.wasm.wasmPaths =
-  'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.22.0-dev.20250409-89f8206ba4/dist/';
+  'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.24.3/dist/';
 ort.env.logLevel = 'error';
 
 let encoderSession: ort.InferenceSession | null = null;
