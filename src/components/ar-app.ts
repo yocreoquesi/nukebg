@@ -271,8 +271,8 @@ export class ArApp extends HTMLElement {
           box-shadow: 0 0 8px rgba(var(--color-accent-rgb, 0, 255, 65), 0.3);
         }
         .batch-discard-btn {
-          border-color: #3a1a1a;
-          color: #ff3131;
+          border-color: var(--color-error-border);
+          color: var(--color-error);
         }
         .batch-discard-btn:hover {
           background: rgba(255, 49, 49, 0.08);
@@ -508,7 +508,7 @@ export class ArApp extends HTMLElement {
         }
         .advanced-cta:hover {
           background: var(--color-accent-primary, #00ff41);
-          color: #000;
+          color: var(--color-text-inverse);
           box-shadow: 0 0 10px rgba(var(--color-accent-rgb, 0, 255, 65), 0.2);
         }
         .advanced-cta[data-active="true"] {

@@ -135,7 +135,7 @@ export class ArDownload extends HTMLElement {
         .download-bar.visible { display: flex; }
         .btn-primary {
           background: var(--color-accent-primary, #00ff41);
-          color: #000;
+          color: var(--color-text-inverse, #000);
           border: none;
           padding: 12px 24px;
           border-radius: 0;

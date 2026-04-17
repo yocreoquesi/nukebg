@@ -190,7 +190,7 @@ export class ArEditor extends HTMLElement {
           align-items: center;
           gap: var(--space-3, 0.75rem);
           padding: var(--space-2, 0.5rem) var(--space-3, 0.75rem);
-          background: #000;
+          background: var(--color-bg-primary, #000);
           border: 1px solid var(--color-surface-border, #1a3a1a);
           border-radius: 0;
           flex-wrap: wrap;
@@ -208,7 +208,7 @@ export class ArEditor extends HTMLElement {
           white-space: nowrap;
         }
         .toolbar select, .toolbar input[type="range"] {
-          background: #0a0a0a;
+          background: var(--color-bg-secondary, #0a0a0a);
           color: var(--color-accent-primary, #00ff41);
           border: 1px solid var(--color-surface-border, #1a3a1a);
           border-radius: 0;
@@ -227,7 +227,7 @@ export class ArEditor extends HTMLElement {
           text-align: center;
         }
         .toolbar-btn {
-          background: #0a0a0a;
+          background: var(--color-bg-secondary, #0a0a0a);
           color: var(--color-accent-primary, #00ff41);
           border: 1px solid var(--color-surface-border, #1a3a1a);
           border-radius: 0;
@@ -250,7 +250,7 @@ export class ArEditor extends HTMLElement {
         }
         .toolbar-btn.primary {
           background: var(--color-accent-primary, #00ff41);
-          color: #000;
+          color: var(--color-text-inverse, #000);
           border-color: var(--color-accent-primary, #00ff41);
         }
         .toolbar-btn.primary:hover {
@@ -266,7 +266,7 @@ export class ArEditor extends HTMLElement {
           bottom: 100%;
           right: 0;
           margin-bottom: 8px;
-          background: #0a0a0a;
+          background: var(--color-bg-secondary, #0a0a0a);
           border: 1px solid var(--color-surface-border, #1a3a1a);
           border-radius: 0;
           padding: 12px 16px;
@@ -285,7 +285,7 @@ export class ArEditor extends HTMLElement {
         }
         .help-tooltip kbd {
           display: inline-block;
-          background: #000;
+          background: var(--color-bg-primary, #000);
           border: 1px solid var(--color-surface-border, #1a3a1a);
           border-radius: 0;
           padding: 1px 5px;
@@ -306,7 +306,7 @@ export class ArEditor extends HTMLElement {
           border: 1px solid var(--color-surface-border, #1a3a1a);
           border-radius: 0;
           overflow: hidden;
-          background: #000;
+          background: var(--color-bg-primary, #000);
           min-height: 400px;
           display: flex;
           align-items: center;
@@ -319,7 +319,7 @@ export class ArEditor extends HTMLElement {
           display: flex;
           justify-content: flex-end;
           padding: var(--space-2, 0.5rem) var(--space-3, 0.75rem);
-          background: #000;
+          background: var(--color-bg-primary, #000);
           border: 1px solid var(--color-surface-border, #1a3a1a);
           border-radius: 0;
         }
