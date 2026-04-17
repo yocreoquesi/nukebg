@@ -93,23 +93,31 @@ export const ALPHA_PARAMS = {
   THRESHOLD_LOW: 30,
 } as const;
 
-export const GUIDED_FILTER_PARAMS = {
-  /** Box filter radius for alpha matting guided filter */
-  RADIUS: 15,
-  /** Regularization to prevent division by zero in flat regions */
-  EPSILON: 1e-4,
-} as const;
-
-export const JBU_PARAMS = {
-  /** Spatial kernel radius (pixels in the LOW-RES mask).
-   *  Larger = smoother but slower (O(r²) per pixel). 4-6 is sweet spot. */
-  RADIUS: 5,
-  /** Spatial Gaussian sigma (pixels in low-res space). */
-  SIGMA_SPATIAL: 3.0,
-  /** Range Gaussian sigma (intensity units 0-255 in the guidance image).
-   *  Controls edge sensitivity: lower = sharper edges, higher = smoother.
-   *  20-30 works well for natural images. */
-  SIGMA_RANGE: 25.0,
+/**
+ * Post-upsample alpha edge refinement params. After the working-res alpha
+ * is bilinear-upsampled to original resolution, the edge sits inside a
+ * ~4-8 px soft band that is not aligned with the real RGB gradient. A
+ * tight guided filter at original resolution, driven by the original
+ * luminance, snaps that soft band to the image edge so finalize.ts's
+ * quintic sharpen lands on the correct pixel.
+ *
+ * Only applied when a downscale actually occurred (working res < original).
+ * The filter is restricted to the trimap band: pixels at α ≤ BAND_LO or
+ * α ≥ BAND_HI are passed through verbatim so pure background and pure body
+ * never drift.
+ */
+export const EDGE_REFINE_PARAMS = {
+  /** Box filter radius in ORIGINAL-res pixels. Small on purpose: we want
+   *  local edge snap, not smoothing. 4 px is enough to bridge the
+   *  bilinear-upsample residual band without washing hair/fur detail. */
+  RADIUS: 4,
+  /** Regularization — small value = stronger structure transfer from the
+   *  guide (snap the alpha edge to RGB gradient). Higher = more smoothing. */
+  EPSILON: 1e-3,
+  /** Pixels with α ≤ this are kept verbatim (true background). */
+  BAND_LO: 10,
+  /** Pixels with α ≥ this are kept verbatim (true foreground body). */
+  BAND_HI: 245,
 } as const;
 
 
