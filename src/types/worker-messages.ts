@@ -107,6 +107,7 @@ export type CvWorkerResponse =
   | { id: string; type: 'detect-bg-colors'; result: BgColorResult }
   | { id: string; type: 'watermark-detect'; result: WatermarkResult }
   | { id: string; type: 'watermark-detect-dalle'; result: WatermarkResult }
+  | { id: string; type: 'sparkle-detect'; result: WatermarkResult }
   | { id: string; type: 'alpha-refine'; result: Uint8Array }
   | { id: string; type: 'classify-image'; result: ClassifyImageResult }
   | { id: string; type: 'signature-threshold'; result: Uint8Array }
