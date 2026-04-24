@@ -59,10 +59,52 @@ export class ArApp extends HTMLElement {
 
   connectedCallback(): void {
     this.abortController = new AbortController();
+    // #79 — resolve playful mode before the first render so the rest of
+    // the component tree sees the correct `data-playful` attribute.
+    this.resolvePlayfulMode();
     this.render();
     this.setupComponents();
     this.setupEvents();
     this.preloadModel();
+  }
+
+  /**
+   * Decide whether playful (CRT / smoke / vibrate / palette swap) is on.
+   * Priority: explicit localStorage pref → prefers-reduced-motion → on.
+   */
+  private resolvePlayfulMode(): void {
+    try {
+      const stored = localStorage.getItem('nukebg:playful');
+      if (stored === 'true' || stored === 'false') {
+        document.documentElement.dataset.playful = stored;
+        return;
+      }
+    } catch {
+      // localStorage unavailable (Safari private mode); fall through.
+    }
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    document.documentElement.dataset.playful = reducedMotion ? 'false' : 'true';
+  }
+
+  private setPlayfulMode(playful: boolean): void {
+    document.documentElement.dataset.playful = playful ? 'true' : 'false';
+    try { localStorage.setItem('nukebg:playful', playful ? 'true' : 'false'); } catch {
+      /* ignore storage failures */
+    }
+    // Re-apply the current precision so visuals appear / vanish in place.
+    const idx = ['low-power', 'normal', 'high-power', 'full-nuke'].indexOf(this.selectedPrecision);
+    if (idx >= 0) this.applyPrecisionSideEffects(idx);
+    // Also sync the footer toggle label.
+    this.syncQuietModeToggle();
+  }
+
+  private syncQuietModeToggle(): void {
+    // Footer lives in light DOM (index.html), not the ar-app shadow root.
+    const btn = document.getElementById('quiet-mode-toggle') as HTMLButtonElement | null;
+    if (!btn) return;
+    const playful = this.isPlayful();
+    btn.textContent = playful ? `# ${t('footer.quietMode')}` : `# ${t('footer.playfulMode')}`;
+    btn.setAttribute('aria-pressed', playful ? 'false' : 'true');
   }
 
   /** Pre-load model + warmup as soon as page opens */
@@ -1253,6 +1295,14 @@ export class ArApp extends HTMLElement {
       this.resetToIdle();
     }, { signal });
 
+    // #79 — quiet-mode toggle lives in the footer (light DOM).
+    const quietBtn = document.getElementById('quiet-mode-toggle');
+    quietBtn?.addEventListener('click', () => {
+      this.setPlayfulMode(!this.isPlayful());
+    }, { signal });
+    // Initial label translation.
+    this.syncQuietModeToggle();
+
     // Error modal wiring (#36).
     const retryBtn = this.shadowRoot!.querySelector('#error-modal-retry') as HTMLButtonElement | null;
     const dismissBtn = this.shadowRoot!.querySelector('#error-modal-dismiss') as HTMLButtonElement | null;
@@ -1543,6 +1593,48 @@ export class ArApp extends HTMLElement {
   }
 
   /**
+   * Whether the UI is in "playful" mode — drives CRT flicker, smoke
+   * overlay, H1 vibration, and the per-precision-mode color palette
+   * swap. Default is on; users in quiet mode or with
+   * `prefers-reduced-motion: reduce` get the calm green default.
+   */
+  private isPlayful(): boolean {
+    return document.documentElement.dataset.playful !== 'false';
+  }
+
+  /**
+   * Reset every visual mutation that playful mode installs. Called
+   * when the user flips quiet mode on and when an out-of-mode
+   * applyPrecisionSideEffects() lands in quiet mode.
+   */
+  private clearPlayfulState(): void {
+    const props = [
+      '--terminal-color-override',
+      '--color-text-primary',
+      '--color-text-secondary',
+      '--color-text-tertiary',
+      '--color-accent-primary',
+      '--color-accent-rgb',
+      '--color-accent-glow',
+      '--color-accent-muted',
+      '--color-accent-hover',
+      '--color-surface-border',
+      '--color-surface-hover',
+      '--color-surface-active',
+      '--color-success',
+      '--color-info',
+    ];
+    for (const p of props) document.documentElement.style.removeProperty(p);
+    this.classList.remove('precision-override', 'nuke-vibrate');
+    this.stopCrtFlicker();
+    const smoke = document.getElementById('smoke-overlay');
+    if (smoke) smoke.classList.remove('active');
+    const marquee = this.shadowRoot?.querySelector('#precision-marquee-bleed') as HTMLElement | null;
+    const marqueeWs = this.shadowRoot?.querySelector('#precision-marquee-ws') as HTMLElement | null;
+    [marquee, marqueeWs].forEach(m => { if (m) m.style.color = ''; });
+  }
+
+  /**
    * Apply a reactor precision level (0=low, 1=normal, 2=high, 3=full-nuke).
    * Syncs both segmented controls' `aria-pressed` state, swaps marquee
    * copy, applies per-mode global CSS var overrides, toggles the
@@ -1571,6 +1663,19 @@ export class ArApp extends HTMLElement {
    * out of the original `#precision-slider` input handler.
    */
   private applyPrecisionSideEffects(val: number): void {
+    // #79 — visual-only effects (color palette swap, CRT flicker,
+    // smoke, H1 vibrate) are gated by the data-playful attribute.
+    // The selected mode itself still flows through to the ML pipeline
+    // via `this.selectedPrecision` regardless. Quiet mode preserves
+    // the default green palette and stops the CRT / smoke / vibrate.
+    if (!this.isPlayful()) {
+      // Make sure no lingering state from a previous playful run
+      // leaks into quiet mode (colors reset, classes cleared,
+      // flicker stopped, smoke hidden).
+      this.clearPlayfulState();
+      return;
+    }
+
     const marquee = this.shadowRoot!.querySelector('#precision-marquee-bleed') as HTMLElement;
     const marqueeWs = this.shadowRoot!.querySelector('#precision-marquee-ws') as HTMLElement;
     const smoke = document.getElementById('smoke-overlay');

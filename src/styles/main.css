@@ -456,6 +456,29 @@ body::after {
   color: var(--color-accent-primary);
   text-shadow: 0 0 6px var(--color-accent-glow);
 }
+/* Quiet-mode toggle (#79) — matches the footer-cache-btn tone since
+   both sit in the same footer row. aria-pressed="true" (i.e. user
+   has turned playful OFF) gets a brighter accent tint. */
+.footer-quiet-btn {
+  appearance: none;
+  background: transparent;
+  border: none;
+  color: var(--color-text-tertiary);
+  font-family: inherit;
+  font-size: inherit;
+  padding: 0;
+  cursor: pointer;
+  transition: color var(--duration-normal), text-shadow var(--duration-normal);
+}
+.footer-quiet-btn:hover,
+.footer-quiet-btn:focus-visible {
+  color: var(--color-accent-primary);
+  text-shadow: 0 0 6px var(--color-accent-glow);
+  outline: none;
+}
+.footer-quiet-btn[aria-pressed="true"] {
+  color: var(--color-accent-primary);
+}
 
 .footer-privacy {
   display: block;

@@ -185,6 +185,8 @@ const translations: Translations = {
     'download.cta.webp': '$ download --webp',
     'download.meta.alpha': 'alpha',
     'download.groupLabel': 'Download',
+    'footer.quietMode': 'quiet mode',
+    'footer.playfulMode': 'playful mode',
     'reactor.highPower': 'High power burns more fuel. <a href="https://ko-fi.com/yocreoquesi" target="_blank" rel="noopener">Recharge on Ko-fi</a>.',
     'reactor.fullNuke': 'FULL NUKE MODE drains the core. <a href="https://ko-fi.com/yocreoquesi" target="_blank" rel="noopener">Prevent meltdown on Ko-fi</a>.',
 
@@ -406,6 +408,8 @@ const translations: Translations = {
     'download.cta.webp': '$ download --webp',
     'download.meta.alpha': 'alfa',
     'download.groupLabel': 'Descargar',
+    'footer.quietMode': 'modo silencio',
+    'footer.playfulMode': 'modo playful',
     'reactor.highPower': 'Alta potencia consume m\u00E1s combustible. <a href="https://ko-fi.com/yocreoquesi" target="_blank" rel="noopener">Recarga en Ko-fi</a>.',
     'reactor.fullNuke': 'MODO NUKE TOTAL agota el n\u00FAcleo. <a href="https://ko-fi.com/yocreoquesi" target="_blank" rel="noopener">Evita el colapso en Ko-fi</a>.',
 
@@ -627,6 +631,8 @@ const translations: Translations = {
     'download.cta.webp': '$ download --webp',
     'download.meta.alpha': 'alpha',
     'download.groupLabel': 'Télécharger',
+    'footer.quietMode': 'mode silencieux',
+    'footer.playfulMode': 'mode expressif',
     'reactor.highPower': 'Haute puissance br\u00FBle plus de combustible. <a href="https://ko-fi.com/yocreoquesi" target="_blank" rel="noopener">Recharge sur Ko-fi</a>.',
     'reactor.fullNuke': 'MODE NUKE TOTAL \u00E9puise le c\u0153ur. <a href="https://ko-fi.com/yocreoquesi" target="_blank" rel="noopener">\u00C9vite l\u2019effondrement sur Ko-fi</a>.',
 
@@ -848,6 +854,8 @@ const translations: Translations = {
     'download.cta.webp': '$ download --webp',
     'download.meta.alpha': 'alpha',
     'download.groupLabel': 'Herunterladen',
+    'footer.quietMode': 'ruhemodus',
+    'footer.playfulMode': 'lebhaft',
     'reactor.highPower': 'Hohe Leistung verbrennt mehr Treibstoff. <a href="https://ko-fi.com/yocreoquesi" target="_blank" rel="noopener">Nachtanken auf Ko-fi</a>.',
     'reactor.fullNuke': 'VOLLER NUKE-MODUS ersch\u00F6pft den Kern. <a href="https://ko-fi.com/yocreoquesi" target="_blank" rel="noopener">Kernschmelze verhindern auf Ko-fi</a>.',
 
@@ -1069,6 +1077,8 @@ const translations: Translations = {
     'download.cta.webp': '$ download --webp',
     'download.meta.alpha': 'alfa',
     'download.groupLabel': 'Baixar',
+    'footer.quietMode': 'modo silencioso',
+    'footer.playfulMode': 'modo brincalhão',
     'reactor.highPower': 'Alta pot\u00EAncia queima mais combust\u00EDvel. <a href="https://ko-fi.com/yocreoquesi" target="_blank" rel="noopener">Recarrega no Ko-fi</a>.',
     'reactor.fullNuke': 'MODO NUKE TOTAL esgota o n\u00FAcleo. <a href="https://ko-fi.com/yocreoquesi" target="_blank" rel="noopener">Evita o colapso no Ko-fi</a>.',
 
@@ -1290,6 +1300,8 @@ const translations: Translations = {
     'download.cta.webp': '$ download --webp',
     'download.meta.alpha': '\u900F\u660E\u901A\u9053',
     'download.groupLabel': '\u4E0B\u8F7D',
+    'footer.quietMode': '\u5B89\u9759\u6A21\u5F0F',
+    'footer.playfulMode': '\u6D3B\u6CFC\u6A21\u5F0F',
     'reactor.highPower': '\u9AD8\u529F\u7387\u71C3\u70E7\u66F4\u591A\u71C3\u6599\u3002<a href="https://ko-fi.com/yocreoquesi" target="_blank" rel="noopener">\u5728 Ko-fi \u4E0A\u5145\u7535</a>\u3002',
     'reactor.fullNuke': '\u5168\u529B\u6838\u7206\u6A21\u5F0F\u8017\u5C3D\u5806\u82AF\u3002<a href="https://ko-fi.com/yocreoquesi" target="_blank" rel="noopener">\u5728 Ko-fi \u4E0A\u963B\u6B62\u5D29\u6E83</a>\u3002',
 
