@@ -169,6 +169,22 @@ OPEN SOURCE.             Don't trust us -- verify.
 | Open source | Yes (GPL-3.0) | No | No | No |
 | Works offline | Yes | No | No | Yes |
 
+## > license_compliance
+
+NukeBG itself is GPL-3.0 (see [LICENSE](LICENSE)), but it ships with third-party
+artifacts whose licenses carry independent obligations:
+
+| Component | License | Notes |
+|-----------|---------|-------|
+| RMBG-1.4 ML model (BRIA AI) | [bria-rmbg-1.4 license](https://huggingface.co/briaai/RMBG-1.4) | **Non-commercial use only**. Commercial deployments — paid products, paid APIs, paid SaaS — require a commercial agreement with BRIA AI, or swapping to a different model. The GPL-3.0 license of NukeBG's code does not override this. |
+| JetBrains Mono font | [SIL Open Font License 1.1](public/fonts/OFL.txt) | Bundled self-hosted. Attribution preserved in `public/fonts/OFL.txt`. |
+| Transformers.js, ONNX Runtime Web | Apache-2.0 / MIT | Compatible. |
+
+If you fork NukeBG and host it commercially, you are responsible for complying
+with the RMBG-1.4 model license. The project does not bundle the model weights —
+they are fetched at runtime from Hugging Face — but that does not change the
+downstream obligation.
+
 ## > contributing
 
 ```
