@@ -96,7 +96,8 @@ function initKeyboardShortcuts(): void {
     // `?` toggles the shortcut overlay (Shift+/ in most layouts).
     if (e.key === '?' || (e.shiftKey && e.key === '?')) {
       e.preventDefault();
-      overlay.hidden ? openOverlay() : closeOverlay();
+      if (overlay.hidden) openOverlay();
+      else closeOverlay();
       return;
     }
 

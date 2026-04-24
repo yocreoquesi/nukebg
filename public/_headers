@@ -7,7 +7,7 @@
   Cross-Origin-Resource-Policy: same-origin
   X-DNS-Prefetch-Control: off
   Strict-Transport-Security: max-age=63072000; includeSubDomains; preload
-  Content-Security-Policy: default-src 'self'; script-src 'self' blob: 'wasm-unsafe-eval' 'unsafe-eval' 'sha256-JSdElvxpt5GcONn3DDDXII0S4CoV8+KeXxnYZ8zN4D0=' 'sha256-fsUqdEzMWK7PJDf2qw03sfBDAurm5pLGgdK1mxXy34A=' 'sha256-RhzsrPZXTEaJGnKq6h14mKgFoh+UQ+AlxxnS/+EzMRM=' https://cdn.jsdelivr.net; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://huggingface.co https://cdn-lfs.huggingface.co https://cdn-lfs-us-1.huggingface.co https://cdn.jsdelivr.net https://cas-bridge.xethub.hf.co; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'
+  Content-Security-Policy: default-src 'self'; script-src 'self' blob: 'wasm-unsafe-eval' 'unsafe-eval' 'sha256-ztsBsS9xwNCs2KJmi68kVCSM3B4HL6tyE1O6CXx4z5k=' 'sha256-SzSpABgAR0NQroLM6JrGu4Sw+a01dpq3UNlybakcesw=' 'sha256-n+hPDoKBtir6IJzQxsYO0Jml5FRgLaNreG+d2UAvfFw=' https://cdn.jsdelivr.net; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://huggingface.co https://cdn-lfs.huggingface.co https://cdn-lfs-us-1.huggingface.co https://cdn.jsdelivr.net https://cas-bridge.xethub.hf.co; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'
 
 /assets/*
   Cache-Control: public, max-age=31536000, immutable

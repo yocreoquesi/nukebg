@@ -53,7 +53,7 @@ describe('orchestrator — pending-timer bookkeeping (#44)', () => {
   });
 
   it('destroy() clears both pendingTimers AND pendingRequests', () => {
-    const destroyBody = ORCH.match(/destroy\(\): void \{[\s\S]*?^  \}$/m);
+    const destroyBody = ORCH.match(/destroy\(\): void \{[\s\S]*?^ {2}\}$/m);
     expect(destroyBody).not.toBeNull();
     expect(destroyBody![0]).toMatch(/pendingTimers\.clear\(\)/);
     expect(destroyBody![0]).toMatch(/pendingRequests\.clear\(\)/);

@@ -37,6 +37,7 @@ export function padIndex(index: number, total: number): string {
  * issues inside ZIP archives on some OSes.
  */
 export function safeZipEntryName(index: number, total: number, originalName: string): string {
+  // eslint-disable-next-line no-control-regex -- ZIP entry sanitizer must strip 0x00–0x1F
   const base = originalName.replace(/\.[^./]+$/, '').replace(/[<>:"/\\|?*\x00-\x1f]/g, '_');
   const safeBase = base.slice(0, 60) || 'image';
   return `nukebg-${padIndex(index, total)}-${safeBase}.png`;

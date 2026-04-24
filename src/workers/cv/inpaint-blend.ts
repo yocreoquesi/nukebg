@@ -37,7 +37,7 @@ export function dilateMask(
   if (radius <= 0) return new Uint8Array(mask);
   // Two-pass separable dilation with 1-px SE, applied `radius` times.
   // Simple and fast for small radii (3-6 px) used in practice.
-  let src = new Uint8Array(mask);
+  const src = new Uint8Array(mask);
   const dst = new Uint8Array(mask.length);
   for (let pass = 0; pass < radius; pass++) {
     // Horizontal pass
@@ -102,7 +102,7 @@ export function compositeWithFeather(
     if (coreMask[i]) alphaMap[i] = 255;
   }
   if (featherRadius > 0) {
-    let current = new Uint8Array(coreMask);
+    const current = new Uint8Array(coreMask);
     const next = new Uint8Array(coreMask.length);
     for (let step = 1; step <= featherRadius; step++) {
       next.set(current);

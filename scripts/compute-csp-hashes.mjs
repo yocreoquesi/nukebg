@@ -16,7 +16,12 @@ import { dirname, resolve } from 'node:path';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const htmlPath = resolve(__dirname, '..', 'index.html');
-const html = readFileSync(htmlPath, 'utf8');
+// Normalize CRLF -> LF before hashing. Git checks out the file with the
+// platform's native line endings (CRLF on Windows, LF on Linux), and CSP
+// hashes the EXACT bytes — without this, the dev-tree hashes drift from
+// the committed (LF) form and CI's csp-hashes.test.ts fails on Windows-
+// authored edits even though production (Linux) is fine.
+const html = readFileSync(htmlPath, 'utf8').replace(/\r\n/g, '\n');
 
 // Match <script ...>...</script> blocks. We intentionally exclude scripts
 // that use `src=` — those are fetched separately and covered by 'self'.

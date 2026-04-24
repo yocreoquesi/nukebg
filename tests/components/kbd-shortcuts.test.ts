@@ -40,7 +40,7 @@ describe('global keyboard shortcuts (src/main.ts)', () => {
 
   it('`?` toggles the overlay and Esc closes it', () => {
     expect(MAIN).toMatch(/e\.key === ['"]\?['"]/);
-    expect(MAIN).toMatch(/overlay\.hidden \? openOverlay\(\) : closeOverlay\(\)/);
+    expect(MAIN).toMatch(/if \(overlay\.hidden\) openOverlay\(\);[\s\S]*?else closeOverlay\(\);/);
     expect(MAIN).toMatch(/e\.key === ['"]Escape['"] && !overlay\.hidden/);
   });
 
