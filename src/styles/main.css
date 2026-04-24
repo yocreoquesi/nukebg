@@ -68,9 +68,11 @@
   --font-sans: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
   --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
 
-  --text-xs: 0.8125rem;
-  --text-sm: 0.9375rem;
-  --text-base: 1.0625rem;
+  /* Compressed per design #80 to a clean three-step scale so the low
+     end isn't four near-identical sizes doing the same visual job. */
+  --text-xs: 0.75rem;   /* 12px — timestamps, quiet meta */
+  --text-sm: 0.875rem;  /* 14px — body secondary, subline */
+  --text-base: 1rem;    /* 16px — body */
   --text-lg: 1.25rem;
   --text-xl: 1.4375rem;
   --text-2xl: 1.75rem;
@@ -649,6 +651,12 @@ body::after {
   }
   .terminal-prompt {
     display: none;
+  }
+  /* Header would otherwise have a big empty gap between the logo and
+     the lang/share cluster — show the portable-mode tagline so the
+     header keeps its monospace voice. (#80) */
+  .mobile-mode-label {
+    display: inline !important;
   }
   .main-content {
     border-left: none;

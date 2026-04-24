@@ -112,17 +112,15 @@ export class ArProgress extends HTMLElement {
           max-width: 600px;
           margin: 0 auto;
         }
+        /* Pipeline always emits 3-4 stages (inpaint skips when no
+           watermark). The legacy 80px cap silently clipped the last
+           stage behind a hidden scrollbar — dropped per #80. Keep
+           min-height so the log row doesn't jump when stages populate. */
         .stages {
           display: flex;
           flex-direction: column;
           gap: 4px;
-          max-height: 80px;
           min-height: 80px;
-          overflow-y: auto;
-          scrollbar-width: none;
-        }
-        .stages::-webkit-scrollbar {
-          display: none;
         }
         .stage {
           display: flex;
