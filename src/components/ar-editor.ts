@@ -719,7 +719,8 @@ export class ArEditor extends HTMLElement {
             </div>
           </aside>
           <div class="canvas-wrap" id="canvas-wrap">
-            <canvas id="editor-canvas"></canvas>
+            <canvas id="editor-canvas" tabindex="0" role="img"
+                    aria-label="${t('editor.canvasLabel')}"></canvas>
             <div class="touch-indicator" id="touch-indicator"></div>
           </div>
           <aside class="editor-sidebar" aria-labelledby="ed-shortcuts-title">
