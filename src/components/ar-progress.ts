@@ -14,7 +14,6 @@ export class ArProgress extends HTMLElement {
   private startTimes = new Map<PipelineStage, number>();
   private detectedContentType: string | null = null;
   private boundLocaleHandler: (() => void) | null = null;
-  private running = false;
 
   constructor() {
     super();
@@ -31,14 +30,8 @@ export class ArProgress extends HTMLElement {
         else if (s.stage === 'inpaint') s.label = t('progress.inpaint');
         else if (s.stage === 'ml-segmentation') s.label = t('progress.bgRemovalML');
       });
-      // Update Cancel button label in place — re-rendering would drop
-      // the click listener we attached in render().
-      const btn = this.shadowRoot?.querySelector('#cancel-btn') as HTMLButtonElement | null;
-      if (btn) {
-        const label = t('progress.cancel') || 'Cancel';
-        btn.textContent = label;
-        btn.setAttribute('aria-label', label);
-      }
+      // Cancel button lives in the ar-app command bar now (#71);
+      // its locale update is handled there.
       this.update();
     };
     document.addEventListener('nukebg:locale-changed', this.boundLocaleHandler);
@@ -67,17 +60,13 @@ export class ArProgress extends HTMLElement {
    * Clicking the button dispatches `ar:cancel-processing` which the
    * host listens for and wires to its AbortController.
    */
-  setRunning(running: boolean): void {
-    this.running = running;
-    this.syncCancelButton();
+  setRunning(_running: boolean): void {
+    // Cancel + visible running chrome moved to the ar-app command bar
+    // (#71). Kept as a no-op so existing call sites (host +
+    // tests) don't need to change. The state is reflected in the
+    // command bar's data-state attribute instead.
   }
 
-  private syncCancelButton(): void {
-    const btn = this.shadowRoot?.querySelector('#cancel-btn') as HTMLButtonElement | null;
-    if (!btn) return;
-    btn.hidden = !this.running;
-    btn.disabled = !this.running;
-  }
 
   setStage(stage: PipelineStage, status: StageStatus, message?: string): void {
     // Extract content type from detect-background done message (e.g. "solid detected [signature]")
@@ -244,53 +233,14 @@ export class ArProgress extends HTMLElement {
           .progress-fill.parsing { animation: none !important; }
         }
 
-        .cancel-row {
-          display: flex;
-          justify-content: flex-end;
-          margin-top: 6px;
-        }
-        .cancel-btn {
-          font-family: 'JetBrains Mono', monospace;
-          font-size: 12px;
-          padding: 4px 10px;
-          background: transparent;
-          color: var(--color-text-secondary, #00dd44);
-          border: 1px solid var(--color-surface-border, #1a3a1a);
-          border-radius: 0;
-          cursor: pointer;
-          min-height: 32px;
-        }
-        .cancel-btn:hover:not(:disabled),
-        .cancel-btn:focus-visible {
-          color: var(--color-error, #ff3131);
-          border-color: var(--color-error, #ff3131);
-          outline: none;
-        }
-        .cancel-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-        @media (pointer: coarse) {
-          .cancel-btn { min-height: 44px; min-width: 88px; }
-        }
       </style>
       <div class="stages" role="log" aria-live="polite"></div>
-      <div class="cancel-row">
-        <button
-          id="cancel-btn"
-          class="cancel-btn"
-          type="button"
-          hidden
-          disabled
-          aria-label="${this.escapeHtml(t('progress.cancel') || 'Cancel')}"
-        >${this.escapeHtml(t('progress.cancel') || 'Cancel')}</button>
-      </div>
     `;
-    const cancelBtn = this.shadowRoot!.querySelector('#cancel-btn');
-    cancelBtn?.addEventListener('click', () => {
-      if (!this.running) return;
-      this.dispatchEvent(new CustomEvent('ar:cancel-processing', {
-        bubbles: true,
-        composed: true,
-      }));
-    });
+    // Cancel button moved to the ar-app command bar (#71). ar-progress
+    // still owns the running state (setRunning is called by the host)
+    // so it can drive future "show spinner / show done" styling — the
+    // `ar:cancel-processing` event is now dispatched from the command
+    // bar in ar-app.
   }
 
   /** Escape HTML entities to prevent XSS from worker error messages */

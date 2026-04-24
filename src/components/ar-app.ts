@@ -840,6 +840,105 @@ export class ArApp extends HTMLElement {
           }
         }
 
+        /* Command bar at workspace top (#71) */
+        .command-bar {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+          padding: 8px 12px;
+          margin-bottom: 10px;
+          border: 1px solid var(--color-surface-border, #1a3a1a);
+          background: var(--color-bg-primary, #000);
+          font-family: 'JetBrains Mono', monospace;
+          font-size: 12px;
+          min-height: 40px;
+          flex-wrap: wrap;
+        }
+        .cmd-left {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          flex-wrap: wrap;
+          color: var(--color-text-secondary, #00dd44);
+          min-width: 0;
+          flex: 1 1 auto;
+        }
+        .cmd-prompt { color: var(--color-text-tertiary, #00b34a); }
+        .cmd-action { color: var(--color-text-secondary, #00dd44); }
+        .cmd-filename {
+          color: var(--color-accent-primary, #00ff41);
+          font-weight: 600;
+          max-width: 240px;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+        .cmd-meta { color: var(--color-text-tertiary, #00b34a); }
+        .cmd-state {
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+          margin-left: 6px;
+        }
+        .cmd-state-dot {
+          color: var(--color-accent-primary, #00ff41);
+          text-shadow: 0 0 4px var(--color-accent-glow, rgba(0, 255, 65, 0.35));
+          animation: cmd-pulse 1.4s ease-in-out infinite;
+        }
+        .cmd-state[data-state="ready"] .cmd-state-dot { animation: none; }
+        .cmd-state[data-state="failed"] .cmd-state-dot { color: var(--color-error, #ff3131); animation: none; }
+        .cmd-state-label { color: var(--color-text-tertiary, #00b34a); }
+        @keyframes cmd-pulse {
+          0%, 100% { opacity: 0.55; }
+          50% { opacity: 1; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .cmd-state-dot { animation: none !important; }
+        }
+        .cmd-right {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          flex-shrink: 0;
+        }
+        .cmd-btn {
+          font: inherit;
+          font-size: 11px;
+          letter-spacing: 0.04em;
+          padding: 4px 10px;
+          background: transparent;
+          color: var(--color-text-secondary, #00dd44);
+          border: 1px solid var(--color-surface-border, #1a3a1a);
+          border-radius: 0;
+          cursor: pointer;
+          min-height: 32px;
+          transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+        }
+        .cmd-btn:hover:not(:disabled),
+        .cmd-btn:focus-visible {
+          color: var(--color-accent-primary, #00ff41);
+          border-color: var(--color-accent-primary, #00ff41);
+          outline: none;
+        }
+        .cmd-btn-danger {
+          color: var(--color-error, #ff3131);
+          border-color: var(--color-error, #ff3131);
+        }
+        .cmd-btn-danger:hover:not(:disabled),
+        .cmd-btn-danger:focus-visible {
+          color: var(--color-error, #ff3131);
+          border-color: var(--color-error, #ff3131);
+          background: rgba(255, 49, 49, 0.08);
+        }
+        @media (pointer: coarse) {
+          .cmd-btn { min-height: 44px; min-width: 88px; }
+        }
+        @media (max-width: 480px) {
+          .command-bar { padding: 6px 10px; gap: 8px; }
+          .cmd-filename { max-width: 160px; }
+        }
+
         /* === Error modal === */
         .error-modal[hidden] { display: none !important; }
         .error-modal {
@@ -961,6 +1060,22 @@ export class ArApp extends HTMLElement {
             <button class="batch-discard-btn" id="batch-discard-btn">${t('batch.discard')}</button>
           </div>
           <div class="single-file-workspace" id="single-file-workspace">
+          <div class="command-bar" id="command-bar" role="status" aria-live="polite">
+            <div class="cmd-left">
+              <span class="cmd-prompt">$</span>
+              <span class="cmd-action">nukea</span>
+              <span class="cmd-filename" id="cmd-filename">image.png</span>
+              <span class="cmd-meta" id="cmd-meta"></span>
+              <span class="cmd-state" id="cmd-state" hidden>
+                <span class="cmd-state-dot">●</span>
+                <span class="cmd-state-label" id="cmd-state-label">${t('cmdbar.running')}</span>
+              </span>
+            </div>
+            <div class="cmd-right">
+              <button type="button" class="cmd-btn" id="cmd-new-image">${t('cmdbar.newImage')}</button>
+              <button type="button" class="cmd-btn cmd-btn-danger" id="cmd-cancel" hidden>${t('cmdbar.cancel')}</button>
+            </div>
+          </div>
           <ar-viewer></ar-viewer>
           <ar-progress></ar-progress>
           <div class="ws-controls">
@@ -1041,6 +1156,19 @@ export class ArApp extends HTMLElement {
     if (errRetry) errRetry.textContent = t('error.retry');
     const errDismiss = root.querySelector('#error-modal-dismiss');
     if (errDismiss) errDismiss.textContent = t('error.dismiss');
+    const cmdNew = root.querySelector('#cmd-new-image');
+    if (cmdNew) cmdNew.textContent = t('cmdbar.newImage');
+    const cmdCancel = root.querySelector('#cmd-cancel');
+    if (cmdCancel) cmdCancel.textContent = t('cmdbar.cancel');
+    const cmdStateLabel = root.querySelector('#cmd-state-label') as HTMLElement | null;
+    const cmdStateHost = root.querySelector('#cmd-state') as HTMLElement | null;
+    if (cmdStateLabel && cmdStateHost) {
+      const state = cmdStateHost.getAttribute('data-state') ?? 'running';
+      const key = state === 'running' ? 'cmdbar.running'
+                : state === 'ready' ? 'cmdbar.ready'
+                : 'cmdbar.failed';
+      cmdStateLabel.textContent = t(key);
+    }
     // Reactor segmented button labels + group aria-label
     const segmentLabels: Record<string, string> = {
       '0': t('reactor.segment.low'),
@@ -1071,23 +1199,44 @@ export class ArApp extends HTMLElement {
   }
 
   private setupEvents(): void {
+    // Hoisted once so every addEventListener below can reuse it for
+    // component-lifecycle cleanup via AbortSignal.
+    const signal = this.abortController!.signal;
+
     // Listen for locale changes
     this.boundLocaleHandler = () => {
       this.updateTexts();
     };
     document.addEventListener('nukebg:locale-changed', this.boundLocaleHandler);
 
-    // Cancel button in ar-progress fires ar:cancel-processing. We abort
-    // the active pipeline run; the processImage/batch catch blocks already
-    // swallow PipelineAbortError, and the new image flow keeps working.
-    this.progress.addEventListener('ar:cancel-processing', () => {
+    // Cancel button lives in the command bar (#71). The same
+    // ar:cancel-processing event is dispatched from there and caught at
+    // the shadow-root level so legacy listeners (progress component,
+    // tests) still work.
+    const bubbleCancel = (): void => {
+      this.dispatchEvent(new CustomEvent('ar:cancel-processing', { bubbles: true, composed: true }));
+    };
+    this.shadowRoot!.addEventListener('ar:cancel-processing', () => {
       if (this.processingAbortController && !this.processingAbortController.signal.aborted) {
         this.processingAbortController.abort('user cancelled');
       }
       if (this.batchMode !== 'off') {
         this.batchAborted = true;
       }
-    });
+    }, { signal });
+
+    const cmdCancel = this.shadowRoot!.querySelector('#cmd-cancel') as HTMLButtonElement | null;
+    cmdCancel?.addEventListener('click', bubbleCancel, { signal });
+
+    const cmdNewImage = this.shadowRoot!.querySelector('#cmd-new-image') as HTMLButtonElement | null;
+    cmdNewImage?.addEventListener('click', () => {
+      // Abort any in-flight single-image run first; resetToIdle
+      // already handles the batch-mode abort internally.
+      if (this.processingAbortController && !this.processingAbortController.signal.aborted) {
+        this.processingAbortController.abort('new image requested');
+      }
+      this.resetToIdle();
+    }, { signal });
 
     // Error modal wiring (#36).
     const retryBtn = this.shadowRoot!.querySelector('#error-modal-retry') as HTMLButtonElement | null;
@@ -1140,8 +1289,6 @@ export class ArApp extends HTMLElement {
         }
       }, 2000);
     }
-
-    const signal = this.abortController!.signal;
 
     installBtn.addEventListener('click', async () => {
       // If native prompt available (Chromium), use it
@@ -1721,6 +1868,13 @@ export class ArApp extends HTMLElement {
     this.viewer.setOriginal(originalImageData, fileSize);
     this.progress.reset();
     this.progress.setRunning(true);
+    this.updateCommandBar({
+      filename: this.currentFileName,
+      width: originalImageData.width,
+      height: originalImageData.height,
+      sizeBytes: fileSize,
+      state: 'running',
+    });
     this.download.reset();
 
     // Reuse existing pipeline (keeps model loaded)
@@ -1814,14 +1968,64 @@ export class ArApp extends HTMLElement {
       console.error('Pipeline error:', err);
       const msg = err instanceof Error ? err.message : String(err);
       this.progress.setStage('ml-segmentation', 'error', t('pipeline.error', { msg }));
+      this.updateCommandBarState('failed');
       this.showErrorModal(msg);
     } finally {
       this.progress.setRunning(false);
       if (!this.processingAborted) {
         this.isProcessing = false;
         this.enableWorkspaceButtons();
+        this.updateCommandBarState('ready');
       }
     }
+  }
+
+  /**
+   * Update the command-bar contents (#71). Called when a new image
+   * lands in the workspace. The `state` drives the visible dot + label
+   * and whether the Cancel button is exposed.
+   */
+  private updateCommandBar(payload: {
+    filename: string;
+    width: number;
+    height: number;
+    sizeBytes: number;
+    state: 'running' | 'ready' | 'failed';
+  }): void {
+    const root = this.shadowRoot!;
+    const fn = root.querySelector('#cmd-filename');
+    if (fn) fn.textContent = payload.filename;
+    const meta = root.querySelector('#cmd-meta');
+    if (meta) {
+      const kb = payload.sizeBytes > 0
+        ? ` · ${this.formatBytes(payload.sizeBytes)}`
+        : '';
+      meta.textContent = ` · ${payload.width}×${payload.height}${kb}`;
+    }
+    this.updateCommandBarState(payload.state);
+  }
+
+  private updateCommandBarState(state: 'running' | 'ready' | 'failed'): void {
+    const root = this.shadowRoot!;
+    const stateEl = root.querySelector('#cmd-state') as HTMLElement | null;
+    const label = root.querySelector('#cmd-state-label');
+    const cancelBtn = root.querySelector('#cmd-cancel') as HTMLButtonElement | null;
+    if (!stateEl || !label || !cancelBtn) return;
+    stateEl.hidden = false;
+    stateEl.setAttribute('data-state', state);
+    const key = state === 'running' ? 'cmdbar.running'
+              : state === 'ready' ? 'cmdbar.ready'
+              : 'cmdbar.failed';
+    label.textContent = t(key);
+    cancelBtn.hidden = state !== 'running';
+  }
+
+  private formatBytes(bytes: number): string {
+    if (bytes < 1024) return `${bytes} B`;
+    const kb = bytes / 1024;
+    if (kb < 1024) return `${kb < 10 ? kb.toFixed(1) : Math.round(kb)} KB`;
+    const mb = kb / 1024;
+    return `${mb < 10 ? mb.toFixed(1) : Math.round(mb)} MB`;
   }
 
   /**

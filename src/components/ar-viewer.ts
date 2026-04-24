@@ -66,7 +66,7 @@ export class ArViewer extends HTMLElement {
           display: block;
           width: 100%;
           height: auto;
-          max-height: 600px;
+          max-height: min(600px, 65vh);
           object-fit: contain;
         }
         .result-layer {
@@ -118,23 +118,46 @@ export class ArViewer extends HTMLElement {
           color: var(--color-bg-primary, #000);
           box-shadow: 0 0 10px rgba(var(--color-accent-rgb, 0, 255, 65), 0.4);
         }
+        /* Viewer chips per design #71 — solid black fill + status dot
+           + accent border on the active (result) side.
+           Pre-existing UX had rgba(0,0,0,0.85) which washed out over the
+           checker background. */
         .label {
           position: absolute;
           top: 8px;
-          background: rgba(0, 0, 0, 0.85);
-          color: var(--color-accent-primary, #00ff41);
-          padding: 2px 10px;
+          background: #000;
+          color: var(--color-text-tertiary, #00b34a);
+          border: 1px solid var(--color-surface-border, #1a3a1a);
+          padding: 3px 10px;
           border-radius: 0;
           font-family: 'JetBrains Mono', monospace;
-          font-size: 12px;
+          font-size: 11px;
           font-weight: 500;
           text-transform: uppercase;
           letter-spacing: 0.1em;
           pointer-events: none;
           z-index: 5;
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+        }
+        .label::before {
+          content: '●';
+          color: var(--color-text-tertiary, #00b34a);
+          font-size: 8px;
+          line-height: 1;
         }
         .label-original { left: 8px; }
-        .label-result { right: 8px; }
+        .label-result {
+          right: 8px;
+          color: var(--color-accent-primary, #00ff41);
+          border-color: var(--color-accent-primary, #00ff41);
+          box-shadow: 0 0 8px rgba(var(--color-accent-rgb, 0, 255, 65), 0.25);
+        }
+        .label-result::before {
+          color: var(--color-accent-primary, #00ff41);
+          text-shadow: 0 0 4px var(--color-accent-primary, #00ff41);
+        }
         .info-bar {
           display: flex;
           justify-content: space-between;
