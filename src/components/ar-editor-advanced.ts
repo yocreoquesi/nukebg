@@ -739,6 +739,15 @@ export class ArEditorAdvanced extends HTMLElement {
           to { opacity: 1; transform: translateY(0); }
         }
 
+        /* #35 — honor prefers-reduced-motion on any JS/CSS anim that
+           ar-editor-advanced owns. Keeps hint-pulse + confirmFadeIn
+           from firing for users who opted out of motion effects. */
+        @media (prefers-reduced-motion: reduce) {
+          .hint { animation: none !important; }
+          .confirm-bar,
+          .confirm-bar.visible { animation: none !important; }
+        }
+
         @media (pointer: coarse) {
           .toolbar {
             position: fixed;
