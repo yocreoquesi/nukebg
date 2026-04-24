@@ -437,15 +437,38 @@ export class ArEditorAdvanced extends HTMLElement {
           .help-controls-desktop { display: none; }
           .help-controls-touch { display: block; }
         }
+        /* Toolbar splits into two rows (#77).
+           Row 1 (primary) carries tools + view controls and is always
+           present. Row 2 (contextual) carries the one group that
+           matches the current mode — size-row / lasso-actions /
+           preview-actions — and hides entirely when no child is
+           .visible, so the row doesn't leave a dead space. */
         .toolbar {
           display: flex;
-          gap: 10px;
-          align-items: center;
-          flex-wrap: wrap;
+          flex-direction: column;
+          gap: 6px;
           margin-bottom: 8px;
           padding: 6px 8px;
           border: 1px solid rgba(var(--color-accent-rgb, 0, 255, 65), 0.25);
           border-radius: 3px;
+        }
+        .toolbar-row {
+          display: flex;
+          gap: 10px;
+          align-items: center;
+          flex-wrap: wrap;
+        }
+        .toolbar-row-primary {
+          justify-content: space-between;
+        }
+        .toolbar-row-contextual {
+          padding-top: 6px;
+          border-top: 1px dashed var(--color-surface-border, #1a3a1a);
+        }
+        /* Hide the contextual row when none of its children are
+           .visible to avoid a lone dashed border. */
+        .toolbar-row-contextual:not(:has(> .visible)) {
+          display: none;
         }
         .tool-group {
           display: inline-flex;
@@ -825,33 +848,41 @@ export class ArEditorAdvanced extends HTMLElement {
         </div>
       </div>
       <div class="toolbar">
-        <div class="tool-group" role="group" aria-label="Tools">
-          <button type="button" class="tool-btn" id="tool-brush">${t('advanced.toolBrush')}</button>
-          <button type="button" class="tool-btn active" id="tool-eraser">${t('advanced.toolEraser')}</button>
-          <button type="button" class="tool-btn" id="tool-lasso">${t('advanced.toolLasso')}</button>
+        <!-- Row 1: primary tools + view controls (always visible). #77 -->
+        <div class="toolbar-row toolbar-row-primary">
+          <div class="tool-group" role="group" aria-label="Tools">
+            <button type="button" class="tool-btn" id="tool-brush">${t('advanced.toolBrush')}</button>
+            <button type="button" class="tool-btn active" id="tool-eraser">${t('advanced.toolEraser')}</button>
+            <button type="button" class="tool-btn" id="tool-lasso">${t('advanced.toolLasso')}</button>
+          </div>
+          <div class="zoom-group" role="group" aria-label="${t('advanced.zoom')}">
+            <button type="button" class="zoom-btn" id="zoom-out" title="${t('advanced.zoomOut')}" aria-label="${t('advanced.zoomOut')}">−</button>
+            <span class="zoom-display" id="zoom-display">100%</span>
+            <button type="button" class="zoom-btn" id="zoom-in" title="${t('advanced.zoomIn')}" aria-label="${t('advanced.zoomIn')}">+</button>
+            <button type="button" class="zoom-btn" id="zoom-fit" title="${t('advanced.zoomFit')}" aria-label="${t('advanced.zoomFit')}">⌂</button>
+          </div>
         </div>
-        <div class="size-row" id="size-row">
-          <label for="brush-size">${t('advanced.size')}</label>
-          <input type="range" id="brush-size" min="${MIN_BRUSH}" max="${MAX_BRUSH}" step="1" value="${DEFAULT_BRUSH}">
-          <span class="size-val" id="brush-size-val">${DEFAULT_BRUSH}</span>
-        </div>
-        <div class="lasso-actions" id="lasso-actions" role="group" aria-label="Lasso actions">
-          <button type="button" class="action-btn" id="action-crop" title="${t('advanced.actionCropHint')}">${t('advanced.actionCrop')}</button>
-          <button type="button" class="action-btn" id="action-refine" title="${t('advanced.actionRefineHint')}">${t('advanced.actionRefine')}</button>
-          <button type="button" class="action-btn danger" id="action-erase-object" title="${t('advanced.actionEraseObjectHint')}">${t('advanced.actionEraseObject')}</button>
-          <span class="busy-indicator hidden" id="busy">${t('advanced.working')}</span>
-          <button type="button" class="action-btn cancel-action hidden" id="cancel-action">${t('advanced.cancelAction')}</button>
-        </div>
-        <div class="preview-actions" id="preview-actions" role="group" aria-label="Confirm preview">
-          <span class="preview-diff" id="preview-diff" aria-live="polite"></span>
-          <button type="button" class="action-btn confirm" id="action-apply-preview" title="${t('advanced.previewApplyHint')}">${t('advanced.previewApply')}</button>
-          <button type="button" class="action-btn" id="action-cancel-preview" title="${t('advanced.previewCancelHint')}">${t('advanced.previewCancel')}</button>
-        </div>
-        <div class="zoom-group" role="group" aria-label="${t('advanced.zoom')}">
-          <button type="button" class="zoom-btn" id="zoom-out" title="${t('advanced.zoomOut')}" aria-label="${t('advanced.zoomOut')}">−</button>
-          <span class="zoom-display" id="zoom-display">100%</span>
-          <button type="button" class="zoom-btn" id="zoom-in" title="${t('advanced.zoomIn')}" aria-label="${t('advanced.zoomIn')}">+</button>
-          <button type="button" class="zoom-btn" id="zoom-fit" title="${t('advanced.zoomFit')}" aria-label="${t('advanced.zoomFit')}">⌂</button>
+        <!-- Row 2: contextual actions. Exactly one child is .visible at
+             a time (size-row for brush/eraser, lasso-actions for lasso,
+             preview-actions while a preview is pending). -->
+        <div class="toolbar-row toolbar-row-contextual">
+          <div class="size-row" id="size-row">
+            <label for="brush-size">${t('advanced.size')}</label>
+            <input type="range" id="brush-size" min="${MIN_BRUSH}" max="${MAX_BRUSH}" step="1" value="${DEFAULT_BRUSH}">
+            <span class="size-val" id="brush-size-val">${DEFAULT_BRUSH}</span>
+          </div>
+          <div class="lasso-actions" id="lasso-actions" role="group" aria-label="Lasso actions">
+            <button type="button" class="action-btn" id="action-crop" title="${t('advanced.actionCropHint')}">${t('advanced.actionCrop')}</button>
+            <button type="button" class="action-btn" id="action-refine" title="${t('advanced.actionRefineHint')}">${t('advanced.actionRefine')}</button>
+            <button type="button" class="action-btn danger" id="action-erase-object" title="${t('advanced.actionEraseObjectHint')}">${t('advanced.actionEraseObject')}</button>
+            <span class="busy-indicator hidden" id="busy">${t('advanced.working')}</span>
+            <button type="button" class="action-btn cancel-action hidden" id="cancel-action">${t('advanced.cancelAction')}</button>
+          </div>
+          <div class="preview-actions" id="preview-actions" role="group" aria-label="Confirm preview">
+            <span class="preview-diff" id="preview-diff" aria-live="polite"></span>
+            <button type="button" class="action-btn confirm" id="action-apply-preview" title="${t('advanced.previewApplyHint')}">${t('advanced.previewApply')}</button>
+            <button type="button" class="action-btn" id="action-cancel-preview" title="${t('advanced.previewCancelHint')}">${t('advanced.previewCancel')}</button>
+          </div>
         </div>
       </div>
       <div class="bg-options" role="group" aria-label="${t('viewer.bg')}">
