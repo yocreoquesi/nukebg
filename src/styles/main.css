@@ -145,6 +145,48 @@
   --terminal-border-style: 1px solid var(--color-surface-border);
 }
 
+/* === Theme palettes ===
+   Override the accent + text-* tokens only. Background, surface, and
+   semantic warning/error colors stay constant so the terminal feel
+   doesn't get lost. data-theme is set on <html> by main.ts on boot
+   and persisted via localStorage. */
+:root[data-theme="amber"] {
+  --color-text-primary: #ff8c00;
+  --color-text-secondary: #cc7000;
+  --color-text-tertiary: #995300;
+  --color-accent-rgb: 255, 140, 0;
+  --color-accent-primary: #ff8c00;
+  --color-accent-hover: #ffaa33;
+  --color-hazard: #ff8c00;
+  --color-surface-border: #3a2a0a;
+  --color-surface-hover: #2a1f0a;
+  --color-surface-active: #302510;
+}
+:root[data-theme="cyan"] {
+  --color-text-primary: #00ddff;
+  --color-text-secondary: #00aacc;
+  --color-text-tertiary: #0088aa;
+  --color-accent-rgb: 0, 221, 255;
+  --color-accent-primary: #00ddff;
+  --color-accent-hover: #33eeff;
+  --color-hazard: #00ddff;
+  --color-surface-border: #0a2a3a;
+  --color-surface-hover: #0a1f2a;
+  --color-surface-active: #102530;
+}
+:root[data-theme="magenta"] {
+  --color-text-primary: #ff33ff;
+  --color-text-secondary: #cc22cc;
+  --color-text-tertiary: #991199;
+  --color-accent-rgb: 255, 51, 255;
+  --color-accent-primary: #ff33ff;
+  --color-accent-hover: #ff66ff;
+  --color-hazard: #ff33ff;
+  --color-surface-border: #3a0a3a;
+  --color-surface-hover: #2a0a2a;
+  --color-surface-active: #301030;
+}
+
 /* === Reset === */
 *, *::before, *::after {
   box-sizing: border-box;
@@ -478,6 +520,52 @@ body::after {
 }
 .footer-quiet-btn[aria-pressed="true"] {
   color: var(--color-accent-primary);
+}
+
+/* Theme picker — four small swatches in the footer that flip
+   document.documentElement[data-theme]. Each swatch carries its own
+   absolute color via the data-theme attribute so the active theme's
+   accent doesn't bleed across all four. */
+.theme-picker {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  vertical-align: middle;
+}
+.theme-picker-label {
+  color: var(--color-text-tertiary);
+  font-size: inherit;
+}
+.theme-swatch {
+  appearance: none;
+  border: 1px solid var(--color-surface-border);
+  width: 14px;
+  height: 14px;
+  padding: 0;
+  cursor: pointer;
+  border-radius: 0;
+  transition: outline-offset var(--duration-fast), transform var(--duration-fast);
+  outline: 1px solid transparent;
+  outline-offset: 0;
+}
+.theme-swatch[data-theme="green"]   { background: #00ff41; }
+.theme-swatch[data-theme="amber"]   { background: #ff8c00; }
+.theme-swatch[data-theme="cyan"]    { background: #00ddff; }
+.theme-swatch[data-theme="magenta"] { background: #ff33ff; }
+.theme-swatch:hover,
+.theme-swatch:focus-visible {
+  outline-color: var(--color-accent-primary);
+  outline-offset: 2px;
+}
+.theme-swatch[aria-checked="true"] {
+  outline: 1px solid var(--color-accent-primary);
+  outline-offset: 2px;
+}
+@media (pointer: coarse) {
+  .theme-swatch { width: 18px; height: 18px; }
+}
+@media (max-width: 480px) {
+  .theme-picker-label { display: none; }
 }
 
 .footer-privacy {
