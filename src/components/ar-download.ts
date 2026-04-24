@@ -276,7 +276,7 @@ export class ArDownload extends HTMLElement {
         .metadata {
           font-size: 12px;
           font-family: 'JetBrains Mono', monospace;
-          color: var(--color-text-tertiary, #008830);
+          color: var(--color-text-tertiary, #00b34a);
         }
         .separator { color: var(--color-surface-border, #1a3a1a); margin: 0 4px; }
         .format-toggle {
@@ -287,7 +287,7 @@ export class ArDownload extends HTMLElement {
         }
         .format-toggle button {
           background: transparent;
-          color: var(--color-text-tertiary, #008830);
+          color: var(--color-text-tertiary, #00b34a);
           border: none;
           border-radius: 0;
           padding: 6px 12px;

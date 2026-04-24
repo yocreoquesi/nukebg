@@ -71,7 +71,7 @@ export class ArBatchGrid extends HTMLElement {
         }
         .header::before {
           content: '[BATCH] ';
-          color: var(--color-text-tertiary, #008830);
+          color: var(--color-text-tertiary, #00b34a);
         }
         .grid {
           display: grid;
@@ -110,7 +110,7 @@ export class ArBatchGrid extends HTMLElement {
         }
         button:disabled {
           border-color: var(--color-surface-border, #1a3a1a);
-          color: var(--color-text-tertiary, #008830);
+          color: var(--color-text-tertiary, #00b34a);
           cursor: not-allowed;
         }
         button.danger {

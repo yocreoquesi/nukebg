@@ -45,7 +45,7 @@ export class ArDropzone extends HTMLElement {
         .dropzone::before {
           content: 'nukebg@local:~$ ';
           display: block;
-          color: var(--color-text-tertiary, #008830);
+          color: var(--color-text-tertiary, #00b34a);
           font-family: 'JetBrains Mono', monospace;
           font-size: 12px;
           margin-bottom: 8px;
@@ -74,7 +74,7 @@ export class ArDropzone extends HTMLElement {
         }
         .icon {
           font-size: 24px;
-          color: var(--color-text-tertiary, #008830);
+          color: var(--color-text-tertiary, #00b34a);
           line-height: 1;
           transition: color 0.3s ease, filter 0.3s ease;
         }
@@ -90,7 +90,7 @@ export class ArDropzone extends HTMLElement {
         }
         .main-text::before {
           content: '> ';
-          color: var(--color-text-tertiary, #008830);
+          color: var(--color-text-tertiary, #00b34a);
         }
         .sub-text {
           font-family: 'JetBrains Mono', monospace;
@@ -100,7 +100,7 @@ export class ArDropzone extends HTMLElement {
         .hint {
           font-family: 'JetBrains Mono', monospace;
           font-size: 12px;
-          color: var(--color-text-tertiary, #008830);
+          color: var(--color-text-tertiary, #00b34a);
         }
         .hint-multi {
           color: var(--color-text-secondary, #00dd44);

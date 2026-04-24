@@ -203,7 +203,7 @@ export class ArEditor extends HTMLElement {
         }
         .toolbar label {
           font-size: var(--text-xs, 0.75rem);
-          color: var(--color-text-tertiary, #008830);
+          color: var(--color-text-tertiary, #00b34a);
           font-family: 'JetBrains Mono', monospace;
           white-space: nowrap;
         }
@@ -222,7 +222,7 @@ export class ArEditor extends HTMLElement {
         }
         .size-display {
           font-size: var(--text-xs, 0.75rem);
-          color: var(--color-text-tertiary, #008830);
+          color: var(--color-text-tertiary, #00b34a);
           min-width: 32px;
           text-align: center;
         }
@@ -333,7 +333,7 @@ export class ArEditor extends HTMLElement {
           gap: 6px;
           align-items: center;
         }
-        .bg-options span { font-size: 12px; color: var(--color-text-tertiary, #008830); }
+        .bg-options span { font-size: 12px; color: var(--color-text-tertiary, #00b34a); }
         .bg-btn {
           width: 20px; height: 20px;
           border-radius: 0;
@@ -357,13 +357,13 @@ export class ArEditor extends HTMLElement {
         }
         .hint {
           font-size: var(--text-xs, 0.75rem);
-          color: var(--color-text-tertiary, #008830);
+          color: var(--color-text-tertiary, #00b34a);
           text-align: center;
           padding: var(--space-1, 0.25rem);
         }
         .zoom-display {
           font-size: var(--text-xs, 0.75rem);
-          color: var(--color-text-tertiary, #008830);
+          color: var(--color-text-tertiary, #00b34a);
         }
 
         /* Touch brush indicator (replaces cursor on touch devices) */

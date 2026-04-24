@@ -151,7 +151,7 @@ export class ArViewer extends HTMLElement {
           gap: 6px;
           align-items: center;
         }
-        .bg-options span { font-size: 12px; color: var(--color-text-tertiary, #008830); }
+        .bg-options span { font-size: 12px; color: var(--color-text-tertiary, #00b34a); }
         .bg-btn {
           width: 20px; height: 20px;
           border-radius: 0;

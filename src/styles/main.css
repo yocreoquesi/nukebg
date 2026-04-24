@@ -14,7 +14,12 @@
   /* Text */
   --color-text-primary: #00ff41;
   --color-text-secondary: #00dd44;
-  --color-text-tertiary: #008830;
+  /* Tertiary was #008830 (≈2:1 on black, fails WCAG AA). Bumped to
+     #00b34a which still reads as the dimmest green in the palette
+     but lands at ~7.5:1 (AAA). Visual hierarchy for quiet labels /
+     timestamps is preserved via font-size + weight instead of
+     contrast. */
+  --color-text-tertiary: #00b34a;
   --color-text-inverse: #000000;
 
   /* Accent (Terminal Green) */
@@ -34,7 +39,10 @@
   --color-warning: #ffcc00;
   --color-warning-muted: rgba(255, 204, 0, 0.10);
   --color-error: #ff3131;
-  --color-error-muted: rgba(255, 49, 49, 0.12);
+  /* Was 0.12 — invisible on black. Bumped to 0.35 so error
+     callouts using this as a background read clearly while still
+     feeling "muted" versus the solid --color-error red. */
+  --color-error-muted: rgba(255, 49, 49, 0.35);
   --color-error-border: #3a1a1a;
   --color-info: #00ff41;
   --color-info-muted: rgba(var(--color-accent-rgb), 0.10);
