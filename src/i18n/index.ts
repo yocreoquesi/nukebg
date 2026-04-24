@@ -187,6 +187,9 @@ const translations: Translations = {
     'download.groupLabel': 'Download',
     'footer.quietMode': 'quiet mode',
     'footer.playfulMode': 'playful mode',
+    'download.share': 'Share',
+    'download.share.title': 'Nuked background',
+    'download.share.text': 'Processed with nukebg.app — stays local',
     'reactor.highPower': 'High power burns more fuel. <a href="https://ko-fi.com/yocreoquesi" target="_blank" rel="noopener">Recharge on Ko-fi</a>.',
     'reactor.fullNuke': 'FULL NUKE MODE drains the core. <a href="https://ko-fi.com/yocreoquesi" target="_blank" rel="noopener">Prevent meltdown on Ko-fi</a>.',
 
@@ -410,6 +413,9 @@ const translations: Translations = {
     'download.groupLabel': 'Descargar',
     'footer.quietMode': 'modo silencio',
     'footer.playfulMode': 'modo playful',
+    'download.share': 'Compartir',
+    'download.share.title': 'Fondo nukeado',
+    'download.share.text': 'Procesado con nukebg.app — todo local',
     'reactor.highPower': 'Alta potencia consume m\u00E1s combustible. <a href="https://ko-fi.com/yocreoquesi" target="_blank" rel="noopener">Recarga en Ko-fi</a>.',
     'reactor.fullNuke': 'MODO NUKE TOTAL agota el n\u00FAcleo. <a href="https://ko-fi.com/yocreoquesi" target="_blank" rel="noopener">Evita el colapso en Ko-fi</a>.',
 
@@ -633,6 +639,9 @@ const translations: Translations = {
     'download.groupLabel': 'Télécharger',
     'footer.quietMode': 'mode silencieux',
     'footer.playfulMode': 'mode expressif',
+    'download.share': 'Partager',
+    'download.share.title': 'Arrière-plan nuké',
+    'download.share.text': 'Traité avec nukebg.app — 100% local',
     'reactor.highPower': 'Haute puissance br\u00FBle plus de combustible. <a href="https://ko-fi.com/yocreoquesi" target="_blank" rel="noopener">Recharge sur Ko-fi</a>.',
     'reactor.fullNuke': 'MODE NUKE TOTAL \u00E9puise le c\u0153ur. <a href="https://ko-fi.com/yocreoquesi" target="_blank" rel="noopener">\u00C9vite l\u2019effondrement sur Ko-fi</a>.',
 
@@ -856,6 +865,9 @@ const translations: Translations = {
     'download.groupLabel': 'Herunterladen',
     'footer.quietMode': 'ruhemodus',
     'footer.playfulMode': 'lebhaft',
+    'download.share': 'Teilen',
+    'download.share.title': 'Hintergrund genuked',
+    'download.share.text': 'Mit nukebg.app verarbeitet — bleibt lokal',
     'reactor.highPower': 'Hohe Leistung verbrennt mehr Treibstoff. <a href="https://ko-fi.com/yocreoquesi" target="_blank" rel="noopener">Nachtanken auf Ko-fi</a>.',
     'reactor.fullNuke': 'VOLLER NUKE-MODUS ersch\u00F6pft den Kern. <a href="https://ko-fi.com/yocreoquesi" target="_blank" rel="noopener">Kernschmelze verhindern auf Ko-fi</a>.',
 
@@ -1079,6 +1091,9 @@ const translations: Translations = {
     'download.groupLabel': 'Baixar',
     'footer.quietMode': 'modo silencioso',
     'footer.playfulMode': 'modo brincalhão',
+    'download.share': 'Compartilhar',
+    'download.share.title': 'Fundo nukeado',
+    'download.share.text': 'Processado com nukebg.app — fica local',
     'reactor.highPower': 'Alta pot\u00EAncia queima mais combust\u00EDvel. <a href="https://ko-fi.com/yocreoquesi" target="_blank" rel="noopener">Recarrega no Ko-fi</a>.',
     'reactor.fullNuke': 'MODO NUKE TOTAL esgota o n\u00FAcleo. <a href="https://ko-fi.com/yocreoquesi" target="_blank" rel="noopener">Evita o colapso no Ko-fi</a>.',
 
@@ -1302,6 +1317,9 @@ const translations: Translations = {
     'download.groupLabel': '\u4E0B\u8F7D',
     'footer.quietMode': '\u5B89\u9759\u6A21\u5F0F',
     'footer.playfulMode': '\u6D3B\u6CFC\u6A21\u5F0F',
+    'download.share': '\u5206\u4EAB',
+    'download.share.title': '\u5DF2\u53BB\u9664\u7684\u80CC\u666F',
+    'download.share.text': '\u7531 nukebg.app \u5904\u7406—\u672C\u5730\u8FD0\u884C',
     'reactor.highPower': '\u9AD8\u529F\u7387\u71C3\u70E7\u66F4\u591A\u71C3\u6599\u3002<a href="https://ko-fi.com/yocreoquesi" target="_blank" rel="noopener">\u5728 Ko-fi \u4E0A\u5145\u7535</a>\u3002',
     'reactor.fullNuke': '\u5168\u529B\u6838\u7206\u6A21\u5F0F\u8017\u5C3D\u5806\u82AF\u3002<a href="https://ko-fi.com/yocreoquesi" target="_blank" rel="noopener">\u5728 Ko-fi \u4E0A\u963B\u6B62\u5D29\u6E83</a>\u3002',
 
