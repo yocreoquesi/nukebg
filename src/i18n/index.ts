@@ -204,6 +204,8 @@ const translations: Translations = {
     'pipeline.error': 'Processing failed: {msg}',
     'error.title': 'Something went wrong',
     'error.retry': 'Retry',
+    'error.report': 'Report',
+    'error.reload': 'Reload',
     'error.dismiss': 'Dismiss',
 
     // PWA
@@ -432,6 +434,8 @@ const translations: Translations = {
     'pipeline.error': 'Procesamiento fallido: {msg}',
     'error.title': 'Algo salió mal',
     'error.retry': 'Reintentar',
+    'error.report': 'Reportar',
+    'error.reload': 'Recargar',
     'error.dismiss': 'Cerrar',
 
     // PWA
@@ -660,6 +664,8 @@ const translations: Translations = {
     'pipeline.error': 'Traitement \u00E9chou\u00E9 : {msg}',
     'error.title': 'Une erreur est survenue',
     'error.retry': 'R\u00E9essayer',
+    'error.report': 'Signaler',
+    'error.reload': 'Recharger',
     'error.dismiss': 'Fermer',
 
     // PWA
@@ -888,6 +894,8 @@ const translations: Translations = {
     'pipeline.error': 'Verarbeitung fehlgeschlagen: {msg}',
     'error.title': 'Etwas ist schiefgelaufen',
     'error.retry': 'Erneut versuchen',
+    'error.report': 'Melden',
+    'error.reload': 'Neu laden',
     'error.dismiss': 'Schließen',
 
     // PWA
@@ -1116,6 +1124,8 @@ const translations: Translations = {
     'pipeline.error': 'Processamento falhou: {msg}',
     'error.title': 'Algo deu errado',
     'error.retry': 'Tentar novamente',
+    'error.report': 'Reportar',
+    'error.reload': 'Recarregar',
     'error.dismiss': 'Fechar',
 
     // PWA
@@ -1344,6 +1354,8 @@ const translations: Translations = {
     'pipeline.error': '\u5904\u7406\u5931\u8D25: {msg}',
     'error.title': '\u51FA\u9519\u4E86',
     'error.retry': '\u91CD\u8BD5',
+    'error.report': '\u62A5\u544A',
+    'error.reload': '\u91CD\u65B0\u52A0\u8F7D',
     'error.dismiss': '\u5173\u95ED',
 
     // PWA

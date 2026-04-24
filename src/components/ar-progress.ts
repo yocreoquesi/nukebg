@@ -35,6 +35,23 @@ export class ArProgress extends HTMLElement {
       this.update();
     };
     document.addEventListener('nukebg:locale-changed', this.boundLocaleHandler);
+
+    // #78 — inline error action delegation. Buttons rendered per-stage
+    // when status === 'error'; dispatch a composed CustomEvent so the
+    // host (ar-app) can wire its existing retry / reload / issue-link
+    // paths without this component holding onto them.
+    this.shadowRoot!.addEventListener('click', (e) => {
+      const target = (e.target as HTMLElement | null)?.closest('.stage-action');
+      if (!target) return;
+      const stage = target.getAttribute('data-stage') ?? '';
+      if (target.classList.contains('stage-action-retry')) {
+        this.dispatchEvent(new CustomEvent('ar:stage-retry', { bubbles: true, composed: true, detail: { stage } }));
+      } else if (target.classList.contains('stage-action-report')) {
+        this.dispatchEvent(new CustomEvent('ar:stage-report', { bubbles: true, composed: true, detail: { stage } }));
+      } else if (target.classList.contains('stage-action-reload')) {
+        location.reload();
+      }
+    });
   }
 
   disconnectedCallback(): void {
@@ -231,6 +248,42 @@ export class ArProgress extends HTMLElement {
           .progress-fill.parsing { animation: none !important; }
         }
 
+        /* Inline error-stage actions (#78). Mirrors the error modal
+           buttons so recovery is available without hunting the
+           overlay. Delegates clicks to ar-app via
+           ar:stage-retry / ar:stage-report / ar:stage-reload events. */
+        .stage-actions {
+          display: flex;
+          gap: 6px;
+          padding: 4px 24px 4px;
+          flex-wrap: wrap;
+        }
+        .stage-action {
+          font: inherit;
+          font-family: 'JetBrains Mono', monospace;
+          font-size: 11px;
+          letter-spacing: 0.04em;
+          padding: 3px 10px;
+          background: transparent;
+          color: var(--color-text-secondary, #00dd44);
+          border: 1px solid var(--color-surface-border, #1a3a1a);
+          border-radius: 0;
+          cursor: pointer;
+          min-height: 28px;
+        }
+        .stage-action:hover,
+        .stage-action:focus-visible {
+          color: var(--color-accent-primary, #00ff41);
+          border-color: var(--color-accent-primary, #00ff41);
+          outline: none;
+        }
+        .stage-action-retry {
+          color: var(--color-accent-primary, #00ff41);
+          border-color: var(--color-accent-primary, #00ff41);
+        }
+        @media (pointer: coarse) {
+          .stage-action { min-height: 40px; padding: 8px 14px; }
+        }
       </style>
       <div class="stages" role="log" aria-live="polite"></div>
     `;
@@ -293,6 +346,17 @@ export class ArProgress extends HTMLElement {
         }
       }
 
+      // #78 — when a stage errors, render retry / report / reload
+      // actions inline so the user can recover without hunting the
+      // modal that the pipeline error surface also raises from #65.
+      const errorActions = s.status === 'error'
+        ? `<div class="stage-actions" role="group" aria-label="Error recovery">
+             <button type="button" class="stage-action stage-action-retry" data-stage="${this.escapeHtml(s.stage)}">${this.escapeHtml(t('error.retry'))}</button>
+             <button type="button" class="stage-action stage-action-report" data-stage="${this.escapeHtml(s.stage)}">${this.escapeHtml(t('error.report'))}</button>
+             <button type="button" class="stage-action stage-action-reload">${this.escapeHtml(t('error.reload'))}</button>
+           </div>`
+        : '';
+
       return `
         <div class="stage ${this.escapeHtml(s.status)}">
           <span class="stage-icon">${icon}</span>
@@ -301,6 +365,7 @@ export class ArProgress extends HTMLElement {
           <span class="stage-time">${timeStr}</span>
         </div>
         ${progressBar}
+        ${errorActions}
       `;
     }).join('');
 
