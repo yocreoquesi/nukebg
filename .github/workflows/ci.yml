@@ -81,15 +81,24 @@ jobs:
           path: test-results/
           retention-days: 7
 
-  e2e-webkit:
-    name: Playwright pipeline e2e (WebKit)
+  # Safari-engine coverage — runs the Playwright suite against both the
+  # desktop WebKit profile and the iPhone 15 Pro touch profile. Same
+  # engine Apple ships in Safari on macOS / iOS (≈ 85 % bug parity with
+  # real Safari). Non-blocking today because:
+  #   1. The iOS Safari warmup hang documented in playwright.config.ts:9
+  #      causes ML-touching specs to skip.
+  #   2. Some fixtures produce slightly different hinting / alpha on
+  #      WebKit — visual snapshots get a `-webkit` suffix baseline.
+  # Flip `continue-on-error` to false once the ML specs stabilize.
+  e2e-safari:
+    name: Playwright e2e (${{ matrix.project }})
     runs-on: ubuntu-latest
     needs: test
-    # Non-blocking for now — the iOS Safari warmup hang documented in
-    # playwright.config.ts:9 still causes pipeline specs to skip on
-    # WebKit. Tracking that separately; this job is here to surface
-    # regressions in the non-ML WebKit specs (smoke etc).
     continue-on-error: true
+    strategy:
+      fail-fast: false
+      matrix:
+        project: [webkit, iphone]
     steps:
       - uses: actions/checkout@v4
 
@@ -104,13 +113,13 @@ jobs:
       - name: Install Playwright WebKit
         run: npx playwright install --with-deps webkit
 
-      - name: Run Playwright (WebKit)
-        run: npx playwright test --project=webkit
+      - name: Run Playwright (${{ matrix.project }})
+        run: npx playwright test --project=${{ matrix.project }}
 
       - name: Upload trace on failure
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-trace-webkit
+          name: playwright-trace-${{ matrix.project }}
           path: test-results/
           retention-days: 7
