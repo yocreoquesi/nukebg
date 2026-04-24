@@ -151,6 +151,57 @@ export class ArDropzone extends HTMLElement {
           .dz-camera-cta { display: inline-flex; align-items: center; justify-content: center; }
         }
         .dz-camera-input { display: none; }
+
+        /* Loading slot — model warmup progress lives inside the
+           dropzone so the page doesn't reflow when fetch resolves.
+           Sits in the same row as the camera CTA. */
+        .dz-loading {
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+          margin-top: 10px;
+          padding: 10px 12px;
+          border: 1px solid var(--color-surface-border, #1a3a1a);
+          background: var(--color-bg-primary, #000);
+          font-family: 'JetBrains Mono', monospace;
+        }
+        .dz-loading[hidden] { display: none; }
+        .dz-loading-head {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          font-size: 12px;
+        }
+        .dz-loading-prompt { color: var(--color-text-tertiary, #00b34a); }
+        .dz-loading-action {
+          color: var(--color-accent-primary, #00ff41);
+          font-weight: 600;
+          letter-spacing: 0.04em;
+        }
+        .dz-loading-track {
+          position: relative;
+          height: 3px;
+          background: var(--color-surface-border, #1a3a1a);
+          overflow: hidden;
+        }
+        .dz-loading-bar {
+          width: 0;
+          height: 100%;
+          background: var(--color-accent-primary, #00ff41);
+          box-shadow: 0 0 6px var(--color-accent-glow, rgba(0, 255, 65, 0.35));
+          transition: width 0.25s ease;
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .dz-loading-bar { transition: none; }
+        }
+        .dz-loading-label {
+          font-size: 11px;
+          color: var(--color-text-tertiary, #00b34a);
+        }
+        /* When the loading slot is visible, the camera CTA hides so
+           the row swaps cleanly; when loading ends, the camera CTA
+           returns. */
+        .dropzone.is-loading .dz-camera-cta { display: none !important; }
         .dropzone:hover {
           box-shadow:
             0 0 18px rgba(var(--color-accent-rgb, 0, 255, 65), 0.14),
@@ -256,6 +307,20 @@ export class ArDropzone extends HTMLElement {
         <button type="button" class="dz-camera-cta" id="dz-camera-cta">
           &#8227; ${t('dropzone.takePhoto')}
         </button>
+        <!-- Loading slot — sits in the same vertical space as the
+             camera CTA so the dropzone doesn't reflow when the model
+             finishes warming up. ar-app drives visibility + progress
+             via setLoadingState(). -->
+        <div class="dz-loading" id="dz-loading" role="status" aria-live="polite" hidden>
+          <div class="dz-loading-head">
+            <span class="dz-loading-prompt">$</span>
+            <span class="dz-loading-action">fetch --model RMBG-1.4</span>
+          </div>
+          <div class="dz-loading-track" aria-hidden="true">
+            <div class="dz-loading-bar" id="dz-loading-bar"></div>
+          </div>
+          <div class="dz-loading-label" id="dz-loading-label"># streaming weights…</div>
+        </div>
       </div>
       <input type="file" accept="image/png,image/jpeg,image/webp" multiple />
       <input type="file" accept="image/*" capture="environment" class="dz-camera-input" />
@@ -373,6 +438,48 @@ export class ArDropzone extends HTMLElement {
       this.dropArea.classList.remove('dropzone-disabled');
     } else {
       this.dropArea.classList.add('dropzone-disabled');
+    }
+  }
+
+  /**
+   * Drive the in-dropzone loading slot used by ar-app while warming up
+   * the ML model. Sits in the same vertical space as the camera CTA so
+   * the page never reflows between "loading" and "ready".
+   *
+   * - `{ visible: true, pct, label }` → reveal the slot, update the bar
+   * - `{ visible: true }` → reveal the slot (no progress yet)
+   * - `{ visible: false, ready: true }` → fill bar, swap label to ready,
+   *   then hide after a short delay so the user sees completion
+   * - `{ visible: false }` → hide immediately (error/abort fallback)
+   */
+  setLoadingState(state: { visible: boolean; pct?: number; label?: string; ready?: boolean }): void {
+    const root = this.shadowRoot;
+    if (!root) return;
+    const slot = root.getElementById('dz-loading') as HTMLElement | null;
+    const bar = root.getElementById('dz-loading-bar') as HTMLElement | null;
+    const label = root.getElementById('dz-loading-label') as HTMLElement | null;
+    if (!slot || !bar || !label) return;
+
+    if (state.visible) {
+      slot.hidden = false;
+      this.dropArea?.classList.add('is-loading');
+      if (typeof state.pct === 'number') {
+        bar.style.width = `${Math.max(0, Math.min(100, state.pct))}%`;
+      }
+      if (state.label) label.textContent = state.label;
+      return;
+    }
+
+    if (state.ready) {
+      bar.style.width = '100%';
+      label.textContent = t('firstRun.ready');
+      window.setTimeout(() => {
+        slot.hidden = true;
+        this.dropArea?.classList.remove('is-loading');
+      }, 600);
+    } else {
+      slot.hidden = true;
+      this.dropArea?.classList.remove('is-loading');
     }
   }
 
