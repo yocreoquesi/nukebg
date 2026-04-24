@@ -1417,6 +1417,22 @@ const STORAGE_KEY = 'nukebg-locale';
 const SUPPORTED_LOCALES = Object.keys(translations);
 const DEFAULT_LOCALE = 'en';
 
+/**
+ * RTL scaffolding (#38). The actual translations for these locales
+ * aren't shipped yet — but the runtime and components must already
+ * cooperate with `dir="rtl"` so when we ship a translation for any of
+ * them, the layout flips without code changes. CSS uses logical
+ * properties (margin-inline, inset-inline-start) so the visual flip
+ * is automatic; this set just identifies which locales should drive
+ * the `dir` attribute.
+ */
+const RTL_LOCALES = new Set(['ar', 'he', 'fa', 'ur', 'ps', 'sd', 'yi', 'dv']);
+
+/** Returns 'rtl' for right-to-left locales, 'ltr' otherwise. */
+export function getDirection(locale: string): 'rtl' | 'ltr' {
+  return RTL_LOCALES.has(locale.split('-')[0]) ? 'rtl' : 'ltr';
+}
+
 /** Detects the browser language with fallback to 'en' */
 function detectLocale(): string {
   // First, check for a ?lang= URL parameter
@@ -1468,8 +1484,11 @@ export function setLocale(locale: string): void {
   currentLocale = locale;
   localStorage.setItem(STORAGE_KEY, locale);
 
-  // Update html lang attribute
+  // Update html lang + dir attributes. CSS uses logical properties
+  // throughout, so `dir="rtl"` on <html> is enough to flip the layout
+  // for an RTL locale once we ship one (#38).
   document.documentElement.lang = locale;
+  document.documentElement.dir = getDirection(locale);
 
   // Emit event so components re-render
   document.dispatchEvent(new CustomEvent('nukebg:locale-changed', {

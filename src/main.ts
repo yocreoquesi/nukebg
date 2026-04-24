@@ -5,7 +5,7 @@ document.getElementById('seo-content')?.remove();
 import './styles/main.css';
 
 // i18n - importar antes de los componentes para que detecte el locale
-import { getLocale, setLocale, t } from './i18n';
+import { getLocale, setLocale, getDirection, t } from './i18n';
 
 // Register Web Components
 import './components/ar-dropzone';
@@ -567,8 +567,10 @@ function initShakeDetection(): void {
 function initI18n(): void {
   const locale = getLocale();
 
-  // Set html lang attribute on init
+  // Set html lang + dir attributes on init. dir flips automatically
+  // once we ship an RTL translation (#38 RTL scaffolding).
   document.documentElement.lang = locale;
+  document.documentElement.dir = getDirection(locale);
 
   // Sync the selector
   const langSelector = document.getElementById('lang-selector') as HTMLSelectElement | null;
