@@ -664,6 +664,83 @@ export class ArApp extends HTMLElement {
             transition: none !important;
           }
         }
+
+        /* === Error modal === */
+        .error-modal[hidden] { display: none !important; }
+        .error-modal {
+          position: fixed;
+          inset: 0;
+          z-index: 9999;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: var(--space-4, 1rem);
+        }
+        .error-modal-backdrop {
+          position: absolute;
+          inset: 0;
+          background: rgba(0, 0, 0, 0.75);
+        }
+        .error-modal-dialog {
+          position: relative;
+          max-width: 520px;
+          width: 100%;
+          background: var(--color-bg-primary, #000);
+          border: 1px solid var(--color-error, #ff3131);
+          padding: var(--space-5, 1.25rem);
+          font-family: 'JetBrains Mono', monospace;
+          color: var(--color-text-primary, #00ff41);
+          box-shadow: 0 0 24px rgba(255, 49, 49, 0.25);
+        }
+        .error-modal-title {
+          margin: 0 0 var(--space-3, 0.75rem);
+          font-size: 16px;
+          font-weight: 600;
+          color: var(--color-error, #ff3131);
+          text-transform: uppercase;
+          letter-spacing: 0.04em;
+        }
+        .error-modal-message {
+          margin: 0 0 var(--space-4, 1rem);
+          font-size: 13px;
+          line-height: 1.5;
+          color: var(--color-text-secondary, #00dd44);
+          word-break: break-word;
+        }
+        .error-modal-actions {
+          display: flex;
+          gap: var(--space-2, 0.5rem);
+          justify-content: flex-end;
+          flex-wrap: wrap;
+        }
+        .error-modal-btn {
+          font-family: 'JetBrains Mono', monospace;
+          font-size: 13px;
+          padding: 8px 16px;
+          background: transparent;
+          color: var(--color-text-secondary, #00dd44);
+          border: 1px solid var(--color-surface-border, #1a3a1a);
+          border-radius: 0;
+          cursor: pointer;
+          min-height: 40px;
+        }
+        .error-modal-btn:hover,
+        .error-modal-btn:focus-visible {
+          color: var(--color-accent-primary, #00ff41);
+          border-color: var(--color-accent-primary, #00ff41);
+          outline: none;
+        }
+        .error-modal-btn.primary {
+          color: var(--color-accent-primary, #00ff41);
+          border-color: var(--color-accent-primary, #00ff41);
+        }
+        .error-modal-btn.primary:hover,
+        .error-modal-btn.primary:focus-visible {
+          background: var(--color-accent-muted, rgba(0, 255, 65, 0.08));
+        }
+        @media (pointer: coarse) {
+          .error-modal-btn { min-height: 44px; min-width: 88px; }
+        }
       </style>
 
       <section class="hero" id="hero">
@@ -721,6 +798,26 @@ export class ArApp extends HTMLElement {
         <div class="limitations-detail" id="limitations-detail">${t('features.limitations')}</div>
         <p class="reactor-support visible" id="reactor-support">${t('reactor.normal')}</p>
       </section>
+
+      <div
+        class="error-modal"
+        id="error-modal"
+        role="alertdialog"
+        aria-modal="true"
+        aria-labelledby="error-modal-title"
+        aria-describedby="error-modal-message"
+        hidden
+      >
+        <div class="error-modal-backdrop" id="error-modal-backdrop"></div>
+        <div class="error-modal-dialog">
+          <h2 class="error-modal-title" id="error-modal-title">${t('error.title')}</h2>
+          <p class="error-modal-message" id="error-modal-message"></p>
+          <div class="error-modal-actions">
+            <button type="button" class="error-modal-btn primary" id="error-modal-retry">${t('error.retry')}</button>
+            <button type="button" class="error-modal-btn" id="error-modal-dismiss">${t('error.dismiss')}</button>
+          </div>
+        </div>
+      </div>
     `;
   }
 
@@ -759,6 +856,12 @@ export class ArApp extends HTMLElement {
     if (retryBtnEl) retryBtnEl.textContent = t('batch.retry');
     const discardBtnEl = root.querySelector('#batch-discard-btn');
     if (discardBtnEl) discardBtnEl.textContent = t('batch.discard');
+    const errTitle = root.querySelector('#error-modal-title');
+    if (errTitle) errTitle.textContent = t('error.title');
+    const errRetry = root.querySelector('#error-modal-retry');
+    if (errRetry) errRetry.textContent = t('error.retry');
+    const errDismiss = root.querySelector('#error-modal-dismiss');
+    if (errDismiss) errDismiss.textContent = t('error.dismiss');
   }
 
   private getInstallGuide(): string {
@@ -790,6 +893,22 @@ export class ArApp extends HTMLElement {
       }
       if (this.batchMode !== 'off') {
         this.batchAborted = true;
+      }
+    });
+
+    // Error modal wiring (#36).
+    const retryBtn = this.shadowRoot!.querySelector('#error-modal-retry') as HTMLButtonElement | null;
+    const dismissBtn = this.shadowRoot!.querySelector('#error-modal-dismiss') as HTMLButtonElement | null;
+    const backdrop = this.shadowRoot!.querySelector('#error-modal-backdrop') as HTMLElement | null;
+    retryBtn?.addEventListener('click', () => this.retryFromError());
+    dismissBtn?.addEventListener('click', () => this.hideErrorModal());
+    backdrop?.addEventListener('click', () => this.hideErrorModal());
+    window.addEventListener('keydown', (e) => {
+      if (e.key !== 'Escape') return;
+      const modal = this.shadowRoot?.querySelector('#error-modal') as HTMLElement | null;
+      if (modal && !modal.hasAttribute('hidden')) {
+        e.preventDefault();
+        this.hideErrorModal();
       }
     });
 
@@ -1456,6 +1575,7 @@ export class ArApp extends HTMLElement {
       console.error('Pipeline error:', err);
       const msg = err instanceof Error ? err.message : String(err);
       this.progress.setStage('ml-segmentation', 'error', t('pipeline.error', { msg }));
+      this.showErrorModal(msg);
     } finally {
       this.progress.setRunning(false);
       if (!this.processingAborted) {
@@ -1463,6 +1583,47 @@ export class ArApp extends HTMLElement {
         this.enableWorkspaceButtons();
       }
     }
+  }
+
+  /**
+   * Show the error modal with the given message. Retry is only
+   * meaningful if we still have the source image buffers — otherwise
+   * the button hides itself and the user can only dismiss.
+   */
+  private showErrorModal(msg: string): void {
+    const modal = this.shadowRoot?.querySelector('#error-modal') as HTMLElement | null;
+    const messageEl = this.shadowRoot?.querySelector('#error-modal-message');
+    const retryBtn = this.shadowRoot?.querySelector('#error-modal-retry') as HTMLButtonElement | null;
+    if (!modal || !messageEl) return;
+    messageEl.textContent = msg;
+    const canRetry = !!(this.currentImageData && this.currentOriginalImageData);
+    if (retryBtn) retryBtn.hidden = !canRetry;
+    modal.hidden = false;
+    // Shift focus to the primary action so keyboard users can act
+    // without hunting for the dialog.
+    queueMicrotask(() => {
+      (canRetry ? retryBtn : (this.shadowRoot?.querySelector('#error-modal-dismiss') as HTMLElement | null))?.focus();
+    });
+  }
+
+  private hideErrorModal(): void {
+    const modal = this.shadowRoot?.querySelector('#error-modal') as HTMLElement | null;
+    if (modal) modal.hidden = true;
+  }
+
+  private retryFromError(): void {
+    if (!this.currentImageData || !this.currentOriginalImageData) {
+      this.hideErrorModal();
+      return;
+    }
+    this.hideErrorModal();
+    // Re-run processing with the same inputs. processImage() already
+    // handles the state reset (progress, viewer, abort controller, etc).
+    this.processImage(
+      this.currentImageData,
+      this.currentOriginalImageData,
+      this.currentFileSize,
+    );
   }
 
   private makeThumbnail(imageData: ImageData, maxSide = 200): string {
