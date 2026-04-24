@@ -301,6 +301,75 @@ export class ArEditor extends HTMLElement {
           height: 20px;
           background: var(--color-surface-border, #1a3a1a);
         }
+        /* Editor command bar above the canvas (#76 sub-task C).
+           Mirrors the ar-app workspace command bar pattern so the
+           vocabulary stays consistent: $ action · meta · [cancel] [apply]. */
+        .editor-cmd-bar {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+          padding: 8px 12px;
+          margin-bottom: 10px;
+          border: 1px solid var(--color-surface-border, #1a3a1a);
+          background: var(--color-bg-primary, #000);
+          font-family: 'JetBrains Mono', monospace;
+          font-size: 12px;
+          min-height: 40px;
+          flex-wrap: wrap;
+        }
+        .editor-cmd-left {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          color: var(--color-text-secondary, #00dd44);
+          min-width: 0;
+          flex: 1 1 auto;
+        }
+        .editor-cmd-prompt { color: var(--color-text-tertiary, #00b34a); }
+        .editor-cmd-action { color: var(--color-accent-primary, #00ff41); font-weight: 600; }
+        .editor-cmd-meta { color: var(--color-text-tertiary, #00b34a); }
+        .editor-cmd-right {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          flex-shrink: 0;
+        }
+        .editor-cmd-btn {
+          font: inherit;
+          font-size: 11px;
+          letter-spacing: 0.04em;
+          padding: 4px 10px;
+          background: transparent;
+          color: var(--color-text-secondary, #00dd44);
+          border: 1px solid var(--color-surface-border, #1a3a1a);
+          border-radius: 0;
+          cursor: pointer;
+          min-height: 32px;
+          transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+        }
+        .editor-cmd-btn:hover:not(:disabled),
+        .editor-cmd-btn:focus-visible {
+          color: var(--color-accent-primary, #00ff41);
+          border-color: var(--color-accent-primary, #00ff41);
+          outline: none;
+        }
+        .editor-cmd-btn-primary {
+          color: var(--color-accent-primary, #00ff41);
+          border-color: var(--color-accent-primary, #00ff41);
+          background: rgba(var(--color-accent-rgb, 0, 255, 65), 0.05);
+        }
+        .editor-cmd-btn-primary:hover:not(:disabled),
+        .editor-cmd-btn-primary:focus-visible {
+          background: rgba(var(--color-accent-rgb, 0, 255, 65), 0.12);
+          box-shadow: 0 0 8px var(--color-accent-glow, rgba(0, 255, 65, 0.25));
+        }
+        @media (pointer: coarse) {
+          .editor-cmd-btn { min-height: 44px; min-width: 88px; }
+        }
+        @media (max-width: 480px) {
+          .editor-cmd-bar { padding: 6px 10px; gap: 8px; }
+        }
         /* Editor body — canvas + optional sidebar at ≥ 900 px.
            Single column below that breakpoint, the shortcuts move
            back behind the "?" tooltip. (#76 sub-task B) */
@@ -564,11 +633,6 @@ export class ArEditor extends HTMLElement {
             <button class="toolbar-btn" id="zoom-fit" aria-label="${t('editor.zoomFit')}">${t('editor.zoomFit')}</button>
           </div>
 
-          <div class="separator"></div>
-
-          <button class="toolbar-btn" id="cancel-btn">${t('editor.cancel')}</button>
-          <button class="toolbar-btn primary" id="done-btn">${t('editor.apply')}</button>
-
           <div class="help-wrap">
             <button class="toolbar-btn" id="help-btn" aria-label="${t('editor.shortcuts')}">?</button>
             <div class="help-tooltip" id="help-tooltip">
@@ -584,6 +648,21 @@ export class ArEditor extends HTMLElement {
           </div>
         </div>
 
+        <!-- Mini command bar above the canvas (#76 sub-task C).
+             Promotes Apply / Cancel out of the generic toolbar row
+             and adds a "$ edit --brush · brush=N · tool=E/R" live
+             status line so the user always knows what Apply will do. -->
+        <div class="editor-cmd-bar">
+          <div class="editor-cmd-left">
+            <span class="editor-cmd-prompt">$</span>
+            <span class="editor-cmd-action">edit --brush</span>
+            <span class="editor-cmd-meta" id="editor-cmd-meta">·&nbsp;brush=${this.brushSize}·&nbsp;tool=E</span>
+          </div>
+          <div class="editor-cmd-right">
+            <button class="editor-cmd-btn" id="cancel-btn">${t('editor.cancel')}</button>
+            <button class="editor-cmd-btn editor-cmd-btn-primary" id="done-btn">${t('editor.apply')}</button>
+          </div>
+        </div>
         <div class="editor-body">
           <div class="canvas-wrap" id="canvas-wrap">
             <canvas id="editor-canvas"></canvas>
@@ -641,6 +720,7 @@ export class ArEditor extends HTMLElement {
     this.shadowRoot!.querySelector('#brush-tool')!.addEventListener('change', (e) => {
       this.tool = (e.target as HTMLSelectElement).value as 'erase' | 'restore';
       this.updateCursor();
+      this.syncCmdBarMeta();
     }, { signal });
 
     this.shadowRoot!.querySelector('#brush-shape')!.addEventListener('change', (e) => {
@@ -655,6 +735,7 @@ export class ArEditor extends HTMLElement {
       this.brushSize = parseInt(sizeInput.value);
       sizeDisplay.textContent = `${this.brushSize}px`;
       this.updateCursor();
+      this.syncCmdBarMeta();
     }, { signal });
 
     // Undo/Redo
@@ -756,6 +837,20 @@ export class ArEditor extends HTMLElement {
     const sizeDisplay = this.shadowRoot!.querySelector('#size-display')!;
     sizeInput.value = String(this.brushSize);
     sizeDisplay.textContent = `${this.brushSize}px`;
+    this.syncCmdBarMeta();
+  }
+
+  /**
+   * Keep the editor command bar's live meta line in sync with the
+   * current brush size + active tool (#76 sub-task C). Called from
+   * every mutation site — tool select, size slider, keyboard [ / ]
+   * shortcut — so the header always matches what Apply will do.
+   */
+  private syncCmdBarMeta(): void {
+    const meta = this.shadowRoot?.querySelector('#editor-cmd-meta');
+    if (!meta) return;
+    const letter = this.tool === 'erase' ? 'E' : 'R';
+    meta.innerHTML = `·&nbsp;brush=${this.brushSize}&nbsp;·&nbsp;tool=${letter}`;
   }
 
   /**
