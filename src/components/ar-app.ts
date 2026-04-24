@@ -781,6 +781,18 @@ export class ArApp extends HTMLElement {
     };
     document.addEventListener('nukebg:locale-changed', this.boundLocaleHandler);
 
+    // Cancel button in ar-progress fires ar:cancel-processing. We abort
+    // the active pipeline run; the processImage/batch catch blocks already
+    // swallow PipelineAbortError, and the new image flow keeps working.
+    this.progress.addEventListener('ar:cancel-processing', () => {
+      if (this.processingAbortController && !this.processingAbortController.signal.aborted) {
+        this.processingAbortController.abort('user cancelled');
+      }
+      if (this.batchMode !== 'off') {
+        this.batchAborted = true;
+      }
+    });
+
     // PWA install button - mobile only
     const installBtn = this.shadowRoot!.querySelector('#install-btn') as HTMLButtonElement;
     const installGuide = this.shadowRoot!.querySelector('#install-guide') as HTMLDivElement;
@@ -1350,6 +1362,7 @@ export class ArApp extends HTMLElement {
     // whether the pipeline worked on a downscaled copy.
     this.viewer.setOriginal(originalImageData, fileSize);
     this.progress.reset();
+    this.progress.setRunning(true);
     this.download.reset();
 
     // Reuse existing pipeline (keeps model loaded)
@@ -1444,6 +1457,7 @@ export class ArApp extends HTMLElement {
       const msg = err instanceof Error ? err.message : String(err);
       this.progress.setStage('ml-segmentation', 'error', t('pipeline.error', { msg }));
     } finally {
+      this.progress.setRunning(false);
       if (!this.processingAborted) {
         this.isProcessing = false;
         this.enableWorkspaceButtons();
@@ -1560,6 +1574,7 @@ export class ArApp extends HTMLElement {
       // Fresh slate for this item: empty history, empty live console.
       item.stageHistory = [];
       this.progress.reset();
+      this.progress.setRunning(true);
       this.batchCurrentProcessingItem = item;
       if (this.batchGrid) this.batchGrid.updateItem(item.id, 'processing');
       // One signal per batch item so cancelling the batch aborts the
@@ -1601,6 +1616,7 @@ export class ArApp extends HTMLElement {
         // Abort during batch = user cancelled. Don't mark the item as
         // failed; the outer batchAborted check will return on next tick.
         if (err instanceof PipelineAbortError || this.batchAborted) {
+          this.progress.setRunning(false);
           return;
         }
         item.errorMessage = err instanceof Error ? err.message : String(err);
@@ -1611,6 +1627,7 @@ export class ArApp extends HTMLElement {
         }
       }
     }
+    this.progress.setRunning(false);
     this.batchCurrentProcessingItem = null;
   }
 
