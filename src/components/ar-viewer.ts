@@ -325,12 +325,23 @@ export class ArViewer extends HTMLElement {
     const handle = this.shadowRoot!.querySelector('#slider-handle') as HTMLElement;
     handle.addEventListener('keydown', (e: KeyboardEvent) => {
       let handled = true;
+      // Standard WAI-ARIA slider step: ±2 arrows · ±10 Shift-arrows /
+      // PageUp / PageDown · Home/End jump to either end.
+      const step = e.shiftKey ? 10 : 2;
       switch (e.key) {
         case 'ArrowLeft':
-          this.sliderPos = Math.max(0, this.sliderPos - 2);
+        case 'ArrowDown':
+          this.sliderPos = Math.max(0, this.sliderPos - step);
           break;
         case 'ArrowRight':
-          this.sliderPos = Math.min(100, this.sliderPos + 2);
+        case 'ArrowUp':
+          this.sliderPos = Math.min(100, this.sliderPos + step);
+          break;
+        case 'PageDown':
+          this.sliderPos = Math.max(0, this.sliderPos - 10);
+          break;
+        case 'PageUp':
+          this.sliderPos = Math.min(100, this.sliderPos + 10);
           break;
         case 'Home':
           this.sliderPos = 0;

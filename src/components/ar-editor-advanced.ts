@@ -902,7 +902,8 @@ export class ArEditorAdvanced extends HTMLElement {
         <div class="bg-btn" style="background:var(--color-preview-green)" data-bg="#00b140" title="${t('bg.green')}"></div>
         <div class="bg-btn bg-red" data-bg="#ff4444" title="${t('bg.red')}"></div>
       </div>
-      <div class="canvas-wrap"><canvas></canvas></div>
+      <div class="canvas-wrap"><canvas tabindex="0" role="img"
+        aria-label="${t('advanced.canvasLabel')}"></canvas></div>
       <div class="controls">
         <span class="hint" id="hint">${t('advanced.hint')}</span>
         <span class="confirm-bar" id="confirm-bar">
