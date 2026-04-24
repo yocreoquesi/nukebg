@@ -845,6 +845,35 @@ function initShareButton(): void {
   });
 }
 
+/**
+ * Handle PWA manifest shortcut deep-links:
+ *   /?help=1     → open the keyboard shortcut overlay
+ *   /?action=new → focus the dropzone so the user can start immediately
+ * Re-dispatches the matching keyboard event so the shortcut layer stays
+ * the single source of truth for open/close state and focus behavior.
+ */
+function initDeepLinks(): void {
+  const params = new URLSearchParams(window.location.search);
+  if (!params.has('help') && !params.has('action')) return;
+
+  const waitForArApp = (onReady: () => void, tries = 20) => {
+    const arApp = document.querySelector('ar-app');
+    if (arApp?.shadowRoot) return onReady();
+    if (tries <= 0) return;
+    setTimeout(() => waitForArApp(onReady, tries - 1), 50);
+  };
+
+  if (params.get('help') === '1') {
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: '?', bubbles: true }));
+  }
+
+  if (params.get('action') === 'new') {
+    waitForArApp(() => {
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: '/', bubbles: true }));
+    });
+  }
+}
+
 // Init on DOMContentLoaded
 function init(): void {
   initI18n();
@@ -852,6 +881,7 @@ function init(): void {
   initTerminalPrompt();
   initClearCacheButton();
   initShareButton();
+  initDeepLinks();
   showConsoleLogo();
   initHolidayEasterEgg();
   initKonamiCode();
