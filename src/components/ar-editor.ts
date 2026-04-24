@@ -301,6 +301,68 @@ export class ArEditor extends HTMLElement {
           height: 20px;
           background: var(--color-surface-border, #1a3a1a);
         }
+        /* Editor body — canvas + optional sidebar at ≥ 900 px.
+           Single column below that breakpoint, the shortcuts move
+           back behind the "?" tooltip. (#76 sub-task B) */
+        .editor-body {
+          display: grid;
+          grid-template-columns: 1fr;
+          gap: var(--space-3, 0.75rem);
+          align-items: start;
+        }
+        @media (min-width: 900px) {
+          .editor-body {
+            grid-template-columns: minmax(0, 1fr) 260px;
+          }
+        }
+        .editor-sidebar {
+          display: none;
+          flex-direction: column;
+          gap: var(--space-3, 0.75rem);
+          padding: 12px;
+          border: 1px solid var(--color-surface-border, #1a3a1a);
+          background: var(--color-bg-primary, #000);
+          font-family: 'JetBrains Mono', monospace;
+          font-size: 12px;
+          color: var(--color-text-secondary, #00dd44);
+        }
+        @media (min-width: 900px) {
+          .editor-sidebar { display: flex; }
+        }
+        .editor-sidebar h4 {
+          margin: 0;
+          padding: 0;
+          color: var(--color-accent-primary, #00ff41);
+          font-size: 12px;
+          font-weight: 600;
+          letter-spacing: 0.04em;
+          text-transform: uppercase;
+        }
+        .editor-shortcuts {
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+          font-size: 12px;
+          color: var(--color-text-secondary, #00dd44);
+        }
+        .editor-shortcuts kbd {
+          display: inline-block;
+          min-width: 14px;
+          padding: 2px 6px;
+          margin-right: 6px;
+          background: var(--color-bg-primary, #000);
+          border: 1px solid var(--color-surface-border, #1a3a1a);
+          border-radius: 0;
+          color: var(--color-accent-primary, #00ff41);
+          font-family: 'JetBrains Mono', monospace;
+          font-size: 11px;
+        }
+        /* At ≥ 900 px the "?" popover becomes redundant — sidebar
+           owns the shortcuts. Keep the button for keyboard
+           discoverability below the breakpoint. */
+        @media (min-width: 900px) {
+          .help-wrap { display: none; }
+        }
         .canvas-wrap {
           position: relative;
           border: 1px solid var(--color-surface-border, #1a3a1a);
@@ -522,9 +584,23 @@ export class ArEditor extends HTMLElement {
           </div>
         </div>
 
-        <div class="canvas-wrap" id="canvas-wrap">
-          <canvas id="editor-canvas"></canvas>
-          <div class="touch-indicator" id="touch-indicator"></div>
+        <div class="editor-body">
+          <div class="canvas-wrap" id="canvas-wrap">
+            <canvas id="editor-canvas"></canvas>
+            <div class="touch-indicator" id="touch-indicator"></div>
+          </div>
+          <aside class="editor-sidebar" aria-labelledby="ed-shortcuts-title">
+            <h4 id="ed-shortcuts-title">${t('editor.shortcuts')}</h4>
+            <div class="editor-shortcuts">
+              <div><kbd>Click</kbd> ${t('editor.shortcutErase')}</div>
+              <div><kbd>[ ]</kbd> ${t('editor.shortcutEraserSize')}</div>
+              <div><kbd>Scroll</kbd> ${t('editor.shortcutZoom')}</div>
+              <div><kbd>Middle drag</kbd> ${t('editor.shortcutPan')}</div>
+              <div><kbd>0</kbd> ${t('editor.shortcutResetView')}</div>
+              <div><kbd>Ctrl+Z</kbd> ${t('editor.shortcutUndo')}</div>
+              <div><kbd>Ctrl+Shift+Z</kbd> ${t('editor.shortcutRedo')}</div>
+            </div>
+          </aside>
         </div>
 
         <div class="editor-footer">
