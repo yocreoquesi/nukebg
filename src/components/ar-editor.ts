@@ -310,6 +310,11 @@ export class ArEditor extends HTMLElement {
           min-height: 400px;
           display: flex;
           align-items: center;
+          /* touch-action:none unconditionally — iOS Safari treats
+             long-press on canvas as context menu and pinch as page
+             zoom, both of which break the brush / erase flow even
+             when a mouse is also attached (iPad with trackpad). */
+          touch-action: none;
           justify-content: center;
         }
         canvas {
@@ -457,9 +462,6 @@ export class ArEditor extends HTMLElement {
           .bg-btn {
             width: 32px;
             height: 32px;
-          }
-          .canvas-wrap {
-            touch-action: none;
           }
         }
 
@@ -612,6 +614,14 @@ export class ArEditor extends HTMLElement {
     // Close on click outside
     this.shadowRoot!.addEventListener('click', (e) => {
       if (e.target !== helpBtn && !helpTooltip.contains(e.target as Node)) {
+        helpTooltip.classList.remove('visible');
+      }
+    }, { signal });
+    // Close on Escape — keyboard users otherwise have no way out of
+    // the help overlay short of clicking the button again.
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && helpTooltip.classList.contains('visible')) {
+        e.preventDefault();
         helpTooltip.classList.remove('visible');
       }
     }, { signal });
