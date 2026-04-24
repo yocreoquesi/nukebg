@@ -529,7 +529,7 @@ export class PipelineOrchestrator {
 
   private async _process(
     imageData: ImageData,
-    modelId?: ModelId,
+    modelId: ModelId | undefined,
     precision: PrecisionMode,
   ): Promise<PipelineResult> {
     this.suppressMlProgress = false; // new image = show progress

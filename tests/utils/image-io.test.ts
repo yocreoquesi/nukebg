@@ -8,7 +8,11 @@ const WEBP_MAGIC = new Uint8Array([
 ]);
 
 function fileFrom(bytes: Uint8Array, name: string, type: string): File {
-  return new File([bytes], name, { type });
+  // Cast to BlobPart explicitly — TS 6 narrows Uint8Array's underlying
+  // buffer to `ArrayBufferLike` (which includes SharedArrayBuffer) and
+  // refuses the literal `BlobPart` constructor union. The Blob spec
+  // accepts any TypedArray, so this cast is sound at runtime.
+  return new File([bytes as BlobPart], name, { type });
 }
 
 describe('loadImage magic-byte sniffing', () => {

@@ -52,6 +52,22 @@ jobs:
       - name: Vitest
         run: npm test
 
+      # Production build — same command Cloudflare Pages runs on every
+      # deploy. Catches `tsc` emit-time errors (subtly different from
+      # `tsc --noEmit`) and any vite resolution/bundling regressions.
+      # If this is red, the deploy will be red too — fail here so the
+      # PR can't merge into dev or main with a broken build.
+      - name: Production build (mirrors Cloudflare Pages)
+        run: npm run build
+
+      # Sanity-check the output: the entry HTML must exist and be the
+      # one we ship from index.html (presence of the JSON-LD blocks).
+      - name: Verify build output
+        run: |
+          test -f dist/index.html || (echo 'dist/index.html missing' && exit 1)
+          grep -q 'application/ld+json' dist/index.html || (echo 'JSON-LD missing from build output' && exit 1)
+          test -d dist/assets || (echo 'dist/assets missing' && exit 1)
+
   e2e:
     name: Playwright pipeline e2e
     runs-on: ubuntu-latest
