@@ -16,3 +16,9 @@ RUN addgroup -S nukebg && adduser -S nukebg -G nukebg \
 
 USER nukebg
 EXPOSE 8080
+
+# Healthcheck for `docker run` users — docker-compose defines its own
+# healthcheck that takes precedence when composed. Kept here so
+# `docker run --rm nukebg` is observable too.
+HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
+    CMD wget --quiet --tries=1 --spider http://localhost:8080/ || exit 1
