@@ -879,9 +879,72 @@ function initDeepLinks(): void {
   }
 }
 
+/**
+ * Theme switcher (footer). Four palettes — green (default) / amber /
+ * cyan / magenta — are CSS-only via :root[data-theme="X"] overrides
+ * in main.css. main.ts only reads + writes the attribute and persists
+ * the choice in localStorage. Skips animations / does not affect the
+ * pipeline.
+ */
+type ThemeName = 'green' | 'amber' | 'cyan' | 'magenta';
+const THEME_STORAGE_KEY = 'nukebg:theme';
+const THEMES: readonly ThemeName[] = ['green', 'amber', 'cyan', 'magenta'];
+
+function isThemeName(value: string | null): value is ThemeName {
+  return value !== null && (THEMES as readonly string[]).includes(value);
+}
+
+function applyTheme(theme: ThemeName): void {
+  if (theme === 'green') {
+    delete document.documentElement.dataset.theme;
+  } else {
+    document.documentElement.dataset.theme = theme;
+  }
+  document.querySelectorAll<HTMLButtonElement>('.theme-swatch').forEach((el) => {
+    el.setAttribute('aria-checked', el.dataset.theme === theme ? 'true' : 'false');
+  });
+}
+
+function initThemeSwitcher(): void {
+  const stored = (() => {
+    try { return localStorage.getItem(THEME_STORAGE_KEY); } catch { return null; }
+  })();
+  const initial: ThemeName = isThemeName(stored) ? stored : 'green';
+  applyTheme(initial);
+
+  const picker = document.getElementById('theme-picker');
+  if (!picker) return;
+  picker.addEventListener('click', (e) => {
+    const target = (e.target as HTMLElement | null)?.closest<HTMLButtonElement>('.theme-swatch');
+    if (!target) return;
+    const next = target.dataset.theme;
+    if (!isThemeName(next ?? null)) return;
+    applyTheme(next as ThemeName);
+    try { localStorage.setItem(THEME_STORAGE_KEY, next!); } catch { /* ignore */ }
+  });
+
+  // WAI-ARIA radiogroup keyboard nav: Arrow keys cycle, Home/End jump.
+  picker.addEventListener('keydown', (ev) => {
+    const e = ev as KeyboardEvent;
+    if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End'].includes(e.key)) return;
+    const swatches = Array.from(picker.querySelectorAll<HTMLButtonElement>('.theme-swatch'));
+    const idx = swatches.findIndex((s) => s === document.activeElement);
+    if (idx < 0) return;
+    e.preventDefault();
+    let nextIdx = idx;
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') nextIdx = (idx + 1) % swatches.length;
+    else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') nextIdx = (idx - 1 + swatches.length) % swatches.length;
+    else if (e.key === 'Home') nextIdx = 0;
+    else if (e.key === 'End') nextIdx = swatches.length - 1;
+    swatches[nextIdx].focus();
+    swatches[nextIdx].click();
+  });
+}
+
 // Init on DOMContentLoaded
 function init(): void {
   initI18n();
+  initThemeSwitcher();
   initKeyboardShortcuts();
   initTerminalPrompt();
   initClearCacheButton();
