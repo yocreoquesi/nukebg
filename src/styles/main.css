@@ -661,6 +661,84 @@ body::after {
   transform: translateY(0);
 }
 
+/* === Keyboard shortcuts overlay ===
+   Light-DOM modal — must sit above every shadow tree, so it can't live
+   inside ar-app. Terminal-green card, Esc / overlay-click to dismiss. */
+.kbd-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-4);
+  z-index: 10000;
+}
+.kbd-overlay[hidden] { display: none; }
+.kbd-overlay-card {
+  background: #0a0a0a;
+  border: 1px solid var(--color-accent-primary, #00ff41);
+  color: var(--color-accent-primary, #00ff41);
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  padding: var(--space-5) var(--space-5) var(--space-4);
+  max-width: 480px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: var(--shadow-lg);
+}
+.kbd-overlay-title {
+  font-size: var(--text-base);
+  margin: 0 0 var(--space-4);
+  letter-spacing: 0.04em;
+}
+.kbd-overlay-sub {
+  font-size: var(--text-sm);
+  margin: var(--space-4) 0 var(--space-2);
+  letter-spacing: 0.04em;
+  opacity: 0.85;
+}
+.kbd-overlay-list {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: var(--space-2) var(--space-4);
+  margin: 0;
+}
+.kbd-overlay-list dt {
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.kbd-overlay-list dd { margin: 0; opacity: 0.9; }
+.kbd-overlay-list kbd {
+  display: inline-block;
+  padding: 1px 6px;
+  border: 1px solid var(--color-surface-border, #1a3a1a);
+  border-radius: 2px;
+  background: #000;
+  font-family: var(--font-mono);
+  font-size: 0.85em;
+  line-height: 1.2;
+}
+.kbd-overlay-close {
+  margin-top: var(--space-4);
+  background: transparent;
+  border: 1px solid var(--color-accent-primary, #00ff41);
+  color: var(--color-accent-primary, #00ff41);
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  padding: var(--space-2) var(--space-4);
+  cursor: pointer;
+}
+.kbd-overlay-close:hover,
+.kbd-overlay-close:focus-visible {
+  background: var(--color-accent-primary, #00ff41);
+  color: #000;
+  outline: none;
+}
+
 /* === Smoke overlay (Full Nuke mode) === */
 .smoke-overlay {
   display: none;

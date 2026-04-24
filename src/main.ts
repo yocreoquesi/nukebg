@@ -35,24 +35,116 @@ function initKeyboardShortcuts(): void {
     toastTimeout = setTimeout(() => toast.classList.remove('visible'), 1800);
   };
 
+  // Global shortcut overlay: lists every shortcut the app exposes.
+  // Toggled by `?`, dismissed by Escape or overlay click. Lives in
+  // light DOM so it sits on top of every shadow tree without z-index
+  // wars.
+  const overlay = createShortcutOverlay();
+  document.body.appendChild(overlay);
+  const openOverlay = () => { overlay.hidden = false; overlay.focus(); };
+  const closeOverlay = () => { overlay.hidden = true; };
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) closeOverlay();
+  });
+  overlay.querySelector<HTMLButtonElement>('[data-close]')?.addEventListener('click', closeOverlay);
+
+  /** True when the user is typing in an input / textarea / contenteditable. */
+  const inFormField = (el: EventTarget | null): boolean => {
+    const n = el as HTMLElement | null;
+    if (!n) return false;
+    if (n.isContentEditable) return true;
+    const tag = n.tagName?.toLowerCase();
+    return tag === 'input' || tag === 'textarea' || tag === 'select';
+  };
+
   document.addEventListener('keydown', (e: KeyboardEvent) => {
     const ctrl = e.ctrlKey || e.metaKey;
 
     // Ctrl+S: download result
     if (ctrl && e.key === 's') {
       e.preventDefault();
-      // Find the download link in ar-download shadow DOM
       const arApp = document.querySelector('ar-app');
       if (!arApp?.shadowRoot) return;
       const arDownload = arApp.shadowRoot.querySelector('ar-download');
       if (!arDownload?.shadowRoot) return;
-      const link = arDownload.shadowRoot.querySelector('#download-btn') as HTMLAnchorElement | null;
-      if (link?.hasAttribute('href')) {
+      // #72 — primary download is now the PNG anchor in dl-png.
+      const link = arDownload.shadowRoot.querySelector('#dl-png') as HTMLAnchorElement | null;
+      if (link && !link.hidden && link.hasAttribute('href')) {
         link.click();
-        showToast('Downloading result...');
+        showToast('Downloading PNG...');
       }
+      return;
+    }
+
+    // Skip rest of global shortcuts while the user is typing.
+    if (inFormField(e.target)) return;
+
+    // `/` focus the dropzone file picker so keyboard users can drop
+    // a file without tabbing through the header every time.
+    if (e.key === '/') {
+      const arApp = document.querySelector('ar-app');
+      const dz = arApp?.shadowRoot?.querySelector('ar-dropzone');
+      const target = dz?.shadowRoot?.querySelector('.dropzone') as HTMLElement | null;
+      if (target) {
+        e.preventDefault();
+        target.focus();
+        showToast('Drop an image or press Enter to browse');
+      }
+      return;
+    }
+
+    // `?` toggles the shortcut overlay (Shift+/ in most layouts).
+    if (e.key === '?' || (e.shiftKey && e.key === '?')) {
+      e.preventDefault();
+      overlay.hidden ? openOverlay() : closeOverlay();
+      return;
+    }
+
+    // `Escape`: if overlay is open, close it. Otherwise let the
+    // shadow-root handlers process it (progress cancel, editor close,
+    // etc).
+    if (e.key === 'Escape' && !overlay.hidden) {
+      e.preventDefault();
+      closeOverlay();
     }
   });
+}
+
+/**
+ * Build the app-level shortcut help overlay. Not an ar-app component
+ * because it needs to sit above every shadow tree (viewer, editor,
+ * error modal) regardless of its stacking context.
+ */
+function createShortcutOverlay(): HTMLDivElement {
+  const overlay = document.createElement('div');
+  overlay.className = 'kbd-overlay';
+  overlay.hidden = true;
+  overlay.tabIndex = -1;
+  overlay.setAttribute('role', 'dialog');
+  overlay.setAttribute('aria-modal', 'true');
+  overlay.setAttribute('aria-label', 'Keyboard shortcuts');
+  overlay.innerHTML = `
+    <div class="kbd-overlay-card">
+      <h2 class="kbd-overlay-title"># keyboard shortcuts</h2>
+      <dl class="kbd-overlay-list">
+        <dt><kbd>/</kbd></dt><dd>Focus the drop zone</dd>
+        <dt><kbd>Ctrl</kbd>+<kbd>S</kbd></dt><dd>Download PNG result</dd>
+        <dt><kbd>Ctrl</kbd>+<kbd>V</kbd></dt><dd>Paste image from clipboard</dd>
+        <dt><kbd>Esc</kbd></dt><dd>Cancel current action · close dialogs</dd>
+        <dt><kbd>?</kbd></dt><dd>Toggle this panel</dd>
+      </dl>
+      <h3 class="kbd-overlay-sub"># editor</h3>
+      <dl class="kbd-overlay-list">
+        <dt><kbd>B</kbd> / <kbd>E</kbd></dt><dd>Brush · Eraser</dd>
+        <dt><kbd>[</kbd> / <kbd>]</kbd></dt><dd>Brush size −/+</dd>
+        <dt><kbd>0</kbd></dt><dd>Reset view</dd>
+        <dt><kbd>Ctrl</kbd>+<kbd>Z</kbd></dt><dd>Undo</dd>
+        <dt><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Z</kbd></dt><dd>Redo</dd>
+      </dl>
+      <button type="button" class="kbd-overlay-close" data-close>close</button>
+    </div>
+  `;
+  return overlay;
 }
 
 // === Easter Egg: Console ASCII Logo ===
