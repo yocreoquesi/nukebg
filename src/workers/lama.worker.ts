@@ -77,6 +77,16 @@ async function loadModel(id: string): Promise<ort.InferenceSession> {
       }
     }
 
+    // Validate stream completeness. A truncated body (connection drop,
+    // proxy cap) would otherwise flow through and blow up inside ORT
+    // with an opaque "failed to load model" — we want a specific,
+    // retryable error instead.
+    if (total > 0 && received !== total) {
+      throw new Error(
+        `Truncated LaMa model download: got ${received} / ${total} bytes`,
+      );
+    }
+
     const buffer = new Uint8Array(received);
     let offset = 0;
     for (const c of chunks) {
