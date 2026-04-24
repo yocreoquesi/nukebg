@@ -639,7 +639,11 @@ export class PipelineOrchestrator {
     const resultImageData = new ImageData(resultPixels, width, height);
     const totalTimeMs = performance.now() - startTime;
 
-    return {
+    // Freeze to prevent accidental reassignment by callers. Typed-array
+    // contents remain writable (the runtime does not freeze ArrayBuffer
+    // views), but the `readonly` marks on PipelineResult catch those at
+    // compile time. If a caller truly needs to mutate, it clones first.
+    return Object.freeze({
       imageData: resultImageData,
       workingPixels: originalPixels,
       workingAlpha: finalAlpha,
@@ -651,7 +655,7 @@ export class PipelineOrchestrator {
       nukedPct,
       stageTiming,
       contentType,
-    };
+    });
   }
 
   destroy(): void {
