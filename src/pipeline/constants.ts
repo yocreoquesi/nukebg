@@ -152,9 +152,24 @@ export const INPAINT_PARAMS = {
  *  Unlike PatchMatch (patch-based), LaMa uses Fourier convolutions that
  *  understand structure and semantics, so it reconstructs watermarks
  *  sitting on faces, text, or complex objects without the flat-patch
- *  look. Only loaded when the router says structure is present. */
+ *  look. Only loaded when the router says structure is present.
+ *
+ *  Integrity:
+ *  - URL is pinned to a specific repo commit (not `main`) so an upstream
+ *    replacement is caught by size + hash checks below.
+ *  - EXPECTED_SIZE is the Content-Length served by HF for this revision.
+ *  - EXPECTED_SHA256 is the LFS content hash (HF's X-Linked-ETag).
+ *    The worker computes SHA-256 of the downloaded bytes and refuses
+ *    to hand them to ORT if it diverges.
+ *  Audit date: 2026-04-24. Refresh with:
+ *    curl -sSLI "https://huggingface.co/opencv/inpainting_lama/resolve/<sha>/inpainting_lama_2025jan.onnx"
+ */
 export const LAMA_PARAMS = {
-  MODEL_URL: 'https://huggingface.co/opencv/inpainting_lama/resolve/main/inpainting_lama_2025jan.onnx',
+  MODEL_URL:
+    'https://huggingface.co/opencv/inpainting_lama/resolve/aee6d22f0a13e5e35af1c9a1c3afd62841fc6f3f/inpainting_lama_2025jan.onnx',
+  EXPECTED_SIZE: 92_591_623,
+  EXPECTED_SHA256:
+    '7df918ac3921d3daf0aae1d219776cf0dc4e4935f035af81841b40adcf74fdf2',
   /** Fixed 1:1 input expected by the ONNX graph. Changing this breaks
    *  inference — it's baked into the Fourier convolution tensor sizes. */
   INPUT_SIZE: 512,
