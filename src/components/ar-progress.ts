@@ -139,7 +139,7 @@ export class ArProgress extends HTMLElement {
           color: var(--color-accent-primary, #00ff41);
         }
         .stage.skipped .stage-icon {
-          color: var(--color-text-tertiary, #008830);
+          color: var(--color-text-tertiary, #00b34a);
         }
         .stage.error .stage-icon {
           color: var(--color-error, #ff3131);
@@ -149,11 +149,11 @@ export class ArProgress extends HTMLElement {
         }
         .stage-time {
           font-size: var(--text-xs, 0.75rem);
-          color: var(--color-text-tertiary, #008830);
+          color: var(--color-text-tertiary, #00b34a);
         }
         .stage-message {
           font-size: var(--text-xs, 0.75rem);
-          color: var(--color-text-tertiary, #008830);
+          color: var(--color-text-tertiary, #00b34a);
         }
         .progress-bar {
           width: 100%;

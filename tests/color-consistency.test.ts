@@ -42,7 +42,8 @@ function extractCssBlocks(source: string): string[] {
 const FORBIDDEN_HEX = [
   '#00ff41',  // --color-accent-primary / --color-text-primary
   '#00dd44',  // --color-text-secondary
-  '#008830',  // --color-text-tertiary
+  '#00b34a',  // --color-text-tertiary (WCAG AA bump from #008830)
+  '#008830',  // previous tertiary — keep blocked so it can't regress
   '#1a3a1a',  // --color-surface-border
   '#ffd700',  // old --color-accent (no longer exists)
 ];

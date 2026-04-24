@@ -136,7 +136,7 @@ export class ArApp extends HTMLElement {
         }
         h1::before {
           content: '$ ';
-          color: var(--color-text-tertiary, #008830);
+          color: var(--color-text-tertiary, #00b34a);
         }
         h1 .accent {
           color: var(--color-accent-primary, #00ff41);
@@ -153,12 +153,12 @@ export class ArApp extends HTMLElement {
         }
         .subline::before {
           content: '# ';
-          color: var(--color-text-tertiary, #008830);
+          color: var(--color-text-tertiary, #00b34a);
         }
         .model-status {
           font-family: 'JetBrains Mono', monospace;
           font-size: var(--text-xs, 0.75rem);
-          color: var(--color-text-tertiary, #008830);
+          color: var(--color-text-tertiary, #00b34a);
           margin-top: var(--space-2, 0.5rem);
           min-height: 1.2em;
         }
@@ -172,7 +172,7 @@ export class ArApp extends HTMLElement {
           display: none;
           font-family: 'JetBrains Mono', monospace;
           font-size: var(--text-xs, 0.75rem);
-          color: var(--color-text-tertiary, #008830);
+          color: var(--color-text-tertiary, #00b34a);
           background: transparent;
           border: none;
           border-radius: 0;
@@ -225,7 +225,7 @@ export class ArApp extends HTMLElement {
           margin: var(--space-3, 0.75rem) auto 0;
           background: transparent;
           border: 1px solid var(--color-surface-border, #1a3a1a);
-          color: var(--color-text-tertiary, #008830);
+          color: var(--color-text-tertiary, #00b34a);
           font-family: 'JetBrains Mono', monospace;
           font-size: 12px;
           cursor: pointer;
@@ -307,7 +307,7 @@ export class ArApp extends HTMLElement {
           text-align: center;
           font-family: 'JetBrains Mono', monospace;
           font-size: 12px;
-          color: var(--color-text-tertiary, #008830);
+          color: var(--color-text-tertiary, #00b34a);
           margin-top: var(--space-4, 1rem);
           padding: 0 var(--space-4, 1rem);
           cursor: pointer;
@@ -323,7 +323,7 @@ export class ArApp extends HTMLElement {
           text-decoration: underline;
         }
         .features-disclaimer s {
-          color: var(--color-text-tertiary, #008830);
+          color: var(--color-text-tertiary, #00b34a);
           text-decoration: line-through;
           opacity: 0.7;
         }
@@ -332,7 +332,7 @@ export class ArApp extends HTMLElement {
           text-align: left;
           font-family: 'JetBrains Mono', monospace;
           font-size: 11px;
-          color: var(--color-text-tertiary, #008830);
+          color: var(--color-text-tertiary, #00b34a);
           margin-top: var(--space-2, 0.5rem);
           padding: var(--space-3, 0.75rem);
           border: 1px solid var(--color-surface-border, #1a3a1a);
@@ -363,7 +363,7 @@ export class ArApp extends HTMLElement {
         }
         .reactor-label {
           font-size: 10px;
-          color: var(--color-text-tertiary, #008830);
+          color: var(--color-text-tertiary, #00b34a);
           text-transform: uppercase;
           letter-spacing: 0.1em;
           font-family: 'JetBrains Mono', monospace;
@@ -380,7 +380,7 @@ export class ArApp extends HTMLElement {
           text-align: center;
           font-family: 'JetBrains Mono', monospace;
           font-size: 12px;
-          color: var(--color-text-tertiary, #008830);
+          color: var(--color-text-tertiary, #00b34a);
           margin-top: var(--space-2, 0.5rem);
           padding: 0 var(--space-4, 1rem);
         }
@@ -407,7 +407,7 @@ export class ArApp extends HTMLElement {
           margin-top: var(--space-1, 0.25rem);
           min-height: 24px;
           position: relative;
-          color: var(--color-text-tertiary, #008830);
+          color: var(--color-text-tertiary, #00b34a);
         }
         .precision-marquee span {
           display: inline-block;
@@ -532,7 +532,7 @@ export class ArApp extends HTMLElement {
         }
         :host(.precision-override) h1::before,
         :host(.precision-override) .subline::before {
-          color: var(--color-text-tertiary, #008830);
+          color: var(--color-text-tertiary, #00b34a);
         }
         :host(.precision-override) .subline,
         :host(.precision-override) .model-status,
@@ -544,7 +544,7 @@ export class ArApp extends HTMLElement {
         }
         :host(.precision-override) .reactor-label,
         :host(.precision-override) .reactor-support {
-          color: var(--color-text-tertiary, #008830);
+          color: var(--color-text-tertiary, #00b34a);
         }
         :host(.precision-override) .reactor-support a {
           color: var(--color-accent-primary, #00ff41);
@@ -553,14 +553,14 @@ export class ArApp extends HTMLElement {
           color: var(--color-accent-primary, #00ff41);
         }
         :host(.precision-override) .features-disclaimer s {
-          color: var(--color-text-tertiary, #008830);
+          color: var(--color-text-tertiary, #00b34a);
         }
         :host(.precision-override) .edit-btn {
           color: var(--color-text-secondary, #00dd44);
           border-color: var(--color-surface-border, #1a3a1a);
         }
         :host(.precision-override) .model-status::before {
-          color: var(--color-text-tertiary, #008830);
+          color: var(--color-text-tertiary, #00b34a);
         }
         :host(.precision-override) #precision-slider,
         :host(.precision-override) #precision-slider-ws {
@@ -1061,7 +1061,7 @@ export class ArApp extends HTMLElement {
         // Stop CRT flicker in normal modes
         this.stopCrtFlicker();
         // Subtle green marquee for normal mode
-        updateMarquees('var(--color-text-tertiary, #008830)', '<span>☢ NUKEBG | DROP. NUKE. DOWNLOAD. | Your images never leave your device | nukebg.app ☢ NUKEBG | DROP. NUKE. DOWNLOAD. | Your images never leave your device | nukebg.app ☢</span>');
+        updateMarquees('var(--color-text-tertiary, #00b34a)', '<span>☢ NUKEBG | DROP. NUKE. DOWNLOAD. | Your images never leave your device | nukebg.app ☢ NUKEBG | DROP. NUKE. DOWNLOAD. | Your images never leave your device | nukebg.app ☢</span>');
         console.log('%c[NukeBG] Mode: NORMAL', 'color: #00ff41; font-family: monospace;');
         if (reactorSupport) {
           reactorSupport.innerHTML = t('reactor.normal');
