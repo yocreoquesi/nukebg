@@ -107,6 +107,46 @@ export class ArApp extends HTMLElement {
     this.abortController = null;
   }
 
+  /**
+   * Build the HTML for a reactor segmented control (per design #70).
+   * Rendered in two places (hero + workspace) with scoped ids so we can
+   * sync their `aria-pressed` state without duplicating event wiring.
+   */
+  private renderReactorSegmented(scope: 'hero' | 'ws'): string {
+    const labels: Array<[string, string]> = [
+      ['0', t('reactor.segment.low')],
+      ['1', t('reactor.segment.normal')],
+      ['2', t('reactor.segment.high')],
+      ['3', t('reactor.segment.fullNuke')],
+    ];
+    // Default active index = 1 (NORMAL). If we've already got a
+    // selectedPrecision (re-render after locale change), reflect it.
+    const activeVal = ['low-power', 'normal', 'high-power', 'full-nuke'].indexOf(this.selectedPrecision);
+    const idBase = scope === 'hero' ? 'reactor' : 'reactor-ws';
+    const buttons = labels.map(([val, label]) => {
+      const pressed = String(val) === String(activeVal);
+      return `<button
+          type="button"
+          class="reactor-segment"
+          role="radio"
+          data-precision="${val}"
+          data-scope="${scope}"
+          aria-checked="${pressed}"
+          aria-pressed="${pressed}"
+          tabindex="${pressed ? '0' : '-1'}"
+        >${label}</button>`;
+    }).join('');
+    return `<div class="reactor-segmented" id="${idBase}">
+      <span class="reactor-label">REACTOR</span>
+      <div class="reactor-segment-group"
+           role="radiogroup"
+           aria-label="${t('reactor.segment.groupLabel')}"
+           data-scope="${scope}">
+        ${buttons}
+      </div>
+    </div>`;
+  }
+
   private render(): void {
     this.shadowRoot!.innerHTML = `
       <style>
@@ -356,11 +396,6 @@ export class ArApp extends HTMLElement {
           opacity: 0.4;
           pointer-events: none;
         }
-        #precision-slider {
-          width: 80px;
-          accent-color: var(--color-accent-primary, #00ff41);
-          cursor: pointer;
-        }
         .reactor-label {
           font-size: 10px;
           color: var(--color-text-tertiary, #00b34a);
@@ -368,11 +403,52 @@ export class ArApp extends HTMLElement {
           letter-spacing: 0.1em;
           font-family: 'JetBrains Mono', monospace;
         }
+        /* Reactor segmented control — replaces the native range input.
+           Four buttons acting as a radiogroup, per design proposal #70. */
+        .reactor-segmented {
+          display: inline-flex;
+          align-items: center;
+          gap: 12px;
+          font-family: 'JetBrains Mono', monospace;
+        }
+        .reactor-segment-group {
+          display: inline-flex;
+          border: 1px solid var(--color-surface-border, #1a3a1a);
+        }
+        .reactor-segment {
+          appearance: none;
+          background: transparent;
+          border: none;
+          border-right: 1px solid var(--color-surface-border, #1a3a1a);
+          color: var(--color-text-tertiary, #00b34a);
+          font: inherit;
+          font-size: 11px;
+          letter-spacing: 0.08em;
+          padding: 6px 12px;
+          cursor: pointer;
+          min-height: 32px;
+          transition: color 0.15s ease, background 0.15s ease, text-shadow 0.15s ease;
+        }
+        .reactor-segment:last-child { border-right: none; }
+        .reactor-segment:hover:not([aria-pressed="true"]),
+        .reactor-segment:focus-visible {
+          color: var(--color-text-secondary, #00dd44);
+          outline: none;
+        }
+        .reactor-segment[aria-pressed="true"] {
+          background: var(--color-accent-muted, rgba(0, 255, 65, 0.08));
+          color: var(--color-accent-primary, #00ff41);
+          text-shadow: 0 0 6px var(--color-accent-glow, rgba(0, 255, 65, 0.35));
+        }
+        @media (pointer: coarse) {
+          .reactor-segment { min-height: 44px; padding: 10px 14px; }
+        }
+        /* Keep .precision-label selector so existing power-mode overrides
+           still have somewhere to attach; the segmented control itself is
+           self-labeling through the active button state. */
         .precision-label {
           font-size: var(--text-xs, 0.75rem);
           color: var(--color-accent-primary, #00ff41);
-          min-width: 90px;
-          text-align: center;
           transition: color 0.3s ease;
         }
         .reactor-support {
@@ -562,9 +638,16 @@ export class ArApp extends HTMLElement {
         :host(.precision-override) .model-status::before {
           color: var(--color-text-tertiary, #00b34a);
         }
-        :host(.precision-override) #precision-slider,
-        :host(.precision-override) #precision-slider-ws {
-          accent-color: var(--color-accent-primary, #00ff41);
+        :host(.precision-override) .reactor-segment[aria-pressed="true"] {
+          background: var(--color-accent-muted, rgba(0, 255, 65, 0.08));
+          color: var(--color-accent-primary, #00ff41);
+          text-shadow: 0 0 6px var(--color-accent-glow, rgba(0, 255, 65, 0.35));
+        }
+        :host(.precision-override) .reactor-segment-group {
+          border-color: var(--color-surface-border, #1a3a1a);
+        }
+        :host(.precision-override) .reactor-segment {
+          border-right-color: var(--color-surface-border, #1a3a1a);
         }
 
         .crt-word-flicker {
@@ -749,11 +832,7 @@ export class ArApp extends HTMLElement {
           ${t('hero.subtitle').replace(/\n/g, ' ')}
         </p>
         <div class="hero-controls">
-          <div class="ws-precision">
-            <span class="reactor-label">Reactor Power</span>
-            <input type="range" id="precision-slider" min="0" max="3" value="1" step="1" aria-label="Reactor power level">
-            <span class="precision-label" id="precision-label">Normal</span>
-          </div>
+          ${this.renderReactorSegmented('hero')}
         </div>
         <ar-dropzone></ar-dropzone>
         <ar-batch-grid id="batch-grid" style="display:none"></ar-batch-grid>
@@ -777,11 +856,7 @@ export class ArApp extends HTMLElement {
           <ar-viewer></ar-viewer>
           <ar-progress></ar-progress>
           <div class="ws-controls">
-            <div class="ws-slider-fixed">
-              <span class="reactor-label">Reactor Power</span>
-              <input type="range" id="precision-slider-ws" min="0" max="3" value="1" step="1" aria-label="Reactor power level">
-              <span class="precision-label" id="precision-label-ws">Normal</span>
-            </div>
+            ${this.renderReactorSegmented('ws')}
           </div>
           <div class="precision-marquee" id="precision-marquee-ws"><span>☢ NUKEBG | DROP. NUKE. DOWNLOAD. | Your images never leave your device | nukebg.app ☢ NUKEBG | DROP. NUKE. DOWNLOAD. | Your images never leave your device | nukebg.app ☢</span></div>
           <ar-download></ar-download>
@@ -862,6 +937,20 @@ export class ArApp extends HTMLElement {
     if (errRetry) errRetry.textContent = t('error.retry');
     const errDismiss = root.querySelector('#error-modal-dismiss');
     if (errDismiss) errDismiss.textContent = t('error.dismiss');
+    // Reactor segmented button labels + group aria-label
+    const segmentLabels: Record<string, string> = {
+      '0': t('reactor.segment.low'),
+      '1': t('reactor.segment.normal'),
+      '2': t('reactor.segment.high'),
+      '3': t('reactor.segment.fullNuke'),
+    };
+    root.querySelectorAll<HTMLButtonElement>('.reactor-segment').forEach((b) => {
+      const v = b.dataset.precision ?? '1';
+      if (segmentLabels[v]) b.textContent = segmentLabels[v];
+    });
+    root.querySelectorAll<HTMLElement>('.reactor-segment-group').forEach((g) => {
+      g.setAttribute('aria-label', t('reactor.segment.groupLabel'));
+    });
   }
 
   private getInstallGuide(): string {
@@ -1034,35 +1123,205 @@ export class ArApp extends HTMLElement {
       this.resetToIdle();
     }, { signal });
 
-    // Precision slider - 4 positions with visual effects at extremes
-    const precisionKeys = ['low-power', 'normal', 'high-power', 'full-nuke'] as const;
-    const precisionLabels = ['Low Power', 'Normal', 'High Power', 'FULL NUKE'];
-    this.shadowRoot!.querySelector('#precision-slider')?.addEventListener('input', (e) => {
-      const val = parseInt((e.target as HTMLInputElement).value);
-      this.selectedPrecision = precisionKeys[val];
-      const label = this.shadowRoot!.querySelector('#precision-label');
-      if (label) label.textContent = precisionLabels[val];
-      // Sync workspace slider
-      const wsSlider = this.shadowRoot!.querySelector('#precision-slider-ws') as HTMLInputElement;
-      if (wsSlider) wsSlider.value = String(val);
-      const wsLabel = this.shadowRoot!.querySelector('#precision-label-ws');
-      if (wsLabel) wsLabel.textContent = precisionLabels[val];
-
-      const marquee = this.shadowRoot!.querySelector('#precision-marquee') as HTMLElement;
-      const marqueeWs = this.shadowRoot!.querySelector('#precision-marquee-ws') as HTMLElement;
-      const smoke = document.getElementById('smoke-overlay');
-      const reactorSupport = this.shadowRoot!.querySelector('#reactor-support') as HTMLElement;
-      const disclaimer = this.shadowRoot!.querySelector('#features-disclaimer') as HTMLElement;
-
-      // Helper to update both marquees (hero + workspace)
-      const updateMarquees = (color: string, html: string): void => {
-        [marquee, marqueeWs].forEach(m => {
-          if (m) {
-            m.style.color = color;
-            m.innerHTML = html;
+    // Reactor segmented controls (hero + workspace). Clicks, Enter/Space
+    // and arrow keys all route through applyPrecisionMode which also
+    // carries the per-mode visual side effects (CRT flicker, marquee
+    // swap, smoke, etc).
+    this.shadowRoot!.querySelectorAll('.reactor-segment').forEach((btn) => {
+      const el = btn as HTMLButtonElement;
+      el.addEventListener('click', () => {
+        const val = parseInt(el.dataset.precision ?? '1');
+        this.applyPrecisionMode(val);
+      }, { signal });
+      el.addEventListener('keydown', (ev) => {
+        const e = ev as KeyboardEvent;
+        const groupScope = el.dataset.scope;
+        const group = this.shadowRoot!.querySelector<HTMLElement>(
+          `.reactor-segment-group[data-scope="${groupScope}"]`,
+        );
+        if (!group) return;
+        const buttons = Array.from(group.querySelectorAll<HTMLButtonElement>('.reactor-segment'));
+        const idx = buttons.indexOf(el);
+        if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+          e.preventDefault();
+          const next = Math.min(idx + 1, buttons.length - 1);
+          if (next !== idx) {
+            this.applyPrecisionMode(parseInt(buttons[next].dataset.precision ?? '1'));
+            buttons[next].focus();
           }
-        });
-      };
+        } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+          e.preventDefault();
+          const next = Math.max(idx - 1, 0);
+          if (next !== idx) {
+            this.applyPrecisionMode(parseInt(buttons[next].dataset.precision ?? '1'));
+            buttons[next].focus();
+          }
+        } else if (e.key === 'Home') {
+          e.preventDefault();
+          this.applyPrecisionMode(0);
+          buttons[0].focus();
+        } else if (e.key === 'End') {
+          e.preventDefault();
+          this.applyPrecisionMode(buttons.length - 1);
+          buttons[buttons.length - 1].focus();
+        }
+      }, { signal });
+    });
+
+    // Disclaimer click - toggle limitations detail
+    this.shadowRoot!.querySelector('#features-disclaimer')?.addEventListener('click', () => {
+      const detail = this.shadowRoot!.querySelector('#limitations-detail');
+      if (detail) detail.classList.toggle('visible');
+    }, { signal });
+
+    // Edit button - opens editor or discards edits
+    this.shadowRoot!.querySelector('#edit-btn')?.addEventListener('click', async () => {
+      if (!this.lastResultImageData) return;
+
+      if (this.preEditResult) {
+        // Discard mode: restore pre-edit result, cache edit for instant re-apply
+        this.cachedEditResult = this.lastResultImageData;
+        this.lastResultImageData = this.preEditResult;
+        this.preEditResult = null;
+
+        const blob = await exportPng(this.lastResultImageData);
+        const originalForViewer = this.currentOriginalImageData ?? this.currentImageData;
+        if (originalForViewer) this.viewer.setOriginal(originalForViewer, this.currentFileSize);
+        this.viewer.setResult(this.lastResultImageData, blob);
+        await this.download.setResult(this.lastResultImageData, this.currentFileName, 0, blob);
+
+        // Switch button back to "Edit manually"
+        const editBtn = this.shadowRoot!.querySelector('#edit-btn') as HTMLElement;
+        if (editBtn) editBtn.textContent = t('edit.btn');
+      } else {
+        // Edit mode: open editor, pass cached edit result for instant toggle if available
+        const editorSection = this.shadowRoot!.querySelector('#editor-section') as HTMLElement;
+        editorSection.style.display = 'block';
+        this.editor.setImage(
+          this.cachedEditResult ?? this.lastResultImageData,
+          (this.currentOriginalImageData ?? this.currentImageData)!,
+        );
+        this.cachedEditResult = null;
+        (this.shadowRoot!.querySelector('#edit-btn') as HTMLElement).style.display = 'none';
+      }
+    }, { signal });
+
+
+
+    // Editor cancel - discard edits, close editor
+    this.shadowRoot!.addEventListener('ar:editor-cancel', () => {
+      (this.shadowRoot!.querySelector('#editor-section') as HTMLElement).style.display = 'none';
+      (this.shadowRoot!.querySelector('#edit-btn') as HTMLElement).style.display = 'block';
+    }, { signal });
+
+    // Editor done - update viewer and download with edited result
+    this.shadowRoot!.addEventListener('ar:editor-done', async (e: Event) => {
+      const rawEdited = (e as CustomEvent).detail.imageData as ImageData;
+      // Refine: foreground decontamination + quintic alpha sharpening so manual
+      // brush strokes inherit the same studio-quality edge as the main pipeline.
+      const editedData = await refineEdges(this.pipeline, rawEdited);
+      const blob = await exportPng(editedData);
+
+      // Save pre-edit for discard functionality
+      this.preEditResult = this.lastResultImageData;
+      this.cachedEditResult = editedData;
+      this.lastResultImageData = editedData;
+
+      // "Before" stays as the original input image; only "after" updates
+      this.viewer.setResult(editedData, blob);
+      await this.download.setResult(editedData, this.currentFileName, 0, blob);
+
+      // Hide editor, show discard button
+      (this.shadowRoot!.querySelector('#editor-section') as HTMLElement).style.display = 'none';
+      const editBtn = this.shadowRoot!.querySelector('#edit-btn') as HTMLElement;
+      editBtn.style.display = 'block';
+      editBtn.textContent = t('edit.discard');
+    }, { signal });
+
+    // Advanced editor CTA toggle
+    this.shadowRoot!.querySelector('#advanced-cta')?.addEventListener('click', () => {
+      const adv = this.shadowRoot!.querySelector('#editor-advanced') as ArEditorAdvanced | null;
+      const btn = this.shadowRoot!.querySelector('#advanced-cta') as HTMLElement | null;
+      if (!adv || !btn) return;
+      const isOpen = adv.hasAttribute('active');
+      if (isOpen) {
+        adv.removeAttribute('active');
+        btn.removeAttribute('data-active');
+        return;
+      }
+      const current = this.lastResultImageData ?? this.currentImageData;
+      const original = this.currentOriginalImageData ?? this.currentImageData;
+      if (!current || !original) return;
+      adv.setImage(current, original);
+      adv.setAttribute('active', '');
+      btn.setAttribute('data-active', 'true');
+      adv.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, { signal });
+
+    // Advanced editor — cancel
+    this.shadowRoot!.addEventListener('ar:advanced-cancel', () => {
+      const btn = this.shadowRoot!.querySelector('#advanced-cta') as HTMLElement | null;
+      btn?.removeAttribute('data-active');
+    }, { signal });
+
+    // Advanced editor — done
+    this.shadowRoot!.addEventListener('ar:advanced-done', async (e: Event) => {
+      const detail = (e as CustomEvent<{ imageData: ImageData }>).detail;
+      const btn = this.shadowRoot!.querySelector('#advanced-cta') as HTMLElement | null;
+      btn?.removeAttribute('data-active');
+
+      const refined = await refineEdges(this.pipeline, detail.imageData);
+      const blob = await exportPng(refined);
+      this.viewer.setResult(refined, blob);
+      await this.download.setResult(refined, this.currentFileName, 0, blob);
+      this.lastResultImageData = refined;
+    }, { signal });
+  }
+
+  /**
+   * Apply a reactor precision level (0=low, 1=normal, 2=high, 3=full-nuke).
+   * Syncs both segmented controls' `aria-pressed` state, swaps marquee
+   * copy, applies per-mode global CSS var overrides, toggles the
+   * CRT-flicker + smoke overlays, updates the reactor-support copy.
+   */
+  private applyPrecisionMode(val: number): void {
+    const precisionKeys = ['low-power', 'normal', 'high-power', 'full-nuke'] as const;
+    if (val < 0 || val > 3) return;
+    this.selectedPrecision = precisionKeys[val];
+
+    // Sync aria-pressed + tabindex on every segment across both scopes
+    // so the hero and workspace controls reflect the same state.
+    this.shadowRoot!.querySelectorAll<HTMLButtonElement>('.reactor-segment').forEach((b) => {
+      const on = String(val) === b.dataset.precision;
+      b.setAttribute('aria-pressed', on ? 'true' : 'false');
+      b.setAttribute('aria-checked', on ? 'true' : 'false');
+      b.tabIndex = on ? 0 : -1;
+    });
+
+    this.applyPrecisionSideEffects(val);
+  }
+
+  /**
+   * Per-mode visual side effects — CRT flicker, marquee copy, smoke
+   * overlay, reactor-support text, global CSS var overrides. Factored
+   * out of the original `#precision-slider` input handler.
+   */
+  private applyPrecisionSideEffects(val: number): void {
+    const marquee = this.shadowRoot!.querySelector('#precision-marquee') as HTMLElement;
+    const marqueeWs = this.shadowRoot!.querySelector('#precision-marquee-ws') as HTMLElement;
+    const smoke = document.getElementById('smoke-overlay');
+    const reactorSupport = this.shadowRoot!.querySelector('#reactor-support') as HTMLElement;
+    const disclaimer = this.shadowRoot!.querySelector('#features-disclaimer') as HTMLElement;
+
+    // Helper to update both marquees (hero + workspace)
+    const updateMarquees = (color: string, html: string): void => {
+      [marquee, marqueeWs].forEach(m => {
+        if (m) {
+          m.style.color = color;
+          m.innerHTML = html;
+        }
+      });
+    };
 
       if (val === 3) {
         // Full Nuke - red override (shadow DOM + global properties)
@@ -1200,132 +1459,10 @@ export class ArApp extends HTMLElement {
         }
         this.unwrapFlickerWords(disclaimer);
         this.unwrapFlickerWords(reactorSupport);
-        // Hide smoke in normal modes
-        if (smoke) smoke.classList.remove('active');
-        // Hide features in Normal mode - clean minimal view
-      }
-    }, { signal });
-
-    // Workspace precision slider - syncs with hero slider
-    this.shadowRoot!.querySelector('#precision-slider-ws')?.addEventListener('input', (e) => {
-      const val = parseInt((e.target as HTMLInputElement).value);
-      // Sync hero slider and visual effects
-      const heroSlider = this.shadowRoot!.querySelector('#precision-slider') as HTMLInputElement;
-      if (heroSlider) heroSlider.value = String(val);
-      heroSlider?.dispatchEvent(new Event('input'));
-      const wsLabel = this.shadowRoot!.querySelector('#precision-label-ws');
-      if (wsLabel) wsLabel.textContent = precisionLabels[val];
-      // No auto-reprocess - user must click Reprocess button
-    }, { signal });
-
-    // Disclaimer click - toggle limitations detail
-    this.shadowRoot!.querySelector('#features-disclaimer')?.addEventListener('click', () => {
-      const detail = this.shadowRoot!.querySelector('#limitations-detail');
-      if (detail) detail.classList.toggle('visible');
-    }, { signal });
-
-    // Edit button - opens editor or discards edits
-    this.shadowRoot!.querySelector('#edit-btn')?.addEventListener('click', async () => {
-      if (!this.lastResultImageData) return;
-
-      if (this.preEditResult) {
-        // Discard mode: restore pre-edit result, cache edit for instant re-apply
-        this.cachedEditResult = this.lastResultImageData;
-        this.lastResultImageData = this.preEditResult;
-        this.preEditResult = null;
-
-        const blob = await exportPng(this.lastResultImageData);
-        const originalForViewer = this.currentOriginalImageData ?? this.currentImageData;
-        if (originalForViewer) this.viewer.setOriginal(originalForViewer, this.currentFileSize);
-        this.viewer.setResult(this.lastResultImageData, blob);
-        await this.download.setResult(this.lastResultImageData, this.currentFileName, 0, blob);
-
-        // Switch button back to "Edit manually"
-        const editBtn = this.shadowRoot!.querySelector('#edit-btn') as HTMLElement;
-        if (editBtn) editBtn.textContent = t('edit.btn');
-      } else {
-        // Edit mode: open editor, pass cached edit result for instant toggle if available
-        const editorSection = this.shadowRoot!.querySelector('#editor-section') as HTMLElement;
-        editorSection.style.display = 'block';
-        this.editor.setImage(
-          this.cachedEditResult ?? this.lastResultImageData,
-          (this.currentOriginalImageData ?? this.currentImageData)!,
-        );
-        this.cachedEditResult = null;
-        (this.shadowRoot!.querySelector('#edit-btn') as HTMLElement).style.display = 'none';
-      }
-    }, { signal });
-
-
-
-    // Editor cancel - discard edits, close editor
-    this.shadowRoot!.addEventListener('ar:editor-cancel', () => {
-      (this.shadowRoot!.querySelector('#editor-section') as HTMLElement).style.display = 'none';
-      (this.shadowRoot!.querySelector('#edit-btn') as HTMLElement).style.display = 'block';
-    }, { signal });
-
-    // Editor done - update viewer and download with edited result
-    this.shadowRoot!.addEventListener('ar:editor-done', async (e: Event) => {
-      const rawEdited = (e as CustomEvent).detail.imageData as ImageData;
-      // Refine: foreground decontamination + quintic alpha sharpening so manual
-      // brush strokes inherit the same studio-quality edge as the main pipeline.
-      const editedData = await refineEdges(this.pipeline, rawEdited);
-      const blob = await exportPng(editedData);
-
-      // Save pre-edit for discard functionality
-      this.preEditResult = this.lastResultImageData;
-      this.cachedEditResult = editedData;
-      this.lastResultImageData = editedData;
-
-      // "Before" stays as the original input image; only "after" updates
-      this.viewer.setResult(editedData, blob);
-      await this.download.setResult(editedData, this.currentFileName, 0, blob);
-
-      // Hide editor, show discard button
-      (this.shadowRoot!.querySelector('#editor-section') as HTMLElement).style.display = 'none';
-      const editBtn = this.shadowRoot!.querySelector('#edit-btn') as HTMLElement;
-      editBtn.style.display = 'block';
-      editBtn.textContent = t('edit.discard');
-    }, { signal });
-
-    // Advanced editor CTA toggle
-    this.shadowRoot!.querySelector('#advanced-cta')?.addEventListener('click', () => {
-      const adv = this.shadowRoot!.querySelector('#editor-advanced') as ArEditorAdvanced | null;
-      const btn = this.shadowRoot!.querySelector('#advanced-cta') as HTMLElement | null;
-      if (!adv || !btn) return;
-      const isOpen = adv.hasAttribute('active');
-      if (isOpen) {
-        adv.removeAttribute('active');
-        btn.removeAttribute('data-active');
-        return;
-      }
-      const current = this.lastResultImageData ?? this.currentImageData;
-      const original = this.currentOriginalImageData ?? this.currentImageData;
-      if (!current || !original) return;
-      adv.setImage(current, original);
-      adv.setAttribute('active', '');
-      btn.setAttribute('data-active', 'true');
-      adv.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }, { signal });
-
-    // Advanced editor — cancel
-    this.shadowRoot!.addEventListener('ar:advanced-cancel', () => {
-      const btn = this.shadowRoot!.querySelector('#advanced-cta') as HTMLElement | null;
-      btn?.removeAttribute('data-active');
-    }, { signal });
-
-    // Advanced editor — done
-    this.shadowRoot!.addEventListener('ar:advanced-done', async (e: Event) => {
-      const detail = (e as CustomEvent<{ imageData: ImageData }>).detail;
-      const btn = this.shadowRoot!.querySelector('#advanced-cta') as HTMLElement | null;
-      btn?.removeAttribute('data-active');
-
-      const refined = await refineEdges(this.pipeline, detail.imageData);
-      const blob = await exportPng(refined);
-      this.viewer.setResult(refined, blob);
-      await this.download.setResult(refined, this.currentFileName, 0, blob);
-      this.lastResultImageData = refined;
-    }, { signal });
+    // Hide smoke in normal modes
+    if (smoke) smoke.classList.remove('active');
+    // Hide features in Normal mode - clean minimal view
+    }
   }
 
   // Advanced CTA replaces the edit-btn when visible.
