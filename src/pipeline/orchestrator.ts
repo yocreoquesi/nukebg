@@ -59,7 +59,15 @@ export class PipelineOrchestrator {
   private mlWorker: Worker;
   private inpaintWorker: Worker | null = null;
   private lamaWorker: Worker | null = null;
-  private pendingRequests = new Map<string, { resolve: (val: unknown) => void; reject: (err: Error) => void; expectedType: string }>();
+  private pendingRequests = new Map<string, {
+    resolve: (val: unknown) => void;
+    reject: (err: Error) => void;
+    expectedType: string;
+    /** Timeout handle associated with this request, so response handlers
+     *  can clear it promptly instead of waiting for the timer to fire
+     *  empty-handed. */
+    timer?: ReturnType<typeof setTimeout>;
+  }>();
   private pendingTimers = new Set<ReturnType<typeof setTimeout>>();
   private onStageChange: StageCallback;
   private activeSignalCleanup: (() => void) | null = null;
@@ -84,7 +92,7 @@ export class PipelineOrchestrator {
       const msg = e.data;
       const pending = this.pendingRequests.get(msg.id);
       if (pending) {
-        this.pendingRequests.delete(msg.id);
+        this.settlePending(msg.id);
         if (msg.type === 'error') {
           pending.reject(new Error(msg.error));
         } else {
@@ -147,7 +155,7 @@ export class PipelineOrchestrator {
       const pending = this.pendingRequests.get(msg.id);
       if (pending) {
         if (msg.type === 'error') {
-          this.pendingRequests.delete(msg.id);
+          this.settlePending(msg.id);
           pending.reject(new Error(msg.error));
         } else if (msg.type === 'segment-result') {
           // Only resolve if the request was actually for a segment call
@@ -155,7 +163,7 @@ export class PipelineOrchestrator {
             console.warn(`[NukeBG] segment-result arrived for a '${pending.expectedType}' request - ignoring`);
             return;
           }
-          this.pendingRequests.delete(msg.id);
+          this.settlePending(msg.id);
           pending.resolve(msg.result);
         } else if (msg.type === 'model-ready') {
           // Only resolve if the request was for load-model, NOT segment.
@@ -165,7 +173,7 @@ export class PipelineOrchestrator {
             console.warn(`[NukeBG] model-ready arrived for a '${pending.expectedType}' request - ignoring`);
             return;
           }
-          this.pendingRequests.delete(msg.id);
+          this.settlePending(msg.id);
           pending.resolve(msg);
         }
       }
@@ -194,6 +202,23 @@ export class PipelineOrchestrator {
       pending.reject(new Error(message));
     }
     this.pendingRequests.clear();
+  }
+
+  /**
+   * Settle a pending request (resolve or reject): clear its watchdog
+   * timer, drop the timer from pendingTimers, and remove the entry from
+   * pendingRequests. Call this from every response handler so the
+   * pendingTimers set stays tight — without it, timers linger until
+   * they fire empty-handed (#44 leak).
+   */
+  private settlePending(id: string): void {
+    const pending = this.pendingRequests.get(id);
+    if (!pending) return;
+    if (pending.timer !== undefined) {
+      clearTimeout(pending.timer);
+      this.pendingTimers.delete(pending.timer);
+    }
+    this.pendingRequests.delete(id);
   }
 
   /**
@@ -233,7 +258,6 @@ export class PipelineOrchestrator {
   private cvCall<T>(type: string, payload: Record<string, unknown>): Promise<T> {
     return new Promise((resolve, reject) => {
       const id = generateUUID();
-      this.pendingRequests.set(id, { resolve: resolve as (val: unknown) => void, reject, expectedType: type });
       const transferables = PipelineOrchestrator.extractTransferables(payload);
       this.cvWorker.postMessage({ id, type, payload }, transferables);
 
@@ -245,13 +269,13 @@ export class PipelineOrchestrator {
         }
       }, CV_TIMEOUT_MS);
       this.pendingTimers.add(timer);
+      this.pendingRequests.set(id, { resolve: resolve as (val: unknown) => void, reject, expectedType: type, timer });
     });
   }
 
   private mlCall<T>(type: string, payload?: Record<string, unknown>, extra?: Record<string, unknown>): Promise<T> {
     return new Promise((resolve, reject) => {
       const id = generateUUID();
-      this.pendingRequests.set(id, { resolve: resolve as (val: unknown) => void, reject, expectedType: type });
       const transferables = PipelineOrchestrator.extractTransferables(payload);
       this.mlWorker.postMessage({ id, type, payload, ...extra }, transferables);
 
@@ -263,6 +287,7 @@ export class PipelineOrchestrator {
         }
       }, ML_TIMEOUT_MS);
       this.pendingTimers.add(timer);
+      this.pendingRequests.set(id, { resolve: resolve as (val: unknown) => void, reject, expectedType: type, timer });
     });
   }
 
@@ -287,13 +312,13 @@ export class PipelineOrchestrator {
       const pending = this.pendingRequests.get(msg.id);
       if (pending) {
         if (msg.type === 'error') {
-          this.pendingRequests.delete(msg.id);
+          this.settlePending(msg.id);
           pending.reject(new Error(msg.error));
         } else if (msg.type === 'inpaint-result') {
-          this.pendingRequests.delete(msg.id);
+          this.settlePending(msg.id);
           pending.resolve(msg.result);
         } else if (msg.type === 'disposed') {
-          this.pendingRequests.delete(msg.id);
+          this.settlePending(msg.id);
           pending.resolve(undefined);
         }
       }
@@ -304,7 +329,6 @@ export class PipelineOrchestrator {
     if (!this.inpaintWorker) throw new Error('Inpaint worker not created');
     return new Promise((resolve, reject) => {
       const id = generateUUID();
-      this.pendingRequests.set(id, { resolve: resolve as (val: unknown) => void, reject, expectedType: type });
       const transferables = PipelineOrchestrator.extractTransferables(payload);
       this.inpaintWorker!.postMessage({ id, type, payload }, transferables);
 
@@ -316,6 +340,7 @@ export class PipelineOrchestrator {
         }
       }, INPAINT_TIMEOUT_MS);
       this.pendingTimers.add(timer);
+      this.pendingRequests.set(id, { resolve: resolve as (val: unknown) => void, reject, expectedType: type, timer });
     });
   }
 
@@ -357,13 +382,13 @@ export class PipelineOrchestrator {
       const pending = this.pendingRequests.get(msg.id);
       if (pending) {
         if (msg.type === 'error') {
-          this.pendingRequests.delete(msg.id);
+          this.settlePending(msg.id);
           pending.reject(new Error(msg.error));
         } else if (msg.type === 'lama-inpaint-result') {
-          this.pendingRequests.delete(msg.id);
+          this.settlePending(msg.id);
           pending.resolve(msg.result);
         } else if (msg.type === 'lama-disposed') {
-          this.pendingRequests.delete(msg.id);
+          this.settlePending(msg.id);
           pending.resolve(undefined);
         }
       }
@@ -374,7 +399,6 @@ export class PipelineOrchestrator {
     if (!this.lamaWorker) throw new Error('LaMa worker not created');
     return new Promise((resolve, reject) => {
       const id = generateUUID();
-      this.pendingRequests.set(id, { resolve: resolve as (val: unknown) => void, reject, expectedType: type });
       const transferables = PipelineOrchestrator.extractTransferables(payload);
       this.lamaWorker!.postMessage({ id, type, payload }, transferables);
 
@@ -386,6 +410,7 @@ export class PipelineOrchestrator {
         }
       }, LAMA_TIMEOUT_MS);
       this.pendingTimers.add(timer);
+      this.pendingRequests.set(id, { resolve: resolve as (val: unknown) => void, reject, expectedType: type, timer });
     });
   }
 
@@ -770,9 +795,16 @@ export class PipelineOrchestrator {
     this.activeSignalCleanup = null;
     for (const timer of this.pendingTimers) clearTimeout(timer);
     this.pendingTimers.clear();
+    this.pendingRequests.clear();
     this.cvWorker.terminate();
     this.mlWorker.terminate();
     this.disposeInpaintWorker();
     this.disposeLamaWorker();
   }
+
+  /** Test-only accessors so unit tests can assert the #44 leak is fixed
+   *  without touching private state. Cheap in production — the getters
+   *  forward straight to the existing collections. */
+  get _pendingTimersSize(): number { return this.pendingTimers.size; }
+  get _pendingRequestsSize(): number { return this.pendingRequests.size; }
 }
