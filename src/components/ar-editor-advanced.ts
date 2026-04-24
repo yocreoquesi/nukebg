@@ -67,6 +67,9 @@ interface PendingPreview {
   newAlpha: Uint8Array;
   /** Cached tint overlay (image-sized) the display canvas composites on top. */
   overlay: HTMLCanvasElement;
+  /** Pixel counts for the preview banner diff label. */
+  gained: number;
+  lost: number;
 }
 
 export class ArEditorAdvanced extends HTMLElement {
@@ -503,6 +506,13 @@ export class ArEditorAdvanced extends HTMLElement {
           border-color: #7bd37b;
         }
         .action-btn.confirm:hover:not(:disabled) { background: #7bd37b; color: #000; }
+        .preview-diff {
+          font-family: 'JetBrains Mono', monospace;
+          font-size: 11px;
+          color: var(--color-text-tertiary, #00b34a);
+          margin-right: 6px;
+          white-space: nowrap;
+        }
         .preview-actions {
           display: none;
           gap: 6px;
@@ -833,6 +843,7 @@ export class ArEditorAdvanced extends HTMLElement {
           <button type="button" class="action-btn cancel-action hidden" id="cancel-action">${t('advanced.cancelAction')}</button>
         </div>
         <div class="preview-actions" id="preview-actions" role="group" aria-label="Confirm preview">
+          <span class="preview-diff" id="preview-diff" aria-live="polite"></span>
           <button type="button" class="action-btn confirm" id="action-apply-preview" title="${t('advanced.previewApplyHint')}">${t('advanced.previewApply')}</button>
           <button type="button" class="action-btn" id="action-cancel-preview" title="${t('advanced.previewCancelHint')}">${t('advanced.previewCancel')}</button>
         </div>
@@ -1612,8 +1623,9 @@ export class ArEditorAdvanced extends HTMLElement {
         this.applyAlphaDirectly(newAlpha);
         return;
       }
-      const overlay = this.buildPreviewOverlay(prevAlpha, newAlpha, w, h);
-      this.pendingPreview = { kind, newAlpha, overlay };
+      const { canvas: overlay, gained, lost } = this.buildPreviewOverlay(prevAlpha, newAlpha, w, h);
+      this.pendingPreview = { kind, newAlpha, overlay, gained, lost };
+      this.syncPreviewBannerDiff();
       this.redrawDisplay();
     } catch (err) {
       if (err instanceof DOMException && err.name === 'AbortError') return;
@@ -1639,12 +1651,14 @@ export class ArEditorAdvanced extends HTMLElement {
     newAlpha: Uint8Array,
     w: number,
     h: number,
-  ): HTMLCanvasElement {
+  ): { canvas: HTMLCanvasElement; gained: number; lost: number } {
     const canvas = document.createElement('canvas');
     canvas.width = w;
     canvas.height = h;
     const ctx = canvas.getContext('2d')!;
     const img = ctx.createImageData(w, h);
+    let lost = 0;
+    let gained = 0;
     for (let i = 0; i < prevAlpha.length; i++) {
       const delta = newAlpha[i] - prevAlpha[i];
       const idx = i * 4;
@@ -1654,16 +1668,18 @@ export class ArEditorAdvanced extends HTMLElement {
         img.data[idx + 1] = 60;
         img.data[idx + 2] = 60;
         img.data[idx + 3] = 140;
+        lost++;
       } else if (delta >= 24) {
         // Will be restored — green tint.
         img.data[idx] = 80;
         img.data[idx + 1] = 220;
         img.data[idx + 2] = 120;
         img.data[idx + 3] = 110;
+        gained++;
       }
     }
     ctx.putImageData(img, 0, 0);
-    return canvas;
+    return { canvas, gained, lost };
   }
 
   private applyPreview(): void {
@@ -1699,6 +1715,30 @@ export class ArEditorAdvanced extends HTMLElement {
     this.syncHistoryUI();
   }
 
+  /**
+   * Update the preview-actions banner with gained / lost pixel counts
+   * so the user knows what Confirm will apply before clicking it (#77).
+   */
+  private syncPreviewBannerDiff(): void {
+    const diff = this.shadowRoot?.getElementById('preview-diff');
+    if (!diff) return;
+    if (!this.pendingPreview) {
+      diff.textContent = '';
+      return;
+    }
+    const { gained, lost } = this.pendingPreview;
+    diff.textContent = t('advanced.previewDiff', {
+      gained: this.formatPixelCount(gained),
+      lost: this.formatPixelCount(lost),
+    });
+  }
+
+  private formatPixelCount(n: number): string {
+    if (n < 1000) return String(n);
+    if (n < 1_000_000) return `${(n / 1000).toFixed(1).replace(/\.0$/, '')}K`;
+    return `${(n / 1_000_000).toFixed(1).replace(/\.0$/, '')}M`;
+  }
+
   private cancelPreview(): void {
     if (!this.pendingPreview) return;
     this.pendingPreview = null;
@@ -1706,6 +1746,7 @@ export class ArEditorAdvanced extends HTMLElement {
     // redrawing the loop.
     this.redrawDisplay();
     this.syncLassoActionsUI();
+    this.syncPreviewBannerDiff();
   }
 
   private async getLoader(): Promise<ModelLoader> {
