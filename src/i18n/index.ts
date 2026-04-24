@@ -174,6 +174,9 @@ const translations: Translations = {
 
     // Pipeline error
     'pipeline.error': 'Processing failed: {msg}',
+    'error.title': 'Something went wrong',
+    'error.retry': 'Retry',
+    'error.dismiss': 'Dismiss',
 
     // PWA
     'pwa.install': '[INSTALL] Run locally',
@@ -371,6 +374,9 @@ const translations: Translations = {
 
     // Pipeline error
     'pipeline.error': 'Procesamiento fallido: {msg}',
+    'error.title': 'Algo salió mal',
+    'error.retry': 'Reintentar',
+    'error.dismiss': 'Cerrar',
 
     // PWA
     'pwa.install': '[INSTALAR] Ejecutar local',
@@ -568,6 +574,9 @@ const translations: Translations = {
 
     // Pipeline error
     'pipeline.error': 'Traitement \u00E9chou\u00E9 : {msg}',
+    'error.title': 'Une erreur est survenue',
+    'error.retry': 'R\u00E9essayer',
+    'error.dismiss': 'Fermer',
 
     // PWA
     'pwa.install': '[INSTALLER] Ex\u00E9cuter en local',
@@ -765,6 +774,9 @@ const translations: Translations = {
 
     // Pipeline error
     'pipeline.error': 'Verarbeitung fehlgeschlagen: {msg}',
+    'error.title': 'Etwas ist schiefgelaufen',
+    'error.retry': 'Erneut versuchen',
+    'error.dismiss': 'Schließen',
 
     // PWA
     'pwa.install': '[INSTALLIEREN] Lokal ausf\u00FChren',
@@ -962,6 +974,9 @@ const translations: Translations = {
 
     // Pipeline error
     'pipeline.error': 'Processamento falhou: {msg}',
+    'error.title': 'Algo deu errado',
+    'error.retry': 'Tentar novamente',
+    'error.dismiss': 'Fechar',
 
     // PWA
     'pwa.install': '[INSTALAR] Rodar local',
@@ -1159,6 +1174,9 @@ const translations: Translations = {
 
     // Pipeline error
     'pipeline.error': '\u5904\u7406\u5931\u8D25: {msg}',
+    'error.title': '\u51FA\u9519\u4E86',
+    'error.retry': '\u91CD\u8BD5',
+    'error.dismiss': '\u5173\u95ED',
 
     // PWA
     'pwa.install': '[\u5B89\u88C5] \u672C\u5730\u8FD0\u884C',
