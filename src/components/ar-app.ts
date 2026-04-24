@@ -1,4 +1,4 @@
-import { PipelineOrchestrator } from '../pipeline/orchestrator';
+import { PipelineOrchestrator, PipelineAbortError } from '../pipeline/orchestrator';
 import type { PipelineStage, StageStatus } from '../types/pipeline';
 import type { ModelId } from '../types/worker-messages';
 import type { PrecisionMode } from '../pipeline/constants';
@@ -34,6 +34,10 @@ export class ArApp extends HTMLElement {
   private crtFlickerTimers: number[] = [];
   private isProcessing = false;
   private processingAborted = false;
+  /** AbortController for the currently-running pipeline. Fires when the
+   * user drops a new image mid-process or navigates away, so in-flight
+   * worker CPU stops immediately instead of finishing a doomed run. */
+  private processingAbortController: AbortController | null = null;
   private preEditResult: ImageData | null = null;
   private cachedEditResult: ImageData | null = null;
   private boundLocaleHandler: (() => void) | null = null;
@@ -1318,6 +1322,12 @@ export class ArApp extends HTMLElement {
   }
 
   private async processImage(imageData: ImageData, originalImageData: ImageData, fileSize: number): Promise<void> {
+    // If a previous run is still going, hard-abort it so workers stop
+    // immediately. Dropping a new image always wins over the previous one.
+    if (this.processingAbortController && !this.processingAbortController.signal.aborted) {
+      this.processingAbortController.abort('new image dropped');
+    }
+    this.processingAbortController = new AbortController();
     this.processingAborted = false;
     this.isProcessing = true;
     this.disableWorkspaceButtons();
@@ -1369,7 +1379,12 @@ export class ArApp extends HTMLElement {
         console.info(`[NukeBG] ${msg}`);
       }
 
-      const result = await this.pipeline.process(imageData, ArApp.MODEL_ID, this.selectedPrecision);
+      const result = await this.pipeline.process(
+        imageData,
+        ArApp.MODEL_ID,
+        this.selectedPrecision,
+        this.processingAbortController?.signal,
+      );
       if (this.processingAborted) return;
 
       const composed = composeAtOriginal({
@@ -1421,6 +1436,10 @@ export class ArApp extends HTMLElement {
       if (editorSection) editorSection.style.display = 'none';
     } catch (err) {
       if (this.processingAborted) return;
+      // Abort is an expected outcome when the user drops a new image
+      // mid-process or cancels a batch. Swallow it silently; the new
+      // run (if any) will clear the progress UI on its own.
+      if (err instanceof PipelineAbortError) return;
       console.error('Pipeline error:', err);
       const msg = err instanceof Error ? err.message : String(err);
       this.progress.setStage('ml-segmentation', 'error', t('pipeline.error', { msg }));
@@ -1543,11 +1562,15 @@ export class ArApp extends HTMLElement {
       this.progress.reset();
       this.batchCurrentProcessingItem = item;
       if (this.batchGrid) this.batchGrid.updateItem(item.id, 'processing');
+      // One signal per batch item so cancelling the batch aborts the
+      // in-flight one promptly without waiting for the current stage.
+      this.processingAbortController = new AbortController();
       try {
         const result = await this.pipeline!.process(
           item.imageData,
           ArApp.MODEL_ID,
           this.selectedPrecision,
+          this.processingAbortController.signal,
         );
         if (this.batchAborted) return;
         const composed = composeAtOriginal({
@@ -1575,6 +1598,11 @@ export class ArApp extends HTMLElement {
           await this.openBatchDetail(item.id);
         }
       } catch (err) {
+        // Abort during batch = user cancelled. Don't mark the item as
+        // failed; the outer batchAborted check will return on next tick.
+        if (err instanceof PipelineAbortError || this.batchAborted) {
+          return;
+        }
         item.errorMessage = err instanceof Error ? err.message : String(err);
         item.state = 'failed';
         if (this.batchGrid) this.batchGrid.updateItem(item.id, 'failed');
@@ -1757,6 +1785,9 @@ export class ArApp extends HTMLElement {
 
     if (this.batchMode !== 'off') {
       this.batchAborted = true;
+      // Stop the in-flight pipeline run too — otherwise workers keep
+      // processing the current item until its natural stage boundary.
+      this.processingAbortController?.abort('batch aborted');
       this.batchItems = [];
       this.batchDetailId = null;
       this.batchMode = 'off';
