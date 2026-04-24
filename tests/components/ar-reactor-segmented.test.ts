@@ -23,9 +23,10 @@ describe('reactor segmented — source invariants', () => {
     expect(SOURCE).not.toMatch(/<input[^>]*type="range"[^>]*id="precision-slider/);
   });
 
-  it('renders the segmented control in both scopes via renderReactorSegmented', () => {
-    expect(SOURCE).toMatch(/renderReactorSegmented\(['"]hero['"]\)/);
+  it('renders the segmented control in the workspace (landing reactor hidden per #69)', () => {
     expect(SOURCE).toMatch(/renderReactorSegmented\(['"]ws['"]\)/);
+    // Hero no longer mounts the reactor — moved to workspace-only per #69.
+    expect(SOURCE).not.toMatch(/renderReactorSegmented\(['"]hero['"]\)/);
   });
 
   it('wires click + keydown (arrow/home/end) on the segmented buttons', () => {
