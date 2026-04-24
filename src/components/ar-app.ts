@@ -1449,6 +1449,25 @@ export class ArApp extends HTMLElement {
       this.resetToIdle();
     }, { signal });
 
+    // #78 — inline error-stage actions in ar-progress. Retry reuses
+    // the existing retryFromError() path; report opens a pre-filled
+    // GitHub issue URL with browser + session hints; reload is
+    // handled by ar-progress itself (location.reload).
+    this.progress.addEventListener('ar:stage-retry', () => this.retryFromError(), { signal });
+    this.progress.addEventListener('ar:stage-report', (ev) => {
+      const stage = (ev as CustomEvent<{ stage: string }>).detail.stage;
+      const ua = encodeURIComponent(navigator.userAgent);
+      const title = encodeURIComponent(`[stage:${stage}] pipeline error`);
+      const body = encodeURIComponent(
+        `**Stage:** \`${stage}\`\n**UA:** ${decodeURIComponent(ua)}\n**Locale:** ${document.documentElement.lang}\n\n<!-- what were you trying to do? drag the image that failed if possible -->`,
+      );
+      window.open(
+        `https://github.com/yocreoquesi/nukebg/issues/new?title=${title}&body=${body}`,
+        '_blank',
+        'noopener',
+      );
+    }, { signal });
+
     // #79 — quiet-mode toggle lives in the footer (light DOM).
     const quietBtn = document.getElementById('quiet-mode-toggle');
     quietBtn?.addEventListener('click', () => {
