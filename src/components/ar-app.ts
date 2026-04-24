@@ -387,6 +387,40 @@ export class ArApp extends HTMLElement {
           flex-direction: column;
           gap: var(--space-4, 1rem);
         }
+        /* Result-view two-column grid (#75). At ≥ 900 px the viewer
+           gets the main area and the action column (download + edit
+           + advanced) sits to the right. Below 900 px the action
+           column collapses under the viewer. Keeps progress attached
+           to the viewer column so stage timings stay near the image
+           on desktop. */
+        .ws-result-grid {
+          display: grid;
+          grid-template-columns: 1fr;
+          gap: var(--space-4, 1rem);
+          align-items: start;
+        }
+        .ws-viewer-col {
+          display: flex;
+          flex-direction: column;
+          gap: var(--space-2, 0.5rem);
+          min-width: 0;
+        }
+        .ws-action-col {
+          display: flex;
+          flex-direction: column;
+          gap: var(--space-3, 0.75rem);
+          min-width: 0;
+        }
+        @media (min-width: 900px) {
+          .ws-result-grid {
+            grid-template-columns: minmax(0, 1fr) minmax(260px, 320px);
+          }
+          .ws-action-col {
+            position: sticky;
+            top: var(--space-4, 1rem);
+            align-self: start;
+          }
+        }
         .features {
           display: grid;
           grid-template-columns: 1fr;
@@ -1129,15 +1163,26 @@ export class ArApp extends HTMLElement {
               <button type="button" class="cmd-btn cmd-btn-danger" id="cmd-cancel" hidden>${t('cmdbar.cancel')}</button>
             </div>
           </div>
-          <ar-viewer></ar-viewer>
-          <ar-progress></ar-progress>
+          <!-- Two-column workspace at ≥ 900 px: viewer on the left,
+               action column (download, edit, advanced) on the right
+               so the result gets immediate presence next to the
+               delivery mechanism. At smaller widths the column
+               collapses below the viewer and everything stacks. (#75) -->
+          <div class="ws-result-grid">
+            <div class="ws-viewer-col">
+              <ar-viewer></ar-viewer>
+              <ar-progress></ar-progress>
+            </div>
+            <div class="ws-action-col" id="ws-action-col">
+              <ar-download></ar-download>
+              <button class="edit-btn" id="edit-btn" style="display:none">${t('edit.btn')}</button>
+              <button class="advanced-cta" id="advanced-cta" style="display:none">${t('advanced.cta')}</button>
+            </div>
+          </div>
           <div class="ws-controls">
             ${this.renderReactorSegmented('ws')}
           </div>
           <div class="precision-marquee" id="precision-marquee-ws"><span>☢ NUKEBG | DROP. NUKE. DOWNLOAD. | Your images never leave your device | nukebg.app ☢ NUKEBG | DROP. NUKE. DOWNLOAD. | Your images never leave your device | nukebg.app ☢</span></div>
-          <ar-download></ar-download>
-          <button class="edit-btn" id="edit-btn" style="display:none">${t('edit.btn')}</button>
-          <button class="advanced-cta" id="advanced-cta" style="display:none">${t('advanced.cta')}</button>
           <ar-editor style="display:none" id="editor-section"></ar-editor>
           <ar-editor-advanced id="editor-advanced"></ar-editor-advanced>
           </div>
