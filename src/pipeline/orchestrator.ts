@@ -37,6 +37,13 @@ const INPAINT_TIMEOUT_MS = 30_000;
  *  then runs Fourier-convolution inference on WASM. 5 min covers the
  *  worst-case cold start on a slow connection. */
 const LAMA_TIMEOUT_MS = 300_000;
+/** Total wall-clock cap for process(). Generous because a first-time
+ *  run on a slow connection can pay for the RMBG download (~45MB),
+ *  the LaMa download (~95MB) and the ONNX Runtime WASM fetch from
+ *  jsDelivr (~6MB) in sequence before any CPU work starts. If this
+ *  fires, we've almost certainly hit a pathological hang the per-stage
+ *  timeouts didn't catch — abort instead of letting the UI sit forever. */
+const PROCESS_TIMEOUT_MS = 20 * 60_000;
 
 /**
  * Error thrown when a pipeline run is aborted via AbortSignal or
@@ -478,9 +485,16 @@ export class PipelineOrchestrator {
     signal?: AbortSignal,
   ): Promise<PipelineResult> {
     this.bindAbortSignal(signal);
+    // Wall-clock safety net. Rarely meaningful in practice — the
+    // per-stage timeouts should kick first — but guarantees the UI
+    // never sits on a spinner indefinitely if something truly hangs.
+    const timeoutId = setTimeout(() => {
+      this.abort(`processing timeout after ${PROCESS_TIMEOUT_MS / 60_000}min`);
+    }, PROCESS_TIMEOUT_MS);
     try {
       return await this._process(imageData, modelId, precision);
     } finally {
+      clearTimeout(timeoutId);
       // Detach signal listener so a late abort on a previous run can't
       // tear down a subsequent process() that reuses the same signal.
       this.activeSignalCleanup?.();
