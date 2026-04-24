@@ -50,17 +50,16 @@ describe('global keyboard shortcuts (src/main.ts)', () => {
     expect(MAIN).toMatch(/if \(inFormField\(e\.target\)\) return;/);
   });
 
-  it('overlay cheat-sheet lists every global + reactor + editor binding', () => {
-    for (const k of ['/', 'Ctrl', 'Esc', '\\?', 'B', 'E', '\\[', '\\]', '0', 'Z', 'Alt', '1', '2', '3', '4']) {
+  it('overlay cheat-sheet lists every global + editor binding', () => {
+    for (const k of ['/', 'Ctrl', 'Esc', '\\?', 'B', 'E', '\\[', '\\]', '0', 'Z']) {
       expect(MAIN).toMatch(new RegExp(`<kbd>${k}</kbd>`));
     }
   });
 
-  it('Alt+1..4 clicks the matching reactor segment', () => {
-    expect(MAIN).toMatch(/e\.altKey && !e\.ctrlKey && !e\.metaKey/);
-    expect(MAIN).toMatch(/\['1', '2', '3', '4'\]\.includes\(e\.key\)/);
-    expect(MAIN).toMatch(/\.reactor-segment\[data-precision="\$\{level\}"/);
-    expect(MAIN).toMatch(/seg\.click\(\)/);
+  it('does not advertise Reactor power shortcuts (segmented control was removed)', () => {
+    expect(MAIN).not.toMatch(/reactor power/i);
+    expect(MAIN).not.toMatch(/data-precision/);
+    expect(MAIN).not.toMatch(/altKey && !e\.ctrlKey && !e\.metaKey/);
   });
 
   it('main.css defines .kbd-overlay with a high z-index so it sits over every shadow tree', () => {

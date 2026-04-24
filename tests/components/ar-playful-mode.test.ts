@@ -18,17 +18,6 @@ describe('playful-mode gating (#79)', () => {
     expect(APP).toMatch(/document\.documentElement\.dataset\.playful !== ['"]false['"]/);
   });
 
-  it('applyPrecisionSideEffects short-circuits to clearPlayfulState when quiet', () => {
-    expect(APP).toMatch(/if \(!this\.isPlayful\(\)\) \{[\s\S]*?this\.clearPlayfulState\(\);[\s\S]*?return;[\s\S]*?\}/);
-  });
-
-  it('clearPlayfulState removes CSS vars, kills CRT flicker, hides smoke, resets marquees', () => {
-    expect(APP).toMatch(/private clearPlayfulState\(\): void/);
-    expect(APP).toMatch(/removeProperty\(p\)/);
-    expect(APP).toMatch(/this\.stopCrtFlicker\(\)/);
-    expect(APP).toMatch(/smoke\.classList\.remove\(['"]active['"]\)/);
-  });
-
   it('resolvePlayfulMode defaults on; prefers-reduced-motion flips it off; localStorage wins', () => {
     expect(APP).toMatch(/resolvePlayfulMode\(\): void/);
     expect(APP).toMatch(/localStorage\.getItem\(['"]nukebg:playful['"]\)/);
@@ -36,10 +25,9 @@ describe('playful-mode gating (#79)', () => {
     expect(APP).toMatch(/dataset\.playful = reducedMotion \? ['"]false['"] : ['"]true['"]/);
   });
 
-  it('setPlayfulMode persists to localStorage and re-applies the current precision', () => {
+  it('setPlayfulMode persists to localStorage', () => {
     expect(APP).toMatch(/setPlayfulMode\(playful: boolean\): void/);
     expect(APP).toMatch(/localStorage\.setItem\(['"]nukebg:playful['"], playful \? ['"]true['"] : ['"]false['"]\)/);
-    expect(APP).toMatch(/this\.applyPrecisionSideEffects\(idx\)/);
   });
 
   it('boot hook calls resolvePlayfulMode before first render', () => {
