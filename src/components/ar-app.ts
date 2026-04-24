@@ -1,7 +1,6 @@
 import { PipelineOrchestrator, PipelineAbortError } from '../pipeline/orchestrator';
 import type { PipelineStage, StageStatus } from '../types/pipeline';
 import type { ModelId } from '../types/worker-messages';
-import type { PrecisionMode } from '../pipeline/constants';
 import { t } from '../i18n';
 import { installApp, isAppInstalled } from '../sw-register';
 import type { ArViewer } from './ar-viewer';
@@ -29,9 +28,7 @@ export class ArApp extends HTMLElement {
   private currentImageData: ImageData | null = null;
   private currentOriginalImageData: ImageData | null = null;
   private currentFileSize = 0;
-  private selectedPrecision: PrecisionMode = 'normal';
   private lastResultImageData: ImageData | null = null;
-  private crtFlickerTimers: number[] = [];
   private isProcessing = false;
   private processingAborted = false;
   /** AbortController for the currently-running pipeline. Fires when the
@@ -91,10 +88,7 @@ export class ArApp extends HTMLElement {
     try { localStorage.setItem('nukebg:playful', playful ? 'true' : 'false'); } catch {
       /* ignore storage failures */
     }
-    // Re-apply the current precision so visuals appear / vanish in place.
-    const idx = ['low-power', 'normal', 'high-power', 'full-nuke'].indexOf(this.selectedPrecision);
-    if (idx >= 0) this.applyPrecisionSideEffects(idx);
-    // Also sync the footer toggle label.
+    // Sync the footer toggle label.
     this.syncQuietModeToggle();
   }
 
@@ -109,23 +103,22 @@ export class ArApp extends HTMLElement {
 
   /** Pre-load model + warmup as soon as page opens */
   private preloadModel(): void {
-    // During first-load warmup we repurpose the consolidated status line
-    // to show "Loading AI model..." progress. After ready, updateTexts()
-    // restores the default `status.model.cached` copy.
+    // The status line shows "loading..." while the model is fetching/
+    // warming, then `Ready to nuke` once preload resolves. Detailed
+    // percentage progress lives in the first-run explainer panel only,
+    // so the status slot stays terse.
     const statusEl = () => this.shadowRoot?.querySelector('#status-model');
 
     this.pipeline = new PipelineOrchestrator(
       (_stage: PipelineStage, _status: StageStatus, message?: string) => {
-        const el = statusEl();
-        if (el && message) el.textContent = message;
-        // #78 first-run explainer hook: forward any "... N%" message
-        // into the visual progress panel so cold-load users see a bar.
+        // Forward % messages to the visual progress panel; status slot
+        // keeps a fixed "loading..." until ready.
         this.updateFirstRunFromMessage(message);
       }
     );
 
     const el = statusEl();
-    if (el) el.textContent = 'Loading AI model...';
+    if (el) el.textContent = t('status.model.loading');
 
     // Dropzone starts disabled until model is ready
     this.dropzone.setEnabled(false);
@@ -141,7 +134,7 @@ export class ArApp extends HTMLElement {
       this.settleFirstRun('ready');
       const s = statusEl();
       if (s) {
-        s.textContent = '> reactor online. Ready to nuke.';
+        s.textContent = t('hero.modelStatus');
         s.classList.add('ready');
       }
       this.dropzone.setEnabled(true);
@@ -149,8 +142,7 @@ export class ArApp extends HTMLElement {
       this.settleFirstRun('error');
       console.error('[NukeBG] Model preload failed, falling back to lazy load:', err);
       const s = statusEl();
-      if (s) s.textContent = '> model loads on first image';
-      // Enable dropzone anyway so user can still try
+      if (s) s.textContent = t('status.model.lazy');
       this.dropzone.setEnabled(true);
     });
   }
@@ -195,53 +187,12 @@ export class ArApp extends HTMLElement {
   }
 
   disconnectedCallback(): void {
-    this.crtFlickerTimers.forEach(id => clearTimeout(id));
-    this.crtFlickerTimers = [];
     if (this.boundLocaleHandler) document.removeEventListener('nukebg:locale-changed', this.boundLocaleHandler);
     if (this.boundPwaInstallableHandler) document.removeEventListener('nukebg:pwa-installable', this.boundPwaInstallableHandler);
     this.abortController?.abort();
     this.abortController = null;
   }
 
-  /**
-   * Build the HTML for a reactor segmented control (per design #70).
-   * Rendered in two places (hero + workspace) with scoped ids so we can
-   * sync their `aria-pressed` state without duplicating event wiring.
-   */
-  private renderReactorSegmented(scope: 'hero' | 'ws'): string {
-    const labels: Array<[string, string]> = [
-      ['0', t('reactor.segment.low')],
-      ['1', t('reactor.segment.normal')],
-      ['2', t('reactor.segment.high')],
-      ['3', t('reactor.segment.fullNuke')],
-    ];
-    // Default active index = 1 (NORMAL). If we've already got a
-    // selectedPrecision (re-render after locale change), reflect it.
-    const activeVal = ['low-power', 'normal', 'high-power', 'full-nuke'].indexOf(this.selectedPrecision);
-    const idBase = scope === 'hero' ? 'reactor' : 'reactor-ws';
-    const buttons = labels.map(([val, label]) => {
-      const pressed = String(val) === String(activeVal);
-      return `<button
-          type="button"
-          class="reactor-segment"
-          role="radio"
-          data-precision="${val}"
-          data-scope="${scope}"
-          aria-checked="${pressed}"
-          aria-pressed="${pressed}"
-          tabindex="${pressed ? '0' : '-1'}"
-        >${label}</button>`;
-    }).join('');
-    return `<div class="reactor-segmented" id="${idBase}">
-      <span class="reactor-label">REACTOR</span>
-      <div class="reactor-segment-group"
-           role="radiogroup"
-           aria-label="${t('reactor.segment.groupLabel')}"
-           data-scope="${scope}">
-        ${buttons}
-      </div>
-    </div>`;
-  }
 
   private render(): void {
     this.shadowRoot!.innerHTML = `
@@ -533,100 +484,6 @@ export class ArApp extends HTMLElement {
           opacity: 0.4;
           pointer-events: none;
         }
-        .reactor-label {
-          font-size: 10px;
-          color: var(--color-text-tertiary, #00b34a);
-          text-transform: uppercase;
-          letter-spacing: 0.1em;
-          font-family: 'JetBrains Mono', monospace;
-        }
-        /* Reactor segmented control — replaces the native range input.
-           Four buttons acting as a radiogroup, per design proposal #70. */
-        .reactor-segmented {
-          display: inline-flex;
-          align-items: center;
-          gap: 12px;
-          font-family: 'JetBrains Mono', monospace;
-        }
-        .reactor-segment-group {
-          display: inline-flex;
-          border: 1px solid var(--color-surface-border, #1a3a1a);
-        }
-        .reactor-segment {
-          appearance: none;
-          background: transparent;
-          border: none;
-          border-right: 1px solid var(--color-surface-border, #1a3a1a);
-          color: var(--color-text-tertiary, #00b34a);
-          font: inherit;
-          font-size: 11px;
-          letter-spacing: 0.08em;
-          padding: 6px 12px;
-          cursor: pointer;
-          min-height: 32px;
-          transition: color 0.15s ease, background 0.15s ease, text-shadow 0.15s ease;
-        }
-        .reactor-segment:last-child { border-right: none; }
-        .reactor-segment:hover:not([aria-pressed="true"]),
-        .reactor-segment:focus-visible {
-          color: var(--color-text-secondary, #00dd44);
-          outline: none;
-        }
-        .reactor-segment[aria-pressed="true"] {
-          background: var(--color-accent-muted, rgba(0, 255, 65, 0.08));
-          color: var(--color-accent-primary, #00ff41);
-          text-shadow: 0 0 6px var(--color-accent-glow, rgba(0, 255, 65, 0.35));
-        }
-        @media (pointer: coarse) {
-          .reactor-segment { min-height: 44px; padding: 10px 14px; }
-        }
-        /* Keep .precision-label selector so existing power-mode overrides
-           still have somewhere to attach; the segmented control itself is
-           self-labeling through the active button state. */
-        .precision-label {
-          font-size: var(--text-xs, 0.75rem);
-          color: var(--color-accent-primary, #00ff41);
-          transition: color 0.3s ease;
-        }
-        .reactor-support {
-          display: none;
-          text-align: center;
-          font-family: 'JetBrains Mono', monospace;
-          font-size: 12px;
-          color: var(--color-text-tertiary, #00b34a);
-          margin-top: var(--space-2, 0.5rem);
-          padding: 0 var(--space-4, 1rem);
-        }
-        .reactor-support a {
-          color: var(--color-accent-primary, #00ff41);
-          text-decoration: none;
-        }
-        .reactor-support a:hover {
-          text-decoration: underline;
-        }
-        .reactor-support.visible {
-          display: block;
-        }
-        /* Legacy column-scoped marquee (still used inside .workspace). */
-        .precision-marquee {
-          display: block;
-          overflow: hidden;
-          white-space: nowrap;
-          font-family: 'JetBrains Mono', monospace;
-          font-size: 12px;
-          font-weight: 700;
-          letter-spacing: 0.15em;
-          text-transform: uppercase;
-          padding: 4px 0;
-          margin-top: var(--space-1, 0.25rem);
-          min-height: 24px;
-          position: relative;
-          color: var(--color-text-tertiary, #00b34a);
-        }
-        .precision-marquee span {
-          display: inline-block;
-          animation: marquee-scroll 20s linear infinite;
-        }
         /* Full-bleed marquee for the landing — sibling to <section class=hero>.
            Gradient mask fades text at both edges so it never clips mid-word. */
         .marquee-bleed {
@@ -720,27 +577,7 @@ export class ArApp extends HTMLElement {
           100% { transform: translateX(-100%); }
         }
         @media (prefers-reduced-motion: reduce) {
-          .precision-marquee span { animation: none; }
-          .nuke-vibrate * { animation: none !important; }
-          .smoke-effect { display: none !important; }
-        }
-
-        /* === Full Nuke vibration effect === */
-        @keyframes nuke-shake {
-          0%, 100% { transform: translate(0, 0); }
-          10% { transform: translate(-2px, 1px); }
-          20% { transform: translate(2px, -1px); }
-          30% { transform: translate(-1px, 2px); }
-          40% { transform: translate(1px, -2px); }
-          50% { transform: translate(-2px, -1px); }
-          60% { transform: translate(2px, 1px); }
-          70% { transform: translate(1px, 2px); }
-          80% { transform: translate(-1px, -1px); }
-          90% { transform: translate(2px, -2px); }
-        }
-        :host(.nuke-vibrate) h1,
-        :host(.nuke-vibrate) .subline {
-          animation: nuke-shake 0.4s ease-in-out 3;
+          .marquee-bleed span { animation: none; }
         }
 
         /* Smoke is rendered outside shadow DOM - see main thread */
@@ -826,56 +663,6 @@ export class ArApp extends HTMLElement {
           border-color: var(--color-accent-primary, #00ff41);
           box-shadow: 0 0 10px rgba(var(--color-accent-rgb, 0, 255, 65), 0.1);
         }
-        /* === Color override for extreme precision levels === */
-        :host(.precision-override) h1,
-        :host(.precision-override) h1 .accent {
-          color: var(--color-accent-primary, #00ff41);
-          text-shadow: none;
-        }
-        :host(.precision-override) h1::before,
-        :host(.precision-override) .subline::before {
-          color: var(--color-text-tertiary, #00b34a);
-        }
-        :host(.precision-override) .subline,
-        :host(.precision-override) .model-status,
-        :host(.precision-override) .features-disclaimer {
-          color: var(--color-text-secondary, #00dd44);
-        }
-        :host(.precision-override) .precision-label {
-          color: var(--color-accent-primary, #00ff41);
-        }
-        :host(.precision-override) .reactor-label,
-        :host(.precision-override) .reactor-support {
-          color: var(--color-text-tertiary, #00b34a);
-        }
-        :host(.precision-override) .reactor-support a {
-          color: var(--color-accent-primary, #00ff41);
-        }
-        :host(.precision-override) .features-disclaimer a {
-          color: var(--color-accent-primary, #00ff41);
-        }
-        :host(.precision-override) .features-disclaimer s {
-          color: var(--color-text-tertiary, #00b34a);
-        }
-        :host(.precision-override) .edit-btn {
-          color: var(--color-text-secondary, #00dd44);
-          border-color: var(--color-surface-border, #1a3a1a);
-        }
-        :host(.precision-override) .model-status::before {
-          color: var(--color-text-tertiary, #00b34a);
-        }
-        :host(.precision-override) .reactor-segment[aria-pressed="true"] {
-          background: var(--color-accent-muted, rgba(0, 255, 65, 0.08));
-          color: var(--color-accent-primary, #00ff41);
-          text-shadow: 0 0 6px var(--color-accent-glow, rgba(0, 255, 65, 0.35));
-        }
-        :host(.precision-override) .reactor-segment-group {
-          border-color: var(--color-surface-border, #1a3a1a);
-        }
-        :host(.precision-override) .reactor-segment {
-          border-right-color: var(--color-surface-border, #1a3a1a);
-        }
-
         .crt-word-flicker {
           opacity: 0.05;
         }
@@ -1288,10 +1075,6 @@ export class ArApp extends HTMLElement {
               <button class="advanced-cta" id="advanced-cta" style="display:none">${t('advanced.cta')}</button>
             </div>
           </div>
-          <div class="ws-controls">
-            ${this.renderReactorSegmented('ws')}
-          </div>
-          <div class="precision-marquee" id="precision-marquee-ws"><span>☢ NUKEBG | DROP. NUKE. DOWNLOAD. | Your images never leave your device | nukebg.app ☢ NUKEBG | DROP. NUKE. DOWNLOAD. | Your images never leave your device | nukebg.app ☢</span></div>
           <ar-editor style="display:none" id="editor-section"></ar-editor>
           <ar-editor-advanced id="editor-advanced"></ar-editor-advanced>
           </div>
@@ -1380,20 +1163,6 @@ export class ArApp extends HTMLElement {
                 : 'cmdbar.failed';
       cmdStateLabel.textContent = t(key);
     }
-    // Reactor segmented button labels + group aria-label
-    const segmentLabels: Record<string, string> = {
-      '0': t('reactor.segment.low'),
-      '1': t('reactor.segment.normal'),
-      '2': t('reactor.segment.high'),
-      '3': t('reactor.segment.fullNuke'),
-    };
-    root.querySelectorAll<HTMLButtonElement>('.reactor-segment').forEach((b) => {
-      const v = b.dataset.precision ?? '1';
-      if (segmentLabels[v]) b.textContent = segmentLabels[v];
-    });
-    root.querySelectorAll<HTMLElement>('.reactor-segment-group').forEach((g) => {
-      g.setAttribute('aria-label', t('reactor.segment.groupLabel'));
-    });
   }
 
   private getInstallGuide(): string {
@@ -1612,51 +1381,6 @@ export class ArApp extends HTMLElement {
       this.resetToIdle();
     }, { signal });
 
-    // Reactor segmented controls (hero + workspace). Clicks, Enter/Space
-    // and arrow keys all route through applyPrecisionMode which also
-    // carries the per-mode visual side effects (CRT flicker, marquee
-    // swap, smoke, etc).
-    this.shadowRoot!.querySelectorAll('.reactor-segment').forEach((btn) => {
-      const el = btn as HTMLButtonElement;
-      el.addEventListener('click', () => {
-        const val = parseInt(el.dataset.precision ?? '1');
-        this.applyPrecisionMode(val);
-      }, { signal });
-      el.addEventListener('keydown', (ev) => {
-        const e = ev as KeyboardEvent;
-        const groupScope = el.dataset.scope;
-        const group = this.shadowRoot!.querySelector<HTMLElement>(
-          `.reactor-segment-group[data-scope="${groupScope}"]`,
-        );
-        if (!group) return;
-        const buttons = Array.from(group.querySelectorAll<HTMLButtonElement>('.reactor-segment'));
-        const idx = buttons.indexOf(el);
-        if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
-          e.preventDefault();
-          const next = Math.min(idx + 1, buttons.length - 1);
-          if (next !== idx) {
-            this.applyPrecisionMode(parseInt(buttons[next].dataset.precision ?? '1'));
-            buttons[next].focus();
-          }
-        } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
-          e.preventDefault();
-          const next = Math.max(idx - 1, 0);
-          if (next !== idx) {
-            this.applyPrecisionMode(parseInt(buttons[next].dataset.precision ?? '1'));
-            buttons[next].focus();
-          }
-        } else if (e.key === 'Home') {
-          e.preventDefault();
-          this.applyPrecisionMode(0);
-          buttons[0].focus();
-        } else if (e.key === 'End') {
-          e.preventDefault();
-          this.applyPrecisionMode(buttons.length - 1);
-          buttons[buttons.length - 1].focus();
-        }
-      }, { signal });
-    });
-
     // Disclaimer click - toggle limitations detail
     // Limitations now live inside <details id="status-limits"> — native
     // disclosure widget handles open/close. No click wiring needed.
@@ -1775,238 +1499,6 @@ export class ArApp extends HTMLElement {
     return document.documentElement.dataset.playful !== 'false';
   }
 
-  /**
-   * Reset every visual mutation that playful mode installs. Called
-   * when the user flips quiet mode on and when an out-of-mode
-   * applyPrecisionSideEffects() lands in quiet mode.
-   */
-  private clearPlayfulState(): void {
-    const props = [
-      '--terminal-color-override',
-      '--color-text-primary',
-      '--color-text-secondary',
-      '--color-text-tertiary',
-      '--color-accent-primary',
-      '--color-accent-rgb',
-      '--color-accent-glow',
-      '--color-accent-muted',
-      '--color-accent-hover',
-      '--color-surface-border',
-      '--color-surface-hover',
-      '--color-surface-active',
-      '--color-success',
-      '--color-info',
-    ];
-    for (const p of props) document.documentElement.style.removeProperty(p);
-    this.classList.remove('precision-override', 'nuke-vibrate');
-    this.stopCrtFlicker();
-    const smoke = document.getElementById('smoke-overlay');
-    if (smoke) smoke.classList.remove('active');
-    const marquee = this.shadowRoot?.querySelector('#precision-marquee-bleed') as HTMLElement | null;
-    const marqueeWs = this.shadowRoot?.querySelector('#precision-marquee-ws') as HTMLElement | null;
-    [marquee, marqueeWs].forEach(m => { if (m) m.style.color = ''; });
-  }
-
-  /**
-   * Apply a reactor precision level (0=low, 1=normal, 2=high, 3=full-nuke).
-   * Syncs both segmented controls' `aria-pressed` state, swaps marquee
-   * copy, applies per-mode global CSS var overrides, toggles the
-   * CRT-flicker + smoke overlays, updates the reactor-support copy.
-   */
-  private applyPrecisionMode(val: number): void {
-    const precisionKeys = ['low-power', 'normal', 'high-power', 'full-nuke'] as const;
-    if (val < 0 || val > 3) return;
-    this.selectedPrecision = precisionKeys[val];
-
-    // Sync aria-pressed + tabindex on every segment across both scopes
-    // so the hero and workspace controls reflect the same state.
-    this.shadowRoot!.querySelectorAll<HTMLButtonElement>('.reactor-segment').forEach((b) => {
-      const on = String(val) === b.dataset.precision;
-      b.setAttribute('aria-pressed', on ? 'true' : 'false');
-      b.setAttribute('aria-checked', on ? 'true' : 'false');
-      b.tabIndex = on ? 0 : -1;
-    });
-
-    this.applyPrecisionSideEffects(val);
-  }
-
-  /**
-   * Per-mode visual side effects — CRT flicker, marquee copy, smoke
-   * overlay, reactor-support text, global CSS var overrides. Factored
-   * out of the original `#precision-slider` input handler.
-   */
-  private applyPrecisionSideEffects(val: number): void {
-    // #79 — visual-only effects (color palette swap, CRT flicker,
-    // smoke, H1 vibrate) are gated by the data-playful attribute.
-    // The selected mode itself still flows through to the ML pipeline
-    // via `this.selectedPrecision` regardless. Quiet mode preserves
-    // the default green palette and stops the CRT / smoke / vibrate.
-    if (!this.isPlayful()) {
-      // Make sure no lingering state from a previous playful run
-      // leaks into quiet mode (colors reset, classes cleared,
-      // flicker stopped, smoke hidden).
-      this.clearPlayfulState();
-      return;
-    }
-
-    const marquee = this.shadowRoot!.querySelector('#precision-marquee-bleed') as HTMLElement;
-    const marqueeWs = this.shadowRoot!.querySelector('#precision-marquee-ws') as HTMLElement;
-    const smoke = document.getElementById('smoke-overlay');
-    const reactorSupport = this.shadowRoot!.querySelector('#reactor-support') as HTMLElement;
-    const disclaimer = this.shadowRoot!.querySelector('#features-disclaimer') as HTMLElement;
-
-    // Helper to update both marquees (hero + workspace)
-    const updateMarquees = (color: string, html: string): void => {
-      [marquee, marqueeWs].forEach(m => {
-        if (m) {
-          m.style.color = color;
-          m.innerHTML = html;
-        }
-      });
-    };
-
-      if (val === 3) {
-        // Full Nuke - red override (shadow DOM + global properties)
-        document.documentElement.style.setProperty('--terminal-color-override', '#cc3333');
-        document.documentElement.style.setProperty('--color-text-primary', '#cc3333');
-        document.documentElement.style.setProperty('--color-text-secondary', '#aa2222');
-        document.documentElement.style.setProperty('--color-text-tertiary', '#882222');
-        document.documentElement.style.setProperty('--color-accent-primary', '#cc3333');
-        document.documentElement.style.setProperty('--color-accent-rgb', '204, 51, 51');
-        document.documentElement.style.setProperty('--color-accent-glow', 'rgba(204,51,51,0.35)');
-        document.documentElement.style.setProperty('--color-accent-muted', 'rgba(204,51,51,0.08)');
-        document.documentElement.style.setProperty('--color-accent-hover', '#ff4444');
-        document.documentElement.style.setProperty('--color-surface-border', '#3a1a1a');
-        document.documentElement.style.setProperty('--color-surface-hover', '#2a0f0f');
-        document.documentElement.style.setProperty('--color-surface-active', '#301515');
-        document.documentElement.style.setProperty('--color-success', '#cc3333');
-        document.documentElement.style.setProperty('--color-info', '#cc3333');
-        this.classList.add('precision-override');
-        // Stop CRT flicker in Full Nuke
-        this.stopCrtFlicker();
-        updateMarquees('#cc3333', '<span>\u26A0 MAXIMUM POWER | Your images never leave your device | 100% local processing | nukebg.app \u26A0 MAXIMUM POWER | Your images never leave your device | 100% local processing | nukebg.app \u26A0</span>');
-        console.log('%c[NukeBG] Mode: FULL NUKE', 'color: #cc3333; font-family: monospace;');
-        if (reactorSupport) {
-          reactorSupport.innerHTML = t('reactor.fullNuke');
-          reactorSupport.classList.add('visible');
-        }
-        this.unwrapFlickerWords(disclaimer);
-        this.unwrapFlickerWords(reactorSupport);
-
-        // Vibration + smoke: trigger once per activation, after random 1-5s delay
-        const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-        if (!reducedMotion) {
-          const delay = 1000 + Math.random() * 4000;
-          setTimeout(() => {
-            // Only fire if still in Full Nuke mode
-            if (this.selectedPrecision !== 'full-nuke') return;
-            // Vibrate text
-            this.classList.add('nuke-vibrate');
-            setTimeout(() => this.classList.remove('nuke-vibrate'), 1200);
-            // Smoke effect
-            if (smoke) {
-              smoke.classList.remove('active');
-              void smoke.offsetWidth; // force reflow to restart animation
-              smoke.classList.add('active');
-              setTimeout(() => smoke.classList.remove('active'), 5000);
-            }
-          }, delay);
-        }
-        // Show features in Full Nuke
-      } else if (val === 2) {
-        // High Power - orange/amber override (shadow DOM + global properties)
-        document.documentElement.style.setProperty('--terminal-color-override', '#ff8c00');
-        document.documentElement.style.setProperty('--color-text-primary', '#ff8c00');
-        document.documentElement.style.setProperty('--color-text-secondary', '#cc7000');
-        document.documentElement.style.setProperty('--color-text-tertiary', '#995300');
-        document.documentElement.style.setProperty('--color-accent-primary', '#ff8c00');
-        document.documentElement.style.setProperty('--color-accent-rgb', '255, 140, 0');
-        document.documentElement.style.setProperty('--color-accent-glow', 'rgba(255,140,0,0.35)');
-        document.documentElement.style.setProperty('--color-accent-muted', 'rgba(255,140,0,0.08)');
-        document.documentElement.style.setProperty('--color-accent-hover', '#ffaa33');
-        document.documentElement.style.setProperty('--color-surface-border', '#3a2a0a');
-        document.documentElement.style.setProperty('--color-surface-hover', '#2a1f0a');
-        document.documentElement.style.setProperty('--color-surface-active', '#302510');
-        document.documentElement.style.setProperty('--color-success', '#ff8c00');
-        document.documentElement.style.setProperty('--color-info', '#ff8c00');
-        this.classList.add('precision-override');
-        // Stop CRT flicker in High Power
-        this.stopCrtFlicker();
-        updateMarquees('#ff8c00', '<span>\u26A1 HIGH POWER | Zero uploads, zero tracking | Free and open source | nukebg.app \u26A1 HIGH POWER | Zero uploads, zero tracking | Free and open source | nukebg.app \u26A1</span>');
-        console.log('%c[NukeBG] Mode: HIGH POWER', 'color: #ff8c00; font-family: monospace;');
-        if (reactorSupport) {
-          reactorSupport.innerHTML = t('reactor.highPower');
-          reactorSupport.classList.add('visible');
-        }
-        this.unwrapFlickerWords(disclaimer);
-        this.unwrapFlickerWords(reactorSupport);
-        // Hide smoke in High Power
-        if (smoke) smoke.classList.remove('active');
-        // Show features in non-Normal modes
-      } else if (val === 0) {
-        // Low Power - yellow override (shadow DOM + global properties)
-        document.documentElement.style.setProperty('--terminal-color-override', '#b8a500');
-        document.documentElement.style.setProperty('--color-text-primary', '#b8a500');
-        document.documentElement.style.setProperty('--color-text-secondary', '#8a7d00');
-        document.documentElement.style.setProperty('--color-text-tertiary', '#6b5e00');
-        document.documentElement.style.setProperty('--color-accent-primary', '#b8a500');
-        document.documentElement.style.setProperty('--color-accent-rgb', '184, 165, 0');
-        document.documentElement.style.setProperty('--color-accent-glow', 'rgba(184,165,0,0.35)');
-        document.documentElement.style.setProperty('--color-accent-muted', 'rgba(184,165,0,0.08)');
-        document.documentElement.style.setProperty('--color-accent-hover', '#d4c200');
-        document.documentElement.style.setProperty('--color-surface-border', '#2a2800');
-        document.documentElement.style.setProperty('--color-surface-hover', '#1f1d00');
-        document.documentElement.style.setProperty('--color-surface-active', '#252300');
-        document.documentElement.style.setProperty('--color-success', '#b8a500');
-        document.documentElement.style.setProperty('--color-info', '#b8a500');
-        this.classList.add('precision-override');
-        // Start CRT flicker only in Low Power
-        this.startCrtFlicker();
-        // Show features in non-Normal modes
-        updateMarquees('#b8a500', '<span>\u26A1 LOW POWER | Works offline after first visit | No account needed | nukebg.app \u26A1 LOW POWER | Works offline after first visit | No account needed | nukebg.app \u26A1</span>');
-        console.log('%c[NukeBG] Mode: LOW POWER', 'color: #b8a500; font-family: monospace;');
-        if (reactorSupport) {
-          reactorSupport.innerHTML = t('reactor.lowPower');
-          reactorSupport.classList.add('visible');
-        }
-        this.wrapFlickerWords(disclaimer);
-        this.wrapFlickerWords(reactorSupport);
-        // Hide smoke in Low Power
-        if (smoke) smoke.classList.remove('active');
-      } else {
-        // Normal (val === 1) - restore all overrides
-        document.documentElement.style.removeProperty('--terminal-color-override');
-        document.documentElement.style.removeProperty('--color-text-primary');
-        document.documentElement.style.removeProperty('--color-text-secondary');
-        document.documentElement.style.removeProperty('--color-text-tertiary');
-        document.documentElement.style.removeProperty('--color-accent-primary');
-        document.documentElement.style.removeProperty('--color-accent-rgb');
-        document.documentElement.style.removeProperty('--color-accent-glow');
-        document.documentElement.style.removeProperty('--color-accent-muted');
-        document.documentElement.style.removeProperty('--color-accent-hover');
-        document.documentElement.style.removeProperty('--color-surface-border');
-        document.documentElement.style.removeProperty('--color-surface-hover');
-        document.documentElement.style.removeProperty('--color-surface-active');
-        document.documentElement.style.removeProperty('--color-success');
-        document.documentElement.style.removeProperty('--color-info');
-        this.classList.remove('precision-override');
-        // Stop CRT flicker in normal modes
-        this.stopCrtFlicker();
-        // Subtle green marquee for normal mode
-        updateMarquees('var(--color-text-tertiary, #00b34a)', '<span>☢ NUKEBG | DROP. NUKE. DOWNLOAD. | Your images never leave your device | nukebg.app ☢ NUKEBG | DROP. NUKE. DOWNLOAD. | Your images never leave your device | nukebg.app ☢</span>');
-        console.log('%c[NukeBG] Mode: NORMAL', 'color: #00ff41; font-family: monospace;');
-        if (reactorSupport) {
-          reactorSupport.innerHTML = t('reactor.normal');
-          reactorSupport.classList.add('visible');
-        }
-        this.unwrapFlickerWords(disclaimer);
-        this.unwrapFlickerWords(reactorSupport);
-    // Hide smoke in normal modes
-    if (smoke) smoke.classList.remove('active');
-    // Hide features in Normal mode - clean minimal view
-    }
-  }
-
   // Advanced CTA replaces the edit-btn when visible.
   private setAdvancedBtnVisible(show: boolean): void {
     const cta = this.shadowRoot?.querySelector('#advanced-cta') as HTMLElement | null;
@@ -2014,79 +1506,6 @@ export class ArApp extends HTMLElement {
     if (!cta) return;
     cta.style.display = show ? 'block' : 'none';
     if (editBtn) editBtn.style.display = 'none';
-  }
-
-  private startCrtFlicker(): void {
-    if (this.crtFlickerTimers.length > 0) return;
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-
-    const words = this.shadowRoot!.querySelectorAll('.flicker-word');
-    words.forEach((word) => {
-      const scheduleWordFlicker = (): void => {
-        const delay = 800 + Math.random() * 4000;
-        const timerId = window.setTimeout(() => {
-          const duration = 60 + Math.random() * 120;
-          word.classList.add('crt-word-flicker');
-          window.setTimeout(() => {
-            word.classList.remove('crt-word-flicker');
-            scheduleWordFlicker();
-          }, duration);
-        }, delay);
-        this.crtFlickerTimers.push(timerId);
-      };
-      scheduleWordFlicker();
-    });
-  }
-
-  private stopCrtFlicker(): void {
-    this.crtFlickerTimers.forEach(id => clearTimeout(id));
-    this.crtFlickerTimers = [];
-    this.shadowRoot!.querySelectorAll('.flicker-word').forEach(w =>
-      w.classList.remove('crt-word-flicker'),
-    );
-  }
-
-  private wrapFlickerWords(el: HTMLElement | null): void {
-    if (!el) return;
-    const walk = (node: Node): void => {
-      if (node.nodeType === Node.TEXT_NODE && node.textContent?.trim()) {
-        const frag = document.createDocumentFragment();
-        const words = node.textContent.split(/(\s+)/);
-        for (const w of words) {
-          if (/^\s+$/.test(w)) {
-            frag.appendChild(document.createTextNode(w));
-          } else {
-            const span = document.createElement('span');
-            span.className = 'flicker-word';
-            span.textContent = w;
-            frag.appendChild(span);
-          }
-        }
-        node.parentNode?.replaceChild(frag, node);
-      } else if (node.nodeType === Node.ELEMENT_NODE) {
-        const tag = (node as HTMLElement).tagName?.toLowerCase();
-        if (tag === 'a' || tag === 's') {
-          const span = document.createElement('span');
-          span.className = 'flicker-word';
-          span.appendChild(node.cloneNode(true));
-          node.parentNode?.replaceChild(span, node);
-        } else {
-          Array.from(node.childNodes).forEach(walk);
-        }
-      }
-    };
-    Array.from(el.childNodes).forEach(walk);
-  }
-
-  private unwrapFlickerWords(el: HTMLElement | null): void {
-    if (!el) return;
-    el.querySelectorAll('.flicker-word').forEach(span => {
-      const parent = span.parentNode;
-      if (!parent) return;
-      while (span.firstChild) parent.insertBefore(span.firstChild, span);
-      parent.removeChild(span);
-      parent.normalize();
-    });
   }
 
   /** Disable all workspace action buttons during processing */
@@ -2200,7 +1619,7 @@ export class ArApp extends HTMLElement {
       const result = await this.pipeline.process(
         imageData,
         ArApp.MODEL_ID,
-        this.selectedPrecision,
+        'high-power',
         this.processingAbortController?.signal,
       );
       if (this.processingAborted) return;
@@ -2481,7 +1900,7 @@ export class ArApp extends HTMLElement {
         const result = await this.pipeline!.process(
           item.imageData,
           ArApp.MODEL_ID,
-          this.selectedPrecision,
+          'high-power',
           this.processingAbortController.signal,
         );
         if (this.batchAborted) return;

@@ -110,25 +110,6 @@ function initKeyboardShortcuts(): void {
       return;
     }
 
-    // Alt+1..4 → Reactor Power levels (LOW / NORMAL / HIGH / FULL-NUKE).
-    // Power-user shortcut so you can compare quality/speed without
-    // leaving the keyboard.
-    if (e.altKey && !e.ctrlKey && !e.metaKey && ['1', '2', '3', '4'].includes(e.key)) {
-      const arApp = document.querySelector('ar-app');
-      if (!arApp?.shadowRoot) return;
-      const level = Number(e.key) - 1;
-      const seg = arApp.shadowRoot.querySelector<HTMLButtonElement>(
-        `.reactor-segment[data-precision="${level}"][data-scope="hero"]`,
-      ) ?? arApp.shadowRoot.querySelector<HTMLButtonElement>(
-        `.reactor-segment[data-precision="${level}"]`,
-      );
-      if (seg) {
-        e.preventDefault();
-        seg.click();
-        const labels = ['LOW-POWER', 'NORMAL', 'HIGH-POWER', 'FULL-NUKE'];
-        showToast(`> reactor: ${labels[level]}`);
-      }
-    }
   });
 }
 
@@ -154,13 +135,6 @@ function createShortcutOverlay(): HTMLDivElement {
         <dt><kbd>Ctrl</kbd>+<kbd>V</kbd></dt><dd>Paste image from clipboard</dd>
         <dt><kbd>Esc</kbd></dt><dd>Cancel current action · close dialogs</dd>
         <dt><kbd>?</kbd></dt><dd>Toggle this panel</dd>
-      </dl>
-      <h3 class="kbd-overlay-sub"># reactor power</h3>
-      <dl class="kbd-overlay-list">
-        <dt><kbd>Alt</kbd>+<kbd>1</kbd></dt><dd>LOW-POWER (fastest)</dd>
-        <dt><kbd>Alt</kbd>+<kbd>2</kbd></dt><dd>NORMAL (default)</dd>
-        <dt><kbd>Alt</kbd>+<kbd>3</kbd></dt><dd>HIGH-POWER</dd>
-        <dt><kbd>Alt</kbd>+<kbd>4</kbd></dt><dd>FULL-NUKE (best quality)</dd>
       </dl>
       <h3 class="kbd-overlay-sub"># editor</h3>
       <dl class="kbd-overlay-list">

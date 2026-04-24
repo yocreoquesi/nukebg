@@ -57,29 +57,6 @@ function stripVarFallbacks(css: string): string {
   return css.replace(VAR_FALLBACK_PATTERN, 'var(--STRIPPED)');
 }
 
-// ── Power Mode Variable Completeness ─────────────────────────────────
-
-/** All CSS variables that MUST be set in every non-Normal power mode */
-const REQUIRED_MODE_VARS = [
-  '--terminal-color-override',
-  '--color-text-primary',
-  '--color-text-secondary',
-  '--color-text-tertiary',
-  '--color-accent-primary',
-  '--color-accent-rgb',
-  '--color-accent-glow',
-  '--color-accent-muted',
-  '--color-accent-hover',
-  '--color-surface-border',
-  '--color-surface-hover',
-  '--color-surface-active',
-  '--color-success',
-  '--color-info',
-];
-
-/** All CSS variables that MUST be removed in Normal mode */
-const REQUIRED_REMOVE_VARS = REQUIRED_MODE_VARS;
-
 // ── Tests ────────────────────────────────────────────────────────────
 
 describe('color consistency — no hardcoded theme colors in components', () => {
@@ -153,66 +130,6 @@ describe('color consistency — main.css variable definitions', () => {
 
   it('defines --color-surface-border in :root', () => {
     expect(css).toMatch(/--color-surface-border\s*:/);
-  });
-});
-
-describe('color consistency — power modes set all required variables', () => {
-  const appTs = read('src/components/ar-app.ts');
-
-  // Extract each mode block by looking for the setProperty calls
-  const modes = [
-    { name: 'Full Nuke', marker: "Mode: FULL NUKE" },
-    { name: 'High Power', marker: "Mode: HIGH POWER" },
-    { name: 'Low Power', marker: "Mode: LOW POWER" },
-  ];
-
-  for (const mode of modes) {
-    describe(`${mode.name} mode`, () => {
-      // Find the block between this mode's marker and the next mode/else
-      const markerIdx = appTs.indexOf(mode.marker);
-      expect(markerIdx).toBeGreaterThan(-1);
-
-      // Get a chunk around the marker (the mode block is ~40 lines)
-      const blockStart = appTs.lastIndexOf('} else if', markerIdx) !== -1
-        ? appTs.lastIndexOf('if (val ===', markerIdx)
-        : appTs.lastIndexOf('if (val ===', markerIdx);
-      const blockEnd = appTs.indexOf('} else', markerIdx + 1);
-      const block = appTs.slice(
-        blockStart > 0 ? blockStart : markerIdx - 500,
-        blockEnd > 0 ? blockEnd : markerIdx + 1500,
-      );
-
-      for (const varName of REQUIRED_MODE_VARS) {
-        it(`sets ${varName}`, () => {
-          expect(
-            block,
-            `${mode.name} mode does not set ${varName}`,
-          ).toContain(`'${varName}'`);
-        });
-      }
-    });
-  }
-
-  describe('Normal mode', () => {
-    const normalMarker = "Mode: NORMAL";
-    const markerIdx = appTs.indexOf(normalMarker);
-    expect(markerIdx).toBeGreaterThan(-1);
-
-    const blockStart = appTs.lastIndexOf('else {', markerIdx);
-    const blockEnd = appTs.indexOf('}, { signal }', markerIdx);
-    const block = appTs.slice(
-      blockStart > 0 ? blockStart : markerIdx - 500,
-      blockEnd > 0 ? blockEnd : markerIdx + 1500,
-    );
-
-    for (const varName of REQUIRED_REMOVE_VARS) {
-      it(`removes ${varName}`, () => {
-        expect(
-          block,
-          `Normal mode does not remove ${varName}`,
-        ).toContain(`'${varName}'`);
-      });
-    }
   });
 });
 
