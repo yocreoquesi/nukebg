@@ -31,6 +31,7 @@ const translations: Translations = {
     'progress.bgRemovalCV': 'Removing background [CV]',
     'progress.bgRemovalML': 'Removing background [ML]',
     'progress.initAI': 'Initializing AI engine...',
+    'progress.cancel': 'Cancel',
     'progress.total': 'Total:',
     'progress.downscaled': 'Large image: processing at {w}\u00D7{h} to fit memory (output at original {ow}\u00D7{oh}).',
 
@@ -227,6 +228,7 @@ const translations: Translations = {
     'progress.bgRemovalCV': 'Eliminando fondo [CV]',
     'progress.bgRemovalML': 'Eliminando fondo [ML]',
     'progress.initAI': 'Inicializando motor IA...',
+    'progress.cancel': 'Cancelar',
     'progress.total': 'Total:',
     'progress.downscaled': 'Imagen grande: procesando en {w}\u00D7{h} para ahorrar memoria (salida a {ow}\u00D7{oh} original).',
 
@@ -423,6 +425,7 @@ const translations: Translations = {
     'progress.bgRemovalCV': "Suppression de l'arri\u00E8re-plan [CV]",
     'progress.bgRemovalML': "Suppression de l'arri\u00E8re-plan [ML]",
     'progress.initAI': "Initialisation du moteur IA...",
+    'progress.cancel': 'Annuler',
     'progress.total': 'Total :',
     'progress.downscaled': 'Grande image : traitement en {w}\u00D7{h} pour la m\u00E9moire (sortie en {ow}\u00D7{oh} d\u2019origine).',
 
@@ -619,6 +622,7 @@ const translations: Translations = {
     'progress.bgRemovalCV': 'Hintergrund entfernen [CV]',
     'progress.bgRemovalML': 'Hintergrund entfernen [ML]',
     'progress.initAI': 'KI-Engine wird initialisiert...',
+    'progress.cancel': 'Abbrechen',
     'progress.total': 'Gesamt:',
     'progress.downscaled': 'Gro\u00DFes Bild: Verarbeitung bei {w}\u00D7{h} zur Speicherschonung (Ausgabe in Original {ow}\u00D7{oh}).',
 
@@ -815,6 +819,7 @@ const translations: Translations = {
     'progress.bgRemovalCV': 'Removendo fundo [CV]',
     'progress.bgRemovalML': 'Removendo fundo [ML]',
     'progress.initAI': 'Inicializando motor de IA...',
+    'progress.cancel': 'Cancelar',
     'progress.total': 'Total:',
     'progress.downscaled': 'Imagem grande: processando em {w}\u00D7{h} para economizar mem\u00F3ria (sa\u00EDda em {ow}\u00D7{oh} original).',
 
@@ -1011,6 +1016,7 @@ const translations: Translations = {
     'progress.bgRemovalCV': '\u53BB\u9664\u80CC\u666F [CV]',
     'progress.bgRemovalML': '\u53BB\u9664\u80CC\u666F [ML]',
     'progress.initAI': 'AI \u5F15\u64CE\u521D\u59CB\u5316\u4E2D...',
+    'progress.cancel': '\u53D6\u6D88',
     'progress.total': '\u603B\u8BA1:',
     'progress.downscaled': '\u5927\u56FE\u50CF\uFF1A\u4EE5 {w}\u00D7{h} \u5904\u7406\u4EE5\u8282\u7701\u5185\u5B58\uFF08\u8F93\u51FA\u4F4D\u539F\u59CB {ow}\u00D7{oh}\uFF09\u3002',
 
