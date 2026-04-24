@@ -81,8 +81,10 @@ export class ArBatchGrid extends HTMLElement {
         @media (max-width: 768px) {
           .grid { grid-template-columns: repeat(3, 1fr); gap: 8px; }
         }
-        @media (max-width: 420px) {
-          .grid { grid-template-columns: repeat(2, 1fr); gap: 6px; }
+        /* Mobile phones up to 480 px: 2-col grid per design #74 so
+           tiles are big enough for thumb-zoom + badge legibility. */
+        @media (max-width: 480px) {
+          .grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
         }
         .actions {
           display: flex;
