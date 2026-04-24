@@ -11,7 +11,7 @@ if (typeof (globalThis as { ImageData?: unknown }).ImageData === 'undefined') {
     data: Uint8ClampedArray;
     width: number;
     height: number;
-    colorSpace: 'srgb' = 'srgb';
+    colorSpace = 'srgb' as const;
     constructor(data: Uint8ClampedArray, width: number, height: number) {
       this.data = data;
       this.width = width;

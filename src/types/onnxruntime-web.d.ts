@@ -6,4 +6,5 @@
  * reference pulls them in explicitly. Drop this shim if upstream ever
  * adds `"types"` conditions to the package's exports.
  */
+// eslint-disable-next-line @typescript-eslint/triple-slash-reference -- intentional shim
 /// <reference path="../../node_modules/onnxruntime-web/types.d.ts" />

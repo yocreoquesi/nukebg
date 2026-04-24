@@ -19,7 +19,11 @@ const ROOT = resolve(__dirname, '..');
 const INLINE_SCRIPT_RE = /<script\b([^>]*)>([\s\S]*?)<\/script>/g;
 
 function extractInlineHashes(): string[] {
-  const html = readFileSync(resolve(ROOT, 'index.html'), 'utf8');
+  // Normalize CRLF -> LF: index.html is stored as LF in the repo, but
+  // Windows checkouts deliver CRLF. CSP hashes the exact bytes, so we
+  // hash against the canonical (LF) form to match what production
+  // serves, regardless of the dev OS.
+  const html = readFileSync(resolve(ROOT, 'index.html'), 'utf8').replace(/\r\n/g, '\n');
   const hashes: string[] = [];
   let m: RegExpExecArray | null;
   while ((m = INLINE_SCRIPT_RE.exec(html)) !== null) {

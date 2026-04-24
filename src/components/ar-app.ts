@@ -1599,9 +1599,9 @@ export class ArApp extends HTMLElement {
     if (backBtn) {
       backBtn.addEventListener('click', () => this.closeBatchDetail(), { signal });
     }
-    const retryBtn = this.shadowRoot!.querySelector('#batch-retry-btn');
-    if (retryBtn) {
-      retryBtn.addEventListener('click', () => this.retryBatchItem(), { signal });
+    const batchRetryBtn = this.shadowRoot!.querySelector('#batch-retry-btn');
+    if (batchRetryBtn) {
+      batchRetryBtn.addEventListener('click', () => this.retryBatchItem(), { signal });
     }
     const discardBtn = this.shadowRoot!.querySelector('#batch-discard-btn');
     if (discardBtn) {

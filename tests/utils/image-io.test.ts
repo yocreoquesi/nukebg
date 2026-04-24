@@ -1,14 +1,24 @@
 import { describe, it, expect } from 'vitest';
 import { loadImage } from '../../src/utils/image-io';
 
-const PNG_MAGIC = new Uint8Array([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]);
-const JPEG_MAGIC = new Uint8Array([0xFF, 0xD8, 0xFF, 0xE0]);
+// All headers padded to 12 bytes — sniffImageFormat() refuses anything
+// shorter (covered by its own dedicated test below).
+const PNG_MAGIC = new Uint8Array([
+  0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0x00, 0x00, 0x00, 0x0D,
+]);
+const JPEG_MAGIC = new Uint8Array([
+  0xFF, 0xD8, 0xFF, 0xE0, 0x00, 0x10, 0x4A, 0x46, 0x49, 0x46, 0x00, 0x01,
+]);
 const WEBP_MAGIC = new Uint8Array([
   0x52, 0x49, 0x46, 0x46, 0x00, 0x00, 0x00, 0x00, 0x57, 0x45, 0x42, 0x50,
 ]);
 
 function fileFrom(bytes: Uint8Array, name: string, type: string): File {
-  return new File([bytes], name, { type });
+  // Cast to BlobPart explicitly — TS 6 narrows Uint8Array's underlying
+  // buffer to `ArrayBufferLike` (which includes SharedArrayBuffer) and
+  // refuses the literal `BlobPart` constructor union. The Blob spec
+  // accepts any TypedArray, so this cast is sound at runtime.
+  return new File([bytes as BlobPart], name, { type });
 }
 
 describe('loadImage magic-byte sniffing', () => {

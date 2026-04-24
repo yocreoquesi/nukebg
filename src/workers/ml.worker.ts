@@ -228,7 +228,7 @@ function removeSmallClusters(alpha: Uint8Array, w: number, h: number, minSize: n
 }
 
 const progressCb = (id: string) => (progress: { status: string; progress?: number }) => {
-  if (progress.status === 'progress' && progress.progress != null) {
+  if (progress.status === 'progress' && progress.progress !== null && progress.progress !== undefined) {
     const pct = 10 + Math.round(progress.progress * 0.8);
     self.postMessage({ id, type: 'model-progress', progress: pct });
   }
