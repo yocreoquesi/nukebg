@@ -1,4 +1,5 @@
 import { loadImage, isSupportedFormat } from '../utils/image-io';
+import { generateDemoFile } from '../utils/demo-image';
 import { t } from '../i18n';
 import { getBatchLimit } from '../types/batch';
 
@@ -151,6 +152,33 @@ export class ArDropzone extends HTMLElement {
           .dz-camera-cta { display: inline-flex; align-items: center; justify-content: center; }
         }
         .dz-camera-input { display: none; }
+        /* Try-a-sample CTA — zero-friction first-touch flow. Inline
+           ghost button, same monospace voice as the rest of the dz.
+           On mobile it stacks under the camera CTA. */
+        .dz-sample-cta {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          margin-top: 10px;
+          padding: 8px 12px;
+          font-family: 'JetBrains Mono', monospace;
+          font-size: 12px;
+          letter-spacing: 0.05em;
+          background: transparent;
+          color: var(--color-text-secondary, #8a8a8a);
+          border: 1px dashed var(--color-surface-border, #1a3a1a);
+          border-radius: 0;
+          cursor: pointer;
+          min-height: 32px;
+          transition: color 0.15s ease, border-color 0.15s ease;
+        }
+        .dz-sample-cta:hover,
+        .dz-sample-cta:focus-visible {
+          color: var(--color-accent-primary, #00ff41);
+          border-color: var(--color-accent-primary, #00ff41);
+          outline: none;
+        }
+        .dz-sample-cta[disabled] { opacity: 0.5; cursor: wait; }
         .dropzone:hover {
           box-shadow:
             0 0 18px rgba(var(--color-accent-rgb, 0, 255, 65), 0.14),
@@ -256,6 +284,9 @@ export class ArDropzone extends HTMLElement {
         <button type="button" class="dz-camera-cta" id="dz-camera-cta">
           &#8227; ${t('dropzone.takePhoto')}
         </button>
+        <button type="button" class="dz-sample-cta" id="dz-sample-cta">
+          &#8227; ${t('dropzone.trySample')}
+        </button>
       </div>
       <input type="file" accept="image/png,image/jpeg,image/webp" multiple />
       <input type="file" accept="image/*" capture="environment" class="dz-camera-input" />
@@ -282,6 +313,8 @@ export class ArDropzone extends HTMLElement {
     if (dropzone) dropzone.setAttribute('aria-label', t('dropzone.ariaLabel'));
     const camera = root.querySelector('#dz-camera-cta');
     if (camera) camera.innerHTML = `&#8227; ${t('dropzone.takePhoto')}`;
+    const sample = root.querySelector('#dz-sample-cta');
+    if (sample) sample.innerHTML = `&#8227; ${t('dropzone.trySample')}`;
   }
 
   private setupEvents(): void {
@@ -292,10 +325,11 @@ export class ArDropzone extends HTMLElement {
     document.addEventListener('nukebg:locale-changed', this.boundLocaleHandler);
 
     // Click to open file picker — but ignore clicks that bubbled from
-    // the inline camera CTA button (it manages its own file input).
+    // the inline camera or sample CTAs (they manage their own flows).
     this.dropArea.addEventListener('click', (e) => {
       const target = e.target as HTMLElement | null;
       if (target?.closest('#dz-camera-cta')) return;
+      if (target?.closest('#dz-sample-cta')) return;
       this.fileInput.click();
     });
 
@@ -304,6 +338,7 @@ export class ArDropzone extends HTMLElement {
       if (e.key === 'Enter' || e.key === ' ') {
         const target = e.target as HTMLElement | null;
         if (target?.closest('#dz-camera-cta')) return;
+        if (target?.closest('#dz-sample-cta')) return;
         e.preventDefault();
         this.fileInput.click();
       }
@@ -327,6 +362,26 @@ export class ArDropzone extends HTMLElement {
     this.cameraInput.addEventListener('change', () => {
       if (this.cameraInput.files && this.cameraInput.files.length > 0) {
         this.handleFiles(this.cameraInput.files);
+      }
+    });
+
+    // Try-a-sample CTA — builds a synthetic demo image client-side and
+    // feeds it through the normal handleFile path, so first-time
+    // visitors can see an end-to-end result without needing to find
+    // an image to drop.
+    const sampleBtn = this.shadowRoot!.querySelector('#dz-sample-cta') as HTMLButtonElement | null;
+    sampleBtn?.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      if (sampleBtn.disabled) return;
+      sampleBtn.disabled = true;
+      try {
+        const file = await generateDemoFile();
+        await this.handleFile(file);
+      } catch (err) {
+        this.showError(t('dropzone.sampleError') || 'Could not generate sample.');
+        console.warn('[ar-dropzone] sample generation failed', err);
+      } finally {
+        sampleBtn.disabled = false;
       }
     });
 

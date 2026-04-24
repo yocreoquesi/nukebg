@@ -15,6 +15,8 @@ const translations: Translations = {
     'hero.title.short': 'NUKE BG',
     'hero.subtitle.short': 'Drop image · transparent PNG · stays local.',
     'dropzone.takePhoto': 'take photo',
+    'dropzone.trySample': 'try a sample',
+    'dropzone.sampleError': 'Could not build the sample image.',
     'hero.modelStatus': 'Ready to nuke',
 
     // Dropzone
@@ -245,6 +247,8 @@ const translations: Translations = {
     'hero.title.short': 'NUKE FONDOS',
     'hero.subtitle.short': 'Imagen · PNG transparente · nunca sale.',
     'dropzone.takePhoto': 'tomar foto',
+    'dropzone.trySample': 'probar ejemplo',
+    'dropzone.sampleError': 'No se pudo generar la imagen de prueba.',
     'hero.modelStatus': 'Listo para nukear',
 
     // Dropzone
@@ -475,6 +479,8 @@ const translations: Translations = {
     'hero.title.short': 'NUKE ARRI\u00C8RE',
     'hero.subtitle.short': 'D\u00E9pose · PNG transparent · reste local.',
     'dropzone.takePhoto': 'prendre photo',
+    'dropzone.trySample': 'essayer un exemple',
+    'dropzone.sampleError': 'Impossible de générer l’image de démo.',
     'hero.modelStatus': 'Pr\u00EAt \u00E0 atomiser',
 
     // Dropzone
@@ -705,6 +711,8 @@ const translations: Translations = {
     'hero.title.short': 'NUKE BG',
     'hero.subtitle.short': 'Bild · transparentes PNG · bleibt lokal.',
     'dropzone.takePhoto': 'foto machen',
+    'dropzone.trySample': 'beispiel ausprobieren',
+    'dropzone.sampleError': 'Beispielbild konnte nicht erzeugt werden.',
     'hero.modelStatus': 'Bereit zum Nuken',
 
     // Dropzone
@@ -935,6 +943,8 @@ const translations: Translations = {
     'hero.title.short': 'NUKE FUNDO',
     'hero.subtitle.short': 'Imagem · PNG transparente · fica local.',
     'dropzone.takePhoto': 'tirar foto',
+    'dropzone.trySample': 'testar exemplo',
+    'dropzone.sampleError': 'Não foi possível gerar a imagem de demo.',
     'hero.modelStatus': 'Pronto pra nukear',
 
     // Dropzone
@@ -1165,6 +1175,8 @@ const translations: Translations = {
     'hero.title.short': '\u6838\u7206\u80CC\u666F',
     'hero.subtitle.short': '\u56FE\u7247 · \u900F\u660E PNG · \u672C\u5730\u5904\u7406',
     'dropzone.takePhoto': '\u62CD\u7167',
+    'dropzone.trySample': '\u8BD5\u8BD5\u793A\u4F8B',
+    'dropzone.sampleError': '\u65E0\u6CD5\u751F\u6210\u793A\u4F8B\u56FE\u7247\u3002',
     'hero.modelStatus': '\u51C6\u5907\u6838\u7206',
 
     // Dropzone
