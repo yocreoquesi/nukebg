@@ -194,9 +194,16 @@ export class ArApp extends HTMLElement {
           text-align: left;
           line-height: var(--leading-relaxed, 1.625);
         }
-        .subline::before {
+        .subline-long::before {
           content: '# ';
           color: var(--color-text-tertiary, #00b34a);
+        }
+        /* Hero copy swap per design #73: show the short form at ≤480 px
+           so the dropzone gets more vertical room on phones. */
+        .hero-title-short, .subline-short { display: none; }
+        @media (max-width: 480px) {
+          .hero-title-long, .subline-long { display: none; }
+          .hero-title-short, .subline-short { display: inline; }
         }
         .model-status {
           font-family: 'JetBrains Mono', monospace;
@@ -1023,9 +1030,13 @@ export class ArApp extends HTMLElement {
       <div class="marquee-bleed" id="precision-marquee-bleed"><span>☢ NUKEBG | DROP. NUKE. DOWNLOAD. | Your images never leave your device | nukebg.app ☢ NUKEBG | DROP. NUKE. DOWNLOAD. | Your images never leave your device | nukebg.app ☢</span></div>
 
       <section class="hero" id="hero">
-        <h1><span class="accent">${t('hero.title.accent')}</span> ${t('hero.title.rest')}</h1>
+        <h1>
+          <span class="hero-title-long"><span class="accent">${t('hero.title.accent')}</span> ${t('hero.title.rest')}</span>
+          <span class="hero-title-short"><span class="accent">$ </span>${t('hero.title.short')}</span>
+        </h1>
         <p class="subline">
-          ${t('hero.subtitle').replace(/\n/g, ' ')}
+          <span class="subline-long">${t('hero.subtitle').replace(/\n/g, ' ')}</span>
+          <span class="subline-short"># ${t('hero.subtitle.short')}</span>
         </p>
         <ar-dropzone></ar-dropzone>
         <ar-batch-grid id="batch-grid" style="display:none"></ar-batch-grid>
@@ -1126,9 +1137,13 @@ export class ArApp extends HTMLElement {
   private updateTexts(): void {
     const root = this.shadowRoot!;
     const h1 = root.querySelector('h1');
-    if (h1) h1.innerHTML = `<span class="accent">${t('hero.title.accent')}</span> ${t('hero.title.rest')}`;
+    if (h1) h1.innerHTML =
+      `<span class="hero-title-long"><span class="accent">${t('hero.title.accent')}</span> ${t('hero.title.rest')}</span>` +
+      `<span class="hero-title-short"><span class="accent">$ </span>${t('hero.title.short')}</span>`;
     const subline = root.querySelector('.subline');
-    if (subline) subline.textContent = t('hero.subtitle').replace(/\n/g, ' ');
+    if (subline) subline.innerHTML =
+      `<span class="subline-long">${t('hero.subtitle').replace(/\n/g, ' ')}</span>` +
+      `<span class="subline-short"># ${t('hero.subtitle.short')}</span>`;
     const statusReactor = root.querySelector('#status-reactor');
     if (statusReactor) statusReactor.textContent = t('status.reactor.online');
     const statusModel = root.querySelector('#status-model');
