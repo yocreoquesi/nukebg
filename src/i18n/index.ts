@@ -12,6 +12,9 @@ const translations: Translations = {
     'hero.title.accent': 'Nuke',
     'hero.title.rest': 'Any Background',
     'hero.subtitle': 'Drop any image. Get a clean transparent PNG.\nNo upload. No account. No BS.',
+    'hero.title.short': 'NUKE BG',
+    'hero.subtitle.short': 'Drop image · transparent PNG · stays local.',
+    'dropzone.takePhoto': 'take photo',
     'hero.modelStatus': 'Ready to nuke',
 
     // Dropzone
@@ -230,6 +233,9 @@ const translations: Translations = {
     'hero.title.accent': 'Nukea',
     'hero.title.rest': 'Cualquier Fondo',
     'hero.subtitle': 'Arrastra una imagen. Obt\u00E9n un PNG transparente.\nSin subidas. Sin cuenta. Sin complicaciones.',
+    'hero.title.short': 'NUKE FONDOS',
+    'hero.subtitle.short': 'Imagen · PNG transparente · nunca sale.',
+    'dropzone.takePhoto': 'tomar foto',
     'hero.modelStatus': 'Listo para nukear',
 
     // Dropzone
@@ -448,6 +454,9 @@ const translations: Translations = {
     'hero.title.accent': 'Atomise',
     'hero.title.rest': "N'importe Quel Fond",
     'hero.subtitle': "Balance ton image. R\u00E9cup\u00E8re un PNG transparent.\nZ\u00E9ro upload. Z\u00E9ro compte. Z\u00E9ro baratin.",
+    'hero.title.short': 'NUKE ARRI\u00C8RE',
+    'hero.subtitle.short': 'D\u00E9pose · PNG transparent · reste local.',
+    'dropzone.takePhoto': 'prendre photo',
     'hero.modelStatus': 'Pr\u00EAt \u00E0 atomiser',
 
     // Dropzone
@@ -666,6 +675,9 @@ const translations: Translations = {
     'hero.title.accent': 'Nuke',
     'hero.title.rest': 'Jeden Hintergrund',
     'hero.subtitle': 'Bild reinwerfen. Transparentes PNG kriegen.\nKein Upload. Kein Konto. Kein Bullshit.',
+    'hero.title.short': 'NUKE BG',
+    'hero.subtitle.short': 'Bild · transparentes PNG · bleibt lokal.',
+    'dropzone.takePhoto': 'foto machen',
     'hero.modelStatus': 'Bereit zum Nuken',
 
     // Dropzone
@@ -884,6 +896,9 @@ const translations: Translations = {
     'hero.title.accent': 'Nukeia',
     'hero.title.rest': 'Qualquer Fundo',
     'hero.subtitle': 'Joga a imagem. Pega o PNG transparente.\nSem upload. Sem conta. Sem frescura.',
+    'hero.title.short': 'NUKE FUNDO',
+    'hero.subtitle.short': 'Imagem · PNG transparente · fica local.',
+    'dropzone.takePhoto': 'tirar foto',
     'hero.modelStatus': 'Pronto pra nukear',
 
     // Dropzone
@@ -1102,6 +1117,9 @@ const translations: Translations = {
     'hero.title.accent': '\u6838\u7206',
     'hero.title.rest': '\u4EFB\u4F55\u80CC\u666F',
     'hero.subtitle': '\u4E22\u5F20\u56FE\u7247\u8FDB\u6765\u3002\u62FF\u8D70\u900F\u660E PNG\u3002\n\u96F6\u4E0A\u4F20\u3002\u96F6\u6CE8\u518C\u3002\u96F6\u5E9F\u8BDD\u3002',
+    'hero.title.short': '\u6838\u7206\u80CC\u666F',
+    'hero.subtitle.short': '\u56FE\u7247 · \u900F\u660E PNG · \u672C\u5730\u5904\u7406',
+    'dropzone.takePhoto': '\u62CD\u7167',
     'hero.modelStatus': '\u51C6\u5907\u6838\u7206',
 
     // Dropzone
