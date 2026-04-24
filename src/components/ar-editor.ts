@@ -381,8 +381,55 @@ export class ArEditor extends HTMLElement {
         }
         @media (min-width: 900px) {
           .editor-body {
-            grid-template-columns: minmax(0, 1fr) 260px;
+            grid-template-columns: 200px minmax(0, 1fr) 260px;
           }
+        }
+        /* Left rail (#76 sub-task A). Vertical column at ≥ 900 px,
+           horizontal strip below so mobile keeps single-row flow. */
+        .editor-rail {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 10px;
+          padding: 12px;
+          border: 1px solid var(--color-surface-border, #1a3a1a);
+          background: var(--color-bg-primary, #000);
+          font-family: 'JetBrains Mono', monospace;
+          font-size: 12px;
+          align-content: start;
+        }
+        @media (min-width: 900px) {
+          .editor-rail {
+            flex-direction: column;
+            flex-wrap: nowrap;
+          }
+        }
+        .editor-rail-group {
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+          min-width: 0;
+        }
+        .editor-rail-label {
+          color: var(--color-text-tertiary, #00b34a);
+          font-size: 11px;
+          letter-spacing: 0.04em;
+          text-transform: uppercase;
+        }
+        .editor-rail-select,
+        .editor-rail-range {
+          font-family: inherit;
+          font-size: 12px;
+          color: var(--color-accent-primary, #00ff41);
+          background: var(--color-bg-primary, #000);
+          border: 1px solid var(--color-surface-border, #1a3a1a);
+          border-radius: 0;
+          padding: 4px 6px;
+          cursor: pointer;
+          accent-color: var(--color-accent-primary, #00ff41);
+        }
+        .editor-rail-range { padding: 0; }
+        @media (pointer: coarse) {
+          .editor-rail-select { min-height: 44px; }
         }
         .editor-sidebar {
           display: none;
@@ -605,24 +652,6 @@ export class ArEditor extends HTMLElement {
 
       <div class="editor-container">
         <div class="toolbar">
-          <label id="ed-tool-label">${t('editor.tool')}</label>
-          <select id="brush-tool" aria-label="${t('editor.tool')}">
-            <option value="erase" selected>${t('editor.eraser')}</option>
-            <option value="restore">${t('editor.restore')}</option>
-          </select>
-
-          <label id="ed-brush-label">${t('editor.shape')}</label>
-          <select id="brush-shape" aria-label="${t('editor.shape')}">
-            <option value="circle" selected>${t('editor.eraserCircle')}</option>
-            <option value="square">${t('editor.eraserSquare')}</option>
-          </select>
-
-          <label id="ed-size-label">${t('editor.eraserSize')}</label>
-          <input type="range" id="brush-size" min="2" max="100" value="20" aria-label="${t('editor.eraserSize')}">
-          <span class="size-display" id="size-display">20px</span>
-
-          <div class="separator"></div>
-
           <button class="toolbar-btn" id="undo-btn" disabled aria-label="${t('editor.undo')}">${t('editor.undo')}</button>
           <button class="toolbar-btn" id="redo-btn" disabled aria-label="${t('editor.redo')}">${t('editor.redo')}</button>
 
@@ -664,6 +693,31 @@ export class ArEditor extends HTMLElement {
           </div>
         </div>
         <div class="editor-body">
+          <!-- Left rail (#76 sub-task A). At ≥ 900 px it stacks
+               tool + shape + size vertically next to the canvas.
+               Below 900 px it flattens to a horizontal row above
+               the canvas, keeping the controls reachable on mobile. -->
+          <aside class="editor-rail" aria-label="${t('editor.tool')}">
+            <div class="editor-rail-group">
+              <label id="ed-tool-label" class="editor-rail-label">${t('editor.tool')}</label>
+              <select id="brush-tool" class="editor-rail-select" aria-label="${t('editor.tool')}">
+                <option value="erase" selected>${t('editor.eraser')}</option>
+                <option value="restore">${t('editor.restore')}</option>
+              </select>
+            </div>
+            <div class="editor-rail-group">
+              <label id="ed-brush-label" class="editor-rail-label">${t('editor.shape')}</label>
+              <select id="brush-shape" class="editor-rail-select" aria-label="${t('editor.shape')}">
+                <option value="circle" selected>${t('editor.eraserCircle')}</option>
+                <option value="square">${t('editor.eraserSquare')}</option>
+              </select>
+            </div>
+            <div class="editor-rail-group">
+              <label id="ed-size-label" class="editor-rail-label">${t('editor.eraserSize')}</label>
+              <input type="range" id="brush-size" class="editor-rail-range" min="2" max="100" value="20" aria-label="${t('editor.eraserSize')}">
+              <span class="size-display" id="size-display">20px</span>
+            </div>
+          </aside>
           <div class="canvas-wrap" id="canvas-wrap">
             <canvas id="editor-canvas"></canvas>
             <div class="touch-indicator" id="touch-indicator"></div>
