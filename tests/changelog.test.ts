@@ -35,9 +35,12 @@ describe('CHANGELOG.md', () => {
   });
 
   it('surfaces the latest merged PRs so the Unreleased entry stays current', () => {
-    // Sanity check the most recent work is represented.
-    expect(CHANGELOG).toMatch(/#101/);
-    expect(CHANGELOG).toMatch(/#102/);
+    // Sanity check that the most recent batch of work is represented.
+    // Bump these as the changelog grows; they are the canary for stale
+    // digests.
+    for (const pr of ['#101', '#106', '#113', '#114', '#115']) {
+      expect(CHANGELOG).toContain(pr);
+    }
   });
 
   it('ships a release-checklist template and compare link at the bottom', () => {

@@ -11,6 +11,20 @@ Unreleased entries accumulate on the `dev` branch. When we cut a release we copy
 ## [Unreleased]
 
 ### Added
+- **Theme switcher in the footer** — four palettes (terminal-green / amber /
+  cyan / magenta) via `:root[data-theme="X"]` overrides. WAI-ARIA radiogroup
+  with keyboard nav; persisted in `localStorage["nukebg:theme"]`.
+  ([#115](https://github.com/yocreoquesi/nukebg/pull/115))
+- **In-dropzone model progress** — first-run progress relocated INTO the
+  dropzone in the same vertical row as the camera CTA, so the page never
+  reflows when the model finishes warming up. ar-app drives it via a new
+  `dropzone.setLoadingState(...)` API. ([#114](https://github.com/yocreoquesi/nukebg/pull/114))
+- **Reactor offline → active** in the [STATUS] line — only flips green after
+  preload resolves. Dot + word dim while idle.
+  ([#114](https://github.com/yocreoquesi/nukebg/pull/114))
+- **Recovered honesty + Ko-fi pitch** in the hero — `features.disclaimer` and
+  a new `support.kofi` i18n key (six locales).
+  ([#114](https://github.com/yocreoquesi/nukebg/pull/114))
 - **Global keyboard shortcuts + `?` hint overlay** — press `/` to focus the
   dropzone, `?` to see the full cheat-sheet, Esc to dismiss. Works across every
   shadow tree via a light-DOM overlay. ([#101](https://github.com/yocreoquesi/nukebg/pull/101))
@@ -59,6 +73,24 @@ Unreleased entries accumulate on the `dev` branch. When we cut a release we copy
 - **Cancel button in `ar-progress`** ([#63](https://github.com/yocreoquesi/nukebg/pull/63)).
 
 ### Changed
+- **Pipeline pinned to `'high-power'`** — the segmentation pipeline now always
+  runs at the better-bordered profile (extra spatial pass, finer cluster
+  threshold). Previously gated behind the Reactor segmented control.
+  ([#113](https://github.com/yocreoquesi/nukebg/pull/113))
+- **Reactor segmented control + Alt+1..4 shortcut removed** — every visible
+  trace of the four-mode picker is gone (CSS, click handlers, marquee swap,
+  CRT flicker, smoke, vibrate, ~700 LOC of UI). Replaced by the theme switcher
+  for cosmetic palette changes.
+  ([#113](https://github.com/yocreoquesi/nukebg/pull/113))
+- **MAX_PIXELS lowered from 100 MP → 32 MP** — covers every current iPhone /
+  Pixel sensor while keeping inpaint + LaMa peak RAM safe on low-end phones.
+  ([#111](https://github.com/yocreoquesi/nukebg/pull/111))
+- **"How it works" + "vs other tools" SEO block removed** from below-fold —
+  JSON-LD HowTo + FAQ already cover the same ground for SERPs.
+  ([#112](https://github.com/yocreoquesi/nukebg/pull/112))
+- **"Try a sample" demo CTA reverted** — the synthetic image was triggering
+  a false-positive watermark detection.
+  ([#111](https://github.com/yocreoquesi/nukebg/pull/111))
 - **Polish pass** — typography tokens collapsed to 12/14/16, progress bar
   height tightened, tablet header gets the portable-mode tagline.
   ([#87](https://github.com/yocreoquesi/nukebg/pull/87))
@@ -82,6 +114,10 @@ Unreleased entries accumulate on the `dev` branch. When we cut a release we copy
   ([#60](https://github.com/yocreoquesi/nukebg/pull/60))
 
 ### Pipeline
+- **`pendingTimers` leak plugged** — every worker response now routes through
+  a `settlePending()` helper that clears the watchdog timer and drops it from
+  the set in one step (closes #44).
+  ([#106](https://github.com/yocreoquesi/nukebg/pull/106))
 - **End-to-end `AbortController`** plumbed from UI → orchestrator → every
   worker. ([#58](https://github.com/yocreoquesi/nukebg/pull/58))
 - **20-minute wall-clock timeout** on `process()` to break runaway runs.
@@ -90,6 +126,15 @@ Unreleased entries accumulate on the `dev` branch. When we cut a release we copy
   ([#56](https://github.com/yocreoquesi/nukebg/pull/56)).
 
 ### Accessibility
+- **Editor canvases are tabbable + described** — `tabindex="0"`, `role="img"`,
+  `aria-label` wired through new `editor.canvasLabel` /
+  `advanced.canvasLabel` i18n keys.
+  ([#107](https://github.com/yocreoquesi/nukebg/pull/107))
+- **Viewer slider WAI-ARIA steps** — Shift+Arrow / PageUp / PageDown move ±10,
+  Home/End jump to 0/100, ArrowUp/Down work as vertical synonyms.
+  ([#107](https://github.com/yocreoquesi/nukebg/pull/107))
+- **Alt+1..4 reactor shortcuts** removed alongside the Reactor pivot.
+  ([#113](https://github.com/yocreoquesi/nukebg/pull/113))
 - **Reduced-motion audit** across every component that ships `@keyframes`;
   viewer slider reveal respects both OS reduced-motion and the in-app quiet
   mode. ([#100](https://github.com/yocreoquesi/nukebg/pull/100))
@@ -101,7 +146,19 @@ Unreleased entries accumulate on the `dev` branch. When we cut a release we copy
 - **Production sourcemaps disabled**
   ([#51](https://github.com/yocreoquesi/nukebg/pull/51)).
 
+### Internationalization
+- **RTL scaffolding** — `getDirection(locale)` helper + auto-flip of
+  `<html dir>` so a future RTL translation lands without code changes.
+  Handles BCP-47 region tags. (closes #38)
+  ([#109](https://github.com/yocreoquesi/nukebg/pull/109))
+
 ### Tooling / CI
+- **CI runs `npm run build`** on every PR so deploy-time regressions fail
+  before merge. Output sanity check confirms `dist/index.html`, JSON-LD
+  blocks, and `dist/assets`. ([#110](https://github.com/yocreoquesi/nukebg/pull/110))
+- **CSP hash + image-io tests EOL-agnostic** so CRLF checkouts on Windows
+  no longer drift the hashes against LF on Linux CI.
+  ([#110](https://github.com/yocreoquesi/nukebg/pull/110))
 - **ESLint + Prettier + CI lint job + WebKit e2e** in Playwright matrix.
   ([#67](https://github.com/yocreoquesi/nukebg/pull/67))
 - **Safari cross-engine validation** — WebKit matrix + iPhone profile +
@@ -112,6 +169,13 @@ Unreleased entries accumulate on the `dev` branch. When we cut a release we copy
   ([#64](https://github.com/yocreoquesi/nukebg/pull/64)).
 
 ### Documentation
+- **`scripts/README.md`** documents every analyze / validate / CSP helper.
+- **`tests/fixtures/LICENSE.md`** captures source + licence per fixture.
+- **CONTRIBUTING.md** now lists the CI gates + recommended branch protection
+  rules for `main`.
+- **COEP intentionally NOT set** — `nginx.conf` carries the rationale +
+  recipe to enable `credentialless` later (closes #41).
+  ([#108](https://github.com/yocreoquesi/nukebg/pull/108))
 - **Zero-network claim reconciled with reality** — clarifies first-run model
   fetch vs. steady-state runtime.
   ([#59](https://github.com/yocreoquesi/nukebg/pull/59))
