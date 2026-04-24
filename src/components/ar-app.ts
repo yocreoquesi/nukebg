@@ -118,6 +118,9 @@ export class ArApp extends HTMLElement {
       (_stage: PipelineStage, _status: StageStatus, message?: string) => {
         const el = statusEl();
         if (el && message) el.textContent = message;
+        // #78 first-run explainer hook: forward any "... N%" message
+        // into the visual progress panel so cold-load users see a bar.
+        this.updateFirstRunFromMessage(message);
       }
     );
 
@@ -127,7 +130,15 @@ export class ArApp extends HTMLElement {
     // Dropzone starts disabled until model is ready
     this.dropzone.setEnabled(false);
 
+    // Cold-cache detection: if progress hasn't reached ready state
+    // within 400 ms, assume we're downloading weights and reveal the
+    // first-run explainer panel. Instant cache hits never show it.
+    this.firstRunRevealTimer = window.setTimeout(() => {
+      if (!this.firstRunSettled) this.setFirstRunVisible(true);
+    }, 400);
+
     this.pipeline.preloadModel(ArApp.MODEL_ID).then(() => {
+      this.settleFirstRun('ready');
       const s = statusEl();
       if (s) {
         s.textContent = '> reactor online. Ready to nuke.';
@@ -135,12 +146,52 @@ export class ArApp extends HTMLElement {
       }
       this.dropzone.setEnabled(true);
     }).catch((err: unknown) => {
+      this.settleFirstRun('error');
       console.error('[NukeBG] Model preload failed, falling back to lazy load:', err);
       const s = statusEl();
       if (s) s.textContent = '> model loads on first image';
       // Enable dropzone anyway so user can still try
       this.dropzone.setEnabled(true);
     });
+  }
+
+  private firstRunRevealTimer: number | null = null;
+  private firstRunSettled = false;
+
+  private setFirstRunVisible(visible: boolean): void {
+    const panel = this.shadowRoot?.getElementById('first-run-panel') as HTMLElement | null;
+    if (panel) panel.hidden = !visible;
+  }
+
+  private updateFirstRunFromMessage(message?: string): void {
+    if (!message) return;
+    const m = message.match(/(\d+)\s*%/);
+    if (!m) return;
+    const pct = Math.min(100, Math.max(0, parseInt(m[1], 10)));
+    const bar = this.shadowRoot?.getElementById('first-run-bar');
+    const label = this.shadowRoot?.getElementById('first-run-label');
+    if (bar) (bar as HTMLElement).style.width = `${pct}%`;
+    if (label) label.textContent = message;
+  }
+
+  private settleFirstRun(state: 'ready' | 'error'): void {
+    this.firstRunSettled = true;
+    if (this.firstRunRevealTimer !== null) {
+      window.clearTimeout(this.firstRunRevealTimer);
+      this.firstRunRevealTimer = null;
+    }
+    const panel = this.shadowRoot?.getElementById('first-run-panel') as HTMLElement | null;
+    if (!panel) return;
+    if (state === 'error') {
+      panel.hidden = true;
+      return;
+    }
+    // On ready, fill the bar then fade out so the user sees completion.
+    const bar = this.shadowRoot?.getElementById('first-run-bar');
+    if (bar) (bar as HTMLElement).style.width = '100%';
+    const label = this.shadowRoot?.getElementById('first-run-label');
+    if (label) label.textContent = t('firstRun.ready');
+    window.setTimeout(() => { panel.hidden = true; }, 600);
   }
 
   disconnectedCallback(): void {
@@ -923,6 +974,51 @@ export class ArApp extends HTMLElement {
           }
         }
 
+        /* First-run model download explainer (#78). */
+        .first-run-panel {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+          margin: 0 0 14px;
+          padding: 12px;
+          border: 1px solid var(--color-surface-border, #1a3a1a);
+          background: var(--color-bg-primary, #000);
+          font-family: 'JetBrains Mono', monospace;
+        }
+        .first-run-panel[hidden] { display: none; }
+        .first-run-head {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          font-size: 12px;
+        }
+        .first-run-prompt { color: var(--color-text-tertiary, #00b34a); }
+        .first-run-action {
+          color: var(--color-accent-primary, #00ff41);
+          font-weight: 600;
+          letter-spacing: 0.04em;
+        }
+        .first-run-progress {
+          position: relative;
+          height: 3px;
+          background: var(--color-surface-border, #1a3a1a);
+          overflow: hidden;
+        }
+        .first-run-bar {
+          width: 0;
+          height: 100%;
+          background: var(--color-accent-primary, #00ff41);
+          box-shadow: 0 0 6px var(--color-accent-glow, rgba(0, 255, 65, 0.35));
+          transition: width 0.25s ease;
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .first-run-bar { transition: none; }
+        }
+        .first-run-label {
+          font-size: 11px;
+          color: var(--color-text-tertiary, #00b34a);
+        }
+
         /* Command bar at workspace top (#71) */
         .command-bar {
           display: flex;
@@ -1114,6 +1210,19 @@ export class ArApp extends HTMLElement {
           <span class="subline-long">${t('hero.subtitle').replace(/\n/g, ' ')}</span>
           <span class="subline-short"># ${t('hero.subtitle.short')}</span>
         </p>
+        <!-- First-run model download explainer (#78). Hidden on cache
+             hit; revealed after 400 ms if the model is still loading. -->
+        <div class="first-run-panel" id="first-run-panel" role="status" aria-live="polite" hidden>
+          <div class="first-run-head">
+            <span class="first-run-prompt">$</span>
+            <span class="first-run-action">fetch --model RMBG-1.4</span>
+          </div>
+          <div class="first-run-progress" aria-hidden="true">
+            <div class="first-run-bar" id="first-run-bar"></div>
+          </div>
+          <div class="first-run-label" id="first-run-label"># streaming weights…</div>
+        </div>
+
         <ar-dropzone></ar-dropzone>
         <ar-batch-grid id="batch-grid" style="display:none"></ar-batch-grid>
 
