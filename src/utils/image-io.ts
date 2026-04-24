@@ -14,6 +14,32 @@ export function isSupportedFormat(type: string): type is SupportedFormat {
 }
 
 /**
+ * Inspect the first bytes of a file and return the image format identified
+ * by its magic bytes. Returns null if none of the supported formats match.
+ * Defense-in-depth against rename attacks (e.g. `.exe` → `.png`).
+ */
+async function sniffImageFormat(file: File): Promise<SupportedFormat | null> {
+  const head = new Uint8Array(await file.slice(0, 12).arrayBuffer());
+  if (head.length < 12) return null;
+
+  // PNG:  89 50 4E 47 0D 0A 1A 0A
+  if (head[0] === 0x89 && head[1] === 0x50 && head[2] === 0x4E && head[3] === 0x47 &&
+      head[4] === 0x0D && head[5] === 0x0A && head[6] === 0x1A && head[7] === 0x0A) {
+    return 'image/png';
+  }
+  // JPEG: FF D8 FF
+  if (head[0] === 0xFF && head[1] === 0xD8 && head[2] === 0xFF) {
+    return 'image/jpeg';
+  }
+  // WebP: "RIFF" <size> "WEBP"
+  if (head[0] === 0x52 && head[1] === 0x49 && head[2] === 0x46 && head[3] === 0x46 &&
+      head[8] === 0x57 && head[9] === 0x45 && head[10] === 0x42 && head[11] === 0x50) {
+    return 'image/webp';
+  }
+  return null;
+}
+
+/**
  * Load an image file to ImageData, downsampling if needed.
  */
 export async function loadImage(file: File): Promise<ImageLoadResult> {
@@ -23,6 +49,16 @@ export async function loadImage(file: File): Promise<ImageLoadResult> {
 
   if (file.size > MAX_FILE_SIZE) {
     throw new Error(`File too large: ${Math.round(file.size / 1024 / 1024)} MB. Maximum is ${Math.round(MAX_FILE_SIZE / 1024 / 1024)} MB.`);
+  }
+
+  // Magic-byte sniff: refuses renamed non-image files before the decoder
+  // gets a chance to crash cryptically on them.
+  const sniffed = await sniffImageFormat(file);
+  if (!sniffed) {
+    throw new Error('File is not a valid PNG, JPG, or WebP. It may be corrupted or renamed.');
+  }
+  if (sniffed !== file.type) {
+    throw new Error(`File content (${sniffed}) does not match its extension (${file.type}).`);
   }
 
   const bitmap = await createImageBitmap(file);
