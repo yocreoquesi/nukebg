@@ -1,0 +1,32 @@
+# Build output
+dist/
+coverage/
+.halo-check/
+test-results/
+playwright-report/
+
+# Deps & lockfiles
+node_modules/
+package-lock.json
+
+# Locked-format files maintained by hand or by a generator
+public/service-worker.js
+src/i18n/index.ts
+exploration/
+
+# Binary / non-source
+tests/fixtures/
+public/fonts/
+*.min.js
+*.woff
+*.woff2
+*.png
+*.jpg
+*.jpeg
+*.webp
+*.svg
+*.onnx
+
+# Vendor / generated
+.git/
+.github/workflows/*.yml

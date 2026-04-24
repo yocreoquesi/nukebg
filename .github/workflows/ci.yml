@@ -9,6 +9,29 @@ permissions:
   contents: read
 
 jobs:
+  lint:
+    name: Lint + format
+    runs-on: ubuntu-latest
+    # Non-blocking while the codebase migrates to the new formatter/linter
+    # — flips to false once the one-shot `npm run format` PR lands.
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: ESLint
+        run: npm run lint
+
+      - name: Prettier check
+        run: npm run format:check
+
   test:
     name: Typecheck + tests
     runs-on: ubuntu-latest
@@ -55,5 +78,39 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: playwright-trace
+          path: test-results/
+          retention-days: 7
+
+  e2e-webkit:
+    name: Playwright pipeline e2e (WebKit)
+    runs-on: ubuntu-latest
+    needs: test
+    # Non-blocking for now — the iOS Safari warmup hang documented in
+    # playwright.config.ts:9 still causes pipeline specs to skip on
+    # WebKit. Tracking that separately; this job is here to surface
+    # regressions in the non-ML WebKit specs (smoke etc).
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright WebKit
+        run: npx playwright install --with-deps webkit
+
+      - name: Run Playwright (WebKit)
+        run: npx playwright test --project=webkit
+
+      - name: Upload trace on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-trace-webkit
           path: test-results/
           retention-days: 7
