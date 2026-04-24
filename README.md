@@ -38,8 +38,10 @@ Drop. Nuke. Download. That's it.
 [+] WATERMARK REMOVAL            Auto-detects Gemini sparkle + DALL-E color bar watermarks.
                                   Telea FMM reconstruction -- no blurry patches.
 
-[+] 100% CLIENT-SIDE             Zero server uploads. Zero network requests during processing.
-                                  Verify it yourself in DevTools.
+[+] 100% CLIENT-SIDE             Zero server uploads. Your images NEVER leave your device.
+                                  First load fetches the ML model (HuggingFace) and the
+                                  ONNX runtime (jsDelivr) once, then cached — no pixels
+                                  go anywhere. Verify it yourself in DevTools.
 
 [+] OFFLINE MODE                 After first visit, app + model weights are cached.
                                   Process images without internet.
@@ -154,6 +156,13 @@ NO tracking.             No analytics. No telemetry.
 NO accounts.             No sign-up required.
 OFFLINE capable.         Works without internet after first visit.
 OPEN SOURCE.             Don't trust us -- verify.
+
+What actually goes over the network (first load only, then cached):
+  - briaai/RMBG-1.4 weights from huggingface.co
+  - onnxruntime-web WASM runtime from cdn.jsdelivr.net (needed for LaMa inpainting)
+  - opencv/inpainting_lama weights from huggingface.co (first watermark inpaint only)
+Open DevTools > Network while you process an image: the only requests
+you should see after the first warmup are the initial page load.
 ```
 
 ## > comparison
