@@ -972,6 +972,14 @@ export class ArEditorAdvanced extends HTMLElement {
 
       if (e.key === 'Escape') {
         e.preventDefault();
+        // Help panel closes first: keyboard users expect Escape to dismiss
+        // whatever transient overlay is visible before nuking their
+        // in-progress selection.
+        const helpPanel = this.shadowRoot?.getElementById('help-panel');
+        if (helpPanel && !helpPanel.classList.contains('hidden')) {
+          this.toggleHelp();
+          return;
+        }
         if (this.busy) {
           this.cancelAction();
           return;
