@@ -103,87 +103,71 @@ export class ArApp extends HTMLElement {
 
   /** Pre-load model + warmup as soon as page opens */
   private preloadModel(): void {
-    // The status line shows "loading..." while the model is fetching/
-    // warming, then `Ready to nuke` once preload resolves. Detailed
-    // percentage progress lives in the first-run explainer panel only,
-    // so the status slot stays terse.
+    // Status line: terse "loading..." while warming, "Ready to nuke"
+    // when done. Detailed % progress lives inside the dropzone slot —
+    // see ar-dropzone.setLoadingState() — so the status line never
+    // duplicates the percentage.
     const statusEl = () => this.shadowRoot?.querySelector('#status-model');
+    let firstRunSettled = false;
 
     this.pipeline = new PipelineOrchestrator(
       (_stage: PipelineStage, _status: StageStatus, message?: string) => {
-        // Forward % messages to the visual progress panel; status slot
-        // keeps a fixed "loading..." until ready.
-        this.updateFirstRunFromMessage(message);
+        if (firstRunSettled) return;
+        const m = message?.match(/(\d+)\s*%/);
+        if (!m) return;
+        const pct = Math.min(100, Math.max(0, parseInt(m[1], 10)));
+        this.dropzone.setLoadingState({ visible: true, pct, label: message });
       }
     );
 
     const el = statusEl();
     if (el) el.textContent = t('status.model.loading');
 
-    // Dropzone starts disabled until model is ready
+    // Dropzone is disabled while warming; the loading slot replaces
+    // its idle CTAs with a progress bar in the same vertical space so
+    // nothing reflows when the model finishes.
     this.dropzone.setEnabled(false);
 
-    // Cold-cache detection: if progress hasn't reached ready state
-    // within 400 ms, assume we're downloading weights and reveal the
-    // first-run explainer panel. Instant cache hits never show it.
-    this.firstRunRevealTimer = window.setTimeout(() => {
-      if (!this.firstRunSettled) this.setFirstRunVisible(true);
+    // Cold-cache detection: if we haven't settled within 400 ms,
+    // surface the in-dropzone progress panel. Instant cache hits never
+    // expose the panel.
+    const revealTimer = window.setTimeout(() => {
+      if (!firstRunSettled) this.dropzone.setLoadingState({ visible: true });
     }, 400);
 
+    const finish = (ready: boolean): void => {
+      firstRunSettled = true;
+      window.clearTimeout(revealTimer);
+      this.dropzone.setLoadingState({ visible: false, ready });
+    };
+
     this.pipeline.preloadModel(ArApp.MODEL_ID).then(() => {
-      this.settleFirstRun('ready');
+      finish(true);
       const s = statusEl();
       if (s) {
+        (s as HTMLElement).dataset.state = 'ready';
         s.textContent = t('hero.modelStatus');
         s.classList.add('ready');
       }
+      const r = this.shadowRoot?.querySelector('#status-reactor') as HTMLElement | null;
+      if (r) {
+        r.dataset.state = 'online';
+        r.textContent = t('status.reactor.online');
+      }
       this.dropzone.setEnabled(true);
     }).catch((err: unknown) => {
-      this.settleFirstRun('error');
+      finish(false);
       console.error('[NukeBG] Model preload failed, falling back to lazy load:', err);
       const s = statusEl();
-      if (s) s.textContent = t('status.model.lazy');
+      if (s) {
+        (s as HTMLElement).dataset.state = 'lazy';
+        s.textContent = t('status.model.lazy');
+      }
+      // Reactor stays "offline" — preload didn't resolve. The lazy-load
+      // path will flip it once the first real process() succeeds; until
+      // then the user sees an honest "reactor idle" state.
       this.dropzone.setEnabled(true);
     });
-  }
-
-  private firstRunRevealTimer: number | null = null;
-  private firstRunSettled = false;
-
-  private setFirstRunVisible(visible: boolean): void {
-    const panel = this.shadowRoot?.getElementById('first-run-panel') as HTMLElement | null;
-    if (panel) panel.hidden = !visible;
-  }
-
-  private updateFirstRunFromMessage(message?: string): void {
-    if (!message) return;
-    const m = message.match(/(\d+)\s*%/);
-    if (!m) return;
-    const pct = Math.min(100, Math.max(0, parseInt(m[1], 10)));
-    const bar = this.shadowRoot?.getElementById('first-run-bar');
-    const label = this.shadowRoot?.getElementById('first-run-label');
-    if (bar) (bar as HTMLElement).style.width = `${pct}%`;
-    if (label) label.textContent = message;
-  }
-
-  private settleFirstRun(state: 'ready' | 'error'): void {
-    this.firstRunSettled = true;
-    if (this.firstRunRevealTimer !== null) {
-      window.clearTimeout(this.firstRunRevealTimer);
-      this.firstRunRevealTimer = null;
-    }
-    const panel = this.shadowRoot?.getElementById('first-run-panel') as HTMLElement | null;
-    if (!panel) return;
-    if (state === 'error') {
-      panel.hidden = true;
-      return;
-    }
-    // On ready, fill the bar then fade out so the user sees completion.
-    const bar = this.shadowRoot?.getElementById('first-run-bar');
-    if (bar) (bar as HTMLElement).style.width = '100%';
-    const label = this.shadowRoot?.getElementById('first-run-label');
-    if (label) label.textContent = t('firstRun.ready');
-    window.setTimeout(() => { panel.hidden = true; }, 600);
   }
 
   disconnectedCallback(): void {
@@ -526,8 +510,42 @@ export class ArApp extends HTMLElement {
           color: var(--color-accent-primary, #00ff41);
           text-shadow: 0 0 4px var(--color-accent-glow, rgba(0, 255, 65, 0.35));
         }
+        /* While the reactor is still warming up, dim the dot + word so
+           the [STATUS] line tells the truth — green only after preload
+           resolves. */
+        .status-reactor[data-state="offline"] {
+          color: var(--color-text-tertiary, #00b34a);
+        }
+        .status-reactor[data-state="offline"] ~ .status-sep,
+        .status-line:has(.status-reactor[data-state="offline"]) .status-dot {
+          opacity: 0.55;
+        }
         .status-line .status-reactor {
           color: var(--color-accent-primary, #00ff41);
+        }
+        /* Honesty + Ko-fi pitch under the status line. Same monospace
+           voice, same tertiary tone as the limitations summary so they
+           don't fight the dropzone for attention. */
+        .hero-disclaimer,
+        .hero-support {
+          margin: 6px 0 0;
+          font-family: 'JetBrains Mono', monospace;
+          font-size: 12px;
+          line-height: 1.55;
+          color: var(--color-text-tertiary, #00b34a);
+        }
+        .hero-disclaimer s {
+          color: var(--color-text-tertiary, #00b34a);
+          opacity: 0.7;
+        }
+        .hero-disclaimer a,
+        .hero-support a {
+          color: var(--color-accent-primary, #00ff41);
+          text-decoration: none;
+        }
+        .hero-disclaimer a:hover,
+        .hero-support a:hover {
+          text-decoration: underline;
         }
         .status-line .status-model {
           color: var(--color-text-secondary, #00dd44);
@@ -761,51 +779,6 @@ export class ArApp extends HTMLElement {
           }
         }
 
-        /* First-run model download explainer (#78). */
-        .first-run-panel {
-          display: flex;
-          flex-direction: column;
-          gap: 8px;
-          margin: 0 0 14px;
-          padding: 12px;
-          border: 1px solid var(--color-surface-border, #1a3a1a);
-          background: var(--color-bg-primary, #000);
-          font-family: 'JetBrains Mono', monospace;
-        }
-        .first-run-panel[hidden] { display: none; }
-        .first-run-head {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          font-size: 12px;
-        }
-        .first-run-prompt { color: var(--color-text-tertiary, #00b34a); }
-        .first-run-action {
-          color: var(--color-accent-primary, #00ff41);
-          font-weight: 600;
-          letter-spacing: 0.04em;
-        }
-        .first-run-progress {
-          position: relative;
-          height: 3px;
-          background: var(--color-surface-border, #1a3a1a);
-          overflow: hidden;
-        }
-        .first-run-bar {
-          width: 0;
-          height: 100%;
-          background: var(--color-accent-primary, #00ff41);
-          box-shadow: 0 0 6px var(--color-accent-glow, rgba(0, 255, 65, 0.35));
-          transition: width 0.25s ease;
-        }
-        @media (prefers-reduced-motion: reduce) {
-          .first-run-bar { transition: none; }
-        }
-        .first-run-label {
-          font-size: 11px;
-          color: var(--color-text-tertiary, #00b34a);
-        }
-
         /* Command bar at workspace top (#71) */
         .command-bar {
           display: flex;
@@ -997,19 +970,6 @@ export class ArApp extends HTMLElement {
           <span class="subline-long">${t('hero.subtitle').replace(/\n/g, ' ')}</span>
           <span class="subline-short"># ${t('hero.subtitle.short')}</span>
         </p>
-        <!-- First-run model download explainer (#78). Hidden on cache
-             hit; revealed after 400 ms if the model is still loading. -->
-        <div class="first-run-panel" id="first-run-panel" role="status" aria-live="polite" hidden>
-          <div class="first-run-head">
-            <span class="first-run-prompt">$</span>
-            <span class="first-run-action">fetch --model RMBG-1.4</span>
-          </div>
-          <div class="first-run-progress" aria-hidden="true">
-            <div class="first-run-bar" id="first-run-bar"></div>
-          </div>
-          <div class="first-run-label" id="first-run-label"># streaming weights…</div>
-        </div>
-
         <ar-dropzone></ar-dropzone>
         <ar-batch-grid id="batch-grid" style="display:none"></ar-batch-grid>
 
@@ -1018,15 +978,22 @@ export class ArApp extends HTMLElement {
         <p class="status-line" id="status-line">
           <span class="status-tag">[STATUS]</span>
           <span class="status-dot">●</span>
-          <span class="status-reactor" id="status-reactor">${t('status.reactor.online')}</span>
+          <span class="status-reactor" id="status-reactor" data-state="offline">${t('status.reactor.offline')}</span>
           <span class="status-sep">|</span>
-          <span class="status-model" id="status-model">${t('status.model.cached')}</span>
+          <span class="status-model" id="status-model" data-state="loading">${t('status.model.loading')}</span>
           <span class="status-sep">|</span>
           <details class="status-details">
             <summary id="status-limits-summary"># ${t('status.limitations')}</summary>
             <div class="status-limits-body" id="status-limits-body">${t('features.limitations')}</div>
           </details>
         </p>
+
+        <!-- Honesty + support pitch — used to live next to the Reactor
+             segmented control. Brought back so the hero still tells the
+             user we're not perfect and points at Ko-fi without the
+             power-mode machinery. -->
+        <p class="hero-disclaimer" id="hero-disclaimer">${t('features.disclaimer')}</p>
+        <p class="hero-support" id="hero-support">${t('support.kofi')}</p>
 
         <button class="install-btn" id="install-btn" aria-label="${t('pwa.install')}">${isAppInstalled() ? t('pwa.installed') : t('pwa.install')}</button>
         <div class="install-guide" id="install-guide"></div>
@@ -1124,9 +1091,22 @@ export class ArApp extends HTMLElement {
       `<span class="subline-long">${t('hero.subtitle').replace(/\n/g, ' ')}</span>` +
       `<span class="subline-short"># ${t('hero.subtitle.short')}</span>`;
     const statusReactor = root.querySelector('#status-reactor');
-    if (statusReactor) statusReactor.textContent = t('status.reactor.online');
+    if (statusReactor) {
+      const state = (statusReactor as HTMLElement).dataset.state ?? 'offline';
+      statusReactor.textContent = t(state === 'online' ? 'status.reactor.online' : 'status.reactor.offline');
+    }
     const statusModel = root.querySelector('#status-model');
-    if (statusModel) statusModel.textContent = t('status.model.cached');
+    if (statusModel) {
+      const state = (statusModel as HTMLElement).dataset.state ?? 'loading';
+      const key = state === 'ready' ? 'hero.modelStatus'
+                : state === 'lazy' ? 'status.model.lazy'
+                : 'status.model.loading';
+      statusModel.textContent = t(key);
+    }
+    const heroDisclaimer = root.querySelector('#hero-disclaimer');
+    if (heroDisclaimer) heroDisclaimer.innerHTML = t('features.disclaimer');
+    const heroSupport = root.querySelector('#hero-support');
+    if (heroSupport) heroSupport.innerHTML = t('support.kofi');
     const statusLimSum = root.querySelector('#status-limits-summary');
     if (statusLimSum) statusLimSum.textContent = `# ${t('status.limitations')}`;
     const statusLimBody = root.querySelector('#status-limits-body');
