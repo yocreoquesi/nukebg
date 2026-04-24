@@ -48,10 +48,12 @@ describe('ar-editor — permanent shortcuts sidebar (#76-B)', () => {
     );
   });
 
-  it('.editor-body becomes a 2-col grid at ≥ 900 px', () => {
+  it('.editor-body becomes a multi-col grid at ≥ 900 px', () => {
     expect(ED).toMatch(/\.editor-body \{[\s\S]*?display: grid/);
+    // Sub-task A added a left rail so the grid is now 3-col
+    // (200 px rail | fluid canvas | 260 px sidebar) instead of 2-col.
     expect(ED).toMatch(
-      /@media \(min-width: 900px\) \{[\s\S]*?\.editor-body \{[\s\S]*?grid-template-columns: minmax\(0, 1fr\) 260px/,
+      /@media \(min-width: 900px\) \{[\s\S]*?\.editor-body \{[\s\S]*?grid-template-columns: 200px minmax\(0, 1fr\) 260px/,
     );
   });
 });
