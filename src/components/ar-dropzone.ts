@@ -25,43 +25,115 @@ export class ArDropzone extends HTMLElement {
           display: block;
           width: 100%;
         }
+        /* ASCII-framed dropzone per design #69.
+           Outer: accent-primary border + soft glow + inner stroke.
+           Inside: terminal prompt row, large centered drop target, bottom
+           meta row. The four corner glyphs sit absolute-positioned as
+           decoration — they don't affect layout. */
         .dropzone {
-          border: 1px solid var(--color-surface-border, #1a3a1a);
+          position: relative;
+          border: 1px solid var(--color-accent-primary, #00ff41);
           border-radius: 0;
           background: var(--color-bg-primary, #000);
-          padding: 2rem;
-          min-height: 200px;
+          padding: 28px 28px 20px;
+          min-height: 320px;
           max-width: 100%;
           margin: 0 auto;
           cursor: pointer;
           display: flex;
           flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          gap: 0.75rem;
-          transition: border-color 0.3s ease, background 0.3s ease, box-shadow 0.3s ease;
-          text-align: center;
+          gap: 0;
+          transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+          box-shadow:
+            0 0 14px rgba(var(--color-accent-rgb, 0, 255, 65), 0.08),
+            inset 0 0 0 4px #000,
+            inset 0 0 0 5px rgba(var(--color-accent-rgb, 0, 255, 65), 0.15);
         }
-        .dropzone::before {
-          content: 'nukebg@local:~$ ';
-          display: block;
+        .dz-corner {
+          position: absolute;
+          color: var(--color-accent-primary, #00ff41);
+          font-family: 'JetBrains Mono', monospace;
+          font-size: 16px;
+          line-height: 1;
+          text-shadow: 0 0 6px rgba(var(--color-accent-rgb, 0, 255, 65), 0.5);
+          pointer-events: none;
+        }
+        .dz-corner.tl { top: 6px; left: 8px; }
+        .dz-corner.tr { top: 6px; right: 8px; }
+        .dz-corner.bl { bottom: 6px; left: 8px; }
+        .dz-corner.br { bottom: 6px; right: 8px; }
+        .dz-prompt {
           color: var(--color-text-tertiary, #00b34a);
           font-family: 'JetBrains Mono', monospace;
           font-size: 12px;
-          margin-bottom: 8px;
-          text-align: left;
-          width: 100%;
+        }
+        .dz-prompt .cmd {
+          color: var(--color-text-secondary, #00dd44);
+        }
+        .dz-center {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          gap: 10px;
+          text-align: center;
+        }
+        .dz-glyph {
+          color: var(--color-accent-primary, #00ff41);
+          font-family: 'JetBrains Mono', monospace;
+          font-size: 12px;
+          letter-spacing: 0.2em;
+          border: 1px solid var(--color-surface-border, #1a3a1a);
+          padding: 4px 10px;
+          transition: border-color 0.2s ease, color 0.2s ease;
+        }
+        .dropzone:hover .dz-glyph,
+        .dropzone.dragover .dz-glyph {
+          border-color: var(--color-accent-primary, #00ff41);
+          text-shadow: 0 0 6px rgba(var(--color-accent-rgb, 0, 255, 65), 0.5);
+        }
+        .dz-title {
+          color: var(--color-accent-primary, #00ff41);
+          font-family: 'JetBrains Mono', monospace;
+          font-size: 22px;
+          font-weight: 700;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+          text-shadow: 0 0 10px rgba(var(--color-accent-rgb, 0, 255, 65), 0.35);
+        }
+        .dz-hint {
+          color: var(--color-text-secondary, #00dd44);
+          font-family: 'JetBrains Mono', monospace;
+          font-size: 13px;
+        }
+        .dz-foot {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding-top: 10px;
+          margin-top: 14px;
+          border-top: 1px dashed var(--color-surface-border, #1a3a1a);
+          color: var(--color-text-tertiary, #00b34a);
+          font-family: 'JetBrains Mono', monospace;
+          font-size: 11px;
+        }
+        .dz-foot .hint-multi::before {
+          content: '[*] ';
+          color: var(--color-accent-primary, #00ff41);
         }
         .dropzone:hover {
-          border-color: var(--color-accent-primary, #00ff41);
-          background: rgba(var(--color-accent-rgb, 0, 255, 65), 0.02);
-          box-shadow: 0 0 10px rgba(var(--color-accent-rgb, 0, 255, 65), 0.1);
+          box-shadow:
+            0 0 18px rgba(var(--color-accent-rgb, 0, 255, 65), 0.14),
+            inset 0 0 0 4px #000,
+            inset 0 0 0 5px rgba(var(--color-accent-rgb, 0, 255, 65), 0.25);
         }
         .dropzone.dragover {
-          border-color: var(--color-accent-primary, #00ff41);
-          border-style: solid;
           background: rgba(var(--color-accent-rgb, 0, 255, 65), 0.04);
-          box-shadow: 0 0 15px rgba(var(--color-accent-rgb, 0, 255, 65), 0.15);
+          box-shadow:
+            0 0 22px rgba(var(--color-accent-rgb, 0, 255, 65), 0.22),
+            inset 0 0 0 4px #000,
+            inset 0 0 0 5px rgba(var(--color-accent-rgb, 0, 255, 65), 0.35);
         }
         .dropzone.error {
           animation: shake 0.3s;
@@ -72,49 +144,17 @@ export class ArDropzone extends HTMLElement {
           50% { transform: translateX(6px); }
           75% { transform: translateX(-6px); }
         }
-        .icon {
-          font-size: 24px;
-          color: var(--color-text-tertiary, #00b34a);
-          line-height: 1;
-          transition: color 0.3s ease, filter 0.3s ease;
-        }
-        .dropzone:hover .icon {
-          color: var(--color-accent-primary, #00ff41);
-          filter: drop-shadow(0 0 6px rgba(var(--color-accent-rgb, 0, 255, 65), 0.5));
-        }
-        .main-text {
-          font-family: 'JetBrains Mono', monospace;
-          font-size: var(--text-sm, 0.875rem);
-          font-weight: var(--font-medium, 500);
-          color: var(--color-accent-primary, #00ff41);
-        }
-        .main-text::before {
-          content: '> ';
-          color: var(--color-text-tertiary, #00b34a);
-        }
-        .sub-text {
-          font-family: 'JetBrains Mono', monospace;
-          font-size: 12px;
-          color: var(--color-text-secondary, #00dd44);
-        }
-        .hint {
-          font-family: 'JetBrains Mono', monospace;
-          font-size: 12px;
-          color: var(--color-text-tertiary, #00b34a);
-        }
-        .hint-multi {
-          color: var(--color-text-secondary, #00dd44);
-          margin-top: 4px;
-        }
-        .hint-multi::before {
-          content: '[*] ';
-          color: var(--color-accent-primary, #00ff41);
-        }
         .dragover-text {
           display: none;
         }
         .dropzone.dragover .idle-content { display: none; }
-        .dropzone.dragover .dragover-text { display: block; }
+        .dropzone.dragover .dragover-text {
+          display: flex;
+          flex: 1;
+          align-items: center;
+          justify-content: center;
+        }
+        .dropzone.dragover .dragover-text .dz-title { font-size: 24px; }
         input[type="file"] { display: none; }
         .dropzone.dropzone-disabled {
           opacity: 0.4;
@@ -123,69 +163,66 @@ export class ArDropzone extends HTMLElement {
         :host(:focus-visible) .dropzone,
         .dropzone:focus-visible {
           outline: none;
-          box-shadow: 0 0 10px var(--color-accent-glow, rgba(0, 255, 65, 0.25)),
-                      0 0 0 2px var(--color-accent-primary, #00ff41);
+          box-shadow:
+            0 0 10px var(--color-accent-glow, rgba(0, 255, 65, 0.25)),
+            0 0 0 2px var(--color-accent-primary, #00ff41),
+            inset 0 0 0 4px #000,
+            inset 0 0 0 5px rgba(var(--color-accent-rgb, 0, 255, 65), 0.25);
         }
         /* === Mobile (max-width: 480px) === */
         @media (max-width: 480px) {
           .dropzone {
-            padding: 1.25rem 1rem;
-            min-height: 150px;
-            gap: 0.5rem;
+            padding: 18px 14px 14px;
+            min-height: 44vh;
           }
-          .dropzone::before {
-            font-size: 12px;
-            margin-bottom: 4px;
-          }
-          .icon {
-            font-size: 20px;
-          }
-          .main-text {
-            font-size: var(--text-xs, 0.75rem);
-          }
-          .sub-text {
-            font-size: 12px;
-          }
-          .hint {
-            font-size: 12px;
-          }
+          .dz-corner { font-size: 14px; top: 4px; bottom: 4px; left: 6px; right: 6px; }
+          .dz-corner.tl { top: 4px; left: 6px; bottom: auto; right: auto; }
+          .dz-corner.tr { top: 4px; right: 6px; bottom: auto; left: auto; }
+          .dz-corner.bl { bottom: 4px; left: 6px; top: auto; right: auto; }
+          .dz-corner.br { bottom: 4px; right: 6px; top: auto; left: auto; }
+          .dz-title { font-size: 16px; }
+          .dz-hint { font-size: 11px; }
+          .dz-foot { font-size: 10px; flex-direction: column; gap: 4px; align-items: stretch; }
+          .dz-foot span:last-child { text-align: right; }
         }
 
         /* === Tablet (481px - 768px) === */
         @media (min-width: 481px) and (max-width: 768px) {
           .dropzone {
-            padding: 1.5rem;
-            min-height: 170px;
+            padding: 22px 20px 16px;
+            min-height: 280px;
           }
-          .main-text {
-            font-size: var(--text-sm, 0.875rem);
-          }
+          .dz-title { font-size: 18px; }
         }
 
         /* === Touch targets === */
         @media (pointer: coarse) {
-          .dropzone {
-            min-height: 150px;
-          }
+          .dz-glyph { padding: 8px 14px; font-size: 13px; }
         }
 
         @media (prefers-reduced-motion: reduce) {
-          .dropzone { animation: none !important; }
+          .dropzone { animation: none !important; transition: none !important; }
           .dropzone.dragover { animation: none !important; }
         }
       </style>
       <div class="dropzone" role="button" tabindex="0"
            aria-label="${t('dropzone.ariaLabel')}">
-        <div class="idle-content">
-          <div class="icon">&#9729;</div>
-          <div class="main-text" id="dz-title">${t('dropzone.title')}</div>
-          <div class="sub-text" id="dz-subtitle">${t('dropzone.subtitle')}</div>
-          <div class="hint" id="dz-formats">${t('dropzone.formats')}</div>
-          <div class="hint" id="dz-clipboard">${t('dropzone.clipboard')}</div>
-          <div class="hint hint-multi" id="dz-multi">${t('dropzone.multi')}</div>
+        <span class="dz-corner tl" aria-hidden="true">&#9484;</span>
+        <span class="dz-corner tr" aria-hidden="true">&#9488;</span>
+        <span class="dz-corner bl" aria-hidden="true">&#9492;</span>
+        <span class="dz-corner br" aria-hidden="true">&#9496;</span>
+        <div class="dz-prompt">nukebg@local:~$ <span class="cmd">drop --image</span></div>
+        <div class="idle-content dz-center">
+          <div class="dz-glyph" aria-hidden="true">[ &#8595; ]</div>
+          <div class="dz-title" id="dz-title">${t('dropzone.title')}</div>
+          <div class="dz-hint" id="dz-hint">${t('dropzone.hint')}</div>
         </div>
         <div class="dragover-text">
-          <div class="main-text" id="dz-dragover">${t('dropzone.dragover')}</div>
+          <div class="dz-title" id="dz-dragover">${t('dropzone.dragover')}</div>
+        </div>
+        <div class="dz-foot">
+          <span id="dz-formats">${t('dropzone.formats')}</span>
+          <span class="hint-multi" id="dz-multi">${t('dropzone.multi')}</span>
         </div>
       </div>
       <input type="file" accept="image/png,image/jpeg,image/webp" multiple />
@@ -199,12 +236,10 @@ export class ArDropzone extends HTMLElement {
     const root = this.shadowRoot!;
     const title = root.querySelector('#dz-title');
     if (title) title.textContent = t('dropzone.title');
-    const subtitle = root.querySelector('#dz-subtitle');
-    if (subtitle) subtitle.textContent = t('dropzone.subtitle');
+    const hint = root.querySelector('#dz-hint');
+    if (hint) hint.textContent = t('dropzone.hint');
     const formats = root.querySelector('#dz-formats');
     if (formats) formats.textContent = t('dropzone.formats');
-    const clipboard = root.querySelector('#dz-clipboard');
-    if (clipboard) clipboard.textContent = t('dropzone.clipboard');
     const multi = root.querySelector('#dz-multi');
     if (multi) multi.textContent = t('dropzone.multi');
     const dragover = root.querySelector('#dz-dragover');

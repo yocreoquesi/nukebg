@@ -67,7 +67,10 @@ export class ArApp extends HTMLElement {
 
   /** Pre-load model + warmup as soon as page opens */
   private preloadModel(): void {
-    const statusEl = () => this.shadowRoot?.querySelector('#model-status');
+    // During first-load warmup we repurpose the consolidated status line
+    // to show "Loading AI model..." progress. After ready, updateTexts()
+    // restores the default `status.model.cached` copy.
+    const statusEl = () => this.shadowRoot?.querySelector('#status-model');
 
     this.pipeline = new PipelineOrchestrator(
       (_stage: PipelineStage, _status: StageStatus, message?: string) => {
@@ -470,6 +473,7 @@ export class ArApp extends HTMLElement {
         .reactor-support.visible {
           display: block;
         }
+        /* Legacy column-scoped marquee (still used inside .workspace). */
         .precision-marquee {
           display: block;
           overflow: hidden;
@@ -488,6 +492,94 @@ export class ArApp extends HTMLElement {
         .precision-marquee span {
           display: inline-block;
           animation: marquee-scroll 20s linear infinite;
+        }
+        /* Full-bleed marquee for the landing — sibling to <section class=hero>.
+           Gradient mask fades text at both edges so it never clips mid-word. */
+        .marquee-bleed {
+          display: block;
+          width: 100%;
+          overflow: hidden;
+          white-space: nowrap;
+          font-family: 'JetBrains Mono', monospace;
+          font-size: 12px;
+          font-weight: 700;
+          letter-spacing: 0.15em;
+          text-transform: uppercase;
+          padding: 6px 0;
+          min-height: 28px;
+          color: var(--color-text-tertiary, #00b34a);
+          border-bottom: 1px solid var(--color-surface-border, #1a3a1a);
+          -webkit-mask-image: linear-gradient(90deg, transparent, #000 48px, #000 calc(100% - 48px), transparent);
+                  mask-image: linear-gradient(90deg, transparent, #000 48px, #000 calc(100% - 48px), transparent);
+        }
+        .marquee-bleed span {
+          display: inline-block;
+          animation: marquee-scroll 26s linear infinite;
+        }
+        /* Consolidated [STATUS] line */
+        .status-line {
+          display: flex;
+          flex-wrap: wrap;
+          align-items: center;
+          gap: 6px;
+          font-family: 'JetBrains Mono', monospace;
+          font-size: 12px;
+          color: var(--color-text-tertiary, #00b34a);
+          margin: 12px 0 0;
+          padding: 0;
+        }
+        .status-line .status-tag {
+          color: var(--color-text-tertiary, #00b34a);
+        }
+        .status-line .status-dot {
+          color: var(--color-accent-primary, #00ff41);
+          text-shadow: 0 0 4px var(--color-accent-glow, rgba(0, 255, 65, 0.35));
+        }
+        .status-line .status-reactor {
+          color: var(--color-accent-primary, #00ff41);
+        }
+        .status-line .status-model {
+          color: var(--color-text-secondary, #00dd44);
+        }
+        .status-line .status-sep {
+          color: var(--color-surface-border, #1a3a1a);
+        }
+        .status-details {
+          display: inline;
+        }
+        .status-details summary {
+          list-style: none;
+          cursor: pointer;
+          color: var(--color-text-tertiary, #00b34a);
+          text-decoration: underline;
+          text-decoration-style: dotted;
+          display: inline;
+          padding: 2px 0;
+          min-height: 24px;
+        }
+        .status-details summary::-webkit-details-marker { display: none; }
+        .status-details summary:hover,
+        .status-details summary:focus-visible {
+          color: var(--color-text-secondary, #00dd44);
+          outline: none;
+        }
+        .status-details[open] summary {
+          color: var(--color-text-secondary, #00dd44);
+        }
+        .status-limits-body {
+          display: block;
+          margin-top: 6px;
+          color: var(--color-text-tertiary, #00b34a);
+          font-size: 12px;
+          line-height: 1.55;
+          border-left: 1px solid var(--color-surface-border, #1a3a1a);
+          padding-left: 10px;
+        }
+        .status-limits-body a {
+          color: var(--color-accent-primary, #00ff41);
+        }
+        @media (pointer: coarse) {
+          .status-details summary { min-height: 44px; padding: 10px 0; }
         }
         @keyframes marquee-scroll {
           0% { transform: translateX(100%); }
@@ -826,20 +918,36 @@ export class ArApp extends HTMLElement {
         }
       </style>
 
+      <!-- Full-bleed marquee outside the main column per design #69.
+           Gradient mask fades text in/out at the edges so it never
+           clips mid-word the way the old column-scoped marquee did. -->
+      <div class="marquee-bleed" id="precision-marquee-bleed"><span>☢ NUKEBG | DROP. NUKE. DOWNLOAD. | Your images never leave your device | nukebg.app ☢ NUKEBG | DROP. NUKE. DOWNLOAD. | Your images never leave your device | nukebg.app ☢</span></div>
+
       <section class="hero" id="hero">
         <h1><span class="accent">${t('hero.title.accent')}</span> ${t('hero.title.rest')}</h1>
         <p class="subline">
           ${t('hero.subtitle').replace(/\n/g, ' ')}
         </p>
-        <div class="hero-controls">
-          ${this.renderReactorSegmented('hero')}
-        </div>
         <ar-dropzone></ar-dropzone>
         <ar-batch-grid id="batch-grid" style="display:none"></ar-batch-grid>
-        <p class="model-status" id="model-status">${t('hero.modelStatus')}</p>
+
+        <!-- Consolidated status line replaces model-status + reactor-support
+             + features-disclaimer; the honesty copy lives in <details>. -->
+        <p class="status-line" id="status-line">
+          <span class="status-tag">[STATUS]</span>
+          <span class="status-dot">●</span>
+          <span class="status-reactor" id="status-reactor">${t('status.reactor.online')}</span>
+          <span class="status-sep">|</span>
+          <span class="status-model" id="status-model">${t('status.model.cached')}</span>
+          <span class="status-sep">|</span>
+          <details class="status-details">
+            <summary id="status-limits-summary"># ${t('status.limitations')}</summary>
+            <div class="status-limits-body" id="status-limits-body">${t('features.limitations')}</div>
+          </details>
+        </p>
+
         <button class="install-btn" id="install-btn" aria-label="${t('pwa.install')}">${isAppInstalled() ? t('pwa.installed') : t('pwa.install')}</button>
         <div class="install-guide" id="install-guide"></div>
-        <div class="precision-marquee" id="precision-marquee"><span>☢ NUKEBG | DROP. NUKE. DOWNLOAD. | Your images never leave your device | nukebg.app ☢ NUKEBG | DROP. NUKE. DOWNLOAD. | Your images never leave your device | nukebg.app ☢</span></div>
         <div class="smoke-effect" id="smoke-effect"></div>
       </section>
 
@@ -866,12 +974,6 @@ export class ArApp extends HTMLElement {
           <ar-editor-advanced id="editor-advanced"></ar-editor-advanced>
           </div>
         </div>
-      </section>
-
-      <section class="features" aria-label="Key features">
-        <p class="features-disclaimer" id="features-disclaimer">${t('features.disclaimer')}</p>
-        <div class="limitations-detail" id="limitations-detail">${t('features.limitations')}</div>
-        <p class="reactor-support visible" id="reactor-support">${t('reactor.normal')}</p>
       </section>
 
       <div
@@ -912,14 +1014,16 @@ export class ArApp extends HTMLElement {
     if (h1) h1.innerHTML = `<span class="accent">${t('hero.title.accent')}</span> ${t('hero.title.rest')}`;
     const subline = root.querySelector('.subline');
     if (subline) subline.textContent = t('hero.subtitle').replace(/\n/g, ' ');
-    const modelStatus = root.querySelector('#model-status');
-    if (modelStatus) modelStatus.textContent = t('hero.modelStatus');
+    const statusReactor = root.querySelector('#status-reactor');
+    if (statusReactor) statusReactor.textContent = t('status.reactor.online');
+    const statusModel = root.querySelector('#status-model');
+    if (statusModel) statusModel.textContent = t('status.model.cached');
+    const statusLimSum = root.querySelector('#status-limits-summary');
+    if (statusLimSum) statusLimSum.textContent = `# ${t('status.limitations')}`;
+    const statusLimBody = root.querySelector('#status-limits-body');
+    if (statusLimBody) statusLimBody.innerHTML = t('features.limitations');
     const editBtn = root.querySelector('#edit-btn');
     if (editBtn) editBtn.textContent = this.preEditResult ? t('edit.discard') : t('edit.btn');
-    const disclaimer = root.querySelector('#features-disclaimer');
-    if (disclaimer) disclaimer.innerHTML = t('features.disclaimer');
-    const limDetail = root.querySelector('#limitations-detail');
-    if (limDetail) limDetail.innerHTML = t('features.limitations');
     const installBtnEl = root.querySelector('#install-btn') as HTMLButtonElement;
     if (installBtnEl) {
       installBtnEl.textContent = isAppInstalled() ? t('pwa.installed') : t('pwa.install');
@@ -1169,10 +1273,8 @@ export class ArApp extends HTMLElement {
     });
 
     // Disclaimer click - toggle limitations detail
-    this.shadowRoot!.querySelector('#features-disclaimer')?.addEventListener('click', () => {
-      const detail = this.shadowRoot!.querySelector('#limitations-detail');
-      if (detail) detail.classList.toggle('visible');
-    }, { signal });
+    // Limitations now live inside <details id="status-limits"> — native
+    // disclosure widget handles open/close. No click wiring needed.
 
     // Edit button - opens editor or discards edits
     this.shadowRoot!.querySelector('#edit-btn')?.addEventListener('click', async () => {
@@ -1307,7 +1409,7 @@ export class ArApp extends HTMLElement {
    * out of the original `#precision-slider` input handler.
    */
   private applyPrecisionSideEffects(val: number): void {
-    const marquee = this.shadowRoot!.querySelector('#precision-marquee') as HTMLElement;
+    const marquee = this.shadowRoot!.querySelector('#precision-marquee-bleed') as HTMLElement;
     const marqueeWs = this.shadowRoot!.querySelector('#precision-marquee-ws') as HTMLElement;
     const smoke = document.getElementById('smoke-overlay');
     const reactorSupport = this.shadowRoot!.querySelector('#reactor-support') as HTMLElement;

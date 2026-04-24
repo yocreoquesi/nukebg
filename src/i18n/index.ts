@@ -17,6 +17,7 @@ const translations: Translations = {
     // Dropzone
     'dropzone.title': 'Drop your image here',
     'dropzone.subtitle': "or click to browse. We'll nuke the background",
+    'dropzone.hint': '# or click to browse · paste with Ctrl+V',
     'dropzone.formats': 'PNG, JPG, WebP up to 100 MP / 80 MB',
     'dropzone.clipboard': 'Ctrl+V to paste from clipboard',
     'dropzone.dragover': 'Drop to process',
@@ -169,6 +170,9 @@ const translations: Translations = {
     'reactor.segment.high': 'HIGH',
     'reactor.segment.fullNuke': 'FULL NUKE',
     'reactor.segment.groupLabel': 'Reactor power',
+    'status.reactor.online': 'reactor online',
+    'status.model.cached': 'RMBG-1.4 cached locally',
+    'status.limitations': 'known limitations',
     'reactor.highPower': 'High power burns more fuel. <a href="https://ko-fi.com/yocreoquesi" target="_blank" rel="noopener">Recharge on Ko-fi</a>.',
     'reactor.fullNuke': 'FULL NUKE MODE drains the core. <a href="https://ko-fi.com/yocreoquesi" target="_blank" rel="noopener">Prevent meltdown on Ko-fi</a>.',
 
@@ -222,6 +226,7 @@ const translations: Translations = {
     // Dropzone
     'dropzone.title': 'Arrastra tu imagen aqu\u00ED',
     'dropzone.subtitle': 'o haz clic para buscar. Nukearemos el fondo',
+    'dropzone.hint': '# o clic para buscar · pega con Ctrl+V',
     'dropzone.formats': 'PNG, JPG, WebP hasta 100 MP / 80 MB',
     'dropzone.clipboard': 'Ctrl+V para pegar del portapapeles',
     'dropzone.dragover': 'Suelta para procesar',
@@ -374,6 +379,9 @@ const translations: Translations = {
     'reactor.segment.high': 'ALTO',
     'reactor.segment.fullNuke': 'FULL NUKE',
     'reactor.segment.groupLabel': 'Potencia del reactor',
+    'status.reactor.online': 'reactor en línea',
+    'status.model.cached': 'RMBG-1.4 cacheado localmente',
+    'status.limitations': 'limitaciones conocidas',
     'reactor.highPower': 'Alta potencia consume m\u00E1s combustible. <a href="https://ko-fi.com/yocreoquesi" target="_blank" rel="noopener">Recarga en Ko-fi</a>.',
     'reactor.fullNuke': 'MODO NUKE TOTAL agota el n\u00FAcleo. <a href="https://ko-fi.com/yocreoquesi" target="_blank" rel="noopener">Evita el colapso en Ko-fi</a>.',
 
@@ -427,6 +435,7 @@ const translations: Translations = {
     // Dropzone
     'dropzone.title': 'D\u00E9pose ton image ici',
     'dropzone.subtitle': 'ou clique pour parcourir. On atomise le fond',
+    'dropzone.hint': '# ou cliquez pour parcourir · collez avec Ctrl+V',
     'dropzone.formats': 'PNG, JPG, WebP jusqu\u2019\u00E0 100 MP / 80 Mo',
     'dropzone.clipboard': 'Ctrl+V pour coller depuis le presse-papiers',
     'dropzone.dragover': 'L\u00E2che pour traiter',
@@ -579,6 +588,9 @@ const translations: Translations = {
     'reactor.segment.high': 'HAUT',
     'reactor.segment.fullNuke': 'FULL NUKE',
     'reactor.segment.groupLabel': 'Puissance du r\u00E9acteur',
+    'status.reactor.online': 'r\u00E9acteur en ligne',
+    'status.model.cached': 'RMBG-1.4 en cache local',
+    'status.limitations': 'limitations connues',
     'reactor.highPower': 'Haute puissance br\u00FBle plus de combustible. <a href="https://ko-fi.com/yocreoquesi" target="_blank" rel="noopener">Recharge sur Ko-fi</a>.',
     'reactor.fullNuke': 'MODE NUKE TOTAL \u00E9puise le c\u0153ur. <a href="https://ko-fi.com/yocreoquesi" target="_blank" rel="noopener">\u00C9vite l\u2019effondrement sur Ko-fi</a>.',
 
@@ -632,6 +644,7 @@ const translations: Translations = {
     // Dropzone
     'dropzone.title': 'Bild hier ablegen',
     'dropzone.subtitle': 'oder klicken zum Ausw\u00E4hlen. Wir nuken den Hintergrund',
+    'dropzone.hint': '# oder klicken · Strg+V zum Einf\u00FCgen',
     'dropzone.formats': 'PNG, JPG, WebP bis 100 MP / 80 MB',
     'dropzone.clipboard': 'Strg+V zum Einf\u00FCgen aus Zwischenablage',
     'dropzone.dragover': 'Loslassen zum Verarbeiten',
@@ -784,6 +797,9 @@ const translations: Translations = {
     'reactor.segment.high': 'HOCH',
     'reactor.segment.fullNuke': 'FULL NUKE',
     'reactor.segment.groupLabel': 'Reaktorleistung',
+    'status.reactor.online': 'Reaktor online',
+    'status.model.cached': 'RMBG-1.4 lokal zwischengespeichert',
+    'status.limitations': 'bekannte Einschr\u00E4nkungen',
     'reactor.highPower': 'Hohe Leistung verbrennt mehr Treibstoff. <a href="https://ko-fi.com/yocreoquesi" target="_blank" rel="noopener">Nachtanken auf Ko-fi</a>.',
     'reactor.fullNuke': 'VOLLER NUKE-MODUS ersch\u00F6pft den Kern. <a href="https://ko-fi.com/yocreoquesi" target="_blank" rel="noopener">Kernschmelze verhindern auf Ko-fi</a>.',
 
@@ -837,6 +853,7 @@ const translations: Translations = {
     // Dropzone
     'dropzone.title': 'Solta a imagem aqui',
     'dropzone.subtitle': 'ou clica pra escolher. A gente nukeia o fundo',
+    'dropzone.hint': '# ou clique pra escolher · cole com Ctrl+V',
     'dropzone.formats': 'PNG, JPG, WebP at\u00E9 100 MP / 80 MB',
     'dropzone.clipboard': 'Ctrl+V pra colar da \u00E1rea de transfer\u00EAncia',
     'dropzone.dragover': 'Solta pra processar',
@@ -989,6 +1006,9 @@ const translations: Translations = {
     'reactor.segment.high': 'ALTO',
     'reactor.segment.fullNuke': 'FULL NUKE',
     'reactor.segment.groupLabel': 'Pot\u00EAncia do reator',
+    'status.reactor.online': 'reator online',
+    'status.model.cached': 'RMBG-1.4 em cache local',
+    'status.limitations': 'limita\u00E7\u00F5es conhecidas',
     'reactor.highPower': 'Alta pot\u00EAncia queima mais combust\u00EDvel. <a href="https://ko-fi.com/yocreoquesi" target="_blank" rel="noopener">Recarrega no Ko-fi</a>.',
     'reactor.fullNuke': 'MODO NUKE TOTAL esgota o n\u00FAcleo. <a href="https://ko-fi.com/yocreoquesi" target="_blank" rel="noopener">Evita o colapso no Ko-fi</a>.',
 
@@ -1042,6 +1062,7 @@ const translations: Translations = {
     // Dropzone
     'dropzone.title': '\u628A\u56FE\u7247\u4E22\u8FD9\u91CC',
     'dropzone.subtitle': '\u6216\u8005\u70B9\u51FB\u9009\u62E9\uFF0C\u6211\u4EEC\u6765\u6838\u7206\u80CC\u666F',
+    'dropzone.hint': '# \u70B9\u51FB\u9009\u62E9 · Ctrl+V \u7C98\u8D34',
     'dropzone.formats': 'PNG, JPG, WebP \u6700\u5927 100 MP / 80 MB',
     'dropzone.clipboard': 'Ctrl+V \u4ECE\u526A\u8D34\u677F\u7C98\u8D34',
     'dropzone.dragover': '\u677E\u624B\u5F00\u59CB\u5904\u7406',
@@ -1194,6 +1215,9 @@ const translations: Translations = {
     'reactor.segment.high': '\u9AD8\u529F\u7387',
     'reactor.segment.fullNuke': 'FULL NUKE',
     'reactor.segment.groupLabel': '\u53CD\u5E94\u5806\u529F\u7387',
+    'status.reactor.online': '\u53CD\u5E94\u5806\u5728\u7EBF',
+    'status.model.cached': 'RMBG-1.4 \u672C\u5730\u7F13\u5B58',
+    'status.limitations': '\u5DF2\u77E5\u9650\u5236',
     'reactor.highPower': '\u9AD8\u529F\u7387\u71C3\u70E7\u66F4\u591A\u71C3\u6599\u3002<a href="https://ko-fi.com/yocreoquesi" target="_blank" rel="noopener">\u5728 Ko-fi \u4E0A\u5145\u7535</a>\u3002',
     'reactor.fullNuke': '\u5168\u529B\u6838\u7206\u6A21\u5F0F\u8017\u5C3D\u5806\u82AF\u3002<a href="https://ko-fi.com/yocreoquesi" target="_blank" rel="noopener">\u5728 Ko-fi \u4E0A\u963B\u6B62\u5D29\u6E83</a>\u3002',
 
