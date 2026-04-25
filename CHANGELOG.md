@@ -10,7 +10,21 @@ Unreleased entries accumulate on the `dev` branch. When we cut a release we copy
 
 ## [Unreleased]
 
+## [2.8.0] — 2026-04-25
+
 ### Added
+- **Theme picker grew to six palettes** — original four (terminal-green / amber
+  / cyan / magenta) plus **red** (`#ff3344`) and **yellow** (`#ffee00`). Each
+  swatch now glows its own colour on hover/focus while the active-state ring
+  stays on the global accent token for consistency with the rest of the app.
+  ([#119](https://github.com/yocreoquesi/nukebg/pull/119))
+- **Reprocess button in the advanced editor** — re-runs RMBG-1.4 on whatever
+  the canvas currently shows. Erased regions are composited onto pure white
+  before being fed to the model so they're treated as background, letting the
+  user delete unwanted objects manually and re-segment the rest. Result is
+  piped through the same `refineEdges` cleanup the main pipeline uses
+  (sharpen + topology cleanup) so weak shadow detections don't survive.
+  ([#120](https://github.com/yocreoquesi/nukebg/pull/120))
 - **Theme switcher in the footer** — four palettes (terminal-green / amber /
   cyan / magenta) via `:root[data-theme="X"]` overrides. WAI-ARIA radiogroup
   with keyboard nav; persisted in `localStorage["nukebg:theme"]`.
@@ -73,6 +87,42 @@ Unreleased entries accumulate on the `dev` branch. When we cut a release we copy
 - **Cancel button in `ar-progress`** ([#63](https://github.com/yocreoquesi/nukebg/pull/63)).
 
 ### Changed
+- **Manual editor edits survive Apply** — both basic and advanced editors now
+  pass `skipTopologyCleanup: true` to `refineEdges`. Previously the
+  `keepLargestComponent` pass discarded any user edit (lasso crop, restore)
+  that wasn't connected to the largest blob — visible as "the lasso reverted
+  to the pipeline's silhouette" on Apply.
+  ([#119](https://github.com/yocreoquesi/nukebg/pull/119))
+- **Command bar updates across batch navigation** — when navigating processed
+  items in a batch, the cmd bar (`$ nukea filename ● state`) now syncs to
+  each item's filename + state instead of staying frozen on the first one.
+  ([#119](https://github.com/yocreoquesi/nukebg/pull/119))
+- **Cmd bar "ready" state renamed to nukeada / nuked** across en/es/fr/pt
+  to peg with the `$ nukea` verb that prefixes every command. de stays
+  `fertig`, zh stays as-is.
+  ([#119](https://github.com/yocreoquesi/nukebg/pull/119))
+- **Download buttons simplified** — each CTA now shows just `# {file size}`.
+  Resolution moved out (already shown above the image) and the `alpha` /
+  `alfa` indicator dropped. Clearer side-by-side comparison of PNG vs WebP.
+  ([#119](https://github.com/yocreoquesi/nukebg/pull/119))
+- **Advanced editor brush/eraser cursor** is now 2 px wide (was 1 px hairline)
+  and follows the active theme — eraser is no longer hardcoded red. The two
+  tools are differentiated by stroke pattern (brush solid, eraser dashed)
+  instead of colour, so every theme stays coherent.
+  ([#120](https://github.com/yocreoquesi/nukebg/pull/120))
+- **Lasso anchor handles removed** — the dots on each simplified vertex were
+  visual noise. Polygon outline stays at the same 2 px stroke for consistency
+  with the cursor circle.
+  ([#120](https://github.com/yocreoquesi/nukebg/pull/120))
+- **Brush size slider lives in the primary toolbar row** — moved out of the
+  contextual row so switching to lasso no longer collapses the row and shifts
+  the canvas up. Slider stays mounted always, fades to 40 % opacity +
+  pointer-events disabled when lasso is active.
+  ([#120](https://github.com/yocreoquesi/nukebg/pull/120))
+- **Restore-original drops its confirm bar** — `pushUndo()` already snapshots
+  before restore, so Ctrl+Z reverts cleanly. Confirmation was friction
+  without value. Dead `showConfirm` infrastructure (CSS, markup, i18n keys)
+  removed. ([#120](https://github.com/yocreoquesi/nukebg/pull/120))
 - **Pipeline pinned to `'high-power'`** — the segmentation pipeline now always
   runs at the better-bordered profile (extra spatial pass, finer cluster
   threshold). Previously gated behind the Reactor segmented control.
@@ -153,6 +203,17 @@ Unreleased entries accumulate on the `dev` branch. When we cut a release we copy
   ([#109](https://github.com/yocreoquesi/nukebg/pull/109))
 
 ### Tooling / CI
+- **`exploration/` promoted to `src/refine/`** — what was lab-tagged code has
+  been imported by the production advanced editor since v2.4. Folder renamed,
+  ESLint + Prettier carve-out removed, files reformatted to repo style. Test
+  folder renamed from `tests/exploration/` → `tests/refine/`. No runtime
+  behaviour change. ([#119](https://github.com/yocreoquesi/nukebg/pull/119))
+- **Playwright e2e selectors fixed** — `ar-dropzone` exposes two file inputs
+  (regular + mobile camera CTA) since #86; specs now disambiguate with
+  `:not(.dz-camera-input)`. `#download-btn` references replaced with
+  `#dl-png`. Visual-landing baselines seeded for chromium / webkit / iphone
+  on Linux so regressions actually fire instead of "snapshot doesn't exist".
+  ([#119](https://github.com/yocreoquesi/nukebg/pull/119))
 - **CI runs `npm run build`** on every PR so deploy-time regressions fail
   before merge. Output sanity check confirms `dist/index.html`, JSON-LD
   blocks, and `dist/assets`. ([#110](https://github.com/yocreoquesi/nukebg/pull/110))
