@@ -186,6 +186,30 @@
   --color-surface-hover: #2a0a2a;
   --color-surface-active: #301030;
 }
+:root[data-theme="red"] {
+  --color-text-primary: #ff3344;
+  --color-text-secondary: #cc2233;
+  --color-text-tertiary: #991122;
+  --color-accent-rgb: 255, 51, 68;
+  --color-accent-primary: #ff3344;
+  --color-accent-hover: #ff6677;
+  --color-hazard: #ff3344;
+  --color-surface-border: #3a0a0e;
+  --color-surface-hover: #2a0a0c;
+  --color-surface-active: #301010;
+}
+:root[data-theme="yellow"] {
+  --color-text-primary: #ffee00;
+  --color-text-secondary: #ccbb00;
+  --color-text-tertiary: #998800;
+  --color-accent-rgb: 255, 238, 0;
+  --color-accent-primary: #ffee00;
+  --color-accent-hover: #ffff44;
+  --color-hazard: #ffee00;
+  --color-surface-border: #3a3a0a;
+  --color-surface-hover: #2a2a0a;
+  --color-surface-active: #303010;
+}
 
 /* === Reset === */
 *, *::before, *::after {
@@ -552,11 +576,19 @@ body::after {
 .theme-swatch[data-theme="amber"]   { background: #ff8c00; }
 .theme-swatch[data-theme="cyan"]    { background: #00ddff; }
 .theme-swatch[data-theme="magenta"] { background: #ff33ff; }
+.theme-swatch[data-theme="red"]     { background: #ff3344; }
+.theme-swatch[data-theme="yellow"]  { background: #ffee00; }
 .theme-swatch:hover,
 .theme-swatch:focus-visible {
   outline-color: var(--color-accent-primary);
   outline-offset: 2px;
 }
+.theme-swatch[data-theme="green"]:hover,   .theme-swatch[data-theme="green"]:focus-visible   { box-shadow: 0 0 8px #00ff41; }
+.theme-swatch[data-theme="amber"]:hover,   .theme-swatch[data-theme="amber"]:focus-visible   { box-shadow: 0 0 8px #ff8c00; }
+.theme-swatch[data-theme="cyan"]:hover,    .theme-swatch[data-theme="cyan"]:focus-visible    { box-shadow: 0 0 8px #00ddff; }
+.theme-swatch[data-theme="magenta"]:hover, .theme-swatch[data-theme="magenta"]:focus-visible { box-shadow: 0 0 8px #ff33ff; }
+.theme-swatch[data-theme="red"]:hover,     .theme-swatch[data-theme="red"]:focus-visible     { box-shadow: 0 0 8px #ff3344; }
+.theme-swatch[data-theme="yellow"]:hover,  .theme-swatch[data-theme="yellow"]:focus-visible  { box-shadow: 0 0 8px #ffee00; }
 .theme-swatch[aria-checked="true"] {
   outline: 1px solid var(--color-accent-primary);
   outline-offset: 2px;
