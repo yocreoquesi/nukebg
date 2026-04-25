@@ -10,7 +10,7 @@
  * Progress and errors are surfaced via an optional callback.
  */
 
-import type { SamWorkerRequest, SamWorkerResponse } from '../../src/types/worker-messages';
+import type { SamWorkerRequest, SamWorkerResponse } from '../../types/worker-messages';
 
 type ProgressCb = (pct: number, stage: 'encoder' | 'decoder') => void;
 
