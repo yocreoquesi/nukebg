@@ -43,10 +43,11 @@ describe('Download CTA — ar-download.ts invariants', () => {
     expect(DL).toMatch(/webp\.setAttribute\(['"]download['"], this\.webpFilename\)/);
   });
 
-  it('detectAlpha samples the result to decide whether to append "alpha" flag', () => {
-    expect(DL).toMatch(/private detectAlpha\(imageData: ImageData\): boolean/);
+  it('formatMeta renders only the file size — no resolution, no alpha flag', () => {
     expect(DL).toMatch(/formatMeta\(bytes: number\): string/);
-    expect(DL).toMatch(/if \(this\.hasAlpha\) parts\.push\(t\(['"]download\.meta\.alpha['"]\)\)/);
+    expect(DL).toMatch(/return `# \$\{this\.formatBytes\(bytes\)\}`/);
+    expect(DL).not.toMatch(/hasAlpha/);
+    expect(DL).not.toMatch(/detectAlpha/);
   });
 
   it('formatBytes renders KB below 1 MiB and MB above', () => {
@@ -61,7 +62,7 @@ describe('Download CTA — ar-download.ts invariants', () => {
 });
 
 describe('i18n parity — download.cta.*', () => {
-  const keys = ['download.cta.png', 'download.cta.webp', 'download.meta.alpha', 'download.groupLabel'];
+  const keys = ['download.cta.png', 'download.cta.webp', 'download.groupLabel'];
   for (const key of keys) {
     it(`'${key}' declared in all six locales`, () => {
       const re = new RegExp(`'${key.replace(/\./g, '\\.')}'\\s*:`, 'g');
