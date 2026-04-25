@@ -12,7 +12,6 @@ package-lock.json
 # Locked-format files maintained by hand or by a generator
 public/service-worker.js
 src/i18n/index.ts
-exploration/
 
 # Binary / non-source
 tests/fixtures/

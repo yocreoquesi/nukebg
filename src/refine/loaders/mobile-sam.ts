@@ -10,10 +10,7 @@
  * Progress and errors are surfaced via an optional callback.
  */
 
-import type {
-  SamWorkerRequest,
-  SamWorkerResponse,
-} from '../../src/types/worker-messages';
+import type { SamWorkerRequest, SamWorkerResponse } from '../../src/types/worker-messages';
 
 type ProgressCb = (pct: number, stage: 'encoder' | 'decoder') => void;
 
@@ -21,10 +18,13 @@ let worker: Worker | null = null;
 let reqId = 0;
 let progressCb: ProgressCb | null = null;
 
-const pending = new Map<string, {
-  resolve: (value: SamWorkerResponse) => void;
-  reject: (err: Error) => void;
-}>();
+const pending = new Map<
+  string,
+  {
+    resolve: (value: SamWorkerResponse) => void;
+    reject: (err: Error) => void;
+  }
+>();
 
 function nextId(): string {
   return `sam-${++reqId}`;
@@ -32,10 +32,9 @@ function nextId(): string {
 
 function ensureWorker(): Worker {
   if (worker) return worker;
-  worker = new Worker(
-    new URL('../../src/workers/sam.worker.ts', import.meta.url),
-    { type: 'module' },
-  );
+  worker = new Worker(new URL('../../src/workers/sam.worker.ts', import.meta.url), {
+    type: 'module',
+  });
   worker.addEventListener('message', (e: MessageEvent<SamWorkerResponse>) => {
     const msg = e.data;
 

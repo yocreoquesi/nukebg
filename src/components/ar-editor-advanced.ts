@@ -28,12 +28,16 @@
  *     ar:advanced-cancel
  */
 
-import { createLoader, type ModelLoader } from '../../exploration/loaders';
+import { createLoader, type ModelLoader } from '../refine/loaders';
 import {
-  loadSam, encodeSam, decodeSam, disposeSam, onSamProgress,
-} from '../../exploration/loaders/mobile-sam';
-import { processRoi } from '../../exploration/roi-process';
-import { rasterizePolygon } from '../../exploration/roi-process';
+  loadSam,
+  encodeSam,
+  decodeSam,
+  disposeSam,
+  onSamProgress,
+} from '../refine/loaders/mobile-sam';
+import { processRoi } from '../refine/roi-process';
+import { rasterizePolygon } from '../refine/roi-process';
 import { t } from '../i18n';
 import { simplifyClosed, type Point } from './lasso-simplify';
 
@@ -59,7 +63,6 @@ const ZOOM_STEP = 1.15;
 
 type Tool = 'brush' | 'eraser' | 'lasso';
 type LassoAction = 'crop' | 'refine' | 'erase-object';
-
 
 interface PendingPreview {
   kind: LassoAction;
@@ -925,38 +928,74 @@ export class ArEditorAdvanced extends HTMLElement {
 
     shadow.getElementById('cancel')!.addEventListener('click', () => this.cancel(), { signal });
     shadow.getElementById('done')!.addEventListener('click', () => this.commit(), { signal });
-    shadow.getElementById('restore-original')!.addEventListener('click', () => this.restoreToOriginal(), { signal });
-    shadow.getElementById('help-toggle')!.addEventListener('click', () => this.toggleHelp(), { signal });
-    shadow.getElementById('tool-brush')!.addEventListener('click', () => this.setTool('brush'), { signal });
-    shadow.getElementById('tool-eraser')!.addEventListener('click', () => this.setTool('eraser'), { signal });
-    shadow.getElementById('tool-lasso')!.addEventListener('click', () => this.setTool('lasso'), { signal });
-    shadow.getElementById('action-crop')!.addEventListener('click', () => this.previewAction('crop'), { signal });
-    shadow.getElementById('action-refine')!.addEventListener('click', () => this.previewAction('refine'), { signal });
-    shadow.getElementById('action-erase-object')!.addEventListener('click', () => this.previewAction('erase-object'), { signal });
-    shadow.getElementById('action-apply-preview')!.addEventListener('click', () => this.applyPreview(), { signal });
-    shadow.getElementById('action-cancel-preview')!.addEventListener('click', () => this.cancelPreview(), { signal });
-    shadow.getElementById('cancel-action')!.addEventListener('click', () => this.cancelAction(), { signal });
+    shadow
+      .getElementById('restore-original')!
+      .addEventListener('click', () => this.restoreToOriginal(), { signal });
+    shadow
+      .getElementById('help-toggle')!
+      .addEventListener('click', () => this.toggleHelp(), { signal });
+    shadow
+      .getElementById('tool-brush')!
+      .addEventListener('click', () => this.setTool('brush'), { signal });
+    shadow
+      .getElementById('tool-eraser')!
+      .addEventListener('click', () => this.setTool('eraser'), { signal });
+    shadow
+      .getElementById('tool-lasso')!
+      .addEventListener('click', () => this.setTool('lasso'), { signal });
+    shadow
+      .getElementById('action-crop')!
+      .addEventListener('click', () => this.previewAction('crop'), { signal });
+    shadow
+      .getElementById('action-refine')!
+      .addEventListener('click', () => this.previewAction('refine'), { signal });
+    shadow
+      .getElementById('action-erase-object')!
+      .addEventListener('click', () => this.previewAction('erase-object'), { signal });
+    shadow
+      .getElementById('action-apply-preview')!
+      .addEventListener('click', () => this.applyPreview(), { signal });
+    shadow
+      .getElementById('action-cancel-preview')!
+      .addEventListener('click', () => this.cancelPreview(), { signal });
+    shadow
+      .getElementById('cancel-action')!
+      .addEventListener('click', () => this.cancelAction(), { signal });
     shadow.getElementById('undo')!.addEventListener('click', () => this.undo(), { signal });
     shadow.getElementById('redo')!.addEventListener('click', () => this.redo(), { signal });
-    shadow.getElementById('zoom-in')!.addEventListener('click', () => this.setZoom(this.zoom * ZOOM_STEP), { signal });
-    shadow.getElementById('zoom-out')!.addEventListener('click', () => this.setZoom(this.zoom / ZOOM_STEP), { signal });
-    shadow.getElementById('zoom-fit')!.addEventListener('click', () => this.resetView(), { signal });
+    shadow
+      .getElementById('zoom-in')!
+      .addEventListener('click', () => this.setZoom(this.zoom * ZOOM_STEP), { signal });
+    shadow
+      .getElementById('zoom-out')!
+      .addEventListener('click', () => this.setZoom(this.zoom / ZOOM_STEP), { signal });
+    shadow
+      .getElementById('zoom-fit')!
+      .addEventListener('click', () => this.resetView(), { signal });
 
-    shadow.querySelectorAll('.bg-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        shadow.querySelectorAll('.bg-btn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        this.bgColor = (btn as HTMLElement).dataset.bg || 'transparent';
-        this.applyBgColor();
-      }, { signal });
+    shadow.querySelectorAll('.bg-btn').forEach((btn) => {
+      btn.addEventListener(
+        'click',
+        () => {
+          shadow.querySelectorAll('.bg-btn').forEach((b) => b.classList.remove('active'));
+          btn.classList.add('active');
+          this.bgColor = (btn as HTMLElement).dataset.bg || 'transparent';
+          this.applyBgColor();
+        },
+        { signal },
+      );
     });
 
     const wrap = shadow.querySelector('.canvas-wrap') as HTMLElement;
-    wrap.addEventListener('wheel', (e) => {
-      e.preventDefault();
-      const factor = e.deltaY < 0 ? ZOOM_STEP : 1 / ZOOM_STEP;
-      this.setZoom(this.zoom * factor);
-    }, { passive: false, signal });
+    wrap.addEventListener(
+      'wheel',
+      (e) => {
+        e.preventDefault();
+        const factor = e.deltaY < 0 ? ZOOM_STEP : 1 / ZOOM_STEP;
+        this.setZoom(this.zoom * factor);
+      },
+      { passive: false, signal },
+    );
 
     // Pinch-to-zoom via native touch events. We use touch events (not
     // pointer events) because setPointerCapture in onPointerDown would
@@ -970,11 +1009,15 @@ export class ArEditorAdvanced extends HTMLElement {
 
     const sizeInput = shadow.getElementById('brush-size') as HTMLInputElement;
     const sizeVal = shadow.getElementById('brush-size-val')!;
-    sizeInput.addEventListener('input', () => {
-      this.brushRadius = parseInt(sizeInput.value, 10);
-      sizeVal.textContent = String(this.brushRadius);
-      this.redrawDisplay();
-    }, { signal });
+    sizeInput.addEventListener(
+      'input',
+      () => {
+        this.brushRadius = parseInt(sizeInput.value, 10);
+        sizeVal.textContent = String(this.brushRadius);
+        this.redrawDisplay();
+      },
+      { signal },
+    );
 
     this.attachPointerHandlers(signal);
     this.attachKeyboardHandlers(signal);
@@ -988,86 +1031,94 @@ export class ArEditorAdvanced extends HTMLElement {
     c.addEventListener('pointermove', (e) => this.onPointerMove(e), { signal });
     c.addEventListener('pointerup', (e) => this.onPointerEnd(e), { signal });
     c.addEventListener('pointercancel', (e) => this.onPointerEnd(e), { signal });
-    c.addEventListener('pointerleave', () => {
-      this.cursorCanvasX = null;
-      this.cursorCanvasY = null;
-      // If pointer leaves without an up event (rare under capture, but
-      // happens on some touch → synthetic-mouse paths), flush any pan
-      // state so the cursor doesn't stay locked in "grabbing" style.
-      if (this.panning) {
-        this.panning = false;
-        if (this.canvas) this.canvas.classList.remove('panning');
-      }
-      this.redrawDisplay();
-    }, { signal });
+    c.addEventListener(
+      'pointerleave',
+      () => {
+        this.cursorCanvasX = null;
+        this.cursorCanvasY = null;
+        // If pointer leaves without an up event (rare under capture, but
+        // happens on some touch → synthetic-mouse paths), flush any pan
+        // state so the cursor doesn't stay locked in "grabbing" style.
+        if (this.panning) {
+          this.panning = false;
+          if (this.canvas) this.canvas.classList.remove('panning');
+        }
+        this.redrawDisplay();
+      },
+      { signal },
+    );
     c.addEventListener('dblclick', (e) => this.onDblClick(e), { signal });
   }
 
   private attachKeyboardHandlers(signal: AbortSignal): void {
-    window.addEventListener('keydown', (e) => {
-      if (!this.hasAttribute('active')) return;
+    window.addEventListener(
+      'keydown',
+      (e) => {
+        if (!this.hasAttribute('active')) return;
 
-      const mod = e.ctrlKey || e.metaKey;
-      if (mod && (e.key === 'z' || e.key === 'Z')) {
-        e.preventDefault();
-        if (this.busy) return;
-        if (e.shiftKey) this.redo();
-        else this.undo();
-        return;
-      }
-      if (mod && (e.key === 'y' || e.key === 'Y')) {
-        e.preventDefault();
-        if (this.busy) return;
-        this.redo();
-        return;
-      }
-
-      if (e.key === 'Escape') {
-        e.preventDefault();
-        // Help panel closes first: keyboard users expect Escape to dismiss
-        // whatever transient overlay is visible before nuking their
-        // in-progress selection.
-        const helpPanel = this.shadowRoot?.getElementById('help-panel');
-        if (helpPanel && !helpPanel.classList.contains('hidden')) {
-          this.toggleHelp();
+        const mod = e.ctrlKey || e.metaKey;
+        if (mod && (e.key === 'z' || e.key === 'Z')) {
+          e.preventDefault();
+          if (this.busy) return;
+          if (e.shiftKey) this.redo();
+          else this.undo();
           return;
         }
-        if (this.busy) {
-          this.cancelAction();
+        if (mod && (e.key === 'y' || e.key === 'Y')) {
+          e.preventDefault();
+          if (this.busy) return;
+          this.redo();
           return;
         }
-        if (this.lassoAnchors || this.lassoRaw) {
-          this.clearLasso();
-          this.redrawDisplay();
+
+        if (e.key === 'Escape') {
+          e.preventDefault();
+          // Help panel closes first: keyboard users expect Escape to dismiss
+          // whatever transient overlay is visible before nuking their
+          // in-progress selection.
+          const helpPanel = this.shadowRoot?.getElementById('help-panel');
+          if (helpPanel && !helpPanel.classList.contains('hidden')) {
+            this.toggleHelp();
+            return;
+          }
+          if (this.busy) {
+            this.cancelAction();
+            return;
+          }
+          if (this.lassoAnchors || this.lassoRaw) {
+            this.clearLasso();
+            this.redrawDisplay();
+          }
+          if (this.selectionMask) {
+            this.clearSelection();
+            this.syncLassoActionsUI();
+            this.redrawDisplay();
+          }
+          return;
         }
-        if (this.selectionMask) {
-          this.clearSelection();
-          this.syncLassoActionsUI();
-          this.redrawDisplay();
+        if (e.key === '0' || e.key === 'Home') {
+          e.preventDefault();
+          this.resetView();
+          return;
         }
-        return;
-      }
-      if (e.key === '0' || e.key === 'Home') {
-        e.preventDefault();
-        this.resetView();
-        return;
-      }
-      if (mod && (e.key === '=' || e.key === '+')) {
-        e.preventDefault();
-        this.setZoom(this.zoom * ZOOM_STEP);
-        return;
-      }
-      if (mod && e.key === '-') {
-        e.preventDefault();
-        this.setZoom(this.zoom / ZOOM_STEP);
-        return;
-      }
-      if (this.tool !== 'lasso' && (e.key === '[' || e.key === ']')) {
-        e.preventDefault();
-        const delta = e.key === ']' ? 4 : -4;
-        this.setBrushRadius(this.brushRadius + delta);
-      }
-    }, { signal });
+        if (mod && (e.key === '=' || e.key === '+')) {
+          e.preventDefault();
+          this.setZoom(this.zoom * ZOOM_STEP);
+          return;
+        }
+        if (mod && e.key === '-') {
+          e.preventDefault();
+          this.setZoom(this.zoom / ZOOM_STEP);
+          return;
+        }
+        if (this.tool !== 'lasso' && (e.key === '[' || e.key === ']')) {
+          e.preventDefault();
+          const delta = e.key === ']' ? 4 : -4;
+          this.setBrushRadius(this.brushRadius + delta);
+        }
+      },
+      { signal },
+    );
   }
 
   private onPointerDown(e: PointerEvent): void {
@@ -1080,7 +1131,11 @@ export class ArEditorAdvanced extends HTMLElement {
       this.lastPanClientX = e.clientX;
       this.lastPanClientY = e.clientY;
       this.canvas.classList.add('panning');
-      try { this.canvas.setPointerCapture(e.pointerId); } catch { /* noop */ }
+      try {
+        this.canvas.setPointerCapture(e.pointerId);
+      } catch {
+        /* noop */
+      }
       return;
     }
 
@@ -1095,7 +1150,11 @@ export class ArEditorAdvanced extends HTMLElement {
         const idx = this.hitAnchor(ix, iy);
         if (idx !== null) {
           this.dragAnchorIndex = idx;
-          try { this.canvas.setPointerCapture(e.pointerId); } catch { /* noop */ }
+          try {
+            this.canvas.setPointerCapture(e.pointerId);
+          } catch {
+            /* noop */
+          }
           return;
         }
         // Pointer down elsewhere with an active lasso: treat as "start a
@@ -1103,7 +1162,11 @@ export class ArEditorAdvanced extends HTMLElement {
         // requiring an explicit Esc to clear first.
         this.clearLasso();
       }
-      try { this.canvas.setPointerCapture(e.pointerId); } catch { /* noop */ }
+      try {
+        this.canvas.setPointerCapture(e.pointerId);
+      } catch {
+        /* noop */
+      }
       this.drawing = true;
       this.lassoRaw = [{ x: ix, y: iy }];
       this.redrawDisplay();
@@ -1112,7 +1175,11 @@ export class ArEditorAdvanced extends HTMLElement {
 
     // brush / eraser — snapshot BEFORE the first stamp so undo takes us
     // back to the state at the instant the user pressed down.
-    try { this.canvas.setPointerCapture(e.pointerId); } catch { /* noop */ }
+    try {
+      this.canvas.setPointerCapture(e.pointerId);
+    } catch {
+      /* noop */
+    }
     this.pushUndo();
     this.drawing = true;
     this.lastImgX = ix;
@@ -1168,7 +1235,11 @@ export class ArEditorAdvanced extends HTMLElement {
 
   private onPointerEnd(e: PointerEvent): void {
     if (!this.canvas) return;
-    try { this.canvas.releasePointerCapture(e.pointerId); } catch { /* noop */ }
+    try {
+      this.canvas.releasePointerCapture(e.pointerId);
+    } catch {
+      /* noop */
+    }
 
     if (this.panning) {
       this.panning = false;
@@ -1404,7 +1475,10 @@ export class ArEditorAdvanced extends HTMLElement {
     bar.classList.add('visible');
 
     const dismiss = () => this.dismissConfirm();
-    const accept = () => { dismiss(); onYes(); };
+    const accept = () => {
+      dismiss();
+      onYes();
+    };
 
     yesBtn.addEventListener('click', accept, { once: true });
     noBtn.addEventListener('click', dismiss, { once: true });
@@ -1465,7 +1539,9 @@ export class ArEditorAdvanced extends HTMLElement {
     const hint = this.shadowRoot?.getElementById('hint');
     if (!row || !previewRow) return;
     const hasAnchors =
-      this.tool === 'lasso' && this.lassoAnchors !== null && this.lassoAnchors.length >= MIN_ANCHORS;
+      this.tool === 'lasso' &&
+      this.lassoAnchors !== null &&
+      this.lassoAnchors.length >= MIN_ANCHORS;
     const hasSelection = this.tool === 'lasso' && this.selectionMask !== null;
     const isPreviewing = this.pendingPreview !== null;
     row.classList.toggle('visible', (hasAnchors || hasSelection) && !isPreviewing);
@@ -1527,7 +1603,9 @@ export class ArEditorAdvanced extends HTMLElement {
     // Raw in-progress path — open polyline. Always visible, even over Quick Mask.
     if (this.lassoRaw && this.lassoRaw.length > 1) {
       this.ctx.save();
-      const accentRgb = getComputedStyle(document.documentElement).getPropertyValue('--color-accent-rgb').trim() || '0, 255, 65';
+      const accentRgb =
+        getComputedStyle(document.documentElement).getPropertyValue('--color-accent-rgb').trim() ||
+        '0, 255, 65';
       this.ctx.strokeStyle = `rgba(${accentRgb}, 0.95)`;
       this.ctx.lineWidth = this.selectionMask ? 3 : 2;
       this.ctx.shadowColor = 'rgba(0, 0, 0, 0.7)';
@@ -1549,7 +1627,9 @@ export class ArEditorAdvanced extends HTMLElement {
     if (!this.selectionMask && this.lassoAnchors && this.lassoAnchors.length >= MIN_ANCHORS) {
       const pts = this.lassoAnchors;
       this.ctx.save();
-      const accentRgb2 = getComputedStyle(document.documentElement).getPropertyValue('--color-accent-rgb').trim() || '0, 255, 65';
+      const accentRgb2 =
+        getComputedStyle(document.documentElement).getPropertyValue('--color-accent-rgb').trim() ||
+        '0, 255, 65';
       this.ctx.fillStyle = `rgba(${accentRgb2}, 0.15)`;
       this.ctx.strokeStyle = `rgba(${accentRgb2}, 0.95)`;
       this.ctx.lineWidth = 1.5;
@@ -1584,8 +1664,11 @@ export class ArEditorAdvanced extends HTMLElement {
     if (this.tool === 'lasso') return;
 
     this.ctx.save();
-    const cursorRgb = getComputedStyle(document.documentElement).getPropertyValue('--color-accent-rgb').trim() || '0, 255, 65';
-    this.ctx.strokeStyle = this.tool === 'eraser' ? 'rgba(255, 80, 80, 0.95)' : `rgba(${cursorRgb}, 0.95)`;
+    const cursorRgb =
+      getComputedStyle(document.documentElement).getPropertyValue('--color-accent-rgb').trim() ||
+      '0, 255, 65';
+    this.ctx.strokeStyle =
+      this.tool === 'eraser' ? 'rgba(255, 80, 80, 0.95)' : `rgba(${cursorRgb}, 0.95)`;
     this.ctx.lineWidth = 1;
     this.ctx.setLineDash([4, 4]);
     this.ctx.beginPath();
@@ -1800,7 +1883,10 @@ export class ArEditorAdvanced extends HTMLElement {
 
   private selectionMaskToPolygon(w: number, h: number): Point[] | null {
     if (!this.selectionMask) return null;
-    let minX = w, minY = h, maxX = 0, maxY = 0;
+    let minX = w,
+      minY = h,
+      maxX = 0,
+      maxY = 0;
     for (let y = 0; y < h; y++) {
       for (let x = 0; x < w; x++) {
         if (this.selectionMask[y * w + x] === 1) {
@@ -1813,8 +1899,10 @@ export class ArEditorAdvanced extends HTMLElement {
     }
     if (maxX < minX) return null;
     return [
-      { x: minX, y: minY }, { x: maxX, y: minY },
-      { x: maxX, y: maxY }, { x: minX, y: maxY },
+      { x: minX, y: minY },
+      { x: maxX, y: minY },
+      { x: maxX, y: maxY },
+      { x: minX, y: maxY },
     ];
   }
 
@@ -1852,7 +1940,10 @@ export class ArEditorAdvanced extends HTMLElement {
     const hint = this.shadowRoot?.getElementById('hint');
     if (hint) hint.textContent = t('advanced.working');
 
-    let minX = w, minY = h, maxX = 0, maxY = 0;
+    let minX = w,
+      minY = h,
+      maxX = 0,
+      maxY = 0;
     for (const p of polygon) {
       if (p.x < minX) minX = p.x;
       if (p.x > maxX) maxX = p.x;
@@ -1865,7 +1956,10 @@ export class ArEditorAdvanced extends HTMLElement {
     maxY = Math.min(h - 1, Math.ceil(maxY));
 
     const samResult = await decodeSam(
-      [{ x: minX, y: minY }, { x: maxX, y: maxY }],
+      [
+        { x: minX, y: minY },
+        { x: maxX, y: maxY },
+      ],
       [2, 3],
       w,
       h,
@@ -1986,9 +2080,14 @@ export class ArEditorAdvanced extends HTMLElement {
       const y = (i - x) / w;
       if (mask[i] === 1) {
         const isEdge =
-          x === 0 || x === w - 1 || y === 0 || y === h - 1 ||
-          mask[i - 1] === 0 || mask[i + 1] === 0 ||
-          mask[i - w] === 0 || mask[i + w] === 0;
+          x === 0 ||
+          x === w - 1 ||
+          y === 0 ||
+          y === h - 1 ||
+          mask[i - 1] === 0 ||
+          mask[i + 1] === 0 ||
+          mask[i - w] === 0 ||
+          mask[i + w] === 0;
         if (isEdge) {
           img.data[idx] = 0;
           img.data[idx + 1] = 255;

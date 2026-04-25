@@ -1,10 +1,10 @@
 /**
- * Tests for exploration/roi-process.ts — the pure logic side of ROI processing.
+ * Tests for src/refine/roi-process.ts — the pure logic side of ROI processing.
  * Uses an injected segmenter stub so no model is needed.
  */
 
 import { describe, it, expect } from 'vitest';
-import { processRoi, rasterizePolygon, type PolygonPoint } from '../../exploration/roi-process';
+import { processRoi, rasterizePolygon, type PolygonPoint } from '../../src/refine/roi-process';
 
 if (typeof (globalThis as { ImageData?: unknown }).ImageData === 'undefined') {
   class ImageDataStub {
@@ -21,7 +21,11 @@ if (typeof (globalThis as { ImageData?: unknown }).ImageData === 'undefined') {
   (globalThis as { ImageData?: unknown }).ImageData = ImageDataStub;
 }
 
-function makeImage(width: number, height: number, rgba: [number, number, number, number]): ImageData {
+function makeImage(
+  width: number,
+  height: number,
+  rgba: [number, number, number, number],
+): ImageData {
   const data = new Uint8ClampedArray(width * height * 4);
   for (let i = 0; i < width * height; i++) {
     data[i * 4] = rgba[0];
@@ -48,9 +52,7 @@ describe('rasterizePolygon', () => {
     // Apex row should be empty or nearly so; bottom should have filled pixels.
     const topRow = Array.from(mask.slice(0, 10));
     const botRow = Array.from(mask.slice(8 * 10, 9 * 10));
-    expect(topRow.reduce((a, b) => a + b, 0)).toBeLessThan(
-      botRow.reduce((a, b) => a + b, 0),
-    );
+    expect(topRow.reduce((a, b) => a + b, 0)).toBeLessThan(botRow.reduce((a, b) => a + b, 0));
   });
 });
 
