@@ -997,7 +997,6 @@ export class ArApp extends HTMLElement {
 
         <button class="install-btn" id="install-btn" aria-label="${t('pwa.install')}">${isAppInstalled() ? t('pwa.installed') : t('pwa.install')}</button>
         <div class="install-guide" id="install-guide"></div>
-        <div class="smoke-effect" id="smoke-effect"></div>
       </section>
 
       <section class="workspace" id="workspace" aria-label="Image processing workspace">
