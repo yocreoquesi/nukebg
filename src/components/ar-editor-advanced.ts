@@ -1609,8 +1609,10 @@ export class ArEditorAdvanced extends HTMLElement {
       return;
     }
 
-    // Simplified anchors — filled polygon + marching-ants outline + handles.
-    // Skip when Quick Mask is active (anchors are cleared after SAM decode).
+    // Simplified closed polygon — fill + marching-ants outline. Anchor
+    // handles intentionally omitted: anchors are not draggable, so showing
+    // them just adds visual noise. Match cursor-preview line width (2) for
+    // stroke consistency across tools.
     if (!this.selectionMask && this.lassoAnchors && this.lassoAnchors.length >= MIN_ANCHORS) {
       const pts = this.lassoAnchors;
       this.ctx.save();
@@ -1619,7 +1621,7 @@ export class ArEditorAdvanced extends HTMLElement {
         '0, 255, 65';
       this.ctx.fillStyle = `rgba(${accentRgb2}, 0.15)`;
       this.ctx.strokeStyle = `rgba(${accentRgb2}, 0.95)`;
-      this.ctx.lineWidth = 1.5;
+      this.ctx.lineWidth = 2;
       this.ctx.setLineDash([6, 4]);
       this.ctx.beginPath();
       this.ctx.moveTo(pts[0].x + this.padX, pts[0].y + this.padY);
@@ -1629,18 +1631,6 @@ export class ArEditorAdvanced extends HTMLElement {
       this.ctx.closePath();
       this.ctx.fill();
       this.ctx.stroke();
-
-      this.ctx.setLineDash([]);
-      this.ctx.fillStyle = `rgba(${accentRgb2}, 0.95)`;
-      this.ctx.strokeStyle = '#000';
-      this.ctx.lineWidth = 1.5;
-      const r = this.anchorRadius();
-      for (const a of pts) {
-        this.ctx.beginPath();
-        this.ctx.arc(a.x + this.padX, a.y + this.padY, r, 0, Math.PI * 2);
-        this.ctx.fill();
-        this.ctx.stroke();
-      }
       this.ctx.restore();
     }
   }
@@ -1654,10 +1644,12 @@ export class ArEditorAdvanced extends HTMLElement {
     const cursorRgb =
       getComputedStyle(document.documentElement).getPropertyValue('--color-accent-rgb').trim() ||
       '0, 255, 65';
-    this.ctx.strokeStyle =
-      this.tool === 'eraser' ? 'rgba(255, 80, 80, 0.95)' : `rgba(${cursorRgb}, 0.95)`;
-    this.ctx.lineWidth = 1;
-    this.ctx.setLineDash([4, 4]);
+    // Both brush and eraser follow the active theme accent. Eraser is
+    // differentiated from brush by a dashed outline (Photoshop convention)
+    // — same colour signal so the theme stays consistent.
+    this.ctx.strokeStyle = `rgba(${cursorRgb}, 0.95)`;
+    this.ctx.lineWidth = 2;
+    this.ctx.setLineDash(this.tool === 'eraser' ? [6, 4] : []);
     this.ctx.beginPath();
     this.ctx.arc(this.cursorCanvasX, this.cursorCanvasY, this.brushRadius, 0, Math.PI * 2);
     this.ctx.stroke();
