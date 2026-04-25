@@ -37,42 +37,62 @@ const INPAINT_TIMEOUT_MS = 30_000;
  *  then runs Fourier-convolution inference on WASM. 5 min covers the
  *  worst-case cold start on a slow connection. */
 const LAMA_TIMEOUT_MS = 300_000;
+/** Total wall-clock cap for process(). Generous because a first-time
+ *  run on a slow connection can pay for the RMBG download (~45MB),
+ *  the LaMa download (~95MB) and the ONNX Runtime WASM fetch from
+ *  jsDelivr (~6MB) in sequence before any CPU work starts. If this
+ *  fires, we've almost certainly hit a pathological hang the per-stage
+ *  timeouts didn't catch — abort instead of letting the UI sit forever. */
+const PROCESS_TIMEOUT_MS = 20 * 60_000;
+
+/**
+ * Error thrown when a pipeline run is aborted via AbortSignal or
+ * orchestrator.abort(). Callers can `instanceof PipelineAbortError` to
+ * distinguish abort from genuine failures.
+ */
+export class PipelineAbortError extends Error {
+  readonly name = 'PipelineAbortError';
+}
 
 export class PipelineOrchestrator {
   private cvWorker: Worker;
   private mlWorker: Worker;
   private inpaintWorker: Worker | null = null;
   private lamaWorker: Worker | null = null;
-  private pendingRequests = new Map<string, { resolve: (val: unknown) => void; reject: (err: Error) => void; expectedType: string }>();
+  private pendingRequests = new Map<string, {
+    resolve: (val: unknown) => void;
+    reject: (err: Error) => void;
+    expectedType: string;
+    /** Timeout handle associated with this request, so response handlers
+     *  can clear it promptly instead of waiting for the timer to fire
+     *  empty-handed. */
+    timer?: ReturnType<typeof setTimeout>;
+  }>();
   private pendingTimers = new Set<ReturnType<typeof setTimeout>>();
   private onStageChange: StageCallback;
+  private activeSignalCleanup: (() => void) | null = null;
 
   constructor(onStageChange: StageCallback) {
     this.onStageChange = onStageChange;
+    this.cvWorker = this.createCvWorker();
+    this.mlWorker = this.createMlWorker();
+    this.setupMlWorkerHandler();
+  }
 
-    this.cvWorker = new Worker(
+  private createCvWorker(): Worker {
+    const w = new Worker(
       new URL('../workers/cv.worker.ts', import.meta.url),
       { type: 'module' }
     );
-    this.mlWorker = new Worker(
-      new URL('../workers/ml.worker.ts', import.meta.url),
-      { type: 'module' }
-    );
-
-    this.cvWorker.onerror = (e) => {
+    w.onerror = (e) => {
       this.rejectAllPending(`CV Worker error: ${e.message}`);
-      this.cvWorker.terminate();
+      w.terminate();
     };
-    this.mlWorker.onerror = (e) => {
-      this.rejectAllPending(`ML Worker error: ${e.message}`);
-      this.mlWorker.terminate();
-    };
-
-    this.cvWorker.onmessage = (e: MessageEvent<CvWorkerResponse>) => {
+    w.onmessage = (e: MessageEvent<CvWorkerResponse>) => {
       const msg = e.data;
       const pending = this.pendingRequests.get(msg.id);
       if (pending) {
-        this.pendingRequests.delete(msg.id);
+        this.settlePending(msg.id);
         if (msg.type === 'error') {
           pending.reject(new Error(msg.error));
         } else {
@@ -80,8 +100,19 @@ export class PipelineOrchestrator {
         }
       }
     };
+    return w;
+  }
 
-    this.setupMlWorkerHandler();
+  private createMlWorker(): Worker {
+    const w = new Worker(
+      new URL('../workers/ml.worker.ts', import.meta.url),
+      { type: 'module' }
+    );
+    w.onerror = (e) => {
+      this.rejectAllPending(`ML Worker error: ${e.message}`);
+      w.terminate();
+    };
+    return w;
   }
 
   /** Whether to suppress ML progress updates (during background preload) */
@@ -124,7 +155,7 @@ export class PipelineOrchestrator {
       const pending = this.pendingRequests.get(msg.id);
       if (pending) {
         if (msg.type === 'error') {
-          this.pendingRequests.delete(msg.id);
+          this.settlePending(msg.id);
           pending.reject(new Error(msg.error));
         } else if (msg.type === 'segment-result') {
           // Only resolve if the request was actually for a segment call
@@ -132,7 +163,7 @@ export class PipelineOrchestrator {
             console.warn(`[NukeBG] segment-result arrived for a '${pending.expectedType}' request - ignoring`);
             return;
           }
-          this.pendingRequests.delete(msg.id);
+          this.settlePending(msg.id);
           pending.resolve(msg.result);
         } else if (msg.type === 'model-ready') {
           // Only resolve if the request was for load-model, NOT segment.
@@ -142,7 +173,7 @@ export class PipelineOrchestrator {
             console.warn(`[NukeBG] model-ready arrived for a '${pending.expectedType}' request - ignoring`);
             return;
           }
-          this.pendingRequests.delete(msg.id);
+          this.settlePending(msg.id);
           pending.resolve(msg);
         }
       }
@@ -173,10 +204,60 @@ export class PipelineOrchestrator {
     this.pendingRequests.clear();
   }
 
+  /**
+   * Settle a pending request (resolve or reject): clear its watchdog
+   * timer, drop the timer from pendingTimers, and remove the entry from
+   * pendingRequests. Call this from every response handler so the
+   * pendingTimers set stays tight — without it, timers linger until
+   * they fire empty-handed (#44 leak).
+   */
+  private settlePending(id: string): void {
+    const pending = this.pendingRequests.get(id);
+    if (!pending) return;
+    if (pending.timer !== undefined) {
+      clearTimeout(pending.timer);
+      this.pendingTimers.delete(pending.timer);
+    }
+    this.pendingRequests.delete(id);
+  }
+
+  /**
+   * Hard-abort the current pipeline run. Terminates all workers (killing
+   * in-flight CPU immediately) and recreates the cv + ml workers so the
+   * next `process()` call works. Inpaint/LaMa workers are lazy and are
+   * simply dropped. Pending promises reject with `PipelineAbortError`.
+   *
+   * Called from `process()` when the provided AbortSignal fires, or
+   * directly by callers who want to tear down.
+   *
+   * NOTE: ml worker termination drops the loaded RMBG session — the
+   * next segment call re-loads it from the Service Worker cache (fast,
+   * not a fresh network download). This is the correct trade-off: a
+   * user who aborts expects CPU to stop NOW, not finish the current
+   * 45s spatial pass.
+   */
+  abort(reason = 'aborted'): void {
+    for (const timer of this.pendingTimers) clearTimeout(timer);
+    this.pendingTimers.clear();
+    const err = new PipelineAbortError(reason);
+    for (const [, pending] of this.pendingRequests) {
+      pending.reject(err);
+    }
+    this.pendingRequests.clear();
+
+    this.cvWorker.terminate();
+    this.mlWorker.terminate();
+    this.disposeInpaintWorker();
+    this.disposeLamaWorker();
+
+    this.cvWorker = this.createCvWorker();
+    this.mlWorker = this.createMlWorker();
+    this.setupMlWorkerHandler();
+  }
+
   private cvCall<T>(type: string, payload: Record<string, unknown>): Promise<T> {
     return new Promise((resolve, reject) => {
       const id = generateUUID();
-      this.pendingRequests.set(id, { resolve: resolve as (val: unknown) => void, reject, expectedType: type });
       const transferables = PipelineOrchestrator.extractTransferables(payload);
       this.cvWorker.postMessage({ id, type, payload }, transferables);
 
@@ -188,13 +269,13 @@ export class PipelineOrchestrator {
         }
       }, CV_TIMEOUT_MS);
       this.pendingTimers.add(timer);
+      this.pendingRequests.set(id, { resolve: resolve as (val: unknown) => void, reject, expectedType: type, timer });
     });
   }
 
   private mlCall<T>(type: string, payload?: Record<string, unknown>, extra?: Record<string, unknown>): Promise<T> {
     return new Promise((resolve, reject) => {
       const id = generateUUID();
-      this.pendingRequests.set(id, { resolve: resolve as (val: unknown) => void, reject, expectedType: type });
       const transferables = PipelineOrchestrator.extractTransferables(payload);
       this.mlWorker.postMessage({ id, type, payload, ...extra }, transferables);
 
@@ -206,6 +287,7 @@ export class PipelineOrchestrator {
         }
       }, ML_TIMEOUT_MS);
       this.pendingTimers.add(timer);
+      this.pendingRequests.set(id, { resolve: resolve as (val: unknown) => void, reject, expectedType: type, timer });
     });
   }
 
@@ -230,13 +312,13 @@ export class PipelineOrchestrator {
       const pending = this.pendingRequests.get(msg.id);
       if (pending) {
         if (msg.type === 'error') {
-          this.pendingRequests.delete(msg.id);
+          this.settlePending(msg.id);
           pending.reject(new Error(msg.error));
         } else if (msg.type === 'inpaint-result') {
-          this.pendingRequests.delete(msg.id);
+          this.settlePending(msg.id);
           pending.resolve(msg.result);
         } else if (msg.type === 'disposed') {
-          this.pendingRequests.delete(msg.id);
+          this.settlePending(msg.id);
           pending.resolve(undefined);
         }
       }
@@ -247,7 +329,6 @@ export class PipelineOrchestrator {
     if (!this.inpaintWorker) throw new Error('Inpaint worker not created');
     return new Promise((resolve, reject) => {
       const id = generateUUID();
-      this.pendingRequests.set(id, { resolve: resolve as (val: unknown) => void, reject, expectedType: type });
       const transferables = PipelineOrchestrator.extractTransferables(payload);
       this.inpaintWorker!.postMessage({ id, type, payload }, transferables);
 
@@ -259,6 +340,7 @@ export class PipelineOrchestrator {
         }
       }, INPAINT_TIMEOUT_MS);
       this.pendingTimers.add(timer);
+      this.pendingRequests.set(id, { resolve: resolve as (val: unknown) => void, reject, expectedType: type, timer });
     });
   }
 
@@ -300,13 +382,13 @@ export class PipelineOrchestrator {
       const pending = this.pendingRequests.get(msg.id);
       if (pending) {
         if (msg.type === 'error') {
-          this.pendingRequests.delete(msg.id);
+          this.settlePending(msg.id);
           pending.reject(new Error(msg.error));
         } else if (msg.type === 'lama-inpaint-result') {
-          this.pendingRequests.delete(msg.id);
+          this.settlePending(msg.id);
           pending.resolve(msg.result);
         } else if (msg.type === 'lama-disposed') {
-          this.pendingRequests.delete(msg.id);
+          this.settlePending(msg.id);
           pending.resolve(undefined);
         }
       }
@@ -317,7 +399,6 @@ export class PipelineOrchestrator {
     if (!this.lamaWorker) throw new Error('LaMa worker not created');
     return new Promise((resolve, reject) => {
       const id = generateUUID();
-      this.pendingRequests.set(id, { resolve: resolve as (val: unknown) => void, reject, expectedType: type });
       const transferables = PipelineOrchestrator.extractTransferables(payload);
       this.lamaWorker!.postMessage({ id, type, payload }, transferables);
 
@@ -329,6 +410,7 @@ export class PipelineOrchestrator {
         }
       }, LAMA_TIMEOUT_MS);
       this.pendingTimers.add(timer);
+      this.pendingRequests.set(id, { resolve: resolve as (val: unknown) => void, reject, expectedType: type, timer });
     });
   }
 
@@ -399,7 +481,57 @@ export class PipelineOrchestrator {
     return combined;
   }
 
-  async process(imageData: ImageData, modelId?: ModelId, precision: PrecisionMode = 'normal'): Promise<PipelineResult> {
+  /**
+   * Bind an AbortSignal to the current processing run. Detaches any
+   * previously attached signal. When the signal fires, `abort()` runs,
+   * pending worker calls reject with `PipelineAbortError`, and workers
+   * are torn down. Called internally by `process()`.
+   */
+  private bindAbortSignal(signal: AbortSignal | undefined): void {
+    // Detach previous run's handler, if any.
+    this.activeSignalCleanup?.();
+    this.activeSignalCleanup = null;
+    if (!signal) return;
+    if (signal.aborted) {
+      this.abort(signal.reason ? String(signal.reason) : 'aborted');
+      return;
+    }
+    const onAbort = () => {
+      this.abort(signal.reason ? String(signal.reason) : 'aborted');
+    };
+    signal.addEventListener('abort', onAbort, { once: true });
+    this.activeSignalCleanup = () => signal.removeEventListener('abort', onAbort);
+  }
+
+  async process(
+    imageData: ImageData,
+    modelId?: ModelId,
+    precision: PrecisionMode = 'normal',
+    signal?: AbortSignal,
+  ): Promise<PipelineResult> {
+    this.bindAbortSignal(signal);
+    // Wall-clock safety net. Rarely meaningful in practice — the
+    // per-stage timeouts should kick first — but guarantees the UI
+    // never sits on a spinner indefinitely if something truly hangs.
+    const timeoutId = setTimeout(() => {
+      this.abort(`processing timeout after ${PROCESS_TIMEOUT_MS / 60_000}min`);
+    }, PROCESS_TIMEOUT_MS);
+    try {
+      return await this._process(imageData, modelId, precision);
+    } finally {
+      clearTimeout(timeoutId);
+      // Detach signal listener so a late abort on a previous run can't
+      // tear down a subsequent process() that reuses the same signal.
+      this.activeSignalCleanup?.();
+      this.activeSignalCleanup = null;
+    }
+  }
+
+  private async _process(
+    imageData: ImageData,
+    modelId: ModelId | undefined,
+    precision: PrecisionMode,
+  ): Promise<PipelineResult> {
     this.suppressMlProgress = false; // new image = show progress
     const startTime = performance.now();
     const { width, height } = imageData;
@@ -639,7 +771,11 @@ export class PipelineOrchestrator {
     const resultImageData = new ImageData(resultPixels, width, height);
     const totalTimeMs = performance.now() - startTime;
 
-    return {
+    // Freeze to prevent accidental reassignment by callers. Typed-array
+    // contents remain writable (the runtime does not freeze ArrayBuffer
+    // views), but the `readonly` marks on PipelineResult catch those at
+    // compile time. If a caller truly needs to mutate, it clones first.
+    return Object.freeze({
       imageData: resultImageData,
       workingPixels: originalPixels,
       workingAlpha: finalAlpha,
@@ -651,15 +787,24 @@ export class PipelineOrchestrator {
       nukedPct,
       stageTiming,
       contentType,
-    };
+    });
   }
 
   destroy(): void {
+    this.activeSignalCleanup?.();
+    this.activeSignalCleanup = null;
     for (const timer of this.pendingTimers) clearTimeout(timer);
     this.pendingTimers.clear();
+    this.pendingRequests.clear();
     this.cvWorker.terminate();
     this.mlWorker.terminate();
     this.disposeInpaintWorker();
     this.disposeLamaWorker();
   }
+
+  /** Test-only accessors so unit tests can assert the #44 leak is fixed
+   *  without touching private state. Cheap in production — the getters
+   *  forward straight to the existing collections. */
+  get _pendingTimersSize(): number { return this.pendingTimers.size; }
+  get _pendingRequestsSize(): number { return this.pendingRequests.size; }
 }

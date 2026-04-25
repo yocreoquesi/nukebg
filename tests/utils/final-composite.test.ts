@@ -6,7 +6,7 @@ if (typeof (globalThis as { ImageData?: unknown }).ImageData === 'undefined') {
     data: Uint8ClampedArray;
     width: number;
     height: number;
-    colorSpace: 'srgb' = 'srgb';
+    colorSpace = 'srgb' as const;
     constructor(data: Uint8ClampedArray, width: number, height: number) {
       this.data = data;
       this.width = width;
@@ -20,7 +20,9 @@ import {
   bilinearUpscaleU8,
   bilinearUpscaleRGB,
   composeAtOriginal,
+  refineUpscaledAlpha,
 } from '../../src/utils/final-composite';
+import { EDGE_REFINE_PARAMS } from '../../src/pipeline/constants';
 
 describe('bilinearUpscaleU8', () => {
   it('returns a copy when sizes match', () => {
@@ -165,6 +167,45 @@ describe('composeAtOriginal', () => {
     expect(out.data[(3 * 4 + 0) * 4 + 3]).toBe(0);
   });
 
+  it('runs edge refinement on the downscale path', () => {
+    // 8x8 original with a vertical RGB edge at x=4 (left black, right white).
+    // 4x4 working alpha with a vertical edge at working x=2 (left=0, right=255).
+    // After bilinear upsample the alpha spreads into a soft ramp across the
+    // boundary. refineUpscaledAlpha should push left-column α toward 0 and
+    // right-column α toward 255 using the RGB edge as guide.
+    const origW = 8, origH = 8;
+    const original = new Uint8ClampedArray(origW * origH * 4);
+    for (let y = 0; y < origH; y++) {
+      for (let x = 0; x < origW; x++) {
+        const idx = (y * origW + x) * 4;
+        const v = x < 4 ? 0 : 255;
+        original[idx] = v; original[idx + 1] = v; original[idx + 2] = v;
+        original[idx + 3] = 255;
+      }
+    }
+    const workW = 4, workH = 4;
+    const working = new Uint8ClampedArray(workW * workH * 4);
+    const workAlpha = new Uint8Array(workW * workH);
+    for (let i = 0; i < workAlpha.length; i++) {
+      const x = i % workW;
+      workAlpha[i] = x < 2 ? 0 : 255;
+    }
+
+    const out = composeAtOriginal({
+      originalRgba: original,
+      originalWidth: origW,
+      originalHeight: origH,
+      workingRgba: working,
+      workingWidth: workW,
+      workingHeight: workH,
+      workingAlpha: workAlpha,
+    });
+
+    // Left column should end up transparent, right column opaque.
+    expect(out.data[3]).toBeLessThanOrEqual(EDGE_REFINE_PARAMS.BAND_LO);
+    expect(out.data[(origW - 1) * 4 + 3]).toBeGreaterThanOrEqual(EDGE_REFINE_PARAMS.BAND_HI);
+  });
+
   it('blends inpainted RGB into masked region', () => {
     const original = makeRgba(4, 4, [255, 0, 0]); // pristine red
     const working = makeRgba(2, 2, [0, 0, 255]); // "inpainted" blue
@@ -188,5 +229,101 @@ describe('composeAtOriginal', () => {
     const bottomRight = out.data.slice((15) * 4, (15) * 4 + 3);
     expect(bottomRight[0]).toBe(255);
     expect(bottomRight[2]).toBe(0);
+  });
+});
+
+describe('refineUpscaledAlpha', () => {
+  const makeFlatRgba = (w: number, h: number, v: number): Uint8ClampedArray => {
+    const arr = new Uint8ClampedArray(w * h * 4);
+    for (let i = 0; i < w * h; i++) {
+      arr[i * 4] = v;
+      arr[i * 4 + 1] = v;
+      arr[i * 4 + 2] = v;
+      arr[i * 4 + 3] = 255;
+    }
+    return arr;
+  };
+
+  it('leaves all-zero alpha untouched (BAND_LO gate)', () => {
+    const w = 8, h = 8;
+    const alpha = new Uint8Array(w * h); // all 0
+    const rgba = makeFlatRgba(w, h, 128);
+    const out = refineUpscaledAlpha(alpha, rgba, w, h);
+    for (let i = 0; i < alpha.length; i++) expect(out[i]).toBe(0);
+  });
+
+  it('leaves all-255 alpha untouched (BAND_HI gate)', () => {
+    const w = 8, h = 8;
+    const alpha = new Uint8Array(w * h).fill(255);
+    const rgba = makeFlatRgba(w, h, 128);
+    const out = refineUpscaledAlpha(alpha, rgba, w, h);
+    for (let i = 0; i < alpha.length; i++) expect(out[i]).toBe(255);
+  });
+
+  it('keeps pixels outside [BAND_LO, BAND_HI] verbatim even when guide has structure', () => {
+    // 4x4 with a hard vertical RGB edge in the middle.
+    const w = 4, h = 4;
+    const rgba = new Uint8ClampedArray(w * h * 4);
+    for (let y = 0; y < h; y++) {
+      for (let x = 0; x < w; x++) {
+        const v = x < 2 ? 0 : 255;
+        const idx = (y * w + x) * 4;
+        rgba[idx] = v; rgba[idx + 1] = v; rgba[idx + 2] = v; rgba[idx + 3] = 255;
+      }
+    }
+    // Alpha: all extremes (0 on left, 255 on right) — nothing in the trimap band.
+    const alpha = new Uint8Array(w * h);
+    for (let i = 0; i < alpha.length; i++) {
+      const x = i % w;
+      alpha[i] = x < 2 ? 0 : 255;
+    }
+    const out = refineUpscaledAlpha(alpha, rgba, w, h);
+    for (let i = 0; i < alpha.length; i++) expect(out[i]).toBe(alpha[i]);
+  });
+
+  it('returns the same length as input alpha', () => {
+    const w = 5, h = 7;
+    const alpha = new Uint8Array(w * h).fill(128);
+    const rgba = makeFlatRgba(w, h, 200);
+    const out = refineUpscaledAlpha(alpha, rgba, w, h);
+    expect(out.length).toBe(w * h);
+  });
+
+  it('sharpens a soft alpha ramp when guide has a sharp edge', () => {
+    // 8x1 guide: sharp step at x=4 (left=0, right=255).
+    // 8x1 alpha: smooth ramp across the whole width (simulates JBU residual).
+    const w = 8, h = 1;
+    const rgba = new Uint8ClampedArray(w * h * 4);
+    for (let x = 0; x < w; x++) {
+      const v = x < 4 ? 0 : 255;
+      const idx = x * 4;
+      rgba[idx] = v; rgba[idx + 1] = v; rgba[idx + 2] = v; rgba[idx + 3] = 255;
+    }
+    const alpha = new Uint8Array([30, 60, 90, 120, 150, 180, 210, 240]);
+    const out = refineUpscaledAlpha(alpha, rgba, w, h);
+
+    // Left half (guide=0) should be pulled DOWN toward background.
+    const leftMeanIn = (alpha[1] + alpha[2] + alpha[3]) / 3;
+    const leftMeanOut = (out[1] + out[2] + out[3]) / 3;
+    expect(leftMeanOut).toBeLessThan(leftMeanIn);
+
+    // Right half (guide=255) should be pulled UP toward foreground.
+    const rightMeanIn = (alpha[4] + alpha[5] + alpha[6]) / 3;
+    const rightMeanOut = (out[4] + out[5] + out[6]) / 3;
+    expect(rightMeanOut).toBeGreaterThan(rightMeanIn);
+  });
+
+  it('does not mutate the input alpha buffer', () => {
+    const w = 4, h = 4;
+    const alpha = new Uint8Array([
+      0, 0, 128, 255,
+      0, 64, 192, 255,
+      0, 96, 200, 255,
+      0, 128, 220, 255,
+    ]);
+    const snapshot = new Uint8Array(alpha);
+    const rgba = makeFlatRgba(w, h, 128);
+    refineUpscaledAlpha(alpha, rgba, w, h);
+    expect(Array.from(alpha)).toEqual(Array.from(snapshot));
   });
 });

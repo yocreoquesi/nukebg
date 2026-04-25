@@ -4,6 +4,27 @@ services:
     ports:
       - "8080:8080"
     restart: unless-stopped
+    # Resource ceiling — a static-asset container should not be able to
+    # eat a host. Tune up if self-hosting for heavy traffic.
+    mem_limit: 512m
+    memswap_limit: 512m
+    cpus: 1.0
+    # Read-only root filesystem. nginx writes go to tmpfs mounts below.
+    read_only: true
+    tmpfs:
+      - /var/cache/nginx
+      - /var/log/nginx
+      - /var/run
+    # Drop all Linux capabilities, add back only NET_BIND_SERVICE (not
+    # strictly needed at port 8080, but kept for completeness if the
+    # user maps to 80).
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+    # Block privilege escalation post-exec.
+    security_opt:
+      - no-new-privileges:true
     healthcheck:
       test: ["CMD", "wget", "--spider", "-q", "http://localhost:8080"]
       interval: 30s

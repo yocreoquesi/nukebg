@@ -19,10 +19,10 @@ test('capture coche output + mirror console/network', async ({ page }, testInfo)
   await page.goto('/');
   await page.waitForLoadState('networkidle');
 
-  const fileInput = page.locator('ar-dropzone').locator('input[type="file"]');
+  const fileInput = page.locator('ar-dropzone').locator('input[type="file"]:not(.dz-camera-input)');
   await fileInput.setInputFiles(FIXTURE);
 
-  const downloadBtn = page.locator('ar-download').locator('#download-btn');
+  const downloadBtn = page.locator('ar-download').locator('#dl-png');
   await expect(downloadBtn).toHaveAttribute('href', /^blob:/, { timeout: 200_000 });
 
   const outPath = resolve(OUT_DIR, `coche.png`);

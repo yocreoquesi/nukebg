@@ -65,11 +65,8 @@ export function estimateForeground(
 
   // Initialize F = B = I at the coarsest level.
   const coarsest = pyramid[pyramid.length - 1];
-  // Typed as Float32Array<ArrayBuffer> explicitly so reassignments from
-  // upsample3 (which returns Float32Array<ArrayBufferLike>) don't trigger
-  // TS 6.x variance errors.
-  let F: Float32Array<ArrayBuffer> = new Float32Array(coarsest.width * coarsest.height * 3);
-  let B: Float32Array<ArrayBuffer> = new Float32Array(coarsest.width * coarsest.height * 3);
+  let F: Float32Array = new Float32Array(coarsest.width * coarsest.height * 3);
+  let B: Float32Array = new Float32Array(coarsest.width * coarsest.height * 3);
   initializeFromImage(coarsest.image, F);
   initializeFromImage(coarsest.image, B);
 

@@ -16,37 +16,45 @@ export interface StageEvent {
   message?: string;
 }
 
+/**
+ * Pipeline output. Buffers (`workingPixels`, `workingAlpha`, `watermarkMask`)
+ * are caller-owned but **treated as read-only snapshots** — mutating them
+ * would corrupt subsequent exports and editor operations that reference the
+ * same result. The object itself is `Object.freeze`'d before return; types
+ * are marked `readonly` so the compiler catches accidental reassignment.
+ * If you need to mutate, clone first (e.g. `new Uint8ClampedArray(buffer)`).
+ */
 export interface PipelineResult {
   /** Processed image with alpha channel (at the working resolution fed to the pipeline) */
-  imageData: ImageData;
+  readonly imageData: ImageData;
   /**
    * RGB pixels at working resolution, possibly modified by inpainting.
    * Exposed so callers can upscale and composite into a full-resolution
    * output when the pipeline ran on a downscaled working copy.
    */
-  workingPixels: Uint8ClampedArray;
+  readonly workingPixels: Uint8ClampedArray;
   /** Alpha mask at working resolution (0..255) */
-  workingAlpha: Uint8Array;
+  readonly workingAlpha: Uint8Array;
   /** Working width — matches imageData.width */
-  workingWidth: number;
+  readonly workingWidth: number;
   /** Working height — matches imageData.height */
-  workingHeight: number;
+  readonly workingHeight: number;
   /**
    * Watermark mask at working resolution (0 or 1), if inpainting happened.
    * Used by the final composite to blend upscaled inpainted RGB only in
    * the watermark region, preserving pristine original RGB elsewhere.
    */
-  watermarkMask: Uint8Array | null;
+  readonly watermarkMask: Uint8Array | null;
   /** Total processing time in ms */
-  totalTimeMs: number;
+  readonly totalTimeMs: number;
   /** Whether watermark was found and removed */
-  watermarkRemoved: boolean;
+  readonly watermarkRemoved: boolean;
   /** Percentage of pixels made transparent */
-  nukedPct: number;
+  readonly nukedPct: number;
   /** Per-stage timing breakdown */
-  stageTiming: Partial<Record<PipelineStage, number>>;
+  readonly stageTiming: Partial<Record<PipelineStage, number>>;
   /** Detected content type for auto-algorithm selection */
-  contentType: ImageContentType;
+  readonly contentType: ImageContentType;
 }
 
 /** Result from background color detection */

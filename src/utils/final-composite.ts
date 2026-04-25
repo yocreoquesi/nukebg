@@ -1,20 +1,16 @@
-import { guidedFilter, jointBilateralUpsample } from '../workers/cv/alpha-matting';
-import { GUIDED_FILTER_PARAMS, JBU_PARAMS } from '../pipeline/constants';
+import { guidedFilter } from '../workers/cv/alpha-matting';
+import { EDGE_REFINE_PARAMS } from '../pipeline/constants';
 
 /**
  * Compose the final output at the original input resolution.
  *
  * When the pipeline runs on a downscaled working copy (memory budget),
- * this helper upscales the resulting alpha mask back to the original
- * resolution and composites it onto the original RGB pixels. Pristine
- * RGB is preserved outside the watermark region; inside the watermark
- * region we upscale the inpainted RGB and blend using the mask.
- *
- * When refineAlpha is true, uses Joint Bilateral Upsampling (JBU) instead
- * of bilinear to upscale the alpha mask, using the original image as
- * guidance. JBU produces sharp edges at full resolution by weighting
- * low-res samples with spatial distance + color similarity in the hi-res
- * guide. For same-size inputs, applies a guided filter for edge cleanup.
+ * this helper bilinear-upscales the resulting alpha mask back to the
+ * original resolution, runs `refineUpscaledAlpha` to snap the soft edge
+ * band to the real RGB gradient, and composites onto the original RGB
+ * pixels. Pristine RGB is preserved outside the watermark region; inside
+ * the watermark region the inpainted RGB is upscaled and blended using
+ * the mask.
  */
 
 /**
@@ -107,6 +103,51 @@ export function bilinearUpscaleRGB(
   return dst;
 }
 
+/**
+ * Snap an upscaled alpha edge to the real image gradient at original
+ * resolution. Only the trimap band (α strictly between BAND_LO and BAND_HI)
+ * is replaced by the guided-filter output; pixels at or past either gate
+ * are passed through verbatim so pure background / pure body never drift.
+ *
+ * Purpose: after any upsample (bilinear or JBU), the alpha edge sits
+ * somewhere inside a soft band that may not align with the true RGB
+ * gradient. A tight guided filter driven by the original luminance pulls
+ * that band toward the actual edge, so `sharpenAlpha` lands on the right
+ * pixel. Cheap (O(1) per-pixel box filter) and band-local.
+ */
+export function refineUpscaledAlpha(
+  alpha: Uint8Array,
+  guideRgba: Uint8ClampedArray,
+  w: number,
+  h: number,
+  radius: number = EDGE_REFINE_PARAMS.RADIUS,
+  epsilon: number = EDGE_REFINE_PARAMS.EPSILON,
+): Uint8Array {
+  // If no pixel sits in the trimap band, there's no edge to snap — skip
+  // the filter entirely. Guards the common case where RMBG already emitted
+  // a near-binary alpha and returns a cheap copy.
+  let hasBand = false;
+  for (let i = 0; i < alpha.length; i++) {
+    const a = alpha[i];
+    if (a > EDGE_REFINE_PARAMS.BAND_LO && a < EDGE_REFINE_PARAMS.BAND_HI) {
+      hasBand = true;
+      break;
+    }
+  }
+  if (!hasBand) return new Uint8Array(alpha);
+
+  const filtered = guidedFilter(alpha, guideRgba, w, h, radius, epsilon);
+  const out = new Uint8Array(alpha.length);
+  for (let i = 0; i < alpha.length; i++) {
+    const a = alpha[i];
+    out[i] =
+      a <= EDGE_REFINE_PARAMS.BAND_LO || a >= EDGE_REFINE_PARAMS.BAND_HI
+        ? a
+        : filtered[i];
+  }
+  return out;
+}
+
 export interface ComposeAtOriginalInput {
   /** Original full-resolution RGBA pixels (pristine, never downsampled). */
   originalRgba: Uint8ClampedArray;
@@ -127,51 +168,43 @@ export interface ComposeAtOriginalInput {
    * If omitted or null, original RGB is preserved everywhere.
    */
   inpaintMask?: Uint8Array | null;
-
-  /**
-   * When true, applies a guided filter at original resolution after
-   * bilinear upscale to snap alpha edges to real image features.
-   */
-  refineAlpha?: boolean;
 }
 
 /**
  * Compose the final RGBA ImageData at original resolution.
- * - Alpha: bilinear-upscaled from working size.
- * - RGB: original pristine pixels, with inpainted region replaced where mask says so.
+ * - Alpha: bilinear-upscaled from working size, then snapped to the
+ *   original-res RGB gradient by `refineUpscaledAlpha` when a downscale
+ *   actually occurred.
+ * - RGB: original pristine pixels, with inpainted region replaced where
+ *   the mask says so.
  */
 export function composeAtOriginal(input: ComposeAtOriginalInput): ImageData {
   const {
     originalRgba, originalWidth: oW, originalHeight: oH,
     workingRgba, workingWidth: wW, workingHeight: wH,
-    workingAlpha, inpaintMask, refineAlpha,
+    workingAlpha, inpaintMask,
   } = input;
 
   const sameSize = oW === wW && oH === wH;
 
-  // Fast path: no upscale needed
+  // Fast path: no upscale needed. Working RGBA already lives at original
+  // resolution; alpha passes through untouched.
   if (sameSize) {
-    const alpha = refineAlpha
-      ? guidedFilter(workingAlpha, originalRgba, oW, oH, GUIDED_FILTER_PARAMS.RADIUS, GUIDED_FILTER_PARAMS.EPSILON)
-      : workingAlpha;
     const out = new Uint8ClampedArray(oW * oH * 4);
     for (let i = 0; i < oW * oH; i++) {
       out[i * 4] = workingRgba[i * 4];
       out[i * 4 + 1] = workingRgba[i * 4 + 1];
       out[i * 4 + 2] = workingRgba[i * 4 + 2];
-      out[i * 4 + 3] = alpha[i];
+      out[i * 4 + 3] = workingAlpha[i];
     }
     return new ImageData(out, oW, oH);
   }
 
-  // Upscale alpha: JBU (edge-aware, uses original as guidance) or bilinear
-  const upAlpha = refineAlpha
-    ? jointBilateralUpsample(
-        workingAlpha, wW, wH,
-        originalRgba, oW, oH,
-        JBU_PARAMS.RADIUS, JBU_PARAMS.SIGMA_SPATIAL, JBU_PARAMS.SIGMA_RANGE,
-      )
-    : bilinearUpscaleU8(workingAlpha, wW, wH, oW, oH);
+  // Downscale path: bilinear upsample, then snap the soft edge band to
+  // the original-res RGB gradient. Trimap-band restricted so pure 0/255
+  // pixels never drift.
+  const upAlphaRaw = bilinearUpscaleU8(workingAlpha, wW, wH, oW, oH);
+  const upAlpha = refineUpscaledAlpha(upAlphaRaw, originalRgba, oW, oH);
 
   // Base RGB: pristine original
   const out = new Uint8ClampedArray(originalRgba);

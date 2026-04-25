@@ -30,9 +30,28 @@ export class ArProgress extends HTMLElement {
         else if (s.stage === 'inpaint') s.label = t('progress.inpaint');
         else if (s.stage === 'ml-segmentation') s.label = t('progress.bgRemovalML');
       });
+      // Cancel button lives in the ar-app command bar now (#71);
+      // its locale update is handled there.
       this.update();
     };
     document.addEventListener('nukebg:locale-changed', this.boundLocaleHandler);
+
+    // #78 — inline error action delegation. Buttons rendered per-stage
+    // when status === 'error'; dispatch a composed CustomEvent so the
+    // host (ar-app) can wire its existing retry / reload / issue-link
+    // paths without this component holding onto them.
+    this.shadowRoot!.addEventListener('click', (e) => {
+      const target = (e.target as HTMLElement | null)?.closest('.stage-action');
+      if (!target) return;
+      const stage = target.getAttribute('data-stage') ?? '';
+      if (target.classList.contains('stage-action-retry')) {
+        this.dispatchEvent(new CustomEvent('ar:stage-retry', { bubbles: true, composed: true, detail: { stage } }));
+      } else if (target.classList.contains('stage-action-report')) {
+        this.dispatchEvent(new CustomEvent('ar:stage-report', { bubbles: true, composed: true, detail: { stage } }));
+      } else if (target.classList.contains('stage-action-reload')) {
+        location.reload();
+      }
+    });
   }
 
   disconnectedCallback(): void {
@@ -50,6 +69,21 @@ export class ArProgress extends HTMLElement {
     this.startTimes.clear();
     this.update();
   }
+
+  /**
+   * Toggle the Cancel control visibility. The hosting component
+   * (`ar-app`) calls `setRunning(true)` when pipeline.process() starts
+   * and `setRunning(false)` when it settles (success, failure, or abort).
+   * Clicking the button dispatches `ar:cancel-processing` which the
+   * host listens for and wires to its AbortController.
+   */
+  setRunning(_running: boolean): void {
+    // Cancel + visible running chrome moved to the ar-app command bar
+    // (#71). Kept as a no-op so existing call sites (host +
+    // tests) don't need to change. The state is reflected in the
+    // command bar's data-state attribute instead.
+  }
+
 
   setStage(stage: PipelineStage, status: StageStatus, message?: string): void {
     // Extract content type from detect-background done message (e.g. "solid detected [signature]")
@@ -95,17 +129,15 @@ export class ArProgress extends HTMLElement {
           max-width: 600px;
           margin: 0 auto;
         }
+        /* Pipeline always emits 3-4 stages (inpaint skips when no
+           watermark). The legacy 80px cap silently clipped the last
+           stage behind a hidden scrollbar — dropped per #80. Keep
+           min-height so the log row doesn't jump when stages populate. */
         .stages {
           display: flex;
           flex-direction: column;
           gap: 4px;
-          max-height: 80px;
           min-height: 80px;
-          overflow-y: auto;
-          scrollbar-width: none;
-        }
-        .stages::-webkit-scrollbar {
-          display: none;
         }
         .stage {
           display: flex;
@@ -139,7 +171,7 @@ export class ArProgress extends HTMLElement {
           color: var(--color-accent-primary, #00ff41);
         }
         .stage.skipped .stage-icon {
-          color: var(--color-text-tertiary, #008830);
+          color: var(--color-text-tertiary, #00b34a);
         }
         .stage.error .stage-icon {
           color: var(--color-error, #ff3131);
@@ -149,11 +181,11 @@ export class ArProgress extends HTMLElement {
         }
         .stage-time {
           font-size: var(--text-xs, 0.75rem);
-          color: var(--color-text-tertiary, #008830);
+          color: var(--color-text-tertiary, #00b34a);
         }
         .stage-message {
           font-size: var(--text-xs, 0.75rem);
-          color: var(--color-text-tertiary, #008830);
+          color: var(--color-text-tertiary, #00b34a);
         }
         .progress-bar {
           width: 100%;
@@ -216,9 +248,50 @@ export class ArProgress extends HTMLElement {
           .progress-fill.parsing { animation: none !important; }
         }
 
+        /* Inline error-stage actions (#78). Mirrors the error modal
+           buttons so recovery is available without hunting the
+           overlay. Delegates clicks to ar-app via
+           ar:stage-retry / ar:stage-report / ar:stage-reload events. */
+        .stage-actions {
+          display: flex;
+          gap: 6px;
+          padding: 4px 24px 4px;
+          flex-wrap: wrap;
+        }
+        .stage-action {
+          font: inherit;
+          font-family: 'JetBrains Mono', monospace;
+          font-size: 11px;
+          letter-spacing: 0.04em;
+          padding: 3px 10px;
+          background: transparent;
+          color: var(--color-text-secondary, #00dd44);
+          border: 1px solid var(--color-surface-border, #1a3a1a);
+          border-radius: 0;
+          cursor: pointer;
+          min-height: 28px;
+        }
+        .stage-action:hover,
+        .stage-action:focus-visible {
+          color: var(--color-accent-primary, #00ff41);
+          border-color: var(--color-accent-primary, #00ff41);
+          outline: none;
+        }
+        .stage-action-retry {
+          color: var(--color-accent-primary, #00ff41);
+          border-color: var(--color-accent-primary, #00ff41);
+        }
+        @media (pointer: coarse) {
+          .stage-action { min-height: 40px; padding: 8px 14px; }
+        }
       </style>
       <div class="stages" role="log" aria-live="polite"></div>
     `;
+    // Cancel button moved to the ar-app command bar (#71). ar-progress
+    // still owns the running state (setRunning is called by the host)
+    // so it can drive future "show spinner / show done" styling — the
+    // `ar:cancel-processing` event is now dispatched from the command
+    // bar in ar-app.
   }
 
   /** Escape HTML entities to prevent XSS from worker error messages */
@@ -273,6 +346,17 @@ export class ArProgress extends HTMLElement {
         }
       }
 
+      // #78 — when a stage errors, render retry / report / reload
+      // actions inline so the user can recover without hunting the
+      // modal that the pipeline error surface also raises from #65.
+      const errorActions = s.status === 'error'
+        ? `<div class="stage-actions" role="group" aria-label="Error recovery">
+             <button type="button" class="stage-action stage-action-retry" data-stage="${this.escapeHtml(s.stage)}">${this.escapeHtml(t('error.retry'))}</button>
+             <button type="button" class="stage-action stage-action-report" data-stage="${this.escapeHtml(s.stage)}">${this.escapeHtml(t('error.report'))}</button>
+             <button type="button" class="stage-action stage-action-reload">${this.escapeHtml(t('error.reload'))}</button>
+           </div>`
+        : '';
+
       return `
         <div class="stage ${this.escapeHtml(s.status)}">
           <span class="stage-icon">${icon}</span>
@@ -281,6 +365,7 @@ export class ArProgress extends HTMLElement {
           <span class="stage-time">${timeStr}</span>
         </div>
         ${progressBar}
+        ${errorActions}
       `;
     }).join('');
 

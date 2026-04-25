@@ -49,8 +49,6 @@
   <link rel="manifest" href="/manifest.webmanifest" />
   <link rel="preload" href="/fonts/JetBrainsMono-Regular.woff2" as="font" type="font/woff2" crossorigin />
   <link rel="preload" href="/fonts/JetBrainsMono-Bold.woff2" as="font" type="font/woff2" crossorigin />
-  <link rel="dns-prefetch" href="https://huggingface.co" />
-  <link rel="preconnect" href="https://cdn-lfs.huggingface.co" crossorigin />
 
   <!-- Fonts: self-hosted, zero external requests -->
   <style>
@@ -90,7 +88,7 @@
       "PNG export with true alpha transparency"
     ],
     "screenshot": "https://nukebg.app/og-image.png",
-    "softwareVersion": "2.7.2",
+    "softwareVersion": "2.8.0",
     "license": "https://www.gnu.org/licenses/gpl-3.0.html",
     "isAccessibleForFree": true,
     "creator": {
@@ -360,7 +358,7 @@
   </main>
 
   <footer class="footer hazard-border-top" role="contentinfo">
-    <span>NukeBG <span style="color:var(--color-text-tertiary)">v2.7.2</span></span>
+    <span>NukeBG <span style="color:var(--color-text-tertiary)">v2.8.0</span></span>
     <span class="footer-sep">|</span>
     <span>GPL-3.0</span>
     <span class="footer-sep">|</span>
@@ -369,23 +367,27 @@
     <a href="https://ko-fi.com/yocreoquesi" target="_blank" rel="noopener noreferrer" class="kofi-link" id="kofi-link">☕ Support on Ko-fi</a>
     <span class="footer-sep">|</span>
     <a href="#" id="clear-cache-btn" class="footer-cache-btn" title="Clear cached data and reload">☢ Clear cache</a>
+    <span class="footer-sep">|</span>
+    <button type="button" id="quiet-mode-toggle" class="footer-quiet-btn" aria-pressed="false"># quiet mode</button>
+    <span class="footer-sep">|</span>
+    <div class="theme-picker" role="radiogroup" id="theme-picker" aria-label="Theme">
+      <span class="theme-picker-label"># theme</span>
+      <button type="button" class="theme-swatch" role="radio" data-theme="green" aria-checked="true" aria-label="Terminal green (default)" title="Terminal green"></button>
+      <button type="button" class="theme-swatch" role="radio" data-theme="amber" aria-checked="false" aria-label="Amber" title="Amber"></button>
+      <button type="button" class="theme-swatch" role="radio" data-theme="cyan" aria-checked="false" aria-label="Cyan" title="Cyan"></button>
+      <button type="button" class="theme-swatch" role="radio" data-theme="magenta" aria-checked="false" aria-label="Magenta" title="Magenta"></button>
+      <button type="button" class="theme-swatch" role="radio" data-theme="red" aria-checked="false" aria-label="Red" title="Red"></button>
+      <button type="button" class="theme-swatch" role="radio" data-theme="yellow" aria-checked="false" aria-label="Yellow" title="Yellow"></button>
+    </div>
     <span class="footer-privacy" id="footer-privacy">Your images never leave your device. Zero uploads. Zero BS.</span>
     <span class="footer-holiday" id="footer-holiday"></span>
   </footer>
 
   <div class="kbd-toast" id="kbd-toast" role="status" aria-live="polite"></div>
-  <div class="smoke-overlay" id="smoke-overlay"></div>
 
-  <!-- Auto-recovery: if main JS fails to load (stale SW cache), clear and reload -->
-  <script>
-    setTimeout(function() {
-      if (document.getElementById('seo-content') && 'serviceWorker' in navigator) {
-        caches.keys().then(function(keys) {
-          return Promise.all(keys.map(function(k) { return caches.delete(k); }));
-        }).then(function() { location.reload(); });
-      }
-    }, 5000);
-  </script>
+  <!-- Auto-recovery: if main JS fails to load (stale SW cache), clear and reload.
+       Externalized so CSP can drop script-src 'unsafe-inline'. -->
+  <script src="/sw-recovery.js"></script>
   <script type="module" src="/src/main.ts"></script>
 </body>
 </html>

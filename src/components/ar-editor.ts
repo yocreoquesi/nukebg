@@ -203,7 +203,7 @@ export class ArEditor extends HTMLElement {
         }
         .toolbar label {
           font-size: var(--text-xs, 0.75rem);
-          color: var(--color-text-tertiary, #008830);
+          color: var(--color-text-tertiary, #00b34a);
           font-family: 'JetBrains Mono', monospace;
           white-space: nowrap;
         }
@@ -222,7 +222,7 @@ export class ArEditor extends HTMLElement {
         }
         .size-display {
           font-size: var(--text-xs, 0.75rem);
-          color: var(--color-text-tertiary, #008830);
+          color: var(--color-text-tertiary, #00b34a);
           min-width: 32px;
           text-align: center;
         }
@@ -301,6 +301,184 @@ export class ArEditor extends HTMLElement {
           height: 20px;
           background: var(--color-surface-border, #1a3a1a);
         }
+        /* Editor command bar above the canvas (#76 sub-task C).
+           Mirrors the ar-app workspace command bar pattern so the
+           vocabulary stays consistent: $ action · meta · [cancel] [apply]. */
+        .editor-cmd-bar {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+          padding: 8px 12px;
+          margin-bottom: 10px;
+          border: 1px solid var(--color-surface-border, #1a3a1a);
+          background: var(--color-bg-primary, #000);
+          font-family: 'JetBrains Mono', monospace;
+          font-size: 12px;
+          min-height: 40px;
+          flex-wrap: wrap;
+        }
+        .editor-cmd-left {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          color: var(--color-text-secondary, #00dd44);
+          min-width: 0;
+          flex: 1 1 auto;
+        }
+        .editor-cmd-prompt { color: var(--color-text-tertiary, #00b34a); }
+        .editor-cmd-action { color: var(--color-accent-primary, #00ff41); font-weight: 600; }
+        .editor-cmd-meta { color: var(--color-text-tertiary, #00b34a); }
+        .editor-cmd-right {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          flex-shrink: 0;
+        }
+        .editor-cmd-btn {
+          font: inherit;
+          font-size: 11px;
+          letter-spacing: 0.04em;
+          padding: 4px 10px;
+          background: transparent;
+          color: var(--color-text-secondary, #00dd44);
+          border: 1px solid var(--color-surface-border, #1a3a1a);
+          border-radius: 0;
+          cursor: pointer;
+          min-height: 32px;
+          transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+        }
+        .editor-cmd-btn:hover:not(:disabled),
+        .editor-cmd-btn:focus-visible {
+          color: var(--color-accent-primary, #00ff41);
+          border-color: var(--color-accent-primary, #00ff41);
+          outline: none;
+        }
+        .editor-cmd-btn-primary {
+          color: var(--color-accent-primary, #00ff41);
+          border-color: var(--color-accent-primary, #00ff41);
+          background: rgba(var(--color-accent-rgb, 0, 255, 65), 0.05);
+        }
+        .editor-cmd-btn-primary:hover:not(:disabled),
+        .editor-cmd-btn-primary:focus-visible {
+          background: rgba(var(--color-accent-rgb, 0, 255, 65), 0.12);
+          box-shadow: 0 0 8px var(--color-accent-glow, rgba(0, 255, 65, 0.25));
+        }
+        @media (pointer: coarse) {
+          .editor-cmd-btn { min-height: 44px; min-width: 88px; }
+        }
+        @media (max-width: 480px) {
+          .editor-cmd-bar { padding: 6px 10px; gap: 8px; }
+        }
+        /* Editor body — canvas + optional sidebar at ≥ 900 px.
+           Single column below that breakpoint, the shortcuts move
+           back behind the "?" tooltip. (#76 sub-task B) */
+        .editor-body {
+          display: grid;
+          grid-template-columns: 1fr;
+          gap: var(--space-3, 0.75rem);
+          align-items: start;
+        }
+        @media (min-width: 900px) {
+          .editor-body {
+            grid-template-columns: 200px minmax(0, 1fr) 260px;
+          }
+        }
+        /* Left rail (#76 sub-task A). Vertical column at ≥ 900 px,
+           horizontal strip below so mobile keeps single-row flow. */
+        .editor-rail {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 10px;
+          padding: 12px;
+          border: 1px solid var(--color-surface-border, #1a3a1a);
+          background: var(--color-bg-primary, #000);
+          font-family: 'JetBrains Mono', monospace;
+          font-size: 12px;
+          align-content: start;
+        }
+        @media (min-width: 900px) {
+          .editor-rail {
+            flex-direction: column;
+            flex-wrap: nowrap;
+          }
+        }
+        .editor-rail-group {
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+          min-width: 0;
+        }
+        .editor-rail-label {
+          color: var(--color-text-tertiary, #00b34a);
+          font-size: 11px;
+          letter-spacing: 0.04em;
+          text-transform: uppercase;
+        }
+        .editor-rail-select,
+        .editor-rail-range {
+          font-family: inherit;
+          font-size: 12px;
+          color: var(--color-accent-primary, #00ff41);
+          background: var(--color-bg-primary, #000);
+          border: 1px solid var(--color-surface-border, #1a3a1a);
+          border-radius: 0;
+          padding: 4px 6px;
+          cursor: pointer;
+          accent-color: var(--color-accent-primary, #00ff41);
+        }
+        .editor-rail-range { padding: 0; }
+        @media (pointer: coarse) {
+          .editor-rail-select { min-height: 44px; }
+        }
+        .editor-sidebar {
+          display: none;
+          flex-direction: column;
+          gap: var(--space-3, 0.75rem);
+          padding: 12px;
+          border: 1px solid var(--color-surface-border, #1a3a1a);
+          background: var(--color-bg-primary, #000);
+          font-family: 'JetBrains Mono', monospace;
+          font-size: 12px;
+          color: var(--color-text-secondary, #00dd44);
+        }
+        @media (min-width: 900px) {
+          .editor-sidebar { display: flex; }
+        }
+        .editor-sidebar h4 {
+          margin: 0;
+          padding: 0;
+          color: var(--color-accent-primary, #00ff41);
+          font-size: 12px;
+          font-weight: 600;
+          letter-spacing: 0.04em;
+          text-transform: uppercase;
+        }
+        .editor-shortcuts {
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+          font-size: 12px;
+          color: var(--color-text-secondary, #00dd44);
+        }
+        .editor-shortcuts kbd {
+          display: inline-block;
+          min-width: 14px;
+          padding: 2px 6px;
+          margin-right: 6px;
+          background: var(--color-bg-primary, #000);
+          border: 1px solid var(--color-surface-border, #1a3a1a);
+          border-radius: 0;
+          color: var(--color-accent-primary, #00ff41);
+          font-family: 'JetBrains Mono', monospace;
+          font-size: 11px;
+        }
+        /* At ≥ 900 px the "?" popover becomes redundant — sidebar
+           owns the shortcuts. Keep the button for keyboard
+           discoverability below the breakpoint. */
+        @media (min-width: 900px) {
+          .help-wrap { display: none; }
+        }
         .canvas-wrap {
           position: relative;
           border: 1px solid var(--color-surface-border, #1a3a1a);
@@ -310,6 +488,11 @@ export class ArEditor extends HTMLElement {
           min-height: 400px;
           display: flex;
           align-items: center;
+          /* touch-action:none unconditionally — iOS Safari treats
+             long-press on canvas as context menu and pinch as page
+             zoom, both of which break the brush / erase flow even
+             when a mouse is also attached (iPad with trackpad). */
+          touch-action: none;
           justify-content: center;
         }
         canvas {
@@ -328,7 +511,7 @@ export class ArEditor extends HTMLElement {
           gap: 6px;
           align-items: center;
         }
-        .bg-options span { font-size: 12px; color: var(--color-text-tertiary, #008830); }
+        .bg-options span { font-size: 12px; color: var(--color-text-tertiary, #00b34a); }
         .bg-btn {
           width: 20px; height: 20px;
           border-radius: 0;
@@ -352,13 +535,13 @@ export class ArEditor extends HTMLElement {
         }
         .hint {
           font-size: var(--text-xs, 0.75rem);
-          color: var(--color-text-tertiary, #008830);
+          color: var(--color-text-tertiary, #00b34a);
           text-align: center;
           padding: var(--space-1, 0.25rem);
         }
         .zoom-display {
           font-size: var(--text-xs, 0.75rem);
-          color: var(--color-text-tertiary, #008830);
+          color: var(--color-text-tertiary, #00b34a);
         }
 
         /* Touch brush indicator (replaces cursor on touch devices) */
@@ -458,9 +641,6 @@ export class ArEditor extends HTMLElement {
             width: 32px;
             height: 32px;
           }
-          .canvas-wrap {
-            touch-action: none;
-          }
         }
 
         @media (prefers-reduced-motion: reduce) {
@@ -472,24 +652,6 @@ export class ArEditor extends HTMLElement {
 
       <div class="editor-container">
         <div class="toolbar">
-          <label id="ed-tool-label">${t('editor.tool')}</label>
-          <select id="brush-tool" aria-label="${t('editor.tool')}">
-            <option value="erase" selected>${t('editor.eraser')}</option>
-            <option value="restore">${t('editor.restore')}</option>
-          </select>
-
-          <label id="ed-brush-label">${t('editor.shape')}</label>
-          <select id="brush-shape" aria-label="${t('editor.shape')}">
-            <option value="circle" selected>${t('editor.eraserCircle')}</option>
-            <option value="square">${t('editor.eraserSquare')}</option>
-          </select>
-
-          <label id="ed-size-label">${t('editor.eraserSize')}</label>
-          <input type="range" id="brush-size" min="2" max="100" value="20" aria-label="${t('editor.eraserSize')}">
-          <span class="size-display" id="size-display">20px</span>
-
-          <div class="separator"></div>
-
           <button class="toolbar-btn" id="undo-btn" disabled aria-label="${t('editor.undo')}">${t('editor.undo')}</button>
           <button class="toolbar-btn" id="redo-btn" disabled aria-label="${t('editor.redo')}">${t('editor.redo')}</button>
 
@@ -499,11 +661,6 @@ export class ArEditor extends HTMLElement {
             <span class="zoom-display" id="zoom-display">100%</span>
             <button class="toolbar-btn" id="zoom-fit" aria-label="${t('editor.zoomFit')}">${t('editor.zoomFit')}</button>
           </div>
-
-          <div class="separator"></div>
-
-          <button class="toolbar-btn" id="cancel-btn">${t('editor.cancel')}</button>
-          <button class="toolbar-btn primary" id="done-btn">${t('editor.apply')}</button>
 
           <div class="help-wrap">
             <button class="toolbar-btn" id="help-btn" aria-label="${t('editor.shortcuts')}">?</button>
@@ -520,9 +677,64 @@ export class ArEditor extends HTMLElement {
           </div>
         </div>
 
-        <div class="canvas-wrap" id="canvas-wrap">
-          <canvas id="editor-canvas"></canvas>
-          <div class="touch-indicator" id="touch-indicator"></div>
+        <!-- Mini command bar above the canvas (#76 sub-task C).
+             Promotes Apply / Cancel out of the generic toolbar row
+             and adds a "$ edit --brush · brush=N · tool=E/R" live
+             status line so the user always knows what Apply will do. -->
+        <div class="editor-cmd-bar">
+          <div class="editor-cmd-left">
+            <span class="editor-cmd-prompt">$</span>
+            <span class="editor-cmd-action">edit --brush</span>
+            <span class="editor-cmd-meta" id="editor-cmd-meta">·&nbsp;brush=${this.brushSize}·&nbsp;tool=E</span>
+          </div>
+          <div class="editor-cmd-right">
+            <button class="editor-cmd-btn" id="cancel-btn">${t('editor.cancel')}</button>
+            <button class="editor-cmd-btn editor-cmd-btn-primary" id="done-btn">${t('editor.apply')}</button>
+          </div>
+        </div>
+        <div class="editor-body">
+          <!-- Left rail (#76 sub-task A). At ≥ 900 px it stacks
+               tool + shape + size vertically next to the canvas.
+               Below 900 px it flattens to a horizontal row above
+               the canvas, keeping the controls reachable on mobile. -->
+          <aside class="editor-rail" aria-label="${t('editor.tool')}">
+            <div class="editor-rail-group">
+              <label id="ed-tool-label" class="editor-rail-label">${t('editor.tool')}</label>
+              <select id="brush-tool" class="editor-rail-select" aria-label="${t('editor.tool')}">
+                <option value="erase" selected>${t('editor.eraser')}</option>
+                <option value="restore">${t('editor.restore')}</option>
+              </select>
+            </div>
+            <div class="editor-rail-group">
+              <label id="ed-brush-label" class="editor-rail-label">${t('editor.shape')}</label>
+              <select id="brush-shape" class="editor-rail-select" aria-label="${t('editor.shape')}">
+                <option value="circle" selected>${t('editor.eraserCircle')}</option>
+                <option value="square">${t('editor.eraserSquare')}</option>
+              </select>
+            </div>
+            <div class="editor-rail-group">
+              <label id="ed-size-label" class="editor-rail-label">${t('editor.eraserSize')}</label>
+              <input type="range" id="brush-size" class="editor-rail-range" min="2" max="100" value="20" aria-label="${t('editor.eraserSize')}">
+              <span class="size-display" id="size-display">20px</span>
+            </div>
+          </aside>
+          <div class="canvas-wrap" id="canvas-wrap">
+            <canvas id="editor-canvas" tabindex="0" role="img"
+                    aria-label="${t('editor.canvasLabel')}"></canvas>
+            <div class="touch-indicator" id="touch-indicator"></div>
+          </div>
+          <aside class="editor-sidebar" aria-labelledby="ed-shortcuts-title">
+            <h4 id="ed-shortcuts-title">${t('editor.shortcuts')}</h4>
+            <div class="editor-shortcuts">
+              <div><kbd>Click</kbd> ${t('editor.shortcutErase')}</div>
+              <div><kbd>[ ]</kbd> ${t('editor.shortcutEraserSize')}</div>
+              <div><kbd>Scroll</kbd> ${t('editor.shortcutZoom')}</div>
+              <div><kbd>Middle drag</kbd> ${t('editor.shortcutPan')}</div>
+              <div><kbd>0</kbd> ${t('editor.shortcutResetView')}</div>
+              <div><kbd>Ctrl+Z</kbd> ${t('editor.shortcutUndo')}</div>
+              <div><kbd>Ctrl+Shift+Z</kbd> ${t('editor.shortcutRedo')}</div>
+            </div>
+          </aside>
         </div>
 
         <div class="editor-footer">
@@ -563,6 +775,7 @@ export class ArEditor extends HTMLElement {
     this.shadowRoot!.querySelector('#brush-tool')!.addEventListener('change', (e) => {
       this.tool = (e.target as HTMLSelectElement).value as 'erase' | 'restore';
       this.updateCursor();
+      this.syncCmdBarMeta();
     }, { signal });
 
     this.shadowRoot!.querySelector('#brush-shape')!.addEventListener('change', (e) => {
@@ -577,6 +790,7 @@ export class ArEditor extends HTMLElement {
       this.brushSize = parseInt(sizeInput.value);
       sizeDisplay.textContent = `${this.brushSize}px`;
       this.updateCursor();
+      this.syncCmdBarMeta();
     }, { signal });
 
     // Undo/Redo
@@ -612,6 +826,14 @@ export class ArEditor extends HTMLElement {
     // Close on click outside
     this.shadowRoot!.addEventListener('click', (e) => {
       if (e.target !== helpBtn && !helpTooltip.contains(e.target as Node)) {
+        helpTooltip.classList.remove('visible');
+      }
+    }, { signal });
+    // Close on Escape — keyboard users otherwise have no way out of
+    // the help overlay short of clicking the button again.
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && helpTooltip.classList.contains('visible')) {
+        e.preventDefault();
         helpTooltip.classList.remove('visible');
       }
     }, { signal });
@@ -670,6 +892,20 @@ export class ArEditor extends HTMLElement {
     const sizeDisplay = this.shadowRoot!.querySelector('#size-display')!;
     sizeInput.value = String(this.brushSize);
     sizeDisplay.textContent = `${this.brushSize}px`;
+    this.syncCmdBarMeta();
+  }
+
+  /**
+   * Keep the editor command bar's live meta line in sync with the
+   * current brush size + active tool (#76 sub-task C). Called from
+   * every mutation site — tool select, size slider, keyboard [ / ]
+   * shortcut — so the header always matches what Apply will do.
+   */
+  private syncCmdBarMeta(): void {
+    const meta = this.shadowRoot?.querySelector('#editor-cmd-meta');
+    if (!meta) return;
+    const letter = this.tool === 'erase' ? 'E' : 'R';
+    meta.innerHTML = `·&nbsp;brush=${this.brushSize}&nbsp;·&nbsp;tool=${letter}`;
   }
 
   /**

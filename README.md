@@ -2,7 +2,7 @@
 
 > Nuke backgrounds from any image. 100% client-side. Zero uploads. Zero BS.
 
-[![Version](https://img.shields.io/badge/version-2.7.2-brightgreen.svg)](https://github.com/yocreoquesi/nukebg/releases)
+[![Version](https://img.shields.io/badge/version-2.8.0-brightgreen.svg)](https://github.com/yocreoquesi/nukebg/releases)
 [![License: GPL-3.0](https://img.shields.io/badge/License-GPL%20v3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![Client-Side](https://img.shields.io/badge/Processing-100%25%20Client--Side-green.svg)](#-privacy)
 [![Ko-fi](https://img.shields.io/badge/Ko--fi-Support%20NukeBG-FF5E5B?logo=ko-fi&logoColor=white)](https://ko-fi.com/yocreoquesi)
@@ -38,8 +38,10 @@ Drop. Nuke. Download. That's it.
 [+] WATERMARK REMOVAL            Auto-detects Gemini sparkle + DALL-E color bar watermarks.
                                   Telea FMM reconstruction -- no blurry patches.
 
-[+] 100% CLIENT-SIDE             Zero server uploads. Zero network requests during processing.
-                                  Verify it yourself in DevTools.
+[+] 100% CLIENT-SIDE             Zero server uploads. Your images NEVER leave your device.
+                                  First load fetches the ML model (HuggingFace) and the
+                                  ONNX runtime (jsDelivr) once, then cached — no pixels
+                                  go anywhere. Verify it yourself in DevTools.
 
 [+] OFFLINE MODE                 After first visit, app + model weights are cached.
                                   Process images without internet.
@@ -154,6 +156,13 @@ NO tracking.             No analytics. No telemetry.
 NO accounts.             No sign-up required.
 OFFLINE capable.         Works without internet after first visit.
 OPEN SOURCE.             Don't trust us -- verify.
+
+What actually goes over the network (first load only, then cached):
+  - briaai/RMBG-1.4 weights from huggingface.co
+  - onnxruntime-web WASM runtime from cdn.jsdelivr.net (needed for LaMa inpainting)
+  - opencv/inpainting_lama weights from huggingface.co (first watermark inpaint only)
+Open DevTools > Network while you process an image: the only requests
+you should see after the first warmup are the initial page load.
 ```
 
 ## > comparison
@@ -168,6 +177,22 @@ OPEN SOURCE.             Don't trust us -- verify.
 | Free and unlimited | Yes | No (credits) | Yes | No ($22/mo) |
 | Open source | Yes (GPL-3.0) | No | No | No |
 | Works offline | Yes | No | No | Yes |
+
+## > license_compliance
+
+NukeBG itself is GPL-3.0 (see [LICENSE](LICENSE)), but it ships with third-party
+artifacts whose licenses carry independent obligations:
+
+| Component | License | Notes |
+|-----------|---------|-------|
+| RMBG-1.4 ML model (BRIA AI) | [bria-rmbg-1.4 license](https://huggingface.co/briaai/RMBG-1.4) | **Non-commercial use only**. Commercial deployments — paid products, paid APIs, paid SaaS — require a commercial agreement with BRIA AI, or swapping to a different model. The GPL-3.0 license of NukeBG's code does not override this. |
+| JetBrains Mono font | [SIL Open Font License 1.1](public/fonts/OFL.txt) | Bundled self-hosted. Attribution preserved in `public/fonts/OFL.txt`. |
+| Transformers.js, ONNX Runtime Web | Apache-2.0 / MIT | Compatible. |
+
+If you fork NukeBG and host it commercially, you are responsible for complying
+with the RMBG-1.4 model license. The project does not bundle the model weights —
+they are fetched at runtime from Hugging Face — but that does not change the
+downstream obligation.
 
 ## > contributing
 

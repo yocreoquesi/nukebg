@@ -77,11 +77,41 @@ async function loadModel(id: string): Promise<ort.InferenceSession> {
       }
     }
 
+    // Validate stream completeness. A truncated body (connection drop,
+    // proxy cap) would otherwise flow through and blow up inside ORT
+    // with an opaque "failed to load model" — we want a specific,
+    // retryable error instead.
+    if (total > 0 && received !== total) {
+      throw new Error(
+        `Truncated LaMa model download: got ${received} / ${total} bytes`,
+      );
+    }
+    if (received !== LAMA_PARAMS.EXPECTED_SIZE) {
+      throw new Error(
+        `LaMa model size mismatch: got ${received} bytes, expected ` +
+        `${LAMA_PARAMS.EXPECTED_SIZE}. Upstream may have been replaced.`,
+      );
+    }
+
     const buffer = new Uint8Array(received);
     let offset = 0;
     for (const c of chunks) {
       buffer.set(c, offset);
       offset += c.byteLength;
+    }
+
+    // Integrity check: fail closed if the downloaded bytes don't match
+    // the audited SHA-256. Protects against an upstream swap, a MITM,
+    // or a poisoned Service Worker cache serving unverified content.
+    const digestBuf = await crypto.subtle.digest('SHA-256', buffer);
+    const digestHex = Array.from(new Uint8Array(digestBuf))
+      .map((b) => b.toString(16).padStart(2, '0'))
+      .join('');
+    if (digestHex !== LAMA_PARAMS.EXPECTED_SHA256) {
+      throw new Error(
+        `LaMa model hash mismatch: got ${digestHex}, ` +
+        `expected ${LAMA_PARAMS.EXPECTED_SHA256}. Refusing to load.`,
+      );
     }
 
     const created = await ort.InferenceSession.create(buffer, {

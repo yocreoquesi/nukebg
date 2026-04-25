@@ -5,7 +5,7 @@ document.getElementById('seo-content')?.remove();
 import './styles/main.css';
 
 // i18n - importar antes de los componentes para que detecte el locale
-import { getLocale, setLocale, t } from './i18n';
+import { getLocale, setLocale, getDirection, t } from './i18n';
 
 // Register Web Components
 import './components/ar-dropzone';
@@ -35,31 +35,126 @@ function initKeyboardShortcuts(): void {
     toastTimeout = setTimeout(() => toast.classList.remove('visible'), 1800);
   };
 
+  // Global shortcut overlay: lists every shortcut the app exposes.
+  // Toggled by `?`, dismissed by Escape or overlay click. Lives in
+  // light DOM so it sits on top of every shadow tree without z-index
+  // wars.
+  const overlay = createShortcutOverlay();
+  document.body.appendChild(overlay);
+  const openOverlay = () => { overlay.hidden = false; overlay.focus(); };
+  const closeOverlay = () => { overlay.hidden = true; };
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) closeOverlay();
+  });
+  overlay.querySelector<HTMLButtonElement>('[data-close]')?.addEventListener('click', closeOverlay);
+
+  /** True when the user is typing in an input / textarea / contenteditable. */
+  const inFormField = (el: EventTarget | null): boolean => {
+    const n = el as HTMLElement | null;
+    if (!n) return false;
+    if (n.isContentEditable) return true;
+    const tag = n.tagName?.toLowerCase();
+    return tag === 'input' || tag === 'textarea' || tag === 'select';
+  };
+
   document.addEventListener('keydown', (e: KeyboardEvent) => {
     const ctrl = e.ctrlKey || e.metaKey;
 
     // Ctrl+S: download result
     if (ctrl && e.key === 's') {
       e.preventDefault();
-      // Find the download link in ar-download shadow DOM
       const arApp = document.querySelector('ar-app');
       if (!arApp?.shadowRoot) return;
       const arDownload = arApp.shadowRoot.querySelector('ar-download');
       if (!arDownload?.shadowRoot) return;
-      const link = arDownload.shadowRoot.querySelector('#download-btn') as HTMLAnchorElement | null;
-      if (link?.hasAttribute('href')) {
+      // #72 — primary download is now the PNG anchor in dl-png.
+      const link = arDownload.shadowRoot.querySelector('#dl-png') as HTMLAnchorElement | null;
+      if (link && !link.hidden && link.hasAttribute('href')) {
         link.click();
-        showToast('Downloading result...');
+        showToast('Downloading PNG...');
       }
+      return;
     }
+
+    // Skip rest of global shortcuts while the user is typing.
+    if (inFormField(e.target)) return;
+
+    // `/` focus the dropzone file picker so keyboard users can drop
+    // a file without tabbing through the header every time.
+    if (e.key === '/') {
+      const arApp = document.querySelector('ar-app');
+      const dz = arApp?.shadowRoot?.querySelector('ar-dropzone');
+      const target = dz?.shadowRoot?.querySelector('.dropzone') as HTMLElement | null;
+      if (target) {
+        e.preventDefault();
+        target.focus();
+        showToast('Drop an image or press Enter to browse');
+      }
+      return;
+    }
+
+    // `?` toggles the shortcut overlay (Shift+/ in most layouts).
+    if (e.key === '?' || (e.shiftKey && e.key === '?')) {
+      e.preventDefault();
+      if (overlay.hidden) openOverlay();
+      else closeOverlay();
+      return;
+    }
+
+    // `Escape`: if overlay is open, close it. Otherwise let the
+    // shadow-root handlers process it (progress cancel, editor close,
+    // etc).
+    if (e.key === 'Escape' && !overlay.hidden) {
+      e.preventDefault();
+      closeOverlay();
+      return;
+    }
+
   });
+}
+
+/**
+ * Build the app-level shortcut help overlay. Not an ar-app component
+ * because it needs to sit above every shadow tree (viewer, editor,
+ * error modal) regardless of its stacking context.
+ */
+function createShortcutOverlay(): HTMLDivElement {
+  const overlay = document.createElement('div');
+  overlay.className = 'kbd-overlay';
+  overlay.hidden = true;
+  overlay.tabIndex = -1;
+  overlay.setAttribute('role', 'dialog');
+  overlay.setAttribute('aria-modal', 'true');
+  overlay.setAttribute('aria-label', 'Keyboard shortcuts');
+  overlay.innerHTML = `
+    <div class="kbd-overlay-card">
+      <h2 class="kbd-overlay-title"># keyboard shortcuts</h2>
+      <dl class="kbd-overlay-list">
+        <dt><kbd>/</kbd></dt><dd>Focus the drop zone</dd>
+        <dt><kbd>Ctrl</kbd>+<kbd>S</kbd></dt><dd>Download PNG result</dd>
+        <dt><kbd>Ctrl</kbd>+<kbd>V</kbd></dt><dd>Paste image from clipboard</dd>
+        <dt><kbd>Esc</kbd></dt><dd>Cancel current action · close dialogs</dd>
+        <dt><kbd>?</kbd></dt><dd>Toggle this panel</dd>
+      </dl>
+      <h3 class="kbd-overlay-sub"># editor</h3>
+      <dl class="kbd-overlay-list">
+        <dt><kbd>B</kbd> / <kbd>E</kbd></dt><dd>Brush · Eraser</dd>
+        <dt><kbd>[</kbd> / <kbd>]</kbd></dt><dd>Brush size −/+</dd>
+        <dt><kbd>0</kbd></dt><dd>Reset view</dd>
+        <dt><kbd>Ctrl</kbd>+<kbd>Z</kbd></dt><dd>Undo</dd>
+        <dt><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Z</kbd></dt><dd>Redo</dd>
+      </dl>
+      <button type="button" class="kbd-overlay-close" data-close>close</button>
+    </div>
+  `;
+  return overlay;
 }
 
 // === Easter Egg: Console ASCII Logo ===
 function showConsoleLogo(): void {
   const logo = `
 %c    ☢ NUKEBG ☢
-    v2.7.2 | Terminal Edition
+    v2.8.0 | Terminal Edition
 
     Your images never leave this machine.
     Don't believe us? Read the source:
@@ -447,8 +542,10 @@ function initShakeDetection(): void {
 function initI18n(): void {
   const locale = getLocale();
 
-  // Set html lang attribute on init
+  // Set html lang + dir attributes on init. dir flips automatically
+  // once we ship an RTL translation (#38 RTL scaffolding).
   document.documentElement.lang = locale;
+  document.documentElement.dir = getDirection(locale);
 
   // Sync the selector
   const langSelector = document.getElementById('lang-selector') as HTMLSelectElement | null;
@@ -753,13 +850,106 @@ function initShareButton(): void {
   });
 }
 
+/**
+ * Handle PWA manifest shortcut deep-links:
+ *   /?help=1     → open the keyboard shortcut overlay
+ *   /?action=new → focus the dropzone so the user can start immediately
+ * Re-dispatches the matching keyboard event so the shortcut layer stays
+ * the single source of truth for open/close state and focus behavior.
+ */
+function initDeepLinks(): void {
+  const params = new URLSearchParams(window.location.search);
+  if (!params.has('help') && !params.has('action')) return;
+
+  const waitForArApp = (onReady: () => void, tries = 20) => {
+    const arApp = document.querySelector('ar-app');
+    if (arApp?.shadowRoot) return onReady();
+    if (tries <= 0) return;
+    setTimeout(() => waitForArApp(onReady, tries - 1), 50);
+  };
+
+  if (params.get('help') === '1') {
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: '?', bubbles: true }));
+  }
+
+  if (params.get('action') === 'new') {
+    waitForArApp(() => {
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: '/', bubbles: true }));
+    });
+  }
+}
+
+/**
+ * Theme switcher (footer). Four palettes — green (default) / amber /
+ * cyan / magenta — are CSS-only via :root[data-theme="X"] overrides
+ * in main.css. main.ts only reads + writes the attribute and persists
+ * the choice in localStorage. Skips animations / does not affect the
+ * pipeline.
+ */
+type ThemeName = 'green' | 'amber' | 'cyan' | 'magenta' | 'red' | 'yellow';
+const THEME_STORAGE_KEY = 'nukebg:theme';
+const THEMES: readonly ThemeName[] = ['green', 'amber', 'cyan', 'magenta', 'red', 'yellow'];
+
+function isThemeName(value: string | null): value is ThemeName {
+  return value !== null && (THEMES as readonly string[]).includes(value);
+}
+
+function applyTheme(theme: ThemeName): void {
+  if (theme === 'green') {
+    delete document.documentElement.dataset.theme;
+  } else {
+    document.documentElement.dataset.theme = theme;
+  }
+  document.querySelectorAll<HTMLButtonElement>('.theme-swatch').forEach((el) => {
+    el.setAttribute('aria-checked', el.dataset.theme === theme ? 'true' : 'false');
+  });
+}
+
+function initThemeSwitcher(): void {
+  const stored = (() => {
+    try { return localStorage.getItem(THEME_STORAGE_KEY); } catch { return null; }
+  })();
+  const initial: ThemeName = isThemeName(stored) ? stored : 'green';
+  applyTheme(initial);
+
+  const picker = document.getElementById('theme-picker');
+  if (!picker) return;
+  picker.addEventListener('click', (e) => {
+    const target = (e.target as HTMLElement | null)?.closest<HTMLButtonElement>('.theme-swatch');
+    if (!target) return;
+    const next = target.dataset.theme;
+    if (!isThemeName(next ?? null)) return;
+    applyTheme(next as ThemeName);
+    try { localStorage.setItem(THEME_STORAGE_KEY, next!); } catch { /* ignore */ }
+  });
+
+  // WAI-ARIA radiogroup keyboard nav: Arrow keys cycle, Home/End jump.
+  picker.addEventListener('keydown', (ev) => {
+    const e = ev as KeyboardEvent;
+    if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End'].includes(e.key)) return;
+    const swatches = Array.from(picker.querySelectorAll<HTMLButtonElement>('.theme-swatch'));
+    const idx = swatches.findIndex((s) => s === document.activeElement);
+    if (idx < 0) return;
+    e.preventDefault();
+    let nextIdx = idx;
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') nextIdx = (idx + 1) % swatches.length;
+    else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') nextIdx = (idx - 1 + swatches.length) % swatches.length;
+    else if (e.key === 'Home') nextIdx = 0;
+    else if (e.key === 'End') nextIdx = swatches.length - 1;
+    swatches[nextIdx].focus();
+    swatches[nextIdx].click();
+  });
+}
+
 // Init on DOMContentLoaded
 function init(): void {
   initI18n();
+  initThemeSwitcher();
   initKeyboardShortcuts();
   initTerminalPrompt();
   initClearCacheButton();
   initShareButton();
+  initDeepLinks();
   showConsoleLogo();
   initHolidayEasterEgg();
   initKonamiCode();

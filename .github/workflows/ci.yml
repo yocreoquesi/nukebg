@@ -9,6 +9,29 @@ permissions:
   contents: read
 
 jobs:
+  lint:
+    name: Lint + format
+    runs-on: ubuntu-latest
+    # Non-blocking while the codebase migrates to the new formatter/linter
+    # — flips to false once the one-shot `npm run format` PR lands.
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: ESLint
+        run: npm run lint
+
+      - name: Prettier check
+        run: npm run format:check
+
   test:
     name: Typecheck + tests
     runs-on: ubuntu-latest
@@ -24,10 +47,26 @@ jobs:
         run: npm ci
 
       - name: TypeScript typecheck
-        run: npx tsc --noEmit
+        run: npm run typecheck
 
       - name: Vitest
         run: npm test
+
+      # Production build — same command Cloudflare Pages runs on every
+      # deploy. Catches `tsc` emit-time errors (subtly different from
+      # `tsc --noEmit`) and any vite resolution/bundling regressions.
+      # If this is red, the deploy will be red too — fail here so the
+      # PR can't merge into dev or main with a broken build.
+      - name: Production build (mirrors Cloudflare Pages)
+        run: npm run build
+
+      # Sanity-check the output: the entry HTML must exist and be the
+      # one we ship from index.html (presence of the JSON-LD blocks).
+      - name: Verify build output
+        run: |
+          test -f dist/index.html || (echo 'dist/index.html missing' && exit 1)
+          grep -q 'application/ld+json' dist/index.html || (echo 'JSON-LD missing from build output' && exit 1)
+          test -d dist/assets || (echo 'dist/assets missing' && exit 1)
 
   e2e:
     name: Playwright pipeline e2e
@@ -55,5 +94,48 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: playwright-trace
+          path: test-results/
+          retention-days: 7
+
+  # Safari-engine coverage — runs the Playwright suite against both the
+  # desktop WebKit profile and the iPhone 15 Pro touch profile. Same
+  # engine Apple ships in Safari on macOS / iOS (≈ 85 % bug parity with
+  # real Safari). Non-blocking today because:
+  #   1. The iOS Safari warmup hang documented in playwright.config.ts:9
+  #      causes ML-touching specs to skip.
+  #   2. Some fixtures produce slightly different hinting / alpha on
+  #      WebKit — visual snapshots get a `-webkit` suffix baseline.
+  # Flip `continue-on-error` to false once the ML specs stabilize.
+  e2e-safari:
+    name: Playwright e2e (${{ matrix.project }})
+    runs-on: ubuntu-latest
+    needs: test
+    continue-on-error: true
+    strategy:
+      fail-fast: false
+      matrix:
+        project: [webkit, iphone]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright WebKit
+        run: npx playwright install --with-deps webkit
+
+      - name: Run Playwright (${{ matrix.project }})
+        run: npx playwright test --project=${{ matrix.project }}
+
+      - name: Upload trace on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-trace-${{ matrix.project }}
           path: test-results/
           retention-days: 7

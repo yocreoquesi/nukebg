@@ -137,7 +137,7 @@ export class ArBatchItem extends HTMLElement {
         }
         .badge.ok { color: var(--color-accent-primary, #00ff41); }
         .badge.fail { color: #ff3131; }
-        .badge.pending { color: var(--color-text-tertiary, #008830); }
+        .badge.pending { color: var(--color-text-tertiary, #00b34a); }
         .spinner {
           position: absolute;
           top: 50%;

@@ -177,6 +177,34 @@ $ npm test
 - [ ] Commits follow the convention
 ```
 
+### CI gates (must be green to merge)
+
+The `Typecheck + tests` job in `.github/workflows/ci.yml` runs:
+
+1. `npm run typecheck` (`tsc --noEmit`)
+2. `npm test` (vitest, ~600 source-invariant tests)
+3. `npm run build` — same command Cloudflare Pages runs on every deploy
+
+If `Typecheck + tests` is red, the deploy is red too — fix before merging. The Lint + format job is non-blocking today (`continue-on-error: true`) while the codebase finishes migrating to the strict ESLint + Prettier config; flip that flag once the formatter is fully run.
+
+### Branch protection (recommended on `main`)
+
+The repo doesn't ship branch-protection rules in code, but the
+maintainers should configure them in GitHub Settings → Branches once
+the codebase is stable enough:
+
+- Require **Typecheck + tests** to pass before merging.
+- Require **Cloudflare Pages** preview to succeed (deploy proves the
+  build works under the production toolchain).
+- Require **CodeQL** to pass (catches new security smells on PRs).
+- Require linear history + signed commits if your team prefers.
+- Disallow force-pushes to `main`.
+
+The `Playwright pipeline e2e` job is currently fragile (multi-input
+strict-mode failure from the camera CTA + visual baseline drift) and
+should NOT be a required check until those flakes are resolved — see
+issues #76 and #77 for the underlying UX work.
+
 ---
 
 ## > commits

@@ -1,0 +1,91 @@
+name: Safari real-device (manual)
+
+# Manual-trigger workflow to run the Playwright smoke + landing specs
+# against real iOS Safari via BrowserStack. Kept OFF the per-PR path
+# to stay within the 100 min/month free tier — triggered before each
+# release cut, not on every push.
+#
+# Required repo secrets (add in Settings → Secrets):
+#   BROWSERSTACK_USERNAME
+#   BROWSERSTACK_ACCESS_KEY
+#
+# If the secrets are not set the workflow reports missing-config and
+# exits cleanly (non-failing) so accidental triggers don't consume
+# free-tier minutes.
+
+on:
+  workflow_dispatch:
+    inputs:
+      device:
+        description: 'BrowserStack device (e.g. "iPhone 15 Pro Max")'
+        required: false
+        default: 'iPhone 15 Pro'
+      os_version:
+        description: 'iOS version (e.g. "17" / "18")'
+        required: false
+        default: '17'
+      spec_filter:
+        description: 'Playwright spec filter (e.g. smoke|landing)'
+        required: false
+        default: 'smoke'
+
+permissions:
+  contents: read
+
+jobs:
+  safari-real-device:
+    name: BrowserStack iOS Safari (${{ inputs.device }} · iOS ${{ inputs.os_version }})
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Verify BrowserStack credentials are set
+        id: creds
+        env:
+          BS_USER: ${{ secrets.BROWSERSTACK_USERNAME }}
+          BS_KEY: ${{ secrets.BROWSERSTACK_ACCESS_KEY }}
+        run: |
+          if [ -z "$BS_USER" ] || [ -z "$BS_KEY" ]; then
+            echo "::warning::BROWSERSTACK_USERNAME / BROWSERSTACK_ACCESS_KEY not set in repo secrets."
+            echo "::warning::Add them to Settings → Secrets → Actions to enable this workflow."
+            echo "configured=false" >> $GITHUB_OUTPUT
+          else
+            echo "configured=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Install dependencies
+        if: steps.creds.outputs.configured == 'true'
+        run: npm ci
+
+      - name: Install BrowserStack Playwright SDK
+        if: steps.creds.outputs.configured == 'true'
+        run: npm install --no-save browserstack-node-sdk@latest
+
+      - name: Run smoke spec on BrowserStack
+        if: steps.creds.outputs.configured == 'true'
+        env:
+          BROWSERSTACK_USERNAME: ${{ secrets.BROWSERSTACK_USERNAME }}
+          BROWSERSTACK_ACCESS_KEY: ${{ secrets.BROWSERSTACK_ACCESS_KEY }}
+          BROWSERSTACK_DEVICE: ${{ inputs.device }}
+          BROWSERSTACK_OS_VERSION: ${{ inputs.os_version }}
+        run: |
+          # The `browserstack-node-sdk` launcher routes Playwright's
+          # chromium project at a remote real device instead.
+          # The spec_filter input lets us run just smoke / just landing.
+          npx browserstack-node-sdk playwright test \
+            --grep "${{ inputs.spec_filter }}" \
+            --reporter=list
+
+      - name: Report result
+        if: always()
+        run: |
+          if [ "${{ steps.creds.outputs.configured }}" = "false" ]; then
+            echo "Skipped — BrowserStack credentials not configured."
+          else
+            echo "BrowserStack run finished. See the BrowserStack dashboard for the session recording."
+          fi

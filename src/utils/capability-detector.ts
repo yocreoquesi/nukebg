@@ -27,8 +27,13 @@ export interface DeviceCapability {
   reason: string;
 }
 
-/** Hard ceiling — even on beasts, we never accept more than this */
-export const ABSOLUTE_MAX_PIXELS = 100_000_000; // 100 MP (Fuji GFX 100 class)
+/** Hard ceiling — even on beasts, we never accept more than this. Sized
+ *  to typical phone-camera output (32 MP covers all current iPhone /
+ *  Pixel sensors with headroom); above this, peak RAM during the
+ *  inpaint + LaMa stages spikes hard enough to crash low-RAM devices
+ *  even when capability tiers say they can handle it. Edited down from
+ *  100 MP after empirical testing. */
+export const ABSOLUTE_MAX_PIXELS = 32_000_000; // 32 MP
 
 /** Hard ceiling for a single side (Chromium canvas max is 16384) */
 export const ABSOLUTE_MAX_DIMENSION = 12_288;
