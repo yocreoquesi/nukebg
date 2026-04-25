@@ -29,6 +29,7 @@
  */
 
 import { createLoader, type ModelLoader } from '../refine/loaders';
+import { refineEdges } from '../pipeline/finalize';
 import {
   loadSam,
   encodeSam,
@@ -1459,7 +1460,22 @@ export class ArEditorAdvanced extends HTMLElement {
     try {
       const loader = await this.getLoader();
       const result = await loader.segment({ pixels: composited, width: w, height: h });
-      this.applyAlphaDirectly(result.alpha);
+
+      // Pipe the raw RMBG alpha through the same refinement the main
+      // pipeline uses (sharpenAlpha + keepLargestComponent + dilate1).
+      // Without this, weak-confidence shadow detections survive as soft
+      // alpha pixels and isolated noise blobs stick around — exactly
+      // the "zonas sin borrar del todo" the user reported.
+      const compositeWithAlpha = new ImageData(composited, w, h);
+      for (let i = 0; i < result.alpha.length; i++) {
+        compositeWithAlpha.data[i * 4 + 3] = result.alpha[i];
+      }
+      const refined = await refineEdges(null, compositeWithAlpha);
+      const cleanedAlpha = new Uint8Array(result.alpha.length);
+      for (let i = 0; i < cleanedAlpha.length; i++) {
+        cleanedAlpha[i] = refined.data[i * 4 + 3];
+      }
+      this.applyAlphaDirectly(cleanedAlpha);
     } catch (err) {
       console.error('[ar-editor-advanced] reprocess failed', err);
       const hint = this.shadowRoot?.getElementById('hint');
