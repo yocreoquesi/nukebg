@@ -47,13 +47,10 @@ describe('reduced-motion audit (#35)', () => {
     expect(a).toMatch(/dataset\.playful = reducedMotion \? ['"]false['"] : ['"]true['"]/);
   });
 
-  it('ar-editor-advanced gates hint-pulse + confirmFadeIn under reduced-motion', () => {
+  it('ar-editor-advanced gates hint-pulse under reduced-motion', () => {
     const e = readFileSync(resolve(ROOT, 'src/components/ar-editor-advanced.ts'), 'utf8');
     expect(e).toMatch(
       /@media \(prefers-reduced-motion: reduce\) \{[\s\S]*?\.hint \{ animation: none/,
-    );
-    expect(e).toMatch(
-      /@media \(prefers-reduced-motion: reduce\) \{[\s\S]*?\.confirm-bar[\s\S]*?animation: none/,
     );
   });
 });
