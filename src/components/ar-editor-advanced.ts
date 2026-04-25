@@ -496,11 +496,11 @@ export class ArEditorAdvanced extends HTMLElement {
           color: #000;
         }
         .size-row {
-          display: inline-flex;
+          display: none;
           align-items: center;
           gap: 6px;
         }
-        .size-row.hidden { display: none; }
+        .size-row.visible { display: inline-flex; }
         .lasso-actions {
           display: none;
           gap: 6px;
@@ -781,7 +781,8 @@ export class ArEditorAdvanced extends HTMLElement {
             min-height: 44px;
             text-align: center;
           }
-          .size-row {
+          .size-row.visible {
+            display: flex;
             width: 100%;
             justify-content: center;
           }
@@ -878,7 +879,7 @@ export class ArEditorAdvanced extends HTMLElement {
              a time (size-row for brush/eraser, lasso-actions for lasso,
              preview-actions while a preview is pending). -->
         <div class="toolbar-row toolbar-row-contextual">
-          <div class="size-row" id="size-row">
+          <div class="size-row visible" id="size-row">
             <label for="brush-size">${t('advanced.size')}</label>
             <input type="range" id="brush-size" min="${MIN_BRUSH}" max="${MAX_BRUSH}" step="1" value="${DEFAULT_BRUSH}">
             <span class="size-val" id="brush-size-val">${DEFAULT_BRUSH}</span>
@@ -1525,7 +1526,7 @@ export class ArEditorAdvanced extends HTMLElement {
     if (brush) brush.classList.toggle('active', this.tool === 'brush');
     if (eraser) eraser.classList.toggle('active', this.tool === 'eraser');
     if (lasso) lasso.classList.toggle('active', this.tool === 'lasso');
-    if (sizeRow) sizeRow.classList.toggle('hidden', this.tool === 'lasso');
+    if (sizeRow) sizeRow.classList.toggle('visible', this.tool !== 'lasso');
     if (hint && this.tool !== 'lasso') {
       hint.textContent = t('advanced.hint');
     }
