@@ -24,6 +24,12 @@ updates:
       # (RMBG-1.4 WASM compatibility). Migrate manually, not via Dependabot.
       - dependency-name: "onnxruntime-web"
         update-types: ["version-update:semver-major", "version-update:semver-minor"]
+      # @huggingface/transformers v4 requires `model_type` in the model
+      # config; Xenova/RMBG-1.4 ships without it, so v4 fails to load
+      # the segmenter. See #27. Drop this entry once upstream config
+      # adds `model_type` or we fork the model.
+      - dependency-name: "@huggingface/transformers"
+        update-types: ["version-update:semver-major"]
 
   # GitHub Actions versions — keep action pins fresh
   - package-ecosystem: "github-actions"
