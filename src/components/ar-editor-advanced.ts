@@ -1453,13 +1453,12 @@ export class ArEditorAdvanced extends HTMLElement {
   private restoreToOriginal(): void {
     if (this.busy) return;
     if (!this.working || !this.original) return;
-    this.showConfirm(t('advanced.restoreConfirm'), () => {
-      this.pushUndo();
-      const wctx = this.working!.getContext('2d')!;
-      wctx.putImageData(this.original!, 0, 0);
-      this.clearLasso();
-      this.redrawDisplay();
-    });
+    // No confirmation: pushUndo() makes this fully reversible with Ctrl+Z.
+    this.pushUndo();
+    const wctx = this.working!.getContext('2d')!;
+    wctx.putImageData(this.original!, 0, 0);
+    this.clearLasso();
+    this.redrawDisplay();
   }
 
   private confirmCleanup: (() => void) | null = null;
