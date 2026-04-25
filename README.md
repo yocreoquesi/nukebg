@@ -185,7 +185,9 @@ artifacts whose licenses carry independent obligations:
 
 | Component | License | Notes |
 |-----------|---------|-------|
-| RMBG-1.4 ML model (BRIA AI) | [bria-rmbg-1.4 license](https://huggingface.co/briaai/RMBG-1.4) | **Non-commercial use only**. Commercial deployments — paid products, paid APIs, paid SaaS — require a commercial agreement with BRIA AI, or swapping to a different model. The GPL-3.0 license of NukeBG's code does not override this. |
+| RMBG-1.4 ML model (BRIA AI) | [bria-rmbg-1.4 license](https://huggingface.co/briaai/RMBG-1.4) — CC-BY-NC-4.0 | **Non-commercial use only**. Commercial deployments — paid products, paid APIs, paid SaaS, ad-supported products — require a commercial agreement with BRIA AI, or swapping to a different model. The GPL-3.0 license of NukeBG's code does not override this. Donations to cover hosting / maintenance are fine. |
+| MobileSAM ML models (Acly/MobileSAM) | [MIT](https://huggingface.co/Acly/MobileSAM) | Used by the advanced editor for interactive click-to-segment. Commercial use OK. Encoder + decoder fetched from Hugging Face at runtime; not bundled. |
+| LaMa inpainting ML model (opencv/inpainting_lama) | [Apache-2.0](https://huggingface.co/opencv/inpainting_lama) | Used by the watermark-removal pipeline for content-aware reconstruction. Commercial use OK. Single FP32 ONNX (~95 MB) fetched from Hugging Face at runtime; not bundled. |
 | JetBrains Mono font | [SIL Open Font License 1.1](public/fonts/OFL.txt) | Bundled self-hosted. Attribution preserved in `public/fonts/OFL.txt`. |
 | Transformers.js, ONNX Runtime Web | Apache-2.0 / MIT | Compatible. |
 
