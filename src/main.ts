@@ -886,9 +886,9 @@ function initDeepLinks(): void {
  * the choice in localStorage. Skips animations / does not affect the
  * pipeline.
  */
-type ThemeName = 'green' | 'amber' | 'cyan' | 'magenta';
+type ThemeName = 'green' | 'amber' | 'cyan' | 'magenta' | 'red' | 'yellow';
 const THEME_STORAGE_KEY = 'nukebg:theme';
-const THEMES: readonly ThemeName[] = ['green', 'amber', 'cyan', 'magenta'];
+const THEMES: readonly ThemeName[] = ['green', 'amber', 'cyan', 'magenta', 'red', 'yellow'];
 
 function isThemeName(value: string | null): value is ThemeName {
   return value !== null && (THEMES as readonly string[]).includes(value);

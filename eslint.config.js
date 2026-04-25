@@ -21,7 +21,6 @@ export default tseslint.config(
       'playwright-report/**',
       'node_modules/**',
       'public/service-worker.js',
-      'exploration/**',
       // i18n/index.ts has hand-maintained \uXXXX escapes and a giant
       // translation dictionary — let the key-parity test guard it
       // instead of linting.

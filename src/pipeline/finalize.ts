@@ -415,10 +415,17 @@ function dilate1(bin: Uint8Array, w: number, h: number): Uint8Array {
  * pipeline is available to run the worker-side solver) and sharpen α.
  *
  * Returns a fresh ImageData; does not mutate the input.
+ *
+ * `skipTopologyCleanup` skips the binary-mask cleanup pass
+ * (keepLargestComponent + dilate1). This pass is designed to drop ML
+ * segmentation noise — running it on user-edited results would discard
+ * intentional manual edits (lasso crops, restored regions) that don't
+ * happen to be the largest connected component.
  */
 export async function refineEdges(
   pipeline: ForegroundEstimator | null,
   img: ImageData,
+  options: { skipTopologyCleanup?: boolean } = {},
 ): Promise<ImageData> {
   const w = img.width;
   const h = img.height;
@@ -463,12 +470,15 @@ export async function refineEdges(
   // Binary threshold at 128 killed every body pixel under mid-confidence
   // (missing elbows/arms). sharp>0 brought back halo bands. sharp>=96 is
   // the middle ground — covers weakly-detected body, excludes halo tail.
-  const bin = new Uint8Array(n);
-  for (let i = 0; i < n; i++) bin[i] = sharp[i] >= 96 ? 1 : 0;
-  keepLargestComponent(bin, w, h);
-  const keep = dilate1(bin, w, h);
-
-  for (let i = 0; i < n; i++) rgba[i * 4 + 3] = keep[i] ? sharp[i] : 0;
+  if (options.skipTopologyCleanup) {
+    for (let i = 0; i < n; i++) rgba[i * 4 + 3] = sharp[i];
+  } else {
+    const bin = new Uint8Array(n);
+    for (let i = 0; i < n; i++) bin[i] = sharp[i] >= 96 ? 1 : 0;
+    keepLargestComponent(bin, w, h);
+    const keep = dilate1(bin, w, h);
+    for (let i = 0; i < n; i++) rgba[i * 4 + 3] = keep[i] ? sharp[i] : 0;
+  }
 
   return new ImageData(new Uint8ClampedArray(rgba), w, h);
 }

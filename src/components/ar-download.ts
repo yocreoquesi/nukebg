@@ -11,9 +11,6 @@ export class ArDownload extends HTMLElement {
   private selectedFormat: ExportFormat = 'png';
   private pngFilename = 'image.png';
   private webpFilename = 'image.webp';
-  private imgWidth = 0;
-  private imgHeight = 0;
-  private hasAlpha = true;
   private boundLocaleHandler: (() => void) | null = null;
 
   constructor() {
@@ -54,29 +51,9 @@ export class ArDownload extends HTMLElement {
     if (this.boundLocaleHandler) document.removeEventListener('nukebg:locale-changed', this.boundLocaleHandler);
   }
 
-  /**
-   * Detect whether the result has a transparent channel.
-   * Samples at most 256 pixels — enough to tell "has alpha" vs "fully opaque"
-   * without scanning 32 MP. Conservative: if any sampled pixel is < 255, we
-   * mark alpha present.
-   */
-  private detectAlpha(imageData: ImageData): boolean {
-    const data = imageData.data;
-    const total = imageData.width * imageData.height;
-    if (total === 0) return false;
-    const stride = Math.max(1, Math.floor(total / 256));
-    for (let i = 0; i < total; i += stride) {
-      if (data[i * 4 + 3] < 255) return true;
-    }
-    return false;
-  }
-
   async setResult(imageData: ImageData, inputFilename: string, _totalTimeMs: number, blob?: Blob): Promise<void> {
     this.currentImageData = imageData;
-    this.imgWidth = imageData.width;
-    this.imgHeight = imageData.height;
     this.selectedFormat = 'png';
-    this.hasAlpha = this.detectAlpha(imageData);
     this.pngFilename = generateOutputFilename(inputFilename, 'png', getLocale());
     this.webpFilename = generateOutputFilename(inputFilename, 'webp', getLocale());
 
@@ -451,10 +428,7 @@ export class ArDownload extends HTMLElement {
   }
 
   private formatMeta(bytes: number): string {
-    const sizeStr = this.formatBytes(bytes);
-    const parts = [`${this.imgWidth}×${this.imgHeight}`, sizeStr];
-    if (this.hasAlpha) parts.push(t('download.meta.alpha'));
-    return `# ${parts.join(' · ')}`;
+    return `# ${this.formatBytes(bytes)}`;
   }
 
   private formatBytes(bytes: number): string {

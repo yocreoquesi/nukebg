@@ -68,13 +68,7 @@ export function createRmbg14Loader(): ModelLoader {
       const mask = results[0]?.mask;
       if (!mask) throw new Error('RMBG-1.4 returned no mask');
 
-      const alpha = resizeBilinear(
-        mask.data,
-        mask.width,
-        mask.height,
-        input.width,
-        input.height,
-      );
+      const alpha = resizeBilinear(mask.data, mask.width, mask.height, input.width, input.height);
 
       return {
         alpha,
