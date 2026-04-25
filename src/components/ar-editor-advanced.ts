@@ -496,11 +496,14 @@ export class ArEditorAdvanced extends HTMLElement {
           color: #000;
         }
         .size-row {
-          display: none;
+          display: inline-flex;
           align-items: center;
           gap: 6px;
         }
-        .size-row.visible { display: inline-flex; }
+        .size-row.disabled {
+          opacity: 0.4;
+          pointer-events: none;
+        }
         .lasso-actions {
           display: none;
           gap: 6px;
@@ -737,9 +740,8 @@ export class ArEditorAdvanced extends HTMLElement {
             min-height: 44px;
             text-align: center;
           }
-          .size-row.visible {
-            display: flex;
-            width: 100%;
+          .size-row {
+            flex: 1 1 100%;
             justify-content: center;
           }
           .size-row input[type="range"] { flex: 1; min-width: 0; }
@@ -818,12 +820,19 @@ export class ArEditorAdvanced extends HTMLElement {
         </div>
       </div>
       <div class="toolbar">
-        <!-- Row 1: primary tools + view controls (always visible). #77 -->
+        <!-- Row 1: primary tools + brush/eraser size + view controls
+             (always visible). Slider stays mounted regardless of tool to
+             avoid a layout shift when switching to lasso (#77). -->
         <div class="toolbar-row toolbar-row-primary">
           <div class="tool-group" role="group" aria-label="Tools">
             <button type="button" class="tool-btn" id="tool-brush">${t('advanced.toolBrush')}</button>
             <button type="button" class="tool-btn active" id="tool-eraser">${t('advanced.toolEraser')}</button>
             <button type="button" class="tool-btn" id="tool-lasso">${t('advanced.toolLasso')}</button>
+          </div>
+          <div class="size-row" id="size-row">
+            <label for="brush-size">${t('advanced.size')}</label>
+            <input type="range" id="brush-size" min="${MIN_BRUSH}" max="${MAX_BRUSH}" step="1" value="${DEFAULT_BRUSH}">
+            <span class="size-val" id="brush-size-val">${DEFAULT_BRUSH}</span>
           </div>
           <div class="zoom-group" role="group" aria-label="${t('advanced.zoom')}">
             <button type="button" class="zoom-btn" id="zoom-out" title="${t('advanced.zoomOut')}" aria-label="${t('advanced.zoomOut')}">−</button>
@@ -832,15 +841,9 @@ export class ArEditorAdvanced extends HTMLElement {
             <button type="button" class="zoom-btn" id="zoom-fit" title="${t('advanced.zoomFit')}" aria-label="${t('advanced.zoomFit')}">⌂</button>
           </div>
         </div>
-        <!-- Row 2: contextual actions. Exactly one child is .visible at
-             a time (size-row for brush/eraser, lasso-actions for lasso,
-             preview-actions while a preview is pending). -->
+        <!-- Row 2: contextual actions for lasso (lasso-actions or
+             preview-actions). Hidden entirely when neither is .visible. -->
         <div class="toolbar-row toolbar-row-contextual">
-          <div class="size-row visible" id="size-row">
-            <label for="brush-size">${t('advanced.size')}</label>
-            <input type="range" id="brush-size" min="${MIN_BRUSH}" max="${MAX_BRUSH}" step="1" value="${DEFAULT_BRUSH}">
-            <span class="size-val" id="brush-size-val">${DEFAULT_BRUSH}</span>
-          </div>
           <div class="lasso-actions" id="lasso-actions" role="group" aria-label="Lasso actions">
             <button type="button" class="action-btn" id="action-crop" title="${t('advanced.actionCropHint')}">${t('advanced.actionCrop')}</button>
             <button type="button" class="action-btn" id="action-refine" title="${t('advanced.actionRefineHint')}">${t('advanced.actionRefine')}</button>
@@ -1493,7 +1496,7 @@ export class ArEditorAdvanced extends HTMLElement {
     if (brush) brush.classList.toggle('active', this.tool === 'brush');
     if (eraser) eraser.classList.toggle('active', this.tool === 'eraser');
     if (lasso) lasso.classList.toggle('active', this.tool === 'lasso');
-    if (sizeRow) sizeRow.classList.toggle('visible', this.tool !== 'lasso');
+    if (sizeRow) sizeRow.classList.toggle('disabled', this.tool === 'lasso');
     if (hint && this.tool !== 'lasso') {
       hint.textContent = t('advanced.hint');
     }

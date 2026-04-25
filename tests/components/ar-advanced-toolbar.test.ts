@@ -15,17 +15,18 @@ describe('ar-editor-advanced — toolbar split into two rows (#77)', () => {
     expect(ED).toMatch(/class="toolbar-row toolbar-row-contextual"/);
   });
 
-  it('primary row carries tools + zoom; contextual row carries size/lasso/preview', () => {
-    const primary = ED.match(/class="toolbar-row toolbar-row-primary"[\s\S]*?<\/div>\s*<\/div>/);
+  it('primary row carries tools + size + zoom; contextual row carries lasso/preview', () => {
+    const primary = ED.match(/class="toolbar-row toolbar-row-primary"[\s\S]*?<\/div>\s*<\/div>\s*<\/div>/);
     expect(primary).not.toBeNull();
     expect(primary![0]).toMatch(/class="tool-group"/);
+    expect(primary![0]).toMatch(/id="size-row"/);
     expect(primary![0]).toMatch(/class="zoom-group"/);
 
-    const ctx = ED.match(/class="toolbar-row toolbar-row-contextual"[\s\S]*?<\/div>\s*<\/div>\s*<\/div>/);
+    const ctx = ED.match(/class="toolbar-row toolbar-row-contextual"[\s\S]*?<\/div>\s*<\/div>/);
     expect(ctx).not.toBeNull();
-    expect(ctx![0]).toMatch(/id="size-row"/);
     expect(ctx![0]).toMatch(/id="lasso-actions"/);
     expect(ctx![0]).toMatch(/id="preview-actions"/);
+    expect(ctx![0]).not.toMatch(/id="size-row"/);
   });
 
   it('CSS stacks the rows vertically with a dashed divider on the contextual row', () => {
