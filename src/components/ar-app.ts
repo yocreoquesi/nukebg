@@ -1409,7 +1409,11 @@ export class ArApp extends HTMLElement {
       const rawEdited = (e as CustomEvent).detail.imageData as ImageData;
       // Refine: foreground decontamination + quintic alpha sharpening so manual
       // brush strokes inherit the same studio-quality edge as the main pipeline.
-      const editedData = await refineEdges(this.pipeline, rawEdited);
+      // Topology cleanup is skipped — keepLargestComponent would discard manual
+      // restores that don't connect to the main subject body.
+      const editedData = await refineEdges(this.pipeline, rawEdited, {
+        skipTopologyCleanup: true,
+      });
       const blob = await exportPng(editedData);
 
       // Save pre-edit for discard functionality
@@ -1460,7 +1464,11 @@ export class ArApp extends HTMLElement {
       const btn = this.shadowRoot!.querySelector('#advanced-cta') as HTMLElement | null;
       btn?.removeAttribute('data-active');
 
-      const refined = await refineEdges(this.pipeline, detail.imageData);
+      // Same reasoning as the basic editor: skip topology cleanup so the
+      // user's lasso crops / restores survive the refinement pass.
+      const refined = await refineEdges(this.pipeline, detail.imageData, {
+        skipTopologyCleanup: true,
+      });
       const blob = await exportPng(refined);
       this.viewer.setResult(refined, blob);
       await this.download.setResult(refined, this.currentFileName, 0, blob);
@@ -1949,6 +1957,13 @@ export class ArApp extends HTMLElement {
       // Live progress view: show the original, let the pipeline callback
       // keep updating the progress console, hide result-only actions.
       failedBar.style.display = 'none';
+      this.updateCommandBar({
+        filename: item.originalName,
+        width: item.originalImageData.width,
+        height: item.originalImageData.height,
+        sizeBytes: item.file.size,
+        state: 'running',
+      });
       this.viewer.clearResult();
       this.viewer.setOriginal(item.originalImageData, item.file.size);
       this.download.reset();
@@ -1963,6 +1978,13 @@ export class ArApp extends HTMLElement {
     if (item.state === 'failed') {
       failedBar.style.display = 'flex';
       if (retryBtn) retryBtn.style.display = 'inline-block';
+      this.updateCommandBar({
+        filename: item.originalName,
+        width: item.originalImageData.width,
+        height: item.originalImageData.height,
+        sizeBytes: item.file.size,
+        state: 'failed',
+      });
       this.viewer.clearResult();
       this.viewer.setOriginal(item.originalImageData, item.file.size);
       this.download.reset();
@@ -1994,6 +2016,13 @@ export class ArApp extends HTMLElement {
       this.currentImageData = item.imageData;
       this.currentOriginalImageData = item.originalImageData;
       this.currentFileSize = item.file.size;
+      this.updateCommandBar({
+        filename: item.originalName,
+        width: item.originalImageData.width,
+        height: item.originalImageData.height,
+        sizeBytes: item.file.size,
+        state: 'ready',
+      });
       this.viewer.clearResult();
       this.viewer.setOriginal(item.originalImageData, item.file.size);
       // Replay per-item stage history so each finished image shows its own
