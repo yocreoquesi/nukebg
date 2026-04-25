@@ -254,7 +254,7 @@ export class ArEditorAdvanced extends HTMLElement {
     const shadow = this.shadowRoot;
     if (!shadow) return;
 
-    const ids = ['tool-brush', 'tool-eraser', 'tool-lasso', 'restore-original', 'cancel', 'done'];
+    const ids = ['tool-brush', 'tool-eraser', 'tool-lasso', 'restore-original', 'reprocess', 'cancel', 'done'];
     for (const id of ids) {
       const el = shadow.getElementById(id) as HTMLButtonElement | null;
       if (el) el.disabled = this.busy;
@@ -700,55 +700,11 @@ export class ArEditorAdvanced extends HTMLElement {
         button.action:disabled { opacity: 0.4; cursor: not-allowed; }
         button.action.secondary { color: var(--color-text-secondary, #999); border-color: var(--color-border, #444); }
 
-        .confirm-bar {
-          display: none;
-          align-items: center;
-          gap: 8px;
-          font-size: 11px;
-          animation: confirmFadeIn 0.2s ease;
-        }
-        .confirm-bar.visible {
-          display: inline-flex;
-        }
-        .confirm-bar.visible ~ #hint { display: none; }
-        .confirm-msg {
-          color: var(--color-accent-primary, #00ff41);
-          letter-spacing: 0.03em;
-        }
-        .confirm-yes, .confirm-no {
-          font-family: inherit;
-          font-size: 11px;
-          border-radius: 2px;
-          padding: 3px 10px;
-          cursor: pointer;
-          border: 1px solid;
-          letter-spacing: 0.05em;
-          text-transform: uppercase;
-        }
-        .confirm-yes {
-          background: transparent;
-          color: #ff6d6d;
-          border-color: #ff6d6d;
-        }
-        .confirm-yes:hover { background: #ff6d6d; color: #000; }
-        .confirm-no {
-          background: transparent;
-          color: var(--color-text-secondary, #999);
-          border-color: var(--color-border, #444);
-        }
-        .confirm-no:hover { background: var(--color-border, #444); color: #fff; }
-        @keyframes confirmFadeIn {
-          from { opacity: 0; transform: translateY(4px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-
         /* #35 — honor prefers-reduced-motion on any JS/CSS anim that
-           ar-editor-advanced owns. Keeps hint-pulse + confirmFadeIn
-           from firing for users who opted out of motion effects. */
+           ar-editor-advanced owns. Keeps hint-pulse from firing for
+           users who opted out of motion effects. */
         @media (prefers-reduced-motion: reduce) {
           .hint { animation: none !important; }
-          .confirm-bar,
-          .confirm-bar.visible { animation: none !important; }
         }
 
         @media (pointer: coarse) {
@@ -813,6 +769,7 @@ export class ArEditorAdvanced extends HTMLElement {
         <div class="title">${t('advanced.title')}</div>
         <div class="header-actions">
           <button type="button" class="help-btn" id="help-toggle" title="${t('advanced.help')}" aria-label="${t('advanced.help')}" aria-expanded="false">?</button>
+          <button type="button" class="restore-btn" id="reprocess" title="${t('advanced.reprocessHint')}">${t('advanced.reprocess')}</button>
           <button type="button" class="restore-btn" id="restore-original" title="${t('advanced.restoreHint')}">${t('advanced.restore')}</button>
         </div>
       </div>
@@ -910,11 +867,6 @@ export class ArEditorAdvanced extends HTMLElement {
         aria-label="${t('advanced.canvasLabel')}"></canvas></div>
       <div class="controls">
         <span class="hint" id="hint">${t('advanced.hint')}</span>
-        <span class="confirm-bar" id="confirm-bar">
-          <span class="confirm-msg" id="confirm-msg"></span>
-          <button type="button" class="confirm-yes" id="confirm-yes">${t('advanced.confirmYes')}</button>
-          <button type="button" class="confirm-no" id="confirm-no">${t('advanced.confirmNo')}</button>
-        </span>
         <button type="button" class="action secondary" id="undo" disabled>${t('advanced.undo')}</button>
         <button type="button" class="action secondary" id="redo" disabled>${t('advanced.redo')}</button>
         <button type="button" class="action secondary" id="cancel">${t('advanced.cancel')}</button>
@@ -932,6 +884,9 @@ export class ArEditorAdvanced extends HTMLElement {
     shadow
       .getElementById('restore-original')!
       .addEventListener('click', () => this.restoreToOriginal(), { signal });
+    shadow
+      .getElementById('reprocess')!
+      .addEventListener('click', () => this.reprocess(), { signal });
     shadow
       .getElementById('help-toggle')!
       .addEventListener('click', () => this.toggleHelp(), { signal });
@@ -1461,41 +1416,54 @@ export class ArEditorAdvanced extends HTMLElement {
     this.redrawDisplay();
   }
 
-  private confirmCleanup: (() => void) | null = null;
+  /**
+   * Re-run RMBG-1.4 on the current working canvas. Pixels the user
+   * already erased are composited onto white before the model sees
+   * them — RMBG segments by RGB, not alpha, so without this step the
+   * erased regions would just be re-segmented from their underlying
+   * RGB and likely come back. White is RMBG's most reliable
+   * "background" cue (the dataset skews toward white-bg studio shots).
+   *
+   * Result lands via applyAlphaDirectly() which already pushes undo,
+   * so Ctrl+Z reverts cleanly to the pre-reprocess state.
+   */
+  private async reprocess(): Promise<void> {
+    if (this.busy) return;
+    if (!this.working) return;
+    const w = this.working.width;
+    const h = this.working.height;
+    const wctx = this.working.getContext('2d')!;
+    const workingData = wctx.getImageData(0, 0, w, h);
 
-  private showConfirm(msg: string, onYes: () => void): void {
-    this.dismissConfirm();
-    const bar = this.shadowRoot?.getElementById('confirm-bar');
-    const msgEl = this.shadowRoot?.getElementById('confirm-msg');
-    const yesBtn = this.shadowRoot?.getElementById('confirm-yes');
-    const noBtn = this.shadowRoot?.getElementById('confirm-no');
-    if (!bar || !msgEl || !yesBtn || !noBtn) return;
+    const composited = new Uint8ClampedArray(workingData.data.length);
+    for (let i = 0; i < workingData.data.length; i += 4) {
+      const a = workingData.data[i + 3];
+      if (a === 255) {
+        composited[i] = workingData.data[i];
+        composited[i + 1] = workingData.data[i + 1];
+        composited[i + 2] = workingData.data[i + 2];
+      } else {
+        const t = a / 255;
+        composited[i] = Math.round(workingData.data[i] * t + 255 * (1 - t));
+        composited[i + 1] = Math.round(workingData.data[i + 1] * t + 255 * (1 - t));
+        composited[i + 2] = Math.round(workingData.data[i + 2] * t + 255 * (1 - t));
+      }
+      composited[i + 3] = 255;
+    }
 
-    msgEl.textContent = msg;
-    bar.classList.add('visible');
-
-    const dismiss = () => this.dismissConfirm();
-    const accept = () => {
-      dismiss();
-      onYes();
-    };
-
-    yesBtn.addEventListener('click', accept, { once: true });
-    noBtn.addEventListener('click', dismiss, { once: true });
-
-    const timer = setTimeout(dismiss, 8000);
-    this.confirmCleanup = () => {
-      clearTimeout(timer);
-      yesBtn.removeEventListener('click', accept);
-      noBtn.removeEventListener('click', dismiss);
-      bar.classList.remove('visible');
-    };
-  }
-
-  private dismissConfirm(): void {
-    if (this.confirmCleanup) {
-      this.confirmCleanup();
-      this.confirmCleanup = null;
+    this.busy = true;
+    this.syncBusyUI();
+    try {
+      const loader = await this.getLoader();
+      const result = await loader.segment({ pixels: composited, width: w, height: h });
+      this.applyAlphaDirectly(result.alpha);
+    } catch (err) {
+      console.error('[ar-editor-advanced] reprocess failed', err);
+      const hint = this.shadowRoot?.getElementById('hint');
+      if (hint) hint.textContent = t('advanced.reprocessError');
+    } finally {
+      this.busy = false;
+      this.syncBusyUI();
     }
   }
 
