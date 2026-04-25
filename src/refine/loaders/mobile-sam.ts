@@ -32,7 +32,7 @@ function nextId(): string {
 
 function ensureWorker(): Worker {
   if (worker) return worker;
-  worker = new Worker(new URL('../../src/workers/sam.worker.ts', import.meta.url), {
+  worker = new Worker(new URL('../../workers/sam.worker.ts', import.meta.url), {
     type: 'module',
   });
   worker.addEventListener('message', (e: MessageEvent<SamWorkerResponse>) => {
