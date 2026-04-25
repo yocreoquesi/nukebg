@@ -52,7 +52,7 @@ describe('CSP inline-script hashes', () => {
   });
 
   it('nginx.conf CSP declares every inline-script hash', () => {
-    const csp = cspFrom('nginx.conf');
+    const csp = cspFrom('infra/nginx.conf');
     for (const h of expected) {
       expect(csp, `missing ${h} in nginx.conf CSP`).toContain(h);
     }
@@ -66,7 +66,7 @@ describe('CSP inline-script hashes', () => {
   });
 
   it('no CSP still carries script-src unsafe-inline', () => {
-    for (const p of ['nginx.conf', 'public/_headers']) {
+    for (const p of ['infra/nginx.conf', 'public/_headers']) {
       const csp = cspFrom(p);
       const scriptSrc = csp.match(/script-src [^;]+/)?.[0] ?? '';
       expect(scriptSrc, `${p} script-src still has 'unsafe-inline'`).not.toMatch(/'unsafe-inline'/);
