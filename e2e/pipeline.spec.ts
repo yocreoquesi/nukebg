@@ -41,15 +41,16 @@ test.describe('pipeline end-to-end', () => {
     await page.goto('/');
     await page.waitForLoadState('networkidle');
 
-    // ar-dropzone exposes a hidden <input type="file"> inside its shadow root.
-    // Playwright's locator chaining pierces shadow DOM transparently.
-    const fileInput = page.locator('ar-dropzone').locator('input[type="file"]');
+    // ar-dropzone exposes two hidden <input type="file"> elements (regular +
+    // mobile camera CTA). Disambiguate with :not(.dz-camera-input) — same
+    // selector the component itself uses internally.
+    const fileInput = page.locator('ar-dropzone').locator('input[type="file"]:not(.dz-camera-input)');
     await fileInput.setInputFiles(FIXTURE);
 
-    // ar-download makes its #download-btn href a blob: URL only after the
-    // pipeline finishes and exportPng resolves. That's the single source of
-    // truth for "pipeline done".
-    const downloadBtn = page.locator('ar-download').locator('#download-btn');
+    // ar-download makes its #dl-png href a blob: URL only after the pipeline
+    // finishes and exportPng resolves. That's the single source of truth for
+    // "pipeline done".
+    const downloadBtn = page.locator('ar-download').locator('#dl-png');
     await expect(downloadBtn).toHaveAttribute('href', /^blob:/, { timeout: 150_000 });
     await expect(downloadBtn).toHaveAttribute('download', /\.png$/);
 
