@@ -189,7 +189,7 @@ const translations: Translations = {
     // Header / Footer (index.html)
     'header.skipLink': 'Skip to main content',
     'footer.reactorLinkAria': 'View project costs and runtime \u2014 currently funded for {runtime}',
-    'footer.reactorStatus': 'Ships only while the budget holds ({burn}). Currently funded for {runtime}.',
+    'footer.reactorStatus': 'Updates ship while resources allow \u2014 {runtime} of runway at {burn}.',
     'marquee.funding': 'development funded for {runtime} \u2014 tip to extend runway',
     'cta.firstStar.text': '$ if this saved you 5 minutes, drop a star on the repo',
     'cta.firstStar.cta': 'star on github',
@@ -233,7 +233,6 @@ const translations: Translations = {
     'reactor.removalNotice': 'If you appear on this page and want to be removed, email yocreoquesi at gmail dot com — done within 7 days, no questions.',
     'reactor.noSupportersYet': 'No supporters yet — code shipping is currently funded by the maintainer pocket. Tip below to extend the runway.',
     'reactor.anonymousLine': '+ {count} anonymous supporters ({total} combined)',
-    'footer.privacy': 'Your images never leave your device. Zero uploads. Zero BS.',
 
     // Pipeline error
     'pipeline.error': 'Processing failed: {msg}',
@@ -454,7 +453,7 @@ const translations: Translations = {
     // Header / Footer (index.html)
     'header.skipLink': 'Saltar al contenido principal',
     'footer.reactorLinkAria': 'Ver costes del proyecto y runtime \u2014 ahora financiado para {runtime}',
-    'footer.reactorStatus': 'Solo se actualiza mientras dure el presupuesto ({burn}). Ahora financiado para {runtime}.',
+    'footer.reactorStatus': 'Las actualizaciones llegan mientras los recursos lo permitan \u2014 {runtime} de margen a {burn}.',
     'marquee.funding': 'desarrollo financiado por {runtime} \u2014 alimenta el reactor',
     'cta.firstStar.text': '$ si te ahorró 5 minutos, deja una estrella en el repo',
     'cta.firstStar.cta': 'estrella en github',
@@ -498,7 +497,6 @@ const translations: Translations = {
     'reactor.removalNotice': 'Si apareces en esta página y quieres que te quitemos, manda un correo a yocreoquesi arroba gmail punto com — resuelto en 7 días, sin preguntas.',
     'reactor.noSupportersYet': 'Sin supporters todavía — el shipeo de código está financiado actualmente por el bolsillo del maintainer. Alimenta abajo para extender el runway.',
     'reactor.anonymousLine': '+ {count} supporters anónimos ({total} combinados)',
-    'footer.privacy': 'Tus im\u00E1genes nunca salen de tu dispositivo. Cero subidas. Cero complicaciones.',
 
     // Pipeline error
     'pipeline.error': 'Procesamiento fallido: {msg}',
@@ -719,7 +717,7 @@ const translations: Translations = {
     // Header / Footer (index.html)
     'header.skipLink': 'Aller au contenu principal',
     'footer.reactorLinkAria': 'Voir les co\u00FBts du projet et le runtime \u2014 actuellement financ\u00E9 pour {runtime}',
-    'footer.reactorStatus': 'Mises \u00E0 jour tant que le budget tient ({burn}). Actuellement financ\u00E9 pour {runtime}.',
+    'footer.reactorStatus': 'Les mises \u00E0 jour arrivent tant que les ressources le permettent \u2014 {runtime} d\u2019autonomie \u00E0 {burn}.',
     'marquee.funding': 'd\u00E9veloppement financ\u00E9 pour {runtime} \u2014 soutiens pour prolonger',
     'cta.firstStar.text': '$ si ça t a fait gagner 5 minutes, laisse une étoile sur le repo',
     'cta.firstStar.cta': 'étoile sur github',
@@ -763,7 +761,6 @@ const translations: Translations = {
     'reactor.removalNotice': 'Si tu apparais sur cette page et veux être retiré, envoie un email à yocreoquesi arobase gmail point com — fait sous 7 jours, sans questions.',
     'reactor.noSupportersYet': 'Pas encore de supporters — le shipping de code est actuellement financé par les fonds personnels du maintainer. Alimente en dessous pour étendre le runway.',
     'reactor.anonymousLine': '+ {count} supporters anonymes ({total} cumulé)',
-    'footer.privacy': 'Tes images ne quittent jamais ton appareil. Z\u00E9ro upload. Z\u00E9ro baratin.',
 
     // Pipeline error
     'pipeline.error': 'Traitement \u00E9chou\u00E9 : {msg}',
@@ -984,7 +981,7 @@ const translations: Translations = {
     // Header / Footer (index.html)
     'header.skipLink': 'Zum Hauptinhalt springen',
     'footer.reactorLinkAria': 'Projektkosten und Laufzeit ansehen \u2014 derzeit finanziert f\u00FCr {runtime}',
-    'footer.reactorStatus': 'Wird nur ausgeliefert, solange das Budget reicht ({burn}). Derzeit finanziert f\u00FCr {runtime}.',
+    'footer.reactorStatus': 'Updates kommen, solange die Mittel reichen \u2014 {runtime} Reichweite bei {burn}.',
     'marquee.funding': 'Entwicklung finanziert f\u00FCr {runtime} \u2014 spende, um zu verl\u00E4ngern',
     'cta.firstStar.text': '$ wenn das 5 Minuten gespart hat, gib einen Stern auf dem Repo',
     'cta.firstStar.cta': 'Stern auf GitHub',
@@ -1028,7 +1025,6 @@ const translations: Translations = {
     'reactor.removalNotice': 'Wenn Sie auf dieser Seite erscheinen und entfernt werden möchten, mailen Sie an yocreoquesi at gmail dot com — innerhalb 7 Tagen erledigt, keine Fragen.',
     'reactor.noSupportersYet': 'Noch keine Supporter — Code-Shipping wird aktuell aus eigener Tasche des Maintainers finanziert. Speisen Sie unten, um das Runway zu verlängern.',
     'reactor.anonymousLine': '+ {count} anonyme Supporter ({total} kombiniert)',
-    'footer.privacy': 'Deine Bilder verlassen nie dein Ger\u00E4t. Null Uploads. Null Bullshit.',
 
     // Pipeline error
     'pipeline.error': 'Verarbeitung fehlgeschlagen: {msg}',
@@ -1249,7 +1245,7 @@ const translations: Translations = {
     // Header / Footer (index.html)
     'header.skipLink': 'Pular para o conte\u00FAdo principal',
     'footer.reactorLinkAria': 'Ver custos do projeto e runtime \u2014 atualmente financiado por {runtime}',
-    'footer.reactorStatus': 'S\u00F3 atualiza enquanto o or\u00E7amento durar ({burn}). Atualmente financiado por {runtime}.',
+    'footer.reactorStatus': 'Atualiza\u00E7\u00F5es chegam enquanto os recursos permitirem \u2014 {runtime} de margem a {burn}.',
     'marquee.funding': 'desenvolvimento financiado por {runtime} \u2014 apoia para estender',
     'cta.firstStar.text': '$ se te poupou 5 minutos, deixa uma estrela no repo',
     'cta.firstStar.cta': 'estrela no github',
@@ -1293,7 +1289,6 @@ const translations: Translations = {
     'reactor.removalNotice': 'Se você aparece nesta página e quer ser removido, envie email para yocreoquesi arroba gmail ponto com — feito em 7 dias, sem perguntas.',
     'reactor.noSupportersYet': 'Sem supporters ainda — o shipping de código está financiado pelo bolso do maintainer. Alimente abaixo para estender o runway.',
     'reactor.anonymousLine': '+ {count} supporters anônimos ({total} combinado)',
-    'footer.privacy': 'Suas imagens nunca saem do seu dispositivo. Zero uploads. Zero enrola\u00E7\u00E3o.',
 
     // Pipeline error
     'pipeline.error': 'Processamento falhou: {msg}',
@@ -1514,7 +1509,7 @@ const translations: Translations = {
     // Header / Footer (index.html)
     'header.skipLink': '\u8DF3\u8F6C\u5230\u4E3B\u8981\u5185\u5BB9',
     'footer.reactorLinkAria': '\u67E5\u770B\u9879\u76EE\u6210\u672C\u4E0E\u8FD0\u884C\u65F6\u95F4 \u2014 \u76EE\u524D\u53EF\u7EF4\u6301 {runtime}',
-    'footer.reactorStatus': '\u4EC5\u5728\u9884\u7B97\u5141\u8BB8\u65F6\u66F4\u65B0\uFF08{burn}\uFF09\u3002\u76EE\u524D\u53EF\u7EF4\u6301 {runtime}\u3002',
+    'footer.reactorStatus': '\u8D44\u6E90\u5141\u8BB8\u65F6\u6301\u7EED\u63A8\u9001\u66F4\u65B0 \u2014 {burn} \u4E0B\u8FD8\u53EF\u7EF4\u6301 {runtime}\u3002',
     'marquee.funding': '\u5F00\u53D1\u8D44\u91D1\u53EF\u7EF4\u6301 {runtime} \u2014 \u8D5E\u52A9\u4EE5\u5EF6\u957F',
     'cta.firstStar.text': '$ \u5982\u679C\u7701\u4E86\u4F60 5 \u5206\u949F, \u8BF7\u5728\u4ED3\u5E93\u70B9\u4E2A star',
     'cta.firstStar.cta': 'github star',
@@ -1558,7 +1553,6 @@ const translations: Translations = {
     'reactor.removalNotice': '\u5982\u679C\u60A8\u51FA\u73B0\u5728\u6B64\u9875\u9762\u5E76\u5E0C\u671B\u88AB\u79FB\u9664, \u8BF7\u53D1\u9001\u90AE\u4EF6\u81F3 yocreoquesi at gmail dot com \u2014 7 \u5929\u5185\u5904\u7406, \u4E0D\u95EE\u95EE\u9898\u3002',
     'reactor.noSupportersYet': '\u8FD8\u6CA1\u6709\u652F\u6301\u8005 \u2014 \u4EE3\u7801\u53D1\u5E03\u76EE\u524D\u7531\u7EF4\u62A4\u8005\u81EA\u638F\u8170\u5305\u8D44\u52A9\u3002\u5728\u4E0B\u9762\u8D44\u52A9\u4EE5\u5EF6\u957F\u8FD0\u884C\u65F6\u95F4\u3002',
     'reactor.anonymousLine': '+ {count} \u4F4D\u533F\u540D\u652F\u6301\u8005 (\u5408\u8BA1 {total})',
-    'footer.privacy': '\u4F60\u7684\u56FE\u7247\u6C38\u8FDC\u4E0D\u4F1A\u79BB\u5F00\u4F60\u7684\u8BBE\u5907\u3002\u96F6\u4E0A\u4F20\u3002\u4E0D\u6574\u865A\u7684\u3002',
 
     // Pipeline error
     'pipeline.error': '\u5904\u7406\u5931\u8D25: {msg}',
