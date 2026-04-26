@@ -20,6 +20,7 @@ import './components/ar-batch-item';
 import './components/ar-batch-grid';
 import './components/ar-app';
 import './components/ar-reactor';
+import './components/ar-post-cta';
 
 // Register Service Worker
 import './sw-register';
