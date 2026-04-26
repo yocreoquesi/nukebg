@@ -10,6 +10,24 @@ Unreleased entries accumulate on the `dev` branch. When we cut a release we copy
 
 ## [Unreleased]
 
+## [2.9.3] — 2026-04-27
+
+### Fixed
+
+- **Top marquee no longer overlaps itself**. The marquee text was
+  declared twice inside one `<span>` and animated from `100% \u2192 -100%`,
+  so on wide viewports the two halves visibly overlapped (and the
+  privacy line was only present in the first half — inconsistent).
+  Switched to the standard seamless-marquee pattern: two `marquee-half`
+  children animating `0 \u2192 -50%` so when one half scrolls off the left,
+  the second half sits exactly where it started. One continuous
+  message, no doubled overlap. Removed the redundant "Your images
+  never leave your device" segment along the way.
+- **Footer reactor-status sits on its own line at the bottom** now,
+  instead of wrapping into the row with the version / GitHub /
+  reactor link / theme picker. `display: block; width: 100%;` on
+  `.footer-reactor-status` forces the line break.
+
 ## [2.9.2] — 2026-04-27
 
 ### Changed
