@@ -10,6 +10,18 @@ Unreleased entries accumulate on the `dev` branch. When we cut a release we copy
 
 ## [Unreleased]
 
+## [2.9.2] — 2026-04-27
+
+### Changed
+
+- **Footer copy slimmed + tone softened**. The redundant
+  "Tus im\u00E1genes nunca salen de tu dispositivo" line is gone
+  (already covered by the hero subtitle and the marquee), and the
+  funding status reads humbler: "Updates ship while resources allow
+  \u2014 {runtime} of runway at {burn}" instead of the previous
+  "Ships only while the budget holds. Currently funded for…" doom
+  framing. Translations updated in all six locales.
+
 ## [2.9.1] — 2026-04-27
 
 ### Fixed

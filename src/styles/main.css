@@ -639,12 +639,6 @@ body::after {
   }
 }
 
-.footer-privacy {
-  display: block;
-  margin-top: var(--space-3);
-  font-size: var(--text-sm);
-}
-
 .footer-holiday {
   display: block;
   margin-top: var(--space-2);
@@ -864,11 +858,6 @@ body::after {
   }
   .footer-sep {
     margin: 0 var(--space-1);
-  }
-  .footer-privacy {
-    /* #149 — already shown in marquee + hero subtitle on mobile;
-       repeating it in the footer is just clutter on a narrow viewport */
-    display: none;
   }
   .footer-reactor-status {
     font-size: var(--text-xs);
