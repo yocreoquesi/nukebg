@@ -10,7 +10,12 @@ const OUT_DIR = resolve(__dirname, '../.halo-check');
 test.describe.configure({ mode: 'serial' });
 
 test('capture coche output + mirror console/network', async ({ page }, testInfo) => {
-  test.setTimeout(240_000);
+  // First spec in serial mode → pays full cold-start ML warmup
+  // (model download + WASM init + first inference). On CI runners this
+  // routinely takes 4–5 minutes; the previous 200s/240s budget timed
+  // out consistently. The follow-up specs (football, motostest) reuse
+  // the warm pipeline and finish well under their own budgets.
+  test.setTimeout(360_000);
   mkdirSync(OUT_DIR, { recursive: true });
 
   const logs: string[] = [];
@@ -23,7 +28,7 @@ test('capture coche output + mirror console/network', async ({ page }, testInfo)
   await fileInput.setInputFiles(FIXTURE);
 
   const downloadBtn = page.locator('ar-download').locator('#dl-png');
-  await expect(downloadBtn).toHaveAttribute('href', /^blob:/, { timeout: 200_000 });
+  await expect(downloadBtn).toHaveAttribute('href', /^blob:/, { timeout: 300_000 });
 
   const outPath = resolve(OUT_DIR, `coche.png`);
   const downloadPromise = page.waitForEvent('download');
