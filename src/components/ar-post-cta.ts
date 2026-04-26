@@ -61,7 +61,10 @@ class ArPostCta extends HTMLElement {
   private onSuccess = (): void => {
     const newCount = recordSuccessfulNuke();
     const dismissed = new Set<CtaKey>(); // selectCta will re-check via storage in the helper
-    const picked = selectCta(newCount, dismissed.size === 0 ? this.dismissedFromStorage() : dismissed);
+    const picked = selectCta(
+      newCount,
+      dismissed.size === 0 ? this.dismissedFromStorage() : dismissed,
+    );
     if (picked) {
       // Delay 1s so it doesn't feel pushy — let the result settle first
       setTimeout(() => this.show(picked), 1000);

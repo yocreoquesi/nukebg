@@ -25,10 +25,12 @@ describe('Command bar — ar-app.ts invariants', () => {
   it('renders <div class="command-bar"> inside the single-file workspace', () => {
     expect(APP).toMatch(/<div class="command-bar"[^>]*id="command-bar"/);
     // Situated inside #single-file-workspace and BEFORE ar-viewer.
-    const ws = APP.match(/<div class="single-file-workspace"[\s\S]*?<\/div>\s*<\/div>\s*<\/section>/);
+    const ws = APP.match(
+      /<div class="single-file-workspace"[\s\S]*?<\/div>\s*<\/div>\s*<\/section>/,
+    );
     expect(ws).not.toBeNull();
-    const idx = (ws![0].indexOf('<div class="command-bar"'));
-    const viewerIdx = (ws![0].indexOf('<ar-viewer>'));
+    const idx = ws![0].indexOf('<div class="command-bar"');
+    const viewerIdx = ws![0].indexOf('<ar-viewer>');
     expect(idx).toBeGreaterThan(-1);
     expect(viewerIdx).toBeGreaterThan(idx);
   });
@@ -54,8 +56,12 @@ describe('Command bar — ar-app.ts invariants', () => {
   });
 
   it('updateCommandBar + updateCommandBarState methods exist with the documented signature', () => {
-    expect(APP).toMatch(/private updateCommandBar\(payload:[\s\S]*?filename:[\s\S]*?sizeBytes:[\s\S]*?state:[\s\S]*?\}\): void/);
-    expect(APP).toMatch(/private updateCommandBarState\(state: ['"]running['"] \| ['"]ready['"] \| ['"]failed['"]\): void/);
+    expect(APP).toMatch(
+      /private updateCommandBar\(payload:[\s\S]*?filename:[\s\S]*?sizeBytes:[\s\S]*?state:[\s\S]*?\}\): void/,
+    );
+    expect(APP).toMatch(
+      /private updateCommandBarState\(state: ['"]running['"] \| ['"]ready['"] \| ['"]failed['"]\): void/,
+    );
   });
 
   it('updateTexts re-translates the surviving cmdbar labels on locale change', () => {

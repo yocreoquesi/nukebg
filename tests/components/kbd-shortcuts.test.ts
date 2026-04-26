@@ -63,9 +63,9 @@ describe('global keyboard shortcuts (src/main.ts)', () => {
   });
 
   it('main.css defines .kbd-overlay with a high z-index so it sits over every shadow tree', () => {
-    expect(CSS).toMatch(/\.kbd-overlay \{[\s\S]*?position: fixed;[\s\S]*?z-index:\s*10000;/);
-    expect(CSS).toMatch(/\.kbd-overlay\[hidden\] \{ display: none; \}/);
-    expect(CSS).toMatch(/\.kbd-overlay-card \{/);
-    expect(CSS).toMatch(/\.kbd-overlay-close \{/);
+    expect(CSS).toMatch(/\.kbd-overlay\s*\{[\s\S]*?position: fixed;[\s\S]*?z-index:\s*10000;/);
+    expect(CSS).toMatch(/\.kbd-overlay\[hidden\]\s*\{\s*display:\s*none;?\s*\}/);
+    expect(CSS).toMatch(/\.kbd-overlay-card\s*\{/);
+    expect(CSS).toMatch(/\.kbd-overlay-close\s*\{/);
   });
 });

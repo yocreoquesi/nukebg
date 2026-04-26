@@ -33,7 +33,9 @@ const check = (r, ratioThresh) => {
       }
     }
   }
-  console.log(`r=${r} thresh=${ratioThresh}: ${count} suspicious α=0 pixels (mostly surrounded by α>0)`);
+  console.log(
+    `r=${r} thresh=${ratioThresh}: ${count} suspicious α=0 pixels (mostly surrounded by α>0)`,
+  );
   if (xs.length > 0) {
     console.log(`  sample locations (first 30):`);
     for (const s of xs) console.log(`    (${s.x},${s.y}) opaque_neighbors=${s.opaque}/${s.area}`);
@@ -41,6 +43,6 @@ const check = (r, ratioThresh) => {
 };
 
 console.log(`Image: ${path}  ${w}x${h}`);
-check(1, 0.75);  // 3x3 window, at least 6/8 opaque
-check(2, 0.75);  // 5x5 window, at least 18/24 opaque
-check(3, 0.80);  // 7x7 window, at least 38/48 opaque
+check(1, 0.75); // 3x3 window, at least 6/8 opaque
+check(2, 0.75); // 5x5 window, at least 18/24 opaque
+check(3, 0.8); // 7x7 window, at least 38/48 opaque

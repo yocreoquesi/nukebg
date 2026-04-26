@@ -43,9 +43,7 @@ describe('ar-editor — permanent shortcuts sidebar (#76-B)', () => {
   });
 
   it('CSS hides .help-wrap popover at ≥ 900 px (sidebar owns shortcuts)', () => {
-    expect(ED).toMatch(
-      /@media \(min-width: 900px\) \{[\s\S]*?\.help-wrap \{ display: none; \}/,
-    );
+    expect(ED).toMatch(/@media \(min-width: 900px\) \{[\s\S]*?\.help-wrap \{ display: none; \}/);
   });
 
   it('.editor-body becomes a multi-col grid at ≥ 900 px', () => {

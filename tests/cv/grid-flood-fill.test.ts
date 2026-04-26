@@ -7,7 +7,9 @@ describe('gridFloodFill', () => {
   const light: [number, number, number] = [255, 255, 255];
 
   it('marca todo como fondo en checkerboard puro (sin sujeto)', () => {
-    const w = 128, h = 128, gs = 16;
+    const w = 128,
+      h = 128,
+      gs = 16;
     const pixels = checkerboardImage(w, h, gs, dark, light);
 
     const mask = gridFloodFill(pixels, w, h, dark, light, gs, 0);
@@ -18,7 +20,9 @@ describe('gridFloodFill', () => {
   });
 
   it('preserva un sujeto central opaco', () => {
-    const w = 128, h = 128, gs = 16;
+    const w = 128,
+      h = 128,
+      gs = 16;
     const pixels = checkerboardImage(w, h, gs, dark, light);
 
     // Paint a 40x40 red subject in the center
@@ -38,7 +42,9 @@ describe('gridFloodFill', () => {
   });
 
   it('funciona con grid de 32px', () => {
-    const w = 256, h = 256, gs = 32;
+    const w = 256,
+      h = 256,
+      gs = 32;
     const pixels = checkerboardImage(w, h, gs, dark, light);
 
     const mask = gridFloodFill(pixels, w, h, dark, light, gs, 0);
@@ -48,7 +54,9 @@ describe('gridFloodFill', () => {
   });
 
   it('respeta el parametro de tolerancia', () => {
-    const w = 128, h = 128, gs = 16;
+    const w = 128,
+      h = 128,
+      gs = 16;
     const pixels = checkerboardImage(w, h, gs, dark, light);
 
     // Con tolerancia 0, deberia ser mas estricto

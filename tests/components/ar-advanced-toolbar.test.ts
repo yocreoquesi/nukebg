@@ -16,7 +16,9 @@ describe('ar-editor-advanced — toolbar split into two rows (#77)', () => {
   });
 
   it('primary row carries tools + size + zoom; contextual row carries lasso/preview', () => {
-    const primary = ED.match(/class="toolbar-row toolbar-row-primary"[\s\S]*?<\/div>\s*<\/div>\s*<\/div>/);
+    const primary = ED.match(
+      /class="toolbar-row toolbar-row-primary"[\s\S]*?<\/div>\s*<\/div>\s*<\/div>/,
+    );
     expect(primary).not.toBeNull();
     expect(primary![0]).toMatch(/class="tool-group"/);
     expect(primary![0]).toMatch(/id="size-row"/);
@@ -35,6 +37,8 @@ describe('ar-editor-advanced — toolbar split into two rows (#77)', () => {
   });
 
   it('contextual row hides when none of its children carry .visible', () => {
-    expect(ED).toMatch(/\.toolbar-row-contextual:not\(:has\(> \.visible\)\) \{[\s\S]*?display: none/);
+    expect(ED).toMatch(
+      /\.toolbar-row-contextual:not\(:has\(> \.visible\)\) \{[\s\S]*?display: none/,
+    );
   });
 });

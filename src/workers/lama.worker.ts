@@ -32,8 +32,7 @@ import {
 // script-src and connect-src (transformers.js reaches the same CDN).
 // Bump this version string in lockstep with package.json's onnxruntime-web
 // dependency so the runtime matches the JS API we link against.
-ort.env.wasm.wasmPaths =
-  'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.24.3/dist/';
+ort.env.wasm.wasmPaths = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.24.3/dist/';
 
 // The LaMa graph has ~80 unused Conv shape initializers that ORT logs as
 // warnings at session-create time. They're harmless (graph optimiser
@@ -70,9 +69,11 @@ async function loadModel(id: string): Promise<ort.InferenceSession> {
         const pct = Math.floor((received / total) * 100);
         if (pct !== lastReportedPct) {
           lastReportedPct = pct;
-          self.postMessage(
-            { id, type: 'lama-model-progress', progress: pct } satisfies LamaWorkerResponse,
-          );
+          self.postMessage({
+            id,
+            type: 'lama-model-progress',
+            progress: pct,
+          } satisfies LamaWorkerResponse);
         }
       }
     }
@@ -82,14 +83,12 @@ async function loadModel(id: string): Promise<ort.InferenceSession> {
     // with an opaque "failed to load model" — we want a specific,
     // retryable error instead.
     if (total > 0 && received !== total) {
-      throw new Error(
-        `Truncated LaMa model download: got ${received} / ${total} bytes`,
-      );
+      throw new Error(`Truncated LaMa model download: got ${received} / ${total} bytes`);
     }
     if (received !== LAMA_PARAMS.EXPECTED_SIZE) {
       throw new Error(
         `LaMa model size mismatch: got ${received} bytes, expected ` +
-        `${LAMA_PARAMS.EXPECTED_SIZE}. Upstream may have been replaced.`,
+          `${LAMA_PARAMS.EXPECTED_SIZE}. Upstream may have been replaced.`,
       );
     }
 
@@ -110,7 +109,7 @@ async function loadModel(id: string): Promise<ort.InferenceSession> {
     if (digestHex !== LAMA_PARAMS.EXPECTED_SHA256) {
       throw new Error(
         `LaMa model hash mismatch: got ${digestHex}, ` +
-        `expected ${LAMA_PARAMS.EXPECTED_SHA256}. Refusing to load.`,
+          `expected ${LAMA_PARAMS.EXPECTED_SHA256}. Refusing to load.`,
       );
     }
 
@@ -138,9 +137,9 @@ function rgbaToImageTensor(rgba: Uint8ClampedArray, size: number): ort.Tensor {
   const plane = size * size;
   const data = new Float32Array(3 * plane);
   for (let i = 0; i < plane; i++) {
-    data[i] = rgba[i * 4] / 255;                 // R
-    data[plane + i] = rgba[i * 4 + 1] / 255;      // G
-    data[2 * plane + i] = rgba[i * 4 + 2] / 255;  // B
+    data[i] = rgba[i * 4] / 255; // R
+    data[plane + i] = rgba[i * 4 + 1] / 255; // G
+    data[2 * plane + i] = rgba[i * 4 + 2] / 255; // B
   }
   return new ort.Tensor('float32', data, [1, 3, size, size]);
 }
@@ -160,9 +159,9 @@ function imageTensorToRgba(tensor: ort.Tensor, size: number): Uint8ClampedArray 
   const plane = size * size;
   const rgba = new Uint8ClampedArray(size * size * 4);
   for (let i = 0; i < plane; i++) {
-    rgba[i * 4] = data[i];                   // R
-    rgba[i * 4 + 1] = data[plane + i];       // G
-    rgba[i * 4 + 2] = data[2 * plane + i];   // B
+    rgba[i * 4] = data[i]; // R
+    rgba[i * 4 + 1] = data[plane + i]; // G
+    rgba[i * 4 + 2] = data[2 * plane + i]; // B
     rgba[i * 4 + 3] = 255;
   }
   return rgba;
@@ -175,21 +174,27 @@ async function runInpaint(
   height: number,
   mask: Uint8Array,
 ): Promise<void> {
-  self.postMessage(
-    { id, type: 'lama-inpaint-progress', stage: 'loading-model' } satisfies LamaWorkerResponse,
-  );
+  self.postMessage({
+    id,
+    type: 'lama-inpaint-progress',
+    stage: 'loading-model',
+  } satisfies LamaWorkerResponse);
   const sess = await loadModel(id);
 
-  self.postMessage(
-    { id, type: 'lama-inpaint-progress', stage: 'preparing-tensors' } satisfies LamaWorkerResponse,
-  );
+  self.postMessage({
+    id,
+    type: 'lama-inpaint-progress',
+    stage: 'preparing-tensors',
+  } satisfies LamaWorkerResponse);
 
   const rect = computeLamaCropRect(mask, width, height);
   if (!rect) {
     // Empty mask — nothing to reconstruct. Return the input unchanged.
-    self.postMessage(
-      { id, type: 'lama-inpaint-result', result: new Uint8ClampedArray(pixels) } satisfies LamaWorkerResponse,
-    );
+    self.postMessage({
+      id,
+      type: 'lama-inpaint-result',
+      result: new Uint8ClampedArray(pixels),
+    } satisfies LamaWorkerResponse);
     return;
   }
 
@@ -200,9 +205,11 @@ async function runInpaint(
   const imageTensor = rgbaToImageTensor(cropRgba, inputSize);
   const maskTensor = maskToTensor(cropMask, inputSize);
 
-  self.postMessage(
-    { id, type: 'lama-inpaint-progress', stage: 'running-inference' } satisfies LamaWorkerResponse,
-  );
+  self.postMessage({
+    id,
+    type: 'lama-inpaint-progress',
+    stage: 'running-inference',
+  } satisfies LamaWorkerResponse);
 
   const feeds: Record<string, ort.Tensor> = {
     [LAMA_PARAMS.IMAGE_INPUT_NAME]: imageTensor,
@@ -212,17 +219,18 @@ async function runInpaint(
   const outputKey = sess.outputNames[0];
   const outputTensor = results[outputKey];
 
-  self.postMessage(
-    { id, type: 'lama-inpaint-progress', stage: 'compositing' } satisfies LamaWorkerResponse,
-  );
+  self.postMessage({
+    id,
+    type: 'lama-inpaint-progress',
+    stage: 'compositing',
+  } satisfies LamaWorkerResponse);
 
   const inpaintedCropRgba = imageTensorToRgba(outputTensor, inputSize);
   const full = spliceLamaOutput(pixels, width, height, inpaintedCropRgba, inputSize, rect);
 
-  self.postMessage(
-    { id, type: 'lama-inpaint-result', result: full } satisfies LamaWorkerResponse,
-    [full.buffer],
-  );
+  self.postMessage({ id, type: 'lama-inpaint-result', result: full } satisfies LamaWorkerResponse, [
+    full.buffer,
+  ]);
 }
 
 self.onmessage = async (e: MessageEvent<LamaWorkerRequest>) => {
@@ -252,8 +260,10 @@ self.onmessage = async (e: MessageEvent<LamaWorkerRequest>) => {
       }
     }
   } catch (err) {
-    self.postMessage(
-      { id: msg.id, type: 'error', error: String(err) } satisfies LamaWorkerResponse,
-    );
+    self.postMessage({
+      id: msg.id,
+      type: 'error',
+      error: String(err),
+    } satisfies LamaWorkerResponse);
   }
 };

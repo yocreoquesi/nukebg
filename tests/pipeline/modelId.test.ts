@@ -27,7 +27,7 @@ describe('ModelId parameter', () => {
   });
 
   it('MODEL_OPTIONS incluye RMBG-1.4', () => {
-    const rmbg = MODEL_OPTIONS.find(o => o.id === 'briaai/RMBG-1.4');
+    const rmbg = MODEL_OPTIONS.find((o) => o.id === 'briaai/RMBG-1.4');
     expect(rmbg).toBeDefined();
     expect(rmbg!.label).toBe('RMBG 1.4');
   });

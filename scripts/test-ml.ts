@@ -77,13 +77,14 @@ async function testImage(inputPath: string): Promise<boolean> {
     }
   }
 
-  const fgPct = (100 * fgCount / (width * height)).toFixed(1);
+  const fgPct = ((100 * fgCount) / (width * height)).toFixed(1);
   console.log(`  Foreground: ${fgPct}%`);
 
   // Save
   const outPath = path.join(OUT_DIR, `${name}-ml-test.png`);
   await sharp(resultPixels, { raw: { width, height, channels: 4 } })
-    .png().toFile(outPath);
+    .png()
+    .toFile(outPath);
 
   // On white
   const whitePixels = Buffer.alloc(width * height * 4);
@@ -96,7 +97,8 @@ async function testImage(inputPath: string): Promise<boolean> {
   }
   const whitePath = path.join(OUT_DIR, `${name}-ml-test-on-white.png`);
   await sharp(whitePixels, { raw: { width, height, channels: 4 } })
-    .png().toFile(whitePath);
+    .png()
+    .toFile(whitePath);
 
   console.log(`  Output: ${outPath}`);
   console.log(`  PASS`);
@@ -116,7 +118,8 @@ let passed = 0;
 let failed = 0;
 for (const file of files) {
   const ok = await testImage(file);
-  if (ok) passed++; else failed++;
+  if (ok) passed++;
+  else failed++;
 }
 
 console.log(`\n${passed} passed, ${failed} failed`);

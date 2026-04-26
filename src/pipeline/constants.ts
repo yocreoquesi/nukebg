@@ -5,10 +5,10 @@ export const CV_PARAMS = {
   MIN_GRID_SIZE: 8,
   COLOR_TOLERANCE: 25,
   BOUNDARY_ZONE: 2,
-  LOW_COVERAGE_THRESHOLD: 0.30,
+  LOW_COVERAGE_THRESHOLD: 0.3,
   CELL_BG_MATCH_HIGH: 0.65,
-  CELL_BG_MATCH_LOW: 0.40,
-  CELL_SATURATION_THRESHOLD: 0.20,
+  CELL_BG_MATCH_LOW: 0.4,
+  CELL_SATURATION_THRESHOLD: 0.2,
   CELL_BRIGHTNESS_THRESHOLD: 50,
   CELL_COLORED_RATIO: 0.15,
   SOLID_BG_VARIANCE: 20,
@@ -31,7 +31,7 @@ export const WATERMARK_PARAMS = {
 export const SPARKLE_PARAMS = {
   /** Fraction of width/height to scan. Gemini always places the sparkle in
    *  the bottom-right; keep this tight to reject distant features. */
-  SCAN_WIDTH_FRACTION: 0.20,
+  SCAN_WIDTH_FRACTION: 0.2,
   SCAN_HEIGHT_FRACTION: 0.25,
   /** Candidate sparkle radii (pixels). Multi-scale sweep. */
   SCALE_RADII: [10, 14, 20, 28, 40, 55] as const,
@@ -120,7 +120,6 @@ export const EDGE_REFINE_PARAMS = {
   BAND_HI: 245,
 } as const;
 
-
 export const PATCHMATCH_PARAMS = {
   /** Patch radius (pixels). 3 → 7×7 patches, the Barnes 2009 sweet-spot
    *  for texture reconstruction on natural photos. */
@@ -168,8 +167,7 @@ export const LAMA_PARAMS = {
   MODEL_URL:
     'https://huggingface.co/opencv/inpainting_lama/resolve/aee6d22f0a13e5e35af1c9a1c3afd62841fc6f3f/inpainting_lama_2025jan.onnx',
   EXPECTED_SIZE: 92_591_623,
-  EXPECTED_SHA256:
-    '7df918ac3921d3daf0aae1d219776cf0dc4e4935f035af81841b40adcf74fdf2',
+  EXPECTED_SHA256: '7df918ac3921d3daf0aae1d219776cf0dc4e4935f035af81841b40adcf74fdf2',
   /** Fixed 1:1 input expected by the ONNX graph. Changing this breaks
    *  inference — it's baked into the Fourier convolution tensor sizes. */
   INPUT_SIZE: 512,
@@ -247,7 +245,7 @@ export const PRECISION_PROFILES: Record<PrecisionMode, PrecisionProfile> = {
     clusterRatio: 0.02,
     minClusterSize: 100,
   },
-  'normal': {
+  normal: {
     rmbgThreshold: 0.5,
     spatialPasses: 1,
     spatialRadius: REFINE_PARAMS.SPATIAL_RADIUS,
@@ -290,11 +288,11 @@ export const IMAGE_CLASSIFY_PARAMS = {
   /** Max saturation mean for signature (very low color) */
   SIGNATURE_SATURATION_MAX: 0.08,
   /** Min near-white ratio for signature background */
-  SIGNATURE_NEAR_WHITE_MIN: 0.50,
+  SIGNATURE_NEAR_WHITE_MIN: 0.5,
   /** Min dark pixel ratio (ink strokes) */
   SIGNATURE_DARK_PIXEL_MIN: 0.01,
   /** Max dark pixel ratio (not too much ink) */
-  SIGNATURE_DARK_PIXEL_MAX: 0.40,
+  SIGNATURE_DARK_PIXEL_MAX: 0.4,
 
   // ICON thresholds
   /** Max total pixels for icon classification */

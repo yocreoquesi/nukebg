@@ -25,22 +25,26 @@ export class ArBatchItem extends HTMLElement {
       // Pending slots are non-interactive. Processing IS clickable so the
       // user can open the live progress console for the current item.
       if (this.itemState === 'pending') return;
-      this.dispatchEvent(new CustomEvent('batch:item-click', {
-        bubbles: true,
-        composed: true,
-        detail: { id: this.itemId, state: this.itemState },
-      }));
+      this.dispatchEvent(
+        new CustomEvent('batch:item-click', {
+          bubbles: true,
+          composed: true,
+          detail: { id: this.itemId, state: this.itemState },
+        }),
+      );
     });
     this.shadowRoot!.addEventListener('keydown', (e) => {
       const ke = e as KeyboardEvent;
       if (ke.key !== 'Enter' && ke.key !== ' ') return;
       if (this.itemState === 'pending') return;
       ke.preventDefault();
-      this.dispatchEvent(new CustomEvent('batch:item-click', {
-        bubbles: true,
-        composed: true,
-        detail: { id: this.itemId, state: this.itemState },
-      }));
+      this.dispatchEvent(
+        new CustomEvent('batch:item-click', {
+          bubbles: true,
+          composed: true,
+          detail: { id: this.itemId, state: this.itemState },
+        }),
+      );
     });
     this.boundLocaleHandler = () => this.updateView();
     document.addEventListener('nukebg:locale-changed', this.boundLocaleHandler);
@@ -53,7 +57,12 @@ export class ArBatchItem extends HTMLElement {
     }
   }
 
-  setItem(id: string, originalName: string, thumbnailUrl: string | null, state: BatchItemState): void {
+  setItem(
+    id: string,
+    originalName: string,
+    thumbnailUrl: string | null,
+    state: BatchItemState,
+  ): void {
     this.itemId = id;
     this.originalName = originalName;
     this.thumbnailUrl = thumbnailUrl;
@@ -185,9 +194,7 @@ export class ArBatchItem extends HTMLElement {
     const root = this.shadowRoot;
     this.setAttribute('data-state', this.itemState);
     const clickable =
-      this.itemState === 'done' ||
-      this.itemState === 'failed' ||
-      this.itemState === 'processing';
+      this.itemState === 'done' || this.itemState === 'failed' || this.itemState === 'processing';
     this.setAttribute('data-clickable', clickable ? 'true' : 'false');
 
     const img = root.querySelector('.thumb') as HTMLImageElement | null;

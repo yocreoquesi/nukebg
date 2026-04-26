@@ -35,7 +35,7 @@ function simulateMlSoftAlpha(
   w: number,
   h: number,
   bgColorA: number[],
-  bgColorB: number[]
+  bgColorB: number[],
 ): Uint8Array {
   const alpha = new Uint8Array(w * h);
   for (let i = 0; i < w * h; i++) {
@@ -52,9 +52,9 @@ function simulateMlSoftAlpha(
 }
 
 describe('Pipeline - flujo de decision (nuevo: ML soft alpha)', () => {
-
   it('clasifica fondo solido correctamente', () => {
-    const w = 128, h = 128;
+    const w = 128,
+      h = 128;
     const pixels = solidImage(w, h, 255, 255, 255);
     paintRect(pixels, w, 40, 40, 48, 48, 200, 50, 50);
 
@@ -77,7 +77,9 @@ describe('Pipeline - flujo de decision (nuevo: ML soft alpha)', () => {
   });
 
   it('clasifica checkerboard y ejecuta grid flood fill para deteccion', () => {
-    const w = 256, h = 256, gs = 16;
+    const w = 256,
+      h = 256,
+      gs = 16;
     const dark: [number, number, number] = [191, 191, 191];
     const light: [number, number, number] = [255, 255, 255];
     const pixels = checkerboardImage(w, h, gs, dark, light);
@@ -101,7 +103,8 @@ describe('Pipeline - flujo de decision (nuevo: ML soft alpha)', () => {
   });
 
   it('clasifica background complejo (alta varianza, no checker)', () => {
-    const w = 128, h = 128;
+    const w = 128,
+      h = 128;
     // Image with gradient (high variance in corners, but not checker)
     const pixels = new Uint8ClampedArray(w * h * 4);
     for (let y = 0; y < h; y++) {
@@ -127,7 +130,9 @@ describe('Pipeline - flujo de decision (nuevo: ML soft alpha)', () => {
   });
 
   it('pipeline completo para checkerboard con coverage bajo ejecuta subject exclusion', () => {
-    const w = 128, h = 128, gs = 16;
+    const w = 128,
+      h = 128,
+      gs = 16;
     const dark: [number, number, number] = [191, 191, 191];
     const light: [number, number, number] = [255, 255, 255];
     const pixels = checkerboardImage(w, h, gs, dark, light);
@@ -143,9 +148,13 @@ describe('Pipeline - flujo de decision (nuevo: ML soft alpha)', () => {
 
       if (grid.gridSize > 0) {
         const bgMask = gridFloodFill(
-          pixels, w, h,
-          bgInfo.colorA, bgInfo.colorB,
-          grid.gridSize, grid.phase
+          pixels,
+          w,
+          h,
+          bgInfo.colorA,
+          bgInfo.colorB,
+          grid.gridSize,
+          grid.phase,
         );
 
         const coverage = countBg(bgMask) / (w * h);
@@ -153,15 +162,16 @@ describe('Pipeline - flujo de decision (nuevo: ML soft alpha)', () => {
         if (coverage < CV_PARAMS.LOW_COVERAGE_THRESHOLD) {
           // Fallback a subject exclusion
           const exclMask = subjectExclusion(
-            pixels, w, h,
-            bgInfo.colorA, bgInfo.colorB,
-            grid.gridSize, grid.phase
+            pixels,
+            w,
+            h,
+            bgInfo.colorA,
+            bgInfo.colorB,
+            grid.gridSize,
+            grid.phase,
           );
 
-          const floodMask = simpleFloodFill(
-            pixels, w, h,
-            bgInfo.colorA, bgInfo.colorB
-          );
+          const floodMask = simpleFloodFill(pixels, w, h, bgInfo.colorA, bgInfo.colorB);
 
           // Union
           const unionMask = new Uint8Array(w * h);
@@ -184,7 +194,8 @@ describe('Pipeline - flujo de decision (nuevo: ML soft alpha)', () => {
 
 describe('Pipeline - composicion final RGBA con soft alpha', () => {
   it('combina pixeles originales con soft alpha del ML model', () => {
-    const w = 16, h = 16;
+    const w = 16,
+      h = 16;
     const pixels = solidImage(w, h, 255, 255, 255);
     paintRect(pixels, w, 4, 4, 8, 8, 100, 150, 200);
 
@@ -217,7 +228,8 @@ describe('Pipeline - composicion final RGBA con soft alpha', () => {
   });
 
   it('soft alpha preserva valores intermedios (semi-transparencia)', () => {
-    const w = 16, h = 16;
+    const w = 16,
+      h = 16;
     const pixels = solidImage(w, h, 255, 255, 255);
     // Pixel ligeramente diferente al fondo (simula borde suave)
     paintRect(pixels, w, 7, 7, 2, 2, 230, 230, 230);
@@ -234,7 +246,8 @@ describe('Pipeline - composicion final RGBA con soft alpha', () => {
 
 describe('Pipeline - watermark zeroes alpha en soft alpha', () => {
   it('watermark mask pone alpha a 0 donde se detecta watermark', () => {
-    const w = 64, h = 64;
+    const w = 64,
+      h = 64;
     const pixels = solidImage(w, h, 200, 200, 200);
     // Sujeto
     paintRect(pixels, w, 20, 20, 24, 24, 100, 50, 50);

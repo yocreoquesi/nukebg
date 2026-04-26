@@ -6,7 +6,14 @@ import type {
   WatermarkResult,
   ImageContentType,
 } from '../types/pipeline';
-import type { CvWorkerResponse, MlWorkerResponse, InpaintWorkerResponse, LamaWorkerResponse, ModelId, ClassifyImageResult } from '../types/worker-messages';
+import type {
+  CvWorkerResponse,
+  MlWorkerResponse,
+  InpaintWorkerResponse,
+  LamaWorkerResponse,
+  ModelId,
+  ClassifyImageResult,
+} from '../types/worker-messages';
 import { IMAGE_CLASSIFY_PARAMS, INPAINT_PARAMS, PRECISION_PROFILES } from './constants';
 import type { PrecisionMode } from './constants';
 import { compositeWithFeather, dilateMask } from '../workers/cv/inpaint-blend';
@@ -59,15 +66,18 @@ export class PipelineOrchestrator {
   private mlWorker: Worker;
   private inpaintWorker: Worker | null = null;
   private lamaWorker: Worker | null = null;
-  private pendingRequests = new Map<string, {
-    resolve: (val: unknown) => void;
-    reject: (err: Error) => void;
-    expectedType: string;
-    /** Timeout handle associated with this request, so response handlers
-     *  can clear it promptly instead of waiting for the timer to fire
-     *  empty-handed. */
-    timer?: ReturnType<typeof setTimeout>;
-  }>();
+  private pendingRequests = new Map<
+    string,
+    {
+      resolve: (val: unknown) => void;
+      reject: (err: Error) => void;
+      expectedType: string;
+      /** Timeout handle associated with this request, so response handlers
+       *  can clear it promptly instead of waiting for the timer to fire
+       *  empty-handed. */
+      timer?: ReturnType<typeof setTimeout>;
+    }
+  >();
   private pendingTimers = new Set<ReturnType<typeof setTimeout>>();
   private onStageChange: StageCallback;
   private activeSignalCleanup: (() => void) | null = null;
@@ -80,10 +90,7 @@ export class PipelineOrchestrator {
   }
 
   private createCvWorker(): Worker {
-    const w = new Worker(
-      new URL('../workers/cv.worker.ts', import.meta.url),
-      { type: 'module' }
-    );
+    const w = new Worker(new URL('../workers/cv.worker.ts', import.meta.url), { type: 'module' });
     w.onerror = (e) => {
       this.rejectAllPending(`CV Worker error: ${e.message}`);
       w.terminate();
@@ -104,10 +111,7 @@ export class PipelineOrchestrator {
   }
 
   private createMlWorker(): Worker {
-    const w = new Worker(
-      new URL('../workers/ml.worker.ts', import.meta.url),
-      { type: 'module' }
-    );
+    const w = new Worker(new URL('../workers/ml.worker.ts', import.meta.url), { type: 'module' });
     w.onerror = (e) => {
       this.rejectAllPending(`ML Worker error: ${e.message}`);
       w.terminate();
@@ -126,9 +130,10 @@ export class PipelineOrchestrator {
       if (msg.type === 'model-progress') {
         if (this.suppressMlProgress) return; // background preload, don't update UI
         const pct = msg.progress ?? 0;
-        const label = pct >= 96 && pct < 100
-          ? 'Warming up the reactor... [96%]'
-          : `Loading AI model... ${pct}% [${pct}%]`;
+        const label =
+          pct >= 96 && pct < 100
+            ? 'Warming up the reactor... [96%]'
+            : `Loading AI model... ${pct}% [${pct}%]`;
         this.emit('ml-segmentation', 'running', label);
         return;
       }
@@ -160,7 +165,9 @@ export class PipelineOrchestrator {
         } else if (msg.type === 'segment-result') {
           // Only resolve if the request was actually for a segment call
           if (pending.expectedType !== 'segment') {
-            console.warn(`[NukeBG] segment-result arrived for a '${pending.expectedType}' request - ignoring`);
+            console.warn(
+              `[NukeBG] segment-result arrived for a '${pending.expectedType}' request - ignoring`,
+            );
             return;
           }
           this.settlePending(msg.id);
@@ -170,7 +177,9 @@ export class PipelineOrchestrator {
           // This prevents a model-ready message from prematurely resolving
           // a segment request when the worker auto-loads the model.
           if (pending.expectedType !== 'load-model') {
-            console.warn(`[NukeBG] model-ready arrived for a '${pending.expectedType}' request - ignoring`);
+            console.warn(
+              `[NukeBG] model-ready arrived for a '${pending.expectedType}' request - ignoring`,
+            );
             return;
           }
           this.settlePending(msg.id);
@@ -181,7 +190,9 @@ export class PipelineOrchestrator {
   }
 
   /** Extract Transferable buffers from a payload object */
-  private static extractTransferables(payload: Record<string, unknown> | undefined): Transferable[] {
+  private static extractTransferables(
+    payload: Record<string, unknown> | undefined,
+  ): Transferable[] {
     if (!payload) return [];
     const transferables: Transferable[] = [];
     for (const val of Object.values(payload)) {
@@ -269,11 +280,20 @@ export class PipelineOrchestrator {
         }
       }, CV_TIMEOUT_MS);
       this.pendingTimers.add(timer);
-      this.pendingRequests.set(id, { resolve: resolve as (val: unknown) => void, reject, expectedType: type, timer });
+      this.pendingRequests.set(id, {
+        resolve: resolve as (val: unknown) => void,
+        reject,
+        expectedType: type,
+        timer,
+      });
     });
   }
 
-  private mlCall<T>(type: string, payload?: Record<string, unknown>, extra?: Record<string, unknown>): Promise<T> {
+  private mlCall<T>(
+    type: string,
+    payload?: Record<string, unknown>,
+    extra?: Record<string, unknown>,
+  ): Promise<T> {
     return new Promise((resolve, reject) => {
       const id = generateUUID();
       const transferables = PipelineOrchestrator.extractTransferables(payload);
@@ -283,21 +303,29 @@ export class PipelineOrchestrator {
         this.pendingTimers.delete(timer);
         if (this.pendingRequests.has(id)) {
           this.pendingRequests.delete(id);
-          reject(new Error(`ML Worker timeout after ${ML_TIMEOUT_MS}ms: ${type}. Check browser console for errors.`));
+          reject(
+            new Error(
+              `ML Worker timeout after ${ML_TIMEOUT_MS}ms: ${type}. Check browser console for errors.`,
+            ),
+          );
         }
       }, ML_TIMEOUT_MS);
       this.pendingTimers.add(timer);
-      this.pendingRequests.set(id, { resolve: resolve as (val: unknown) => void, reject, expectedType: type, timer });
+      this.pendingRequests.set(id, {
+        resolve: resolve as (val: unknown) => void,
+        reject,
+        expectedType: type,
+        timer,
+      });
     });
   }
 
   /** Create the inpaint worker lazily (only when needed) */
   private createInpaintWorker(): void {
     if (this.inpaintWorker) return;
-    this.inpaintWorker = new Worker(
-      new URL('../workers/inpaint.worker.ts', import.meta.url),
-      { type: 'module' }
-    );
+    this.inpaintWorker = new Worker(new URL('../workers/inpaint.worker.ts', import.meta.url), {
+      type: 'module',
+    });
     this.inpaintWorker.onerror = (e) => this.rejectAllPending(`Inpaint Worker error: ${e.message}`);
     this.inpaintWorker.onmessage = (e: MessageEvent<InpaintWorkerResponse>) => {
       const msg = e.data;
@@ -340,7 +368,12 @@ export class PipelineOrchestrator {
         }
       }, INPAINT_TIMEOUT_MS);
       this.pendingTimers.add(timer);
-      this.pendingRequests.set(id, { resolve: resolve as (val: unknown) => void, reject, expectedType: type, timer });
+      this.pendingRequests.set(id, {
+        resolve: resolve as (val: unknown) => void,
+        reject,
+        expectedType: type,
+        timer,
+      });
     });
   }
 
@@ -355,10 +388,9 @@ export class PipelineOrchestrator {
   /** Create the LaMa worker lazily (only when the router picks it). */
   private createLamaWorker(): void {
     if (this.lamaWorker) return;
-    this.lamaWorker = new Worker(
-      new URL('../workers/lama.worker.ts', import.meta.url),
-      { type: 'module' }
-    );
+    this.lamaWorker = new Worker(new URL('../workers/lama.worker.ts', import.meta.url), {
+      type: 'module',
+    });
     this.lamaWorker.onerror = (e) => this.rejectAllPending(`LaMa Worker error: ${e.message}`);
     this.lamaWorker.onmessage = (e: MessageEvent<LamaWorkerResponse>) => {
       const msg = e.data;
@@ -410,7 +442,12 @@ export class PipelineOrchestrator {
         }
       }, LAMA_TIMEOUT_MS);
       this.pendingTimers.add(timer);
-      this.pendingRequests.set(id, { resolve: resolve as (val: unknown) => void, reject, expectedType: type, timer });
+      this.pendingRequests.set(id, {
+        resolve: resolve as (val: unknown) => void,
+        reject,
+        expectedType: type,
+        timer,
+      });
     });
   }
 
@@ -453,7 +490,10 @@ export class PipelineOrchestrator {
     height: number,
   ): Promise<Uint8ClampedArray> {
     return this.cvCall<Uint8ClampedArray>('foreground-estimate', {
-      pixels, alpha, width, height,
+      pixels,
+      alpha,
+      width,
+      height,
     });
   }
 
@@ -461,10 +501,7 @@ export class PipelineOrchestrator {
    * Combine N watermark masks with logical OR.
    * Returns null if all masks are null.
    */
-  private static combineMasks(
-    masks: Array<Uint8Array | null>,
-    size: number,
-  ): Uint8Array | null {
+  private static combineMasks(masks: Array<Uint8Array | null>, size: number): Uint8Array | null {
     const validMasks = masks.filter((m): m is Uint8Array => m !== null);
     if (validMasks.length === 0) return null;
     if (validMasks.length === 1) return validMasks[0];
@@ -577,7 +614,17 @@ export class PipelineOrchestrator {
       stageTiming['ml-segmentation'] = performance.now() - t;
       this.emit('ml-segmentation', 'done', 'Signature extracted');
 
-      return this.composeResult(originalPixels, sigAlpha, width, height, contentType, false, null, startTime, stageTiming);
+      return this.composeResult(
+        originalPixels,
+        sigAlpha,
+        width,
+        height,
+        contentType,
+        false,
+        null,
+        startTime,
+        stageTiming,
+      );
     }
 
     // ── Stage 2: Watermark detection (CV, no ML, instant) - skip for ICON ──
@@ -631,8 +678,8 @@ export class PipelineOrchestrator {
         if (import.meta.env.DEV) {
           console.log(
             `[NukeBG] Inpaint router: useLama=${routerDecision.useLama} ` +
-            `(variance=${routerDecision.variance.toFixed(1)}, ` +
-            `edgeDensity=${routerDecision.edgeDensity.toFixed(1)})`,
+              `(variance=${routerDecision.variance.toFixed(1)}, ` +
+              `edgeDensity=${routerDecision.edgeDensity.toFixed(1)})`,
           );
         }
 
@@ -687,7 +734,11 @@ export class PipelineOrchestrator {
         watermarkRemoved = true;
         appliedWatermarkMask = combinedMask;
         stageTiming['inpaint'] = performance.now() - t;
-        this.emit('inpaint', 'done', routerDecision.useLama ? 'Zone reconstructed [AI]' : 'Watermark reconstructed');
+        this.emit(
+          'inpaint',
+          'done',
+          routerDecision.useLama ? 'Zone reconstructed [AI]' : 'Watermark reconstructed',
+        );
       } else {
         this.emit('watermark-scan', 'done', 'No watermarks found');
         stageTiming['watermark-scan'] = performance.now() - t;
@@ -708,9 +759,8 @@ export class PipelineOrchestrator {
     const extra: Record<string, unknown> = {};
     if (modelId) extra.modelId = modelId;
     // ICON: use lower threshold for more aggressive removal
-    extra.threshold = contentType === 'ICON'
-      ? IMAGE_CLASSIFY_PARAMS.ICON_RMBG_THRESHOLD
-      : profile.rmbgThreshold;
+    extra.threshold =
+      contentType === 'ICON' ? IMAGE_CLASSIFY_PARAMS.ICON_RMBG_THRESHOLD : profile.rmbgThreshold;
     extra.refine = {
       spatialPasses: profile.spatialPasses,
       spatialRadius: profile.spatialRadius,
@@ -719,18 +769,29 @@ export class PipelineOrchestrator {
       minClusterSize: profile.minClusterSize,
     };
 
-    const mlAlpha = await this.mlCall<Uint8Array>('segment', {
-      pixels: new Uint8ClampedArray(originalPixels),
-      width,
-      height,
-    }, extra);
+    const mlAlpha = await this.mlCall<Uint8Array>(
+      'segment',
+      {
+        pixels: new Uint8ClampedArray(originalPixels),
+        width,
+        height,
+      },
+      extra,
+    );
 
     stageTiming['ml-segmentation'] = performance.now() - t;
     this.emit('ml-segmentation', 'done', 'Background removed');
 
     return this.composeResult(
-      originalPixels, mlAlpha, width, height, contentType,
-      watermarkRemoved, appliedWatermarkMask, startTime, stageTiming,
+      originalPixels,
+      mlAlpha,
+      width,
+      height,
+      contentType,
+      watermarkRemoved,
+      appliedWatermarkMask,
+      startTime,
+      stageTiming,
     );
   }
 
@@ -763,9 +824,11 @@ export class PipelineOrchestrator {
       else if (finalAlpha[i] < 30) transparentPixels++;
     }
     const totalPixels = width * height;
-    const nukedPct = Math.round(100 * transparentPixels / totalPixels);
+    const nukedPct = Math.round((100 * transparentPixels) / totalPixels);
     if (import.meta.env.DEV) {
-      console.log(`[NukeBG] Result: ${nukedPct}% nuked, ${Math.round(100 * opaquePixels / totalPixels)}% kept, ${totalPixels - opaquePixels - transparentPixels} edge pixels`);
+      console.log(
+        `[NukeBG] Result: ${nukedPct}% nuked, ${Math.round((100 * opaquePixels) / totalPixels)}% kept, ${totalPixels - opaquePixels - transparentPixels} edge pixels`,
+      );
     }
 
     const resultImageData = new ImageData(resultPixels, width, height);
@@ -805,6 +868,10 @@ export class PipelineOrchestrator {
   /** Test-only accessors so unit tests can assert the #44 leak is fixed
    *  without touching private state. Cheap in production — the getters
    *  forward straight to the existing collections. */
-  get _pendingTimersSize(): number { return this.pendingTimers.size; }
-  get _pendingRequestsSize(): number { return this.pendingRequests.size; }
+  get _pendingTimersSize(): number {
+    return this.pendingTimers.size;
+  }
+  get _pendingRequestsSize(): number {
+    return this.pendingRequests.size;
+  }
 }

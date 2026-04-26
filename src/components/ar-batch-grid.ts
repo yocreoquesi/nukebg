@@ -38,7 +38,7 @@ export class ArBatchGrid extends HTMLElement {
   }
 
   updateItem(id: string, state: BatchItemState, thumbnailUrl?: string | null): void {
-    const item = this.items.find(i => i.id === id);
+    const item = this.items.find((i) => i.id === id);
     if (item) {
       item.state = state;
       if (thumbnailUrl !== undefined) item.thumbnailUrl = thumbnailUrl;
@@ -133,17 +133,21 @@ export class ArBatchGrid extends HTMLElement {
     `;
 
     this.shadowRoot!.querySelector('#zip-btn')!.addEventListener('click', () => {
-      this.dispatchEvent(new CustomEvent('batch:download-zip', {
-        bubbles: true,
-        composed: true,
-      }));
+      this.dispatchEvent(
+        new CustomEvent('batch:download-zip', {
+          bubbles: true,
+          composed: true,
+        }),
+      );
     });
 
     this.shadowRoot!.querySelector('#cancel-btn')!.addEventListener('click', () => {
-      this.dispatchEvent(new CustomEvent('batch:cancel', {
-        bubbles: true,
-        composed: true,
-      }));
+      this.dispatchEvent(
+        new CustomEvent('batch:cancel', {
+          bubbles: true,
+          composed: true,
+        }),
+      );
     });
   }
 
@@ -165,9 +169,9 @@ export class ArBatchGrid extends HTMLElement {
     const header = this.shadowRoot!.querySelector('#header') as HTMLElement;
     const zipBtn = this.shadowRoot!.querySelector('#zip-btn') as HTMLButtonElement;
 
-    const done = this.items.filter(i => i.state === 'done').length;
-    const failed = this.items.filter(i => i.state === 'failed').length;
-    const processing = this.items.some(i => i.state === 'processing');
+    const done = this.items.filter((i) => i.state === 'done').length;
+    const failed = this.items.filter((i) => i.state === 'failed').length;
+    const processing = this.items.some((i) => i.state === 'processing');
     const total = this.items.length;
 
     if (processing) {

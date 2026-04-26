@@ -23,8 +23,8 @@ const read = (rel: string) => readFileSync(resolve(root, rel), 'utf8');
 function readComponentFiles(dir: string): { name: string; content: string }[] {
   const absDir = resolve(root, dir);
   return readdirSync(absDir)
-    .filter(f => f.endsWith('.ts'))
-    .map(f => ({ name: join(dir, f), content: readFileSync(resolve(absDir, f), 'utf8') }));
+    .filter((f) => f.endsWith('.ts'))
+    .map((f) => ({ name: join(dir, f), content: readFileSync(resolve(absDir, f), 'utf8') }));
 }
 
 /** Extract CSS template strings from a component file (inside backtick <style>...</style>) */
@@ -40,12 +40,12 @@ function extractCssBlocks(source: string): string[] {
 
 // Theme green hex values that MUST go through CSS variables
 const FORBIDDEN_HEX = [
-  '#00ff41',  // --color-accent-primary / --color-text-primary
-  '#00dd44',  // --color-text-secondary
-  '#00b34a',  // --color-text-tertiary (WCAG AA bump from #008830)
-  '#008830',  // previous tertiary — keep blocked so it can't regress
-  '#1a3a1a',  // --color-surface-border
-  '#ffd700',  // old --color-accent (no longer exists)
+  '#00ff41', // --color-accent-primary / --color-text-primary
+  '#00dd44', // --color-text-secondary
+  '#00b34a', // --color-text-tertiary (WCAG AA bump from #008830)
+  '#008830', // previous tertiary — keep blocked so it can't regress
+  '#1a3a1a', // --color-surface-border
+  '#ffd700', // old --color-accent (no longer exists)
 ];
 
 // Allowed contexts where these hex values appear as CSS variable FALLBACKS
@@ -90,10 +90,7 @@ describe('color consistency — no hardcoded theme colors in components', () => 
           const stripped = stripVarFallbacks(css);
           const regex = /rgba\(\s*0\s*,\s*255\s*,\s*65/gi;
           const matches = stripped.match(regex) || [];
-          expect(
-            matches,
-            `Found hardcoded rgba(0,255,65,...) in ${name} CSS`,
-          ).toHaveLength(0);
+          expect(matches, `Found hardcoded rgba(0,255,65,...) in ${name} CSS`).toHaveLength(0);
         }
       });
 
@@ -101,13 +98,12 @@ describe('color consistency — no hardcoded theme colors in components', () => 
         for (const css of cssBlocks) {
           const regex = /rgba\(\s*255\s*,\s*215\s*,\s*0/gi;
           const matches = stripped(css).match(regex) || [];
-          expect(
-            matches,
-            `Found hardcoded rgba(255,215,0,...) in ${name} CSS`,
-          ).toHaveLength(0);
+          expect(matches, `Found hardcoded rgba(255,215,0,...) in ${name} CSS`).toHaveLength(0);
         }
 
-        function stripped(css: string) { return stripVarFallbacks(css); }
+        function stripped(css: string) {
+          return stripVarFallbacks(css);
+        }
       });
     });
   }
@@ -137,7 +133,7 @@ describe('color consistency — no non-existent CSS variables', () => {
   const components = readComponentFiles('src/components');
   // var(--color-accent, ...) was a common mistake — this variable doesn't exist
   const GHOST_VARS = [
-    '--color-accent,',  // trailing comma = used as var(--color-accent, fallback)
+    '--color-accent,', // trailing comma = used as var(--color-accent, fallback)
   ];
 
   for (const { name, content } of components) {
@@ -156,10 +152,7 @@ describe('color consistency — :host must not shadow theme variables', () => {
   // document.documentElement, breaking the power mode cascade.
   // Only non-theme variables may be declared on :host.
   const CUSTOM_PROP_DECL = /--[\w-]+\s*:/g;
-  const THEME_VAR_PREFIXES = [
-    '--color-',
-    '--terminal-color-',
-  ];
+  const THEME_VAR_PREFIXES = ['--color-', '--terminal-color-'];
 
   for (const { name, content } of components) {
     const cssBlocks = extractCssBlocks(content);
@@ -174,7 +167,7 @@ describe('color consistency — :host must not shadow theme variables', () => {
           const propMatches = hostBody.match(CUSTOM_PROP_DECL) || [];
           for (const prop of propMatches) {
             const propName = prop.replace(/\s*:$/, '');
-            const isThemeVar = THEME_VAR_PREFIXES.some(prefix => propName.startsWith(prefix));
+            const isThemeVar = THEME_VAR_PREFIXES.some((prefix) => propName.startsWith(prefix));
             expect(
               isThemeVar,
               `${name} :host declares theme variable "${propName}" which shadows document-level power mode values`,

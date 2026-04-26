@@ -11,7 +11,7 @@ export function solidImage(
   r: number,
   g: number,
   b: number,
-  a = 255
+  a = 255,
 ): Uint8ClampedArray {
   const data = new Uint8ClampedArray(width * height * 4);
   for (let i = 0; i < width * height; i++) {
@@ -33,7 +33,7 @@ export function checkerboardImage(
   gridSize: number,
   colorDark: [number, number, number],
   colorLight: [number, number, number],
-  phase = 0
+  phase = 0,
 ): Uint8ClampedArray {
   const data = new Uint8ClampedArray(width * height * 4);
   for (let y = 0; y < height; y++) {
@@ -64,7 +64,7 @@ export function paintRect(
   h: number,
   r: number,
   g: number,
-  b: number
+  b: number,
 ): void {
   for (let y = y0; y < y0 + h; y++) {
     for (let x = x0; x < x0 + w; x++) {

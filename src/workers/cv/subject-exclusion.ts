@@ -21,7 +21,7 @@ export function subjectExclusion(
   _colorLight: number[],
   _gridSize: number,
   _phase: number,
-  _tolerance: number = CV_PARAMS.COLOR_TOLERANCE
+  _tolerance: number = CV_PARAMS.COLOR_TOLERANCE,
 ): Uint8Array {
   const totalPixels = width * height;
 
@@ -39,7 +39,10 @@ export function subjectExclusion(
       const sat = mx > 0 ? (mx - mn) / mx : 0;
       const brightness = (r + g + b) / 3;
 
-      if (sat > CV_PARAMS.CELL_SATURATION_THRESHOLD && brightness > CV_PARAMS.CELL_BRIGHTNESS_THRESHOLD) {
+      if (
+        sat > CV_PARAMS.CELL_SATURATION_THRESHOLD &&
+        brightness > CV_PARAMS.CELL_BRIGHTNESS_THRESHOLD
+      ) {
         colored[y * width + x] = 1;
       }
     }
@@ -65,7 +68,12 @@ export function subjectExclusion(
           const [cy, cx] = queue.pop();
           count++;
 
-          for (const [dy, dx] of [[-1, 0], [1, 0], [0, -1], [0, 1]] as const) {
+          for (const [dy, dx] of [
+            [-1, 0],
+            [1, 0],
+            [0, -1],
+            [0, 1],
+          ] as const) {
             const ny = cy + dy;
             const nx = cx + dx;
             if (ny >= 0 && ny < height && nx >= 0 && nx < width) {
@@ -132,7 +140,12 @@ export function subjectExclusion(
         if (!mask[y * width + x]) continue;
         // Keep pixel only if ALL 4-connected neighbors are also set
         let allSet = true;
-        for (const [dy, dx] of [[-1, 0], [1, 0], [0, -1], [0, 1]] as const) {
+        for (const [dy, dx] of [
+          [-1, 0],
+          [1, 0],
+          [0, -1],
+          [0, 1],
+        ] as const) {
           const ny = y + dy;
           const nx = x + dx;
           if (ny >= 0 && ny < height && nx >= 0 && nx < width) {

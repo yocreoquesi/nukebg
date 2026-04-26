@@ -16,14 +16,32 @@ console.log(`Image: ${path}  ${w}x${h}`);
 // Mark α=0 connected to border.
 const queue = new Int32Array(n);
 const bgVisited = new Uint8Array(n);
-let head = 0, tail = 0;
-const seed = (i) => { if (alpha[i] === 0 && !bgVisited[i]) { bgVisited[i] = 1; queue[tail++] = i; } };
-for (let x = 0; x < w; x++) { seed(x); seed((h - 1) * w + x); }
-for (let y = 1; y < h - 1; y++) { seed(y * w); seed(y * w + w - 1); }
+let head = 0,
+  tail = 0;
+const seed = (i) => {
+  if (alpha[i] === 0 && !bgVisited[i]) {
+    bgVisited[i] = 1;
+    queue[tail++] = i;
+  }
+};
+for (let x = 0; x < w; x++) {
+  seed(x);
+  seed((h - 1) * w + x);
+}
+for (let y = 1; y < h - 1; y++) {
+  seed(y * w);
+  seed(y * w + w - 1);
+}
 while (head < tail) {
   const i = queue[head++];
-  const x = i % w, y = (i - x) / w;
-  const push = (ni) => { if (alpha[ni] === 0 && !bgVisited[ni]) { bgVisited[ni] = 1; queue[tail++] = ni; } };
+  const x = i % w,
+    y = (i - x) / w;
+  const push = (ni) => {
+    if (alpha[ni] === 0 && !bgVisited[ni]) {
+      bgVisited[ni] = 1;
+      queue[tail++] = ni;
+    }
+  };
   if (x > 0) push(i - 1);
   if (x < w - 1) push(i + 1);
   if (y > 0) push(i - w);
@@ -34,11 +52,13 @@ while (head < tail) {
 // (i.e. they poke INTO the subject). These are "thin channels" / "cracks".
 const isCrackSeed = (i) => {
   if (!bgVisited[i]) return false;
-  const x = i % w, y = (i - x) / w;
+  const x = i % w,
+    y = (i - x) / w;
   for (let dy = -1; dy <= 1; dy++) {
     for (let dx = -1; dx <= 1; dx++) {
       if (dx === 0 && dy === 0) continue;
-      const nx = x + dx, ny = y + dy;
+      const nx = x + dx,
+        ny = y + dy;
       if (nx < 0 || nx >= w || ny < 0 || ny >= h) continue;
       if (alpha[ny * w + nx] >= 200) return true;
     }
@@ -69,7 +89,7 @@ for (let y = r; y < h - r; y++) {
 }
 
 // Cluster candidates by 4-connectivity to get regions.
-const cset = new Set(candidates.map(c => c.y * w + c.x));
+const cset = new Set(candidates.map((c) => c.y * w + c.x));
 const cvisited = new Set();
 const regions = [];
 for (const c of candidates) {
@@ -77,16 +97,27 @@ for (const c of candidates) {
   if (cvisited.has(start)) continue;
   const stack = [start];
   const pts = [];
-  let minX = w, minY = h, maxX = 0, maxY = 0;
+  let minX = w,
+    minY = h,
+    maxX = 0,
+    maxY = 0;
   while (stack.length) {
     const i = stack.pop();
     if (cvisited.has(i)) continue;
     cvisited.add(i);
     pts.push(i);
-    const x = i % w, y = (i - x) / w;
-    if (x < minX) minX = x; if (x > maxX) maxX = x;
-    if (y < minY) minY = y; if (y > maxY) maxY = y;
-    for (const [dx, dy] of [[1,0],[-1,0],[0,1],[0,-1]]) {
+    const x = i % w,
+      y = (i - x) / w;
+    if (x < minX) minX = x;
+    if (x > maxX) maxX = x;
+    if (y < minY) minY = y;
+    if (y > maxY) maxY = y;
+    for (const [dx, dy] of [
+      [1, 0],
+      [-1, 0],
+      [0, 1],
+      [0, -1],
+    ]) {
       const ni = (y + dy) * w + (x + dx);
       if (cset.has(ni) && !cvisited.has(ni)) stack.push(ni);
     }
@@ -99,5 +130,7 @@ console.log(`\n"Crack" candidates (α=0 border-connected but with ≥50% opaque 
 console.log(`Total ${candidates.length} pixels in ${regions.length} regions`);
 console.log(`\nTop 15 regions by size:`);
 for (const r of regions.slice(0, 15)) {
-  console.log(`  size=${r.size}  bbox=(${r.minX},${r.minY})-(${r.maxX},${r.maxY})  wh=${r.maxX - r.minX + 1}x${r.maxY - r.minY + 1}`);
+  console.log(
+    `  size=${r.size}  bbox=(${r.minX},${r.minY})-(${r.maxX},${r.maxY})  wh=${r.maxX - r.minX + 1}x${r.maxY - r.minY + 1}`,
+  );
 }

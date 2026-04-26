@@ -114,18 +114,19 @@ export type CvWorkerResponse =
   | { id: string; type: 'foreground-estimate'; result: Uint8ClampedArray }
   | { id: string; type: 'error'; error: string };
 
-
 /** ======== ML Worker Messages ======== */
 
 export type ModelId = 'briaai/RMBG-1.4';
 
 export const MODEL_OPTIONS: { id: ModelId; label: string; description: string }[] = [
-  { id: 'briaai/RMBG-1.4', label: 'RMBG 1.4', description: 'Best for illustrations, icons, and AI art' },
+  {
+    id: 'briaai/RMBG-1.4',
+    label: 'RMBG 1.4',
+    description: 'Best for illustrations, icons, and AI art',
+  },
 ];
 
-export type MlWorkerRequest =
-  | MlLoadModelRequest
-  | MlSegmentRequest;
+export type MlWorkerRequest = MlLoadModelRequest | MlSegmentRequest;
 
 export interface MlLoadModelRequest {
   id: string;
@@ -172,12 +173,9 @@ export type MlWorkerResponse =
   | { id: string; type: 'error'; error: string }
   | { id: string; type: 'warmup-diagnostic'; diagnostic: WarmupDiagnostic };
 
-
 /** ======== Inpaint Worker Messages ======== */
 
-export type InpaintWorkerRequest =
-  | InpaintRunRequest
-  | InpaintDisposeRequest;
+export type InpaintWorkerRequest = InpaintRunRequest | InpaintDisposeRequest;
 
 export interface InpaintRunRequest {
   id: string;
@@ -201,13 +199,9 @@ export type InpaintWorkerResponse =
   | { id: string; type: 'disposed' }
   | { id: string; type: 'error'; error: string };
 
-
 /** ======== Lama (ONNX content-aware inpainting) Worker Messages ======== */
 
-export type LamaWorkerRequest =
-  | LamaLoadModelRequest
-  | LamaRunRequest
-  | LamaDisposeRequest;
+export type LamaWorkerRequest = LamaLoadModelRequest | LamaRunRequest | LamaDisposeRequest;
 
 export interface LamaLoadModelRequest {
   id: string;

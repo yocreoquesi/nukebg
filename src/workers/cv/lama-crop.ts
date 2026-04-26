@@ -19,7 +19,10 @@ export function computeLamaCropRect(
   width: number,
   height: number,
 ): LamaCropRect | null {
-  let minX = width, minY = height, maxX = -1, maxY = -1;
+  let minX = width,
+    minY = height,
+    maxX = -1,
+    maxY = -1;
   for (let y = 0; y < height; y++) {
     const row = y * width;
     for (let x = 0; x < width; x++) {
@@ -118,7 +121,10 @@ export function nearestResizeMask(
   for (let ty = 0; ty < targetSize; ty++) {
     const srcY = Math.min(rect.y + rect.h - 1, Math.max(rect.y, Math.round(rect.y + ty * scaleY)));
     for (let tx = 0; tx < targetSize; tx++) {
-      const srcX = Math.min(rect.x + rect.w - 1, Math.max(rect.x, Math.round(rect.x + tx * scaleX)));
+      const srcX = Math.min(
+        rect.x + rect.w - 1,
+        Math.max(rect.x, Math.round(rect.x + tx * scaleX)),
+      );
       dst[ty * targetSize + tx] = src[srcY * srcWidth + srcX] ? 1 : 0;
     }
   }

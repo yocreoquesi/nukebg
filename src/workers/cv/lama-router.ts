@@ -58,7 +58,10 @@ function expandedMaskBbox(
   height: number,
   margin: number,
 ): { x: number; y: number; w: number; h: number } | null {
-  let minX = width, minY = height, maxX = -1, maxY = -1;
+  let minX = width,
+    minY = height,
+    maxX = -1,
+    maxY = -1;
   for (let y = 0; y < height; y++) {
     const row = y * width;
     for (let x = 0; x < width; x++) {
@@ -87,7 +90,9 @@ function luminanceVariance(
   width: number,
   bbox: { x: number; y: number; w: number; h: number },
 ): number {
-  let sum = 0, sumSq = 0, n = 0;
+  let sum = 0,
+    sumSq = 0,
+    n = 0;
   for (let y = bbox.y; y < bbox.y + bbox.h; y++) {
     const row = y * width * 4;
     for (let x = bbox.x; x < bbox.x + bbox.w; x++) {
@@ -108,18 +113,25 @@ function sobelMeanMagnitude(
   bbox: { x: number; y: number; w: number; h: number },
 ): number {
   if (bbox.w < 3 || bbox.h < 3) return 0;
-  let sum = 0, n = 0;
+  let sum = 0,
+    n = 0;
   for (let y = bbox.y + 1; y < bbox.y + bbox.h - 1; y++) {
     for (let x = bbox.x + 1; x < bbox.x + bbox.w - 1; x++) {
-      const p = (ix: number, iy: number): number =>
-        luminance(pixels, (iy * width + ix) * 4);
+      const p = (ix: number, iy: number): number => luminance(pixels, (iy * width + ix) * 4);
       const gx =
-        -p(x - 1, y - 1) + p(x + 1, y - 1) +
-        -2 * p(x - 1, y) + 2 * p(x + 1, y) +
-        -p(x - 1, y + 1) + p(x + 1, y + 1);
+        -p(x - 1, y - 1) +
+        p(x + 1, y - 1) +
+        -2 * p(x - 1, y) +
+        2 * p(x + 1, y) +
+        -p(x - 1, y + 1) +
+        p(x + 1, y + 1);
       const gy =
-        -p(x - 1, y - 1) - 2 * p(x, y - 1) - p(x + 1, y - 1) +
-        p(x - 1, y + 1) + 2 * p(x, y + 1) + p(x + 1, y + 1);
+        -p(x - 1, y - 1) -
+        2 * p(x, y - 1) -
+        p(x + 1, y - 1) +
+        p(x - 1, y + 1) +
+        2 * p(x, y + 1) +
+        p(x + 1, y + 1);
       sum += Math.sqrt(gx * gx + gy * gy);
       n++;
     }

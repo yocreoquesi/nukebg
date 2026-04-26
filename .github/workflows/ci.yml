@@ -12,9 +12,10 @@ jobs:
   lint:
     name: Lint + format
     runs-on: ubuntu-latest
-    # Non-blocking while the codebase migrates to the new formatter/linter
-    # — flips to false once the one-shot `npm run format` PR lands.
-    continue-on-error: true
+    # #134 — flipped to blocking after the one-shot prettier sweep landed.
+    # Re-enable continue-on-error temporarily if a future formatter bump
+    # surfaces a wave of legitimate diffs that need their own sweep PR.
+    continue-on-error: false
     steps:
       - uses: actions/checkout@v4
 

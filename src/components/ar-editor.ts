@@ -25,9 +25,7 @@ function makeBrushCursor(
   const raw = size * zoom;
   // Defensive: Number.isFinite guards against NaN from upstream state bugs.
   // Math.round(NaN) → NaN, which poisons min/max and produces a NaN-sized SVG.
-  const displaySize = Number.isFinite(raw)
-    ? Math.min(64, Math.max(8, Math.round(raw)))
-    : 32;
+  const displaySize = Number.isFinite(raw) ? Math.min(64, Math.max(8, Math.round(raw))) : 32;
   const r = displaySize / 2;
   const svgSize = displaySize + 2; // 1px padding
   const center = svgSize / 2;
@@ -50,8 +48,8 @@ function makeBrushCursor(
   }
 
   // Crosshair at center
-  const cross = `<line x1="${center}" y1="${center-3}" x2="${center}" y2="${center+3}" stroke="${stroke}" stroke-width="0.8" opacity="0.7"/>
-                 <line x1="${center-3}" y1="${center}" x2="${center+3}" y2="${center}" stroke="${stroke}" stroke-width="0.8" opacity="0.7"/>`;
+  const cross = `<line x1="${center}" y1="${center - 3}" x2="${center}" y2="${center + 3}" stroke="${stroke}" stroke-width="0.8" opacity="0.7"/>
+                 <line x1="${center - 3}" y1="${center}" x2="${center + 3}" y2="${center}" stroke="${stroke}" stroke-width="0.8" opacity="0.7"/>`;
 
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${svgSize}" height="${svgSize}">${shapeEl}${cross}</svg>`;
   const encoded = encodeURIComponent(svg);
@@ -121,7 +119,8 @@ export class ArEditor extends HTMLElement {
   }
 
   disconnectedCallback(): void {
-    if (this.boundLocaleHandler) document.removeEventListener('nukebg:locale-changed', this.boundLocaleHandler);
+    if (this.boundLocaleHandler)
+      document.removeEventListener('nukebg:locale-changed', this.boundLocaleHandler);
     this.abortController?.abort();
     this.abortController = null;
   }
@@ -772,51 +771,85 @@ export class ArEditor extends HTMLElement {
     const signal = this.abortController!.signal;
 
     // Brush shape
-    this.shadowRoot!.querySelector('#brush-tool')!.addEventListener('change', (e) => {
-      this.tool = (e.target as HTMLSelectElement).value as 'erase' | 'restore';
-      this.updateCursor();
-      this.syncCmdBarMeta();
-    }, { signal });
+    this.shadowRoot!.querySelector('#brush-tool')!.addEventListener(
+      'change',
+      (e) => {
+        this.tool = (e.target as HTMLSelectElement).value as 'erase' | 'restore';
+        this.updateCursor();
+        this.syncCmdBarMeta();
+      },
+      { signal },
+    );
 
-    this.shadowRoot!.querySelector('#brush-shape')!.addEventListener('change', (e) => {
-      this.brushShape = (e.target as HTMLSelectElement).value as BrushShape;
-      this.updateCursor();
-    }, { signal });
+    this.shadowRoot!.querySelector('#brush-shape')!.addEventListener(
+      'change',
+      (e) => {
+        this.brushShape = (e.target as HTMLSelectElement).value as BrushShape;
+        this.updateCursor();
+      },
+      { signal },
+    );
 
     // Brush size
     const sizeInput = this.shadowRoot!.querySelector('#brush-size') as HTMLInputElement;
     const sizeDisplay = this.shadowRoot!.querySelector('#size-display')!;
-    sizeInput.addEventListener('input', () => {
-      this.brushSize = parseInt(sizeInput.value);
-      sizeDisplay.textContent = `${this.brushSize}px`;
-      this.updateCursor();
-      this.syncCmdBarMeta();
-    }, { signal });
+    sizeInput.addEventListener(
+      'input',
+      () => {
+        this.brushSize = parseInt(sizeInput.value);
+        sizeDisplay.textContent = `${this.brushSize}px`;
+        this.updateCursor();
+        this.syncCmdBarMeta();
+      },
+      { signal },
+    );
 
     // Undo/Redo
-    this.shadowRoot!.querySelector('#undo-btn')!.addEventListener('click', () => this.undo(), { signal });
-    this.shadowRoot!.querySelector('#redo-btn')!.addEventListener('click', () => this.redo(), { signal });
+    this.shadowRoot!.querySelector('#undo-btn')!.addEventListener('click', () => this.undo(), {
+      signal,
+    });
+    this.shadowRoot!.querySelector('#redo-btn')!.addEventListener('click', () => this.redo(), {
+      signal,
+    });
 
     // Zoom
-    this.shadowRoot!.querySelector('#zoom-in')!.addEventListener('click', () => this.setZoom(this.zoom * 1.5), { signal });
-    this.shadowRoot!.querySelector('#zoom-out')!.addEventListener('click', () => this.setZoom(this.zoom / 1.5), { signal });
-    this.shadowRoot!.querySelector('#zoom-fit')!.addEventListener('click', () => this.fitToView(), { signal });
+    this.shadowRoot!.querySelector('#zoom-in')!.addEventListener(
+      'click',
+      () => this.setZoom(this.zoom * 1.5),
+      { signal },
+    );
+    this.shadowRoot!.querySelector('#zoom-out')!.addEventListener(
+      'click',
+      () => this.setZoom(this.zoom / 1.5),
+      { signal },
+    );
+    this.shadowRoot!.querySelector('#zoom-fit')!.addEventListener('click', () => this.fitToView(), {
+      signal,
+    });
 
     // Mouse wheel zoom
-    wrap.addEventListener('wheel', (e) => {
-      e.preventDefault();
-      const factor = e.deltaY < 0 ? 1.15 : 1 / 1.15;
-      this.setZoom(this.zoom * factor);
-    }, { passive: false, signal });
+    wrap.addEventListener(
+      'wheel',
+      (e) => {
+        e.preventDefault();
+        const factor = e.deltaY < 0 ? 1.15 : 1 / 1.15;
+        this.setZoom(this.zoom * factor);
+      },
+      { passive: false, signal },
+    );
 
     // Background buttons
-    this.shadowRoot!.querySelectorAll('.bg-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        this.shadowRoot!.querySelectorAll('.bg-btn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        this.editorBg = (btn as HTMLElement).dataset.bg || 'checker';
-        this.redraw();
-      }, { signal });
+    this.shadowRoot!.querySelectorAll('.bg-btn').forEach((btn) => {
+      btn.addEventListener(
+        'click',
+        () => {
+          this.shadowRoot!.querySelectorAll('.bg-btn').forEach((b) => b.classList.remove('active'));
+          btn.classList.add('active');
+          this.editorBg = (btn as HTMLElement).dataset.bg || 'checker';
+          this.redraw();
+        },
+        { signal },
+      );
     });
 
     // Help tooltip toggle
@@ -824,19 +857,27 @@ export class ArEditor extends HTMLElement {
     const helpTooltip = this.shadowRoot!.querySelector('#help-tooltip')!;
     helpBtn.addEventListener('click', () => helpTooltip.classList.toggle('visible'), { signal });
     // Close on click outside
-    this.shadowRoot!.addEventListener('click', (e) => {
-      if (e.target !== helpBtn && !helpTooltip.contains(e.target as Node)) {
-        helpTooltip.classList.remove('visible');
-      }
-    }, { signal });
+    this.shadowRoot!.addEventListener(
+      'click',
+      (e) => {
+        if (e.target !== helpBtn && !helpTooltip.contains(e.target as Node)) {
+          helpTooltip.classList.remove('visible');
+        }
+      },
+      { signal },
+    );
     // Close on Escape — keyboard users otherwise have no way out of
     // the help overlay short of clicking the button again.
-    window.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && helpTooltip.classList.contains('visible')) {
-        e.preventDefault();
-        helpTooltip.classList.remove('visible');
-      }
-    }, { signal });
+    window.addEventListener(
+      'keydown',
+      (e) => {
+        if (e.key === 'Escape' && helpTooltip.classList.contains('visible')) {
+          e.preventDefault();
+          helpTooltip.classList.remove('visible');
+        }
+      },
+      { signal },
+    );
 
     // Canvas mouse events
     this.canvas.addEventListener('mousedown', (e) => this.onMouseDown(e), { signal });
@@ -853,38 +894,70 @@ export class ArEditor extends HTMLElement {
     wrap.addEventListener('touchcancel', () => this.onTouchEnd(), { signal });
 
     // Cancel button - discard all edits
-    this.shadowRoot!.querySelector('#cancel-btn')!.addEventListener('click', () => {
-      this.dispatchEvent(new CustomEvent('ar:editor-cancel', {
-        bubbles: true,
-        composed: true,
-      }));
-    }, { signal });
+    this.shadowRoot!.querySelector('#cancel-btn')!.addEventListener(
+      'click',
+      () => {
+        this.dispatchEvent(
+          new CustomEvent('ar:editor-cancel', {
+            bubbles: true,
+            composed: true,
+          }),
+        );
+      },
+      { signal },
+    );
 
     // Done button
-    this.shadowRoot!.querySelector('#done-btn')!.addEventListener('click', () => {
-      this.dispatchEvent(new CustomEvent('ar:editor-done', {
-        bubbles: true,
-        composed: true,
-        detail: { imageData: this.getResultImageData() },
-      }));
-    }, { signal });
+    this.shadowRoot!.querySelector('#done-btn')!.addEventListener(
+      'click',
+      () => {
+        this.dispatchEvent(
+          new CustomEvent('ar:editor-done', {
+            bubbles: true,
+            composed: true,
+            detail: { imageData: this.getResultImageData() },
+          }),
+        );
+      },
+      { signal },
+    );
 
     // Keyboard shortcuts
-    this.addEventListener('keydown', (e) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
-        e.preventDefault();
-        if (e.shiftKey) this.redo(); else this.undo();
-      }
-      if (e.key === '[') { this.brushSize = Math.max(2, this.brushSize - 5); this.updateSizeUI(); this.updateCursor(); }
-      if (e.key === ']') { this.brushSize = Math.min(100, this.brushSize + 5); this.updateSizeUI(); this.updateCursor(); }
-      if (e.key === '0' || e.key === 'Home') { this.resetView(); }
-    }, { signal });
+    this.addEventListener(
+      'keydown',
+      (e) => {
+        if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
+          e.preventDefault();
+          if (e.shiftKey) this.redo();
+          else this.undo();
+        }
+        if (e.key === '[') {
+          this.brushSize = Math.max(2, this.brushSize - 5);
+          this.updateSizeUI();
+          this.updateCursor();
+        }
+        if (e.key === ']') {
+          this.brushSize = Math.min(100, this.brushSize + 5);
+          this.updateSizeUI();
+          this.updateCursor();
+        }
+        if (e.key === '0' || e.key === 'Home') {
+          this.resetView();
+        }
+      },
+      { signal },
+    );
   }
 
   /** Update the canvas cursor to match brush shape and size */
   private updateCursor(): void {
     if (!this.canvas) return;
-    this.canvas.style.cursor = makeBrushCursor(this.brushSize, this.brushShape, this.zoom, this.tool);
+    this.canvas.style.cursor = makeBrushCursor(
+      this.brushSize,
+      this.brushShape,
+      this.zoom,
+      this.tool,
+    );
   }
 
   private updateSizeUI(): void {
@@ -917,11 +990,7 @@ export class ArEditor extends HTMLElement {
   setImage(imageData: ImageData, original: ImageData): void {
     this.width = imageData.width;
     this.height = imageData.height;
-    this.imageData = new ImageData(
-      new Uint8ClampedArray(imageData.data),
-      this.width,
-      this.height,
-    );
+    this.imageData = new ImageData(new Uint8ClampedArray(imageData.data), this.width, this.height);
     this.originalImage = new ImageData(
       new Uint8ClampedArray(original.data),
       this.width,
@@ -1000,7 +1069,11 @@ export class ArEditor extends HTMLElement {
     // Draw image with current alpha on top
     // Reuse temp canvas because putImageData ignores compositing
     // Fallback to HTMLCanvasElement if OffscreenCanvas is not available (Safari iOS <16.4)
-    if (!this.tempCanvas || this.tempCanvas.width !== this.width || this.tempCanvas.height !== this.height) {
+    if (
+      !this.tempCanvas ||
+      this.tempCanvas.width !== this.width ||
+      this.tempCanvas.height !== this.height
+    ) {
       if (typeof OffscreenCanvas !== 'undefined') {
         this.tempCanvas = new OffscreenCanvas(this.width, this.height);
       } else {

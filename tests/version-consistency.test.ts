@@ -30,7 +30,9 @@ describe('version consistency', () => {
 
   it('index.html JSON-LD softwareVersion matches package.json', () => {
     const html = read('index.html');
-    expect(html).toMatch(new RegExp(`"softwareVersion"\\s*:\\s*"${VERSION.replace(/\./g, '\\.')}"`));
+    expect(html).toMatch(
+      new RegExp(`"softwareVersion"\\s*:\\s*"${VERSION.replace(/\./g, '\\.')}"`),
+    );
   });
 
   it('src/main.ts console logo shows the current version', () => {

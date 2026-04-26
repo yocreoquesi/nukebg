@@ -17,8 +17,12 @@ const hist = new Array(256).fill(0);
 for (let i = 0; i < n; i++) hist[alpha[i]]++;
 const buckets = {
   'α=0': hist[0],
-  'α=1..31': 0, 'α=32..63': 0, 'α=64..127': 0,
-  'α=128..191': 0, 'α=192..223': 0, 'α=224..254': 0,
+  'α=1..31': 0,
+  'α=32..63': 0,
+  'α=64..127': 0,
+  'α=128..191': 0,
+  'α=192..223': 0,
+  'α=224..254': 0,
   'α=255': hist[255],
 };
 for (let a = 1; a <= 31; a++) buckets['α=1..31'] += hist[a];
@@ -29,7 +33,7 @@ for (let a = 192; a <= 223; a++) buckets['α=192..223'] += hist[a];
 for (let a = 224; a <= 254; a++) buckets['α=224..254'] += hist[a];
 console.log('Alpha histogram:');
 for (const [k, v] of Object.entries(buckets)) {
-  const pct = (v / n * 100).toFixed(2);
+  const pct = ((v / n) * 100).toFixed(2);
   console.log(`  ${k.padEnd(14)} ${String(v).padStart(8)}  ${pct}%`);
 }
 

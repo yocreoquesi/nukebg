@@ -3,9 +3,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 const ROOT = resolve(__dirname, '..');
-const MANIFEST = JSON.parse(
-  readFileSync(resolve(ROOT, 'public/manifest.webmanifest'), 'utf8'),
-);
+const MANIFEST = JSON.parse(readFileSync(resolve(ROOT, 'public/manifest.webmanifest'), 'utf8'));
 const MAIN = readFileSync(resolve(ROOT, 'src/main.ts'), 'utf8');
 
 describe('PWA manifest — install experience', () => {

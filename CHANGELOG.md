@@ -13,6 +13,7 @@ Unreleased entries accumulate on the `dev` branch. When we cut a release we copy
 ## [2.8.0] — 2026-04-25
 
 ### Added
+
 - **Theme picker grew to six palettes** — original four (terminal-green / amber
   / cyan / magenta) plus **red** (`#ff3344`) and **yellow** (`#ffee00`). Each
   swatch now glows its own colour on hover/focus while the active-state ring
@@ -44,7 +45,7 @@ Unreleased entries accumulate on the `dev` branch. When we cut a release we copy
   shadow tree via a light-DOM overlay. ([#101](https://github.com/yocreoquesi/nukebg/pull/101))
 - **PWA app shortcuts + deep-link handler** — installed app exposes "New image"
   and "Keyboard shortcuts" on long-press; `launch_handler.client_mode:
-  focus-existing` reuses the open tab; `?help=1` / `?action=new` query params
+focus-existing` reuses the open tab; `?help=1` / `?action=new` query params
   re-dispatch the matching keyboard shortcut.
   ([#102](https://github.com/yocreoquesi/nukebg/pull/102))
 - **Quiet mode toggle** — `data-playful` attribute gates CRT flicker, smoke,
@@ -87,6 +88,7 @@ Unreleased entries accumulate on the `dev` branch. When we cut a release we copy
 - **Cancel button in `ar-progress`** ([#63](https://github.com/yocreoquesi/nukebg/pull/63)).
 
 ### Changed
+
 - **Manual editor edits survive Apply** — both basic and advanced editors now
   pass `skipTopologyCleanup: true` to `refineEdges`. Previously the
   `keepLargestComponent` pass discarded any user edit (lasso crop, restore)
@@ -152,6 +154,7 @@ Unreleased entries accumulate on the `dev` branch. When we cut a release we copy
   ([#64](https://github.com/yocreoquesi/nukebg/pull/64))
 
 ### Security
+
 - **CSP: `script-src 'unsafe-inline'` removed** — strict inline-hash allowlist
   only. ([#57](https://github.com/yocreoquesi/nukebg/pull/57))
 - **DNS prefetch disabled + HF preconnects dropped** to preserve the
@@ -164,6 +167,7 @@ Unreleased entries accumulate on the `dev` branch. When we cut a release we copy
   ([#60](https://github.com/yocreoquesi/nukebg/pull/60))
 
 ### Pipeline
+
 - **`pendingTimers` leak plugged** — every worker response now routes through
   a `settlePending()` helper that clears the watchdog timer and drops it from
   the set in one step (closes #44).
@@ -176,6 +180,7 @@ Unreleased entries accumulate on the `dev` branch. When we cut a release we copy
   ([#56](https://github.com/yocreoquesi/nukebg/pull/56)).
 
 ### Accessibility
+
 - **Editor canvases are tabbable + described** — `tabindex="0"`, `role="img"`,
   `aria-label` wired through new `editor.canvasLabel` /
   `advanced.canvasLabel` i18n keys.
@@ -191,18 +196,21 @@ Unreleased entries accumulate on the `dev` branch. When we cut a release we copy
 - **Escape closes the shortcuts popover** ([#62](https://github.com/yocreoquesi/nukebg/pull/62)).
 
 ### Infrastructure
+
 - **Runtime hardening** — tokens, size limits, caps, engine pins, HEALTHCHECK.
   ([#66](https://github.com/yocreoquesi/nukebg/pull/66))
 - **Production sourcemaps disabled**
   ([#51](https://github.com/yocreoquesi/nukebg/pull/51)).
 
 ### Internationalization
+
 - **RTL scaffolding** — `getDirection(locale)` helper + auto-flip of
   `<html dir>` so a future RTL translation lands without code changes.
   Handles BCP-47 region tags. (closes #38)
   ([#109](https://github.com/yocreoquesi/nukebg/pull/109))
 
 ### Tooling / CI
+
 - **`exploration/` promoted to `src/refine/`** — what was lab-tagged code has
   been imported by the production advanced editor since v2.4. Folder renamed,
   ESLint + Prettier carve-out removed, files reformatted to repo style. Test
@@ -230,6 +238,7 @@ Unreleased entries accumulate on the `dev` branch. When we cut a release we copy
   ([#64](https://github.com/yocreoquesi/nukebg/pull/64)).
 
 ### Documentation
+
 - **`scripts/README.md`** documents every analyze / validate / CSP helper.
 - **`tests/fixtures/LICENSE.md`** captures source + licence per fixture.
 - **CONTRIBUTING.md** now lists the CI gates + recommended branch protection
@@ -254,15 +263,25 @@ section, keep only the relevant subsections, and empty `[Unreleased]`:
 ## [0.0.0] — 1970-01-01
 
 ### Added
+
 ### Changed
+
 ### Deprecated
+
 ### Removed
+
 ### Fixed
+
 ### Security
+
 ### Pipeline
+
 ### Accessibility
+
 ### Infrastructure
+
 ### Tooling / CI
+
 ### Documentation
 ```
 

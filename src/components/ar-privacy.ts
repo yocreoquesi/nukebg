@@ -17,7 +17,8 @@ export class ArPrivacy extends HTMLElement {
   }
 
   disconnectedCallback(): void {
-    if (this.boundLocaleHandler) document.removeEventListener('nukebg:locale-changed', this.boundLocaleHandler);
+    if (this.boundLocaleHandler)
+      document.removeEventListener('nukebg:locale-changed', this.boundLocaleHandler);
   }
 
   private updateTexts(): void {
@@ -118,44 +119,44 @@ export class ArPrivacy extends HTMLElement {
       en: [
         "> Don't trust us? DevTools > Network tab. Zero requests. We dare you.",
         "> Go ahead, check. We'll wait.",
-        "> Still here? Open the source code. GPL-3.0. Read every line.",
-        "> Your pixels. Your device. Our code. Verified.",
+        '> Still here? Open the source code. GPL-3.0. Read every line.',
+        '> Your pixels. Your device. Our code. Verified.',
         "> Other tools upload your images. We don't even know you exist.",
       ],
       es: [
-        "> No te fias? DevTools > pesta\u00F1a Red. Cero peticiones. Te retamos.",
-        "> Venga, comprueba. Esperamos.",
-        "> Sigues aqui? Abre el codigo fuente. GPL-3.0. Lee cada linea.",
-        "> Tus pixeles. Tu dispositivo. Nuestro codigo. Verificado.",
-        "> Otras herramientas suben tus imagenes. Nosotros ni sabemos que existes.",
+        '> No te fias? DevTools > pesta\u00F1a Red. Cero peticiones. Te retamos.',
+        '> Venga, comprueba. Esperamos.',
+        '> Sigues aqui? Abre el codigo fuente. GPL-3.0. Lee cada linea.',
+        '> Tus pixeles. Tu dispositivo. Nuestro codigo. Verificado.',
+        '> Otras herramientas suben tus imagenes. Nosotros ni sabemos que existes.',
       ],
       fr: [
-        "> Tu nous fais pas confiance? DevTools > onglet R\u00E9seau. Z\u00E9ro requ\u00EAte. Chiche.",
-        "> Vas-y, v\u00E9rifie. On attend.",
-        "> Encore l\u00E0? Ouvre le code source. GPL-3.0. Lis chaque ligne.",
-        "> Tes pixels. Ton appareil. Notre code. V\u00E9rifi\u00E9.",
-        "> Les autres uploadent tes images. Nous, on sait m\u00EAme pas que tu existes.",
+        '> Tu nous fais pas confiance? DevTools > onglet R\u00E9seau. Z\u00E9ro requ\u00EAte. Chiche.',
+        '> Vas-y, v\u00E9rifie. On attend.',
+        '> Encore l\u00E0? Ouvre le code source. GPL-3.0. Lis chaque ligne.',
+        '> Tes pixels. Ton appareil. Notre code. V\u00E9rifi\u00E9.',
+        '> Les autres uploadent tes images. Nous, on sait m\u00EAme pas que tu existes.',
       ],
       de: [
-        "> Vertraust du uns nicht? DevTools > Netzwerk-Tab. Null Anfragen. Trau dich.",
-        "> Nur zu, pr\u00FCf nach. Wir warten.",
-        "> Immer noch da? \u00D6ffne den Quellcode. GPL-3.0. Lies jede Zeile.",
-        "> Deine Pixel. Dein Ger\u00E4t. Unser Code. Verifiziert.",
-        "> Andere Tools laden deine Bilder hoch. Wir wissen nichtmal, dass du existierst.",
+        '> Vertraust du uns nicht? DevTools > Netzwerk-Tab. Null Anfragen. Trau dich.',
+        '> Nur zu, pr\u00FCf nach. Wir warten.',
+        '> Immer noch da? \u00D6ffne den Quellcode. GPL-3.0. Lies jede Zeile.',
+        '> Deine Pixel. Dein Ger\u00E4t. Unser Code. Verifiziert.',
+        '> Andere Tools laden deine Bilder hoch. Wir wissen nichtmal, dass du existierst.',
       ],
       pt: [
-        "> N\u00E3o confia? DevTools > aba Rede. Zero requisi\u00E7\u00F5es. Te desafiamos.",
-        "> Vai l\u00E1, confere. A gente espera.",
-        "> Ainda aqui? Abre o c\u00F3digo fonte. GPL-3.0. L\u00EA cada linha.",
-        "> Seus pixels. Seu dispositivo. Nosso c\u00F3digo. Verificado.",
-        "> Outras ferramentas sobem suas imagens. A gente nem sabe que voc\u00EA existe.",
+        '> N\u00E3o confia? DevTools > aba Rede. Zero requisi\u00E7\u00F5es. Te desafiamos.',
+        '> Vai l\u00E1, confere. A gente espera.',
+        '> Ainda aqui? Abre o c\u00F3digo fonte. GPL-3.0. L\u00EA cada linha.',
+        '> Seus pixels. Seu dispositivo. Nosso c\u00F3digo. Verificado.',
+        '> Outras ferramentas sobem suas imagens. A gente nem sabe que voc\u00EA existe.',
       ],
       zh: [
-        "> \u4E0D\u4FE1\uFF1FDevTools > \u7F51\u7EDC\u9762\u677F\u3002\u96F6\u8BF7\u6C42\u3002\u4E0D\u4FE1\u4F60\u6765\u67E5\u3002",
-        "> \u53BB\u5427\uFF0C\u67E5\u770B\u5427\u3002\u6211\u4EEC\u7B49\u3002",
-        "> \u8FD8\u5728\uFF1F\u6253\u5F00\u6E90\u7801\u3002GPL-3.0\u3002\u6BCF\u884C\u90FD\u770B\u3002",
-        "> \u4F60\u7684\u50CF\u7D20\u3002\u4F60\u7684\u8BBE\u5907\u3002\u6211\u4EEC\u7684\u4EE3\u7801\u3002\u5DF2\u9A8C\u8BC1\u3002",
-        "> \u5176\u4ED6\u5DE5\u5177\u4F1A\u4E0A\u4F20\u4F60\u7684\u56FE\u7247\u3002\u6211\u4EEC\u8FDE\u4F60\u662F\u8C01\u90FD\u4E0D\u77E5\u9053\u3002",
+        '> \u4E0D\u4FE1\uFF1FDevTools > \u7F51\u7EDC\u9762\u677F\u3002\u96F6\u8BF7\u6C42\u3002\u4E0D\u4FE1\u4F60\u6765\u67E5\u3002',
+        '> \u53BB\u5427\uFF0C\u67E5\u770B\u5427\u3002\u6211\u4EEC\u7B49\u3002',
+        '> \u8FD8\u5728\uFF1F\u6253\u5F00\u6E90\u7801\u3002GPL-3.0\u3002\u6BCF\u884C\u90FD\u770B\u3002',
+        '> \u4F60\u7684\u50CF\u7D20\u3002\u4F60\u7684\u8BBE\u5907\u3002\u6211\u4EEC\u7684\u4EE3\u7801\u3002\u5DF2\u9A8C\u8BC1\u3002',
+        '> \u5176\u4ED6\u5DE5\u5177\u4F1A\u4E0A\u4F20\u4F60\u7684\u56FE\u7247\u3002\u6211\u4EEC\u8FDE\u4F60\u662F\u8C01\u90FD\u4E0D\u77E5\u9053\u3002',
       ],
     };
     let dareIndex = 0;

@@ -44,7 +44,8 @@ export class ArViewer extends HTMLElement {
     if (this.boundMouseUp) document.removeEventListener('mouseup', this.boundMouseUp);
     if (this.boundTouchMove) document.removeEventListener('touchmove', this.boundTouchMove);
     if (this.boundTouchEnd) document.removeEventListener('touchend', this.boundTouchEnd);
-    if (this.boundLocaleHandler) document.removeEventListener('nukebg:locale-changed', this.boundLocaleHandler);
+    if (this.boundLocaleHandler)
+      document.removeEventListener('nukebg:locale-changed', this.boundLocaleHandler);
   }
 
   private render(): void {
@@ -307,17 +308,30 @@ export class ArViewer extends HTMLElement {
       onMove(e.clientX);
     });
     this.boundMouseMove = (e: MouseEvent) => onMove(e.clientX);
-    this.boundMouseUp = () => { this.isDragging = false; };
+    this.boundMouseUp = () => {
+      this.isDragging = false;
+    };
     document.addEventListener('mousemove', this.boundMouseMove);
     document.addEventListener('mouseup', this.boundMouseUp);
 
     // Touch support
-    this.container.addEventListener('touchstart', (e) => {
-      this.isDragging = true;
-      onMove(e.touches[0].clientX);
-    }, { passive: true });
-    this.boundTouchMove = (e: TouchEvent) => { if (this.isDragging) { e.preventDefault(); onMove(e.touches[0].clientX); } };
-    this.boundTouchEnd = () => { this.isDragging = false; };
+    this.container.addEventListener(
+      'touchstart',
+      (e) => {
+        this.isDragging = true;
+        onMove(e.touches[0].clientX);
+      },
+      { passive: true },
+    );
+    this.boundTouchMove = (e: TouchEvent) => {
+      if (this.isDragging) {
+        e.preventDefault();
+        onMove(e.touches[0].clientX);
+      }
+    };
+    this.boundTouchEnd = () => {
+      this.isDragging = false;
+    };
     document.addEventListener('touchmove', this.boundTouchMove, { passive: false });
     document.addEventListener('touchend', this.boundTouchEnd);
 
@@ -361,9 +375,9 @@ export class ArViewer extends HTMLElement {
   }
 
   private setupBgButtons(): void {
-    this.shadowRoot!.querySelectorAll('.bg-btn').forEach(btn => {
+    this.shadowRoot!.querySelectorAll('.bg-btn').forEach((btn) => {
       btn.addEventListener('click', () => {
-        this.shadowRoot!.querySelectorAll('.bg-btn').forEach(b => b.classList.remove('active'));
+        this.shadowRoot!.querySelectorAll('.bg-btn').forEach((b) => b.classList.remove('active'));
         btn.classList.add('active');
         this.bgColor = (btn as HTMLElement).dataset.bg || 'transparent';
         this.applyBgColor();

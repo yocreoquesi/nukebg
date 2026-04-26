@@ -32,7 +32,14 @@ function checker(w: number, h: number, cell: number): Uint8ClampedArray {
 }
 
 /** Binary mask with a filled rectangle. */
-function rectMask(w: number, h: number, rx: number, ry: number, rw: number, rh: number): Uint8Array {
+function rectMask(
+  w: number,
+  h: number,
+  rx: number,
+  ry: number,
+  rw: number,
+  rh: number,
+): Uint8Array {
   const m = new Uint8Array(w * h);
   for (let y = ry; y < ry + rh; y++) {
     for (let x = rx; x < rx + rw; x++) {
@@ -44,7 +51,8 @@ function rectMask(w: number, h: number, rx: number, ry: number, rw: number, rh: 
 
 describe('shouldUseLama', () => {
   it('returns useLama=false on a uniform sky (no structure to reconstruct)', () => {
-    const w = 64, h = 64;
+    const w = 64,
+      h = 64;
     const pixels = solid(w, h, 180);
     const mask = rectMask(w, h, 20, 20, 16, 16);
 
@@ -56,7 +64,8 @@ describe('shouldUseLama', () => {
   });
 
   it('returns useLama=true on a high-contrast checker (edges + variance present)', () => {
-    const w = 64, h = 64;
+    const w = 64,
+      h = 64;
     const pixels = checker(w, h, 4);
     const mask = rectMask(w, h, 20, 20, 16, 16);
 
@@ -67,12 +76,13 @@ describe('shouldUseLama', () => {
     // for this aggressive pattern.
     expect(
       decision.variance > LAMA_ROUTER_PARAMS.VARIANCE_THRESHOLD ||
-      decision.edgeDensity > LAMA_ROUTER_PARAMS.EDGE_DENSITY_THRESHOLD,
+        decision.edgeDensity > LAMA_ROUTER_PARAMS.EDGE_DENSITY_THRESHOLD,
     ).toBe(true);
   });
 
   it('returns useLama=false on an empty mask with an all-zero bbox', () => {
-    const w = 32, h = 32;
+    const w = 32,
+      h = 32;
     const pixels = checker(w, h, 4);
     const mask = new Uint8Array(w * h); // all zeros
 
@@ -83,7 +93,8 @@ describe('shouldUseLama', () => {
   });
 
   it('expands the sample bbox by SAMPLE_BBOX_MARGIN, clamped to image bounds', () => {
-    const w = 32, h = 32;
+    const w = 32,
+      h = 32;
     const pixels = solid(w, h, 128);
     // Mask at top-left corner — expanded bbox must not go negative.
     const mask = rectMask(w, h, 0, 0, 4, 4);

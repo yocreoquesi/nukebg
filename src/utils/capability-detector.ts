@@ -124,7 +124,10 @@ function guessTier(): { tier: CapabilityTier; reason: string } {
 
   // No heap info (Safari / Firefox). Use deviceMemory + cores.
   if (memory !== undefined && memory >= 8) {
-    return { tier: cores >= 8 ? 'ultra' : 'high', reason: `deviceMemory=${memory}GB, cores=${cores}` };
+    return {
+      tier: cores >= 8 ? 'ultra' : 'high',
+      reason: `deviceMemory=${memory}GB, cores=${cores}`,
+    };
   }
   if (memory !== undefined && memory >= 4) {
     return { tier: 'high', reason: `deviceMemory=${memory}GB` };

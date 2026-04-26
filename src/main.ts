@@ -44,8 +44,13 @@ function initKeyboardShortcuts(): void {
   // wars.
   const overlay = createShortcutOverlay();
   document.body.appendChild(overlay);
-  const openOverlay = () => { overlay.hidden = false; overlay.focus(); };
-  const closeOverlay = () => { overlay.hidden = true; };
+  const openOverlay = () => {
+    overlay.hidden = false;
+    overlay.focus();
+  };
+  const closeOverlay = () => {
+    overlay.hidden = true;
+  };
   overlay.addEventListener('click', (e) => {
     if (e.target === overlay) closeOverlay();
   });
@@ -112,7 +117,6 @@ function initKeyboardShortcuts(): void {
       closeOverlay();
       return;
     }
-
   });
 }
 
@@ -226,7 +230,18 @@ function initHolidayEasterEgg(): void {
 
 // === Easter Egg: Konami Code ===
 function initKonamiCode(): void {
-  const KONAMI = ['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight', 'b', 'a'];
+  const KONAMI = [
+    'ArrowUp',
+    'ArrowUp',
+    'ArrowDown',
+    'ArrowDown',
+    'ArrowLeft',
+    'ArrowRight',
+    'ArrowLeft',
+    'ArrowRight',
+    'b',
+    'a',
+  ];
   let konamiIndex = 0;
   let activated = false;
 
@@ -249,7 +264,10 @@ function initKonamiCode(): void {
 }
 
 function activateUltraNukeMode(reducedMotion: boolean): void {
-  console.log('%c⚠ ULTRA NUKE MODE ACTIVATED ⚠', 'color: #ff3131; font-family: monospace; font-size: 18px; font-weight: bold;');
+  console.log(
+    '%c⚠ ULTRA NUKE MODE ACTIVATED ⚠',
+    'color: #ff3131; font-family: monospace; font-size: 18px; font-weight: bold;',
+  );
 
   // Intensify scanlines
   const scanlineStyle = document.createElement('style');
@@ -338,7 +356,9 @@ function initLogoClickCounter(): void {
     clickCount++;
 
     if (clickTimer) clearTimeout(clickTimer);
-    clickTimer = setTimeout(() => { clickCount = 0; }, 2000);
+    clickTimer = setTimeout(() => {
+      clickCount = 0;
+    }, 2000);
 
     if (clickCount >= 10) {
       clickCount = 0;
@@ -367,40 +387,76 @@ function initLogoDoubleTap(): void {
 
   const whisperMessages: Record<string, string[]> = {
     en: [
-      'You called?', 'Still here. Still nuking.', 'That tickles.',
-      'Stop poking me.', "I'm working, I'm working...", 'Beep boop. Nuke ready.',
-      'Yes, I\'m open source. Yes, really.', 'Your backgrounds fear me.',
-      'Fun fact: your image never left this device.', 'Powered by radiation and good vibes.',
+      'You called?',
+      'Still here. Still nuking.',
+      'That tickles.',
+      'Stop poking me.',
+      "I'm working, I'm working...",
+      'Beep boop. Nuke ready.',
+      "Yes, I'm open source. Yes, really.",
+      'Your backgrounds fear me.',
+      'Fun fact: your image never left this device.',
+      'Powered by radiation and good vibes.',
     ],
     es: [
-      '\u00BFMe llamaste?', 'Sigo aqu\u00ED. Sigo nukeando.', 'Eso hace cosquillas.',
-      'Deja de tocarme.', 'Estoy trabajando, estoy trabajando...', 'Beep boop. Nuke listo.',
-      'S\u00ED, soy open source. S\u00ED, de verdad.', 'Tus fondos me temen.',
-      'Dato curioso: tu imagen nunca sali\u00F3 de este dispositivo.', 'Impulsado por radiaci\u00F3n y buenas vibras.',
+      '\u00BFMe llamaste?',
+      'Sigo aqu\u00ED. Sigo nukeando.',
+      'Eso hace cosquillas.',
+      'Deja de tocarme.',
+      'Estoy trabajando, estoy trabajando...',
+      'Beep boop. Nuke listo.',
+      'S\u00ED, soy open source. S\u00ED, de verdad.',
+      'Tus fondos me temen.',
+      'Dato curioso: tu imagen nunca sali\u00F3 de este dispositivo.',
+      'Impulsado por radiaci\u00F3n y buenas vibras.',
     ],
     fr: [
-      'Tu m\'as appel\u00E9?', 'Toujours l\u00E0. Toujours en train d\'atomiser.', '\u00C7a chatouille.',
-      'Arr\u00EAte de me toucher.', 'Je bosse, je bosse...', 'Bip boup. Nuke pr\u00EAt.',
-      'Oui, je suis open source. Oui, pour de vrai.', 'Tes fonds me craignent.',
-      'Fun fact: ton image n\'a jamais quitt\u00E9 cet appareil.', 'Aliment\u00E9 par la radiation et la bonne humeur.',
+      "Tu m'as appel\u00E9?",
+      "Toujours l\u00E0. Toujours en train d'atomiser.",
+      '\u00C7a chatouille.',
+      'Arr\u00EAte de me toucher.',
+      'Je bosse, je bosse...',
+      'Bip boup. Nuke pr\u00EAt.',
+      'Oui, je suis open source. Oui, pour de vrai.',
+      'Tes fonds me craignent.',
+      "Fun fact: ton image n'a jamais quitt\u00E9 cet appareil.",
+      'Aliment\u00E9 par la radiation et la bonne humeur.',
     ],
     de: [
-      'Gerufen?', 'Immer noch da. Immer noch am Nuken.', 'Das kitzelt.',
-      'H\u00F6r auf mich anzustupsen.', 'Ich arbeite, ich arbeite...', 'Piep piep. Nuke bereit.',
-      'Ja, ich bin Open Source. Ja, wirklich.', 'Deine Hintergr\u00FCnde f\u00FCrchten mich.',
-      'Fun Fact: Dein Bild hat dieses Ger\u00E4t nie verlassen.', 'Betrieben mit Strahlung und guter Laune.',
+      'Gerufen?',
+      'Immer noch da. Immer noch am Nuken.',
+      'Das kitzelt.',
+      'H\u00F6r auf mich anzustupsen.',
+      'Ich arbeite, ich arbeite...',
+      'Piep piep. Nuke bereit.',
+      'Ja, ich bin Open Source. Ja, wirklich.',
+      'Deine Hintergr\u00FCnde f\u00FCrchten mich.',
+      'Fun Fact: Dein Bild hat dieses Ger\u00E4t nie verlassen.',
+      'Betrieben mit Strahlung und guter Laune.',
     ],
     pt: [
-      'Me chamou?', 'Ainda aqui. Ainda nukeando.', 'Isso faz c\u00F3cegas.',
-      'Para de me cutucar.', 'To trabalhando, to trabalhando...', 'Bip bop. Nuke pronto.',
-      'Sim, sou open source. Sim, de verdade.', 'Seus fundos me temem.',
-      'Curiosidade: sua imagem nunca saiu deste dispositivo.', 'Movido a radia\u00E7\u00E3o e boas vibras.',
+      'Me chamou?',
+      'Ainda aqui. Ainda nukeando.',
+      'Isso faz c\u00F3cegas.',
+      'Para de me cutucar.',
+      'To trabalhando, to trabalhando...',
+      'Bip bop. Nuke pronto.',
+      'Sim, sou open source. Sim, de verdade.',
+      'Seus fundos me temem.',
+      'Curiosidade: sua imagem nunca saiu deste dispositivo.',
+      'Movido a radia\u00E7\u00E3o e boas vibras.',
     ],
     zh: [
-      '\u4F60\u53EB\u6211\uFF1F', '\u8FD8\u5728\u3002\u8FD8\u5728\u6838\u7206\u3002', '\u597D\u75D2\u3002',
-      '\u522B\u6233\u6211\u4E86\u3002', '\u5728\u5E72\u6D3B\u5462\uFF0C\u5728\u5E72\u6D3B\u5462...', '\u6EF4\u6EF4\u3002\u6838\u5F39\u5C31\u7EEA\u3002',
-      '\u5BF9\uFF0C\u6211\u662F\u5F00\u6E90\u7684\u3002\u5BF9\uFF0C\u771F\u7684\u3002', '\u4F60\u7684\u80CC\u666F\u6015\u6211\u3002',
-      '\u51B7\u77E5\u8BC6\uFF1A\u4F60\u7684\u56FE\u7247\u4ECE\u672A\u79BB\u5F00\u8FC7\u8FD9\u53F0\u8BBE\u5907\u3002', '\u9760\u8F90\u5C04\u548C\u597D\u5FC3\u60C5\u9A71\u52A8\u3002',
+      '\u4F60\u53EB\u6211\uFF1F',
+      '\u8FD8\u5728\u3002\u8FD8\u5728\u6838\u7206\u3002',
+      '\u597D\u75D2\u3002',
+      '\u522B\u6233\u6211\u4E86\u3002',
+      '\u5728\u5E72\u6D3B\u5462\uFF0C\u5728\u5E72\u6D3B\u5462...',
+      '\u6EF4\u6EF4\u3002\u6838\u5F39\u5C31\u7EEA\u3002',
+      '\u5BF9\uFF0C\u6211\u662F\u5F00\u6E90\u7684\u3002\u5BF9\uFF0C\u771F\u7684\u3002',
+      '\u4F60\u7684\u80CC\u666F\u6015\u6211\u3002',
+      '\u51B7\u77E5\u8BC6\uFF1A\u4F60\u7684\u56FE\u7247\u4ECE\u672A\u79BB\u5F00\u8FC7\u8FD9\u53F0\u8BBE\u5907\u3002',
+      '\u9760\u8F90\u5C04\u548C\u597D\u5FC3\u60C5\u9A71\u52A8\u3002',
     ],
   };
 
@@ -443,8 +499,8 @@ function initShakeDetection(): void {
       '> SHAKE DETECTED. Nuking harder.',
       '> Careful. This thing is nuclear.',
       '> The reactor is unstable enough already.',
-      '> You break it, you buy it. Wait, it\'s free.',
-      '> Shaking won\'t fix your background. Dropping the image will.',
+      "> You break it, you buy it. Wait, it's free.",
+      "> Shaking won't fix your background. Dropping the image will.",
     ],
     es: [
       '> No es seguro agitar material radiactivo.',
@@ -457,10 +513,10 @@ function initShakeDetection(): void {
     fr: [
       '> Pas prudent de secouer du mat\u00E9riel radioactif.',
       '> SECOUSSE D\u00C9TECT\u00C9E. Atomisation renforc\u00E9e.',
-      '> Doucement. C\'est nucl\u00E9aire.',
+      "> Doucement. C'est nucl\u00E9aire.",
       '> Le r\u00E9acteur est d\u00E9j\u00E0 assez instable.',
-      '> Tu casses, tu paies. Ah non, c\'est gratuit.',
-      '> Secouer ne r\u00E9pare pas ton fond. D\u00E9pose l\'image plut\u00F4t.',
+      "> Tu casses, tu paies. Ah non, c'est gratuit.",
+      "> Secouer ne r\u00E9pare pas ton fond. D\u00E9pose l'image plut\u00F4t.",
     ],
     de: [
       '> Radioaktives Material sch\u00FCtteln: keine gute Idee.',
@@ -506,7 +562,9 @@ function initShakeDetection(): void {
           lastShake = now;
 
           if (shakeTimer) clearTimeout(shakeTimer);
-          shakeTimer = setTimeout(() => { shakeCount = 0; }, 1500);
+          shakeTimer = setTimeout(() => {
+            shakeCount = 0;
+          }, 1500);
 
           if (shakeCount >= 3) {
             shakeCount = 0;
@@ -530,9 +588,13 @@ function initShakeDetection(): void {
   if (typeof dme.requestPermission === 'function') {
     // Request on first user interaction (touch)
     const requestOnce = (): void => {
-      dme.requestPermission!().then((state: string) => {
-        if (state === 'granted') startListening();
-      }).catch(() => { /* permission denied, silent */ });
+      dme.requestPermission!()
+        .then((state: string) => {
+          if (state === 'granted') startListening();
+        })
+        .catch(() => {
+          /* permission denied, silent */
+        });
       document.removeEventListener('touchstart', requestOnce);
     };
     document.addEventListener('touchstart', requestOnce, { once: true });
@@ -585,18 +647,22 @@ function nukeCache(): void {
   // Only clear ML model caches, not the app shell
   // This prevents the blank page bug in Brave and other strict browsers
   Promise.all([
-    caches.keys().then(keys => {
-      const modelCaches = keys.filter(k => k.includes('transformers') || k.includes('onnx') || k.includes('model'));
-      return Promise.all(modelCaches.map(k => caches.delete(k)));
+    caches.keys().then((keys) => {
+      const modelCaches = keys.filter(
+        (k) => k.includes('transformers') || k.includes('onnx') || k.includes('model'),
+      );
+      return Promise.all(modelCaches.map((k) => caches.delete(k)));
     }),
-  ]).then(() => {
-    // Use cache-busting URL param to force fresh load
-    const url = new URL(window.location.href);
-    url.searchParams.set('_cb', Date.now().toString());
-    window.location.href = url.toString();
-  }).catch(() => {
-    window.location.reload();
-  });
+  ])
+    .then(() => {
+      // Use cache-busting URL param to force fresh load
+      const url = new URL(window.location.href);
+      url.searchParams.set('_cb', Date.now().toString());
+      window.location.href = url.toString();
+    })
+    .catch(() => {
+      window.location.reload();
+    });
 }
 
 /** Footer clear cache button */
@@ -620,39 +686,39 @@ function initTerminalPrompt(): void {
 
   const COMMANDS: Record<string, string> = {
     // sudo combos
-    'sudo': '> sudo what? Try \'sudo nuke\' or \'sudo help\'',
+    sudo: "> sudo what? Try 'sudo nuke' or 'sudo help'",
     'sudo nuke': '> LAUNCHING ALL NUKES...',
-    'sudo rm': '> rm: cannot remove \'backgrounds\': already nuked',
+    'sudo rm': "> rm: cannot remove 'backgrounds': already nuked",
     'sudo rm -rf': '> rm -rf /backgrounds/* | 100% nuked. You monster.',
     'sudo help': '> man nukebg: Drop. Nuke. Download. EOF.',
     'sudo sudo': '> inception mode denied. One sudo is enough.',
     'sudo exit': '> nice try. There is no escape.',
-    'sudo hack': '> You\'re already root. What more do you want?',
-    'sudo ls': '> drwxr-xr-x your_images/ (local only, we can\'t see them)',
+    'sudo hack': "> You're already root. What more do you want?",
+    'sudo ls': "> drwxr-xr-x your_images/ (local only, we can't see them)",
     'sudo clear': '> Purging cache...',
     'sudo cat': '> sudo: 🐱: permission denied. Cats obey no one.',
     'sudo vim': '> Opened vim. Good luck getting out.',
     // basic commands
-    'nuke': '> Nuke what? Drop an image first.',
-    'exit': '> There is no escape from NukeBG.',
-    'ls': '> backgrounds/ watermarks/ [scheduled for deletion]',
+    nuke: '> Nuke what? Drop an image first.',
+    exit: '> There is no escape from NukeBG.',
+    ls: '> backgrounds/ watermarks/ [scheduled for deletion]',
     'rm -rf': '> whoa whoa whoa. Not that kind of terminal.',
-    'hack': '> You\'re already in. What more do you want?',
-    'hello': '> Hello, operator. Ready to nuke?',
-    'hi': '> Hello, operator. Ready to nuke?',
-    'clear': '> Purging cache...',
-    'purge': '> Purging cache...',
-    'whoami': '> You\'re the one nuking backgrounds. That\'s who.',
-    'pwd': '> /home/user/images/about-to-be-nuked/',
-    'cat': '> 🐱 meow. Wrong terminal.',
-    'ping': '> pong. But we don\'t do network stuff here.',
-    'cd': '> You\'re already where you need to be.',
-    'vim': '> How do I exit this? Just kidding. Try \'nuke\'.',
-    'man': '> NUKEBG(1) Drop image, nuke background, download PNG. The end.',
-    'echo': '> echo echo echo... is there an echo in here?',
-    'top': '> PID 1: nukebg | CPU: yes. RAM: some. Status: nuking.',
-    'git': '> git commit -m "nuked another background"',
-    'npm': '> npm run nuke | 1 background destroyed, 0 uploaded.',
+    hack: "> You're already in. What more do you want?",
+    hello: '> Hello, operator. Ready to nuke?',
+    hi: '> Hello, operator. Ready to nuke?',
+    clear: '> Purging cache...',
+    purge: '> Purging cache...',
+    whoami: "> You're the one nuking backgrounds. That's who.",
+    pwd: '> /home/user/images/about-to-be-nuked/',
+    cat: '> 🐱 meow. Wrong terminal.',
+    ping: "> pong. But we don't do network stuff here.",
+    cd: "> You're already where you need to be.",
+    vim: "> How do I exit this? Just kidding. Try 'nuke'.",
+    man: '> NUKEBG(1) Drop image, nuke background, download PNG. The end.',
+    echo: '> echo echo echo... is there an echo in here?',
+    top: '> PID 1: nukebg | CPU: yes. RAM: some. Status: nuking.',
+    git: '> git commit -m "nuked another background"',
+    npm: '> npm run nuke | 1 background destroyed, 0 uploaded.',
   };
 
   // Rotating help groups - sudo always first, then 4-5 random commands
@@ -671,7 +737,12 @@ function initTerminalPrompt(): void {
     return `> Commands: ${group.join(', ')}`;
   }
 
-  function showResponse(text: string, isError: boolean = false, keepFocus: boolean = true, durationMs?: number): void {
+  function showResponse(
+    text: string,
+    isError: boolean = false,
+    keepFocus: boolean = true,
+    durationMs?: number,
+  ): void {
     isShowingResponse = true;
     input!.style.display = 'none';
     cursor!.style.display = 'none';
@@ -743,7 +814,8 @@ function initTerminalPrompt(): void {
       showResponse('> Fine, showing all commands...', false, true, 1500);
       const toast = document.getElementById('kbd-toast');
       if (toast) {
-        toast.textContent = 'sudo | nuke | ls | exit | clear | hack | whoami | pwd | cat | ping | cd | vim | man | echo | top | git | npm | help';
+        toast.textContent =
+          'sudo | nuke | ls | exit | clear | hack | whoami | pwd | cat | ping | cd | vim | man | echo | top | git | npm | help';
         toast.classList.add('visible');
         setTimeout(() => toast.classList.remove('visible'), 6000);
       }
@@ -775,7 +847,7 @@ function initShareButton(): void {
 
   const shareMessages: Record<string, string[]> = {
     en: [
-      'Other tools upload your images. This one doesn\'t even know you exist \u2192 https://nukebg.app',
+      "Other tools upload your images. This one doesn't even know you exist \u2192 https://nukebg.app",
       'Found a background remover that never uploads your images \u2192 https://nukebg.app',
       'Drop. Nuke. Download. Your images never leave your device \u2192 https://nukebg.app',
       'Zero uploads, zero tracking, zero BS. Just clean PNGs \u2192 https://nukebg.app',
@@ -792,10 +864,10 @@ function initShareButton(): void {
     ],
     fr: [
       'Les autres outils uploadent tes images. Celui-ci ne sait m\u00EAme pas que tu existes \u2192 https://nukebg.app',
-      'Un d\u00E9toureur qui n\'uploade jamais tes images \u2192 https://nukebg.app',
+      "Un d\u00E9toureur qui n'uploade jamais tes images \u2192 https://nukebg.app",
       'D\u00E9pose. Atomise. T\u00E9l\u00E9charge. Tes images ne quittent jamais ton appareil \u2192 https://nukebg.app',
       'Z\u00E9ro upload, z\u00E9ro tracking, z\u00E9ro baratin \u2192 https://nukebg.app',
-      'https://nukebg.app | parce qu\'uploader ses images pour retirer un fond, c\'est absurde',
+      "https://nukebg.app | parce qu'uploader ses images pour retirer un fond, c'est absurde",
     ],
     de: [
       'Andere Tools laden deine Bilder hoch. Dieses kennt dich nichtmal \u2192 https://nukebg.app',
@@ -829,7 +901,10 @@ function initShareButton(): void {
       await navigator.clipboard.writeText(msg);
       const toast = document.getElementById('kbd-toast');
       if (toast) {
-        toast.textContent = document.documentElement.lang === 'es' ? '> Copiado! P\u00E9galo donde quieras.' : '> Copied! Paste it anywhere.';
+        toast.textContent =
+          document.documentElement.lang === 'es'
+            ? '> Copiado! P\u00E9galo donde quieras.'
+            : '> Copied! Paste it anywhere.';
         toast.classList.add('visible');
         setTimeout(() => toast.classList.remove('visible'), 2000);
       }
@@ -910,7 +985,11 @@ function applyTheme(theme: ThemeName): void {
 
 function initThemeSwitcher(): void {
   const stored = (() => {
-    try { return localStorage.getItem(THEME_STORAGE_KEY); } catch { return null; }
+    try {
+      return localStorage.getItem(THEME_STORAGE_KEY);
+    } catch {
+      return null;
+    }
   })();
   const initial: ThemeName = isThemeName(stored) ? stored : 'green';
   applyTheme(initial);
@@ -923,7 +1002,11 @@ function initThemeSwitcher(): void {
     const next = target.dataset.theme;
     if (!isThemeName(next ?? null)) return;
     applyTheme(next as ThemeName);
-    try { localStorage.setItem(THEME_STORAGE_KEY, next!); } catch { /* ignore */ }
+    try {
+      localStorage.setItem(THEME_STORAGE_KEY, next!);
+    } catch {
+      /* ignore */
+    }
   });
 
   // WAI-ARIA radiogroup keyboard nav: Arrow keys cycle, Home/End jump.
@@ -936,7 +1019,8 @@ function initThemeSwitcher(): void {
     e.preventDefault();
     let nextIdx = idx;
     if (e.key === 'ArrowRight' || e.key === 'ArrowDown') nextIdx = (idx + 1) % swatches.length;
-    else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') nextIdx = (idx - 1 + swatches.length) % swatches.length;
+    else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp')
+      nextIdx = (idx - 1 + swatches.length) % swatches.length;
     else if (e.key === 'Home') nextIdx = 0;
     else if (e.key === 'End') nextIdx = swatches.length - 1;
     swatches[nextIdx].focus();
@@ -966,12 +1050,9 @@ function init(): void {
 function initReactorStatus(): void {
   const burn = formatBurnRate();
   void applyReactorStatus({
-    footerStatus: (runtime) =>
-      t('footer.reactorStatus', { burn, runtime }),
-    marqueeFunding: (runtime) =>
-      t('marquee.funding', { burn, runtime }),
-    kofiAriaLabel: (runtime) =>
-      t('footer.kofiAria', { runtime }),
+    footerStatus: (runtime) => t('footer.reactorStatus', { burn, runtime }),
+    marqueeFunding: (runtime) => t('marquee.funding', { burn, runtime }),
+    kofiAriaLabel: (runtime) => t('footer.kofiAria', { runtime }),
   });
 }
 

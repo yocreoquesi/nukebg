@@ -15,32 +15,34 @@ self.onmessage = (e: MessageEvent<CvWorkerRequest>) => {
     switch (type) {
       case 'detect-bg-colors': {
         const result = detectBgColors(
-          payload.pixels, payload.width, payload.height, payload.sampleSize
+          payload.pixels,
+          payload.width,
+          payload.height,
+          payload.sampleSize,
         );
         self.postMessage({ id, type, result });
         break;
       }
       case 'watermark-detect': {
         const result = watermarkDetect(
-          payload.pixels, payload.width, payload.height,
-          payload.colorA, payload.colorB
+          payload.pixels,
+          payload.width,
+          payload.height,
+          payload.colorA,
+          payload.colorB,
         );
         const transferables: Transferable[] = result.mask ? [result.mask.buffer] : [];
         self.postMessage({ id, type, result }, transferables);
         break;
       }
       case 'watermark-detect-dalle': {
-        const result = watermarkDetectDalle(
-          payload.pixels, payload.width, payload.height
-        );
+        const result = watermarkDetectDalle(payload.pixels, payload.width, payload.height);
         const transferables: Transferable[] = result.mask ? [result.mask.buffer] : [];
         self.postMessage({ id, type, result }, transferables);
         break;
       }
       case 'sparkle-detect': {
-        const result = sparkleDetect(
-          payload.pixels, payload.width, payload.height
-        );
+        const result = sparkleDetect(payload.pixels, payload.width, payload.height);
         const transferables: Transferable[] = result.mask ? [result.mask.buffer] : [];
         self.postMessage({ id, type, result }, transferables);
         break;
@@ -63,7 +65,10 @@ self.onmessage = (e: MessageEvent<CvWorkerRequest>) => {
       }
       case 'foreground-estimate': {
         const result = estimateForeground(
-          payload.pixels, payload.alpha, payload.width, payload.height,
+          payload.pixels,
+          payload.alpha,
+          payload.width,
+          payload.height,
           { iterationsPerLevel: payload.iterationsPerLevel, lambda: payload.lambda },
         );
         self.postMessage({ id, type, result }, [result.buffer]);

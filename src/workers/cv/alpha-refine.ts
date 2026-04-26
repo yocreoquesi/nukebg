@@ -4,11 +4,7 @@ import { ALPHA_PARAMS } from '../../pipeline/constants';
  * Refine alpha channel: median filter + gaussian blur + threshold.
  * Port of Python alpha refinement steps.
  */
-export function alphaRefine(
-  mask: Uint8Array,
-  width: number,
-  height: number
-): Uint8Array {
+export function alphaRefine(mask: Uint8Array, width: number, height: number): Uint8Array {
   // Convert mask (1=bg, 0=fg) to alpha (0=bg, 255=fg)
   const alpha = new Uint8Array(width * height);
   for (let i = 0; i < mask.length; i++) {

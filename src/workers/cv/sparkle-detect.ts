@@ -86,25 +86,47 @@ export function sparkleDetect(
     const outerC = Math.round(r * 1.5);
     const outerD = Math.round(r * 1.06);
     return {
-      arm: [[-arm, 0], [arm, 0], [0, -arm], [0, arm]],
+      arm: [
+        [-arm, 0],
+        [arm, 0],
+        [0, -arm],
+        [0, arm],
+      ],
       // Two perpendicular samples per arm (8 total) — arms are narrow lines,
       // so perpendicular offsets land in dark gap territory for a real sparkle.
       perp: [
-        [-arm, -perp], [-arm, perp],  // north arm sides
-        [arm, -perp], [arm, perp],    // south arm sides
-        [-perp, arm], [perp, arm],    // east arm sides
-        [-perp, -arm], [perp, -arm],  // west arm sides
+        [-arm, -perp],
+        [-arm, perp], // north arm sides
+        [arm, -perp],
+        [arm, perp], // south arm sides
+        [-perp, arm],
+        [perp, arm], // east arm sides
+        [-perp, -arm],
+        [perp, -arm], // west arm sides
       ],
-      gap: [[-gap, -gap], [-gap, gap], [gap, -gap], [gap, gap]],
+      gap: [
+        [-gap, -gap],
+        [-gap, gap],
+        [gap, -gap],
+        [gap, gap],
+      ],
       outer: [
-        [-outerC, 0], [outerC, 0], [0, -outerC], [0, outerC],
-        [-outerD, -outerD], [-outerD, outerD], [outerD, -outerD], [outerD, outerD],
+        [-outerC, 0],
+        [outerC, 0],
+        [0, -outerC],
+        [0, outerC],
+        [-outerD, -outerD],
+        [-outerD, outerD],
+        [outerD, -outerD],
+        [outerD, outerD],
       ],
     };
   });
 
   let bestScore = 0;
-  let bestY = -1, bestX = -1, bestR = 0;
+  let bestY = -1,
+    bestX = -1,
+    bestR = 0;
   const stride = SPARKLE_PARAMS.CANDIDATE_STRIDE;
 
   for (let cy = yStart; cy < yEnd; cy += stride) {
@@ -140,7 +162,8 @@ export function sparkleDetect(
           ((a0 - meanA) * (a0 - meanA) +
             (a1 - meanA) * (a1 - meanA) +
             (a2 - meanA) * (a2 - meanA) +
-            (a3 - meanA) * (a3 - meanA)) / 4;
+            (a3 - meanA) * (a3 - meanA)) /
+          4;
         const stdA = Math.sqrt(varA);
         if (stdA / meanA > SPARKLE_PARAMS.MAX_ARM_CV) continue;
 

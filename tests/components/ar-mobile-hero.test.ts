@@ -23,7 +23,9 @@ describe('Mobile hero — short-form copy swap (#73)', () => {
 
   it('CSS swaps which variant renders at ≤ 480 px', () => {
     expect(APP).toMatch(/\.hero-title-short, \.subline-short \{ display: none; \}/);
-    expect(APP).toMatch(/@media \(max-width: 480px\)\s*\{[\s\S]*?\.hero-title-long, \.subline-long \{ display: none/);
+    expect(APP).toMatch(
+      /@media \(max-width: 480px\)\s*\{[\s\S]*?\.hero-title-long, \.subline-long \{ display: none/,
+    );
   });
 
   it('updateTexts renders both spans so locale-change keeps the swap working', () => {

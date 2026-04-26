@@ -25,7 +25,9 @@ export function watermarkDetectDalle(
   for (let y = height - scanH; y < height; y++) {
     // Recoger colores de la linea en la zona derecha
     const colors = new Set<number>();
-    let sumR = 0, sumG = 0, sumB = 0;
+    let sumR = 0,
+      sumG = 0,
+      sumB = 0;
     let count = 0;
 
     for (let x = width - scanW; x < width; x++) {
@@ -63,17 +65,25 @@ export function watermarkDetectDalle(
     if (colors.size <= refColors.size * contrastThreshold) continue;
 
     // Verify there is real hue variation (not just brightness noise)
-    let minR = 255, maxR = 0, minG = 255, maxG = 0, minB = 255, maxB = 0;
+    let minR = 255,
+      maxR = 0,
+      minG = 255,
+      maxG = 0,
+      minB = 255,
+      maxB = 0;
     for (let x = width - scanW; x < width; x++) {
       const idx = pixelIndex(x, y, width);
       const r = pixels[idx];
       const g = pixels[idx + 1];
       const b = pixels[idx + 2];
-      minR = Math.min(minR, r); maxR = Math.max(maxR, r);
-      minG = Math.min(minG, g); maxG = Math.max(maxG, g);
-      minB = Math.min(minB, b); maxB = Math.max(maxB, b);
+      minR = Math.min(minR, r);
+      maxR = Math.max(maxR, r);
+      minG = Math.min(minG, g);
+      maxG = Math.max(maxG, g);
+      minB = Math.min(minB, b);
+      maxB = Math.max(maxB, b);
     }
-    const channelSpread = (maxR - minR) + (maxG - minG) + (maxB - minB);
+    const channelSpread = maxR - minR + (maxG - minG) + (maxB - minB);
     if (channelSpread < DALLE_WATERMARK_PARAMS.MIN_CHANNEL_SPREAD) continue;
 
     // Esta linea parece parte del watermark

@@ -11,7 +11,8 @@ import { solidImage, paintRect } from '../helpers';
 
 describe('shadowCleanup (spatial refinement / removeSmallClusters)', () => {
   it('removes a small gray blob disconnected from the subject', () => {
-    const w = 64, h = 64;
+    const w = 64,
+      h = 64;
     const pixels = solidImage(w, h, 255, 255, 255);
 
     // Large colorful subject (will not be removed)
@@ -46,7 +47,8 @@ describe('shadowCleanup (spatial refinement / removeSmallClusters)', () => {
   });
 
   it('does not remove a large blob (exceeds maxBlobSize)', () => {
-    const w = 128, h = 128;
+    const w = 128,
+      h = 128;
     const pixels = solidImage(w, h, 255, 255, 255);
 
     // Large gray blob (>maxBlobSize by default)
@@ -69,7 +71,8 @@ describe('shadowCleanup (spatial refinement / removeSmallClusters)', () => {
   });
 
   it('does not touch pixels that are already background', () => {
-    const w = 16, h = 16;
+    const w = 16,
+      h = 16;
     const pixels = solidImage(w, h, 255, 255, 255);
 
     const mask = new Uint8Array(w * h);
@@ -84,7 +87,8 @@ describe('shadowCleanup (spatial refinement / removeSmallClusters)', () => {
   });
 
   it('does not remove foreground with high saturation (real color, not shadow)', () => {
-    const w = 32, h = 32;
+    const w = 32,
+      h = 32;
     const pixels = solidImage(w, h, 255, 255, 255);
 
     // Highly colorful blob (high saturation)
@@ -106,7 +110,8 @@ describe('shadowCleanup (spatial refinement / removeSmallClusters)', () => {
   });
 
   it('removes multiple small independent shadow blobs', () => {
-    const w = 64, h = 64;
+    const w = 64,
+      h = 64;
     const pixels = solidImage(w, h, 255, 255, 255);
 
     // Real subject
@@ -149,7 +154,8 @@ describe('shadowCleanup (spatial refinement / removeSmallClusters)', () => {
   });
 
   it('handles image with no foreground (all background)', () => {
-    const w = 16, h = 16;
+    const w = 16,
+      h = 16;
     const pixels = solidImage(w, h, 128, 128, 128);
     const mask = new Uint8Array(w * h).fill(1);
 
@@ -159,7 +165,8 @@ describe('shadowCleanup (spatial refinement / removeSmallClusters)', () => {
   });
 
   it('handles image with all foreground (no background)', () => {
-    const w = 16, h = 16;
+    const w = 16,
+      h = 16;
     const pixels = solidImage(w, h, 200, 50, 50);
     const mask = new Uint8Array(w * h); // all foreground
 
@@ -168,7 +175,8 @@ describe('shadowCleanup (spatial refinement / removeSmallClusters)', () => {
   });
 
   it('respects custom maxBlobSize parameter', () => {
-    const w = 32, h = 32;
+    const w = 32,
+      h = 32;
     const pixels = solidImage(w, h, 255, 255, 255);
 
     // Gray blob of 5x5 = 25 pixels
@@ -192,7 +200,8 @@ describe('shadowCleanup (spatial refinement / removeSmallClusters)', () => {
   });
 
   it('does not remove bright pixels (brightness > MAX) or dark pixels (brightness < MIN)', () => {
-    const w = 32, h = 32;
+    const w = 32,
+      h = 32;
     const pixels = solidImage(w, h, 200, 200, 200);
 
     // Near-white blob (brightness > BRIGHTNESS_MAX=220)
