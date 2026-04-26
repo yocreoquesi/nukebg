@@ -10,6 +10,65 @@ Unreleased entries accumulate on the `dev` branch. When we cut a release we copy
 
 ## [Unreleased]
 
+## [2.9.1] — 2026-04-27
+
+### Fixed
+
+- **`/reactor` rendered inline on the home page**. `<ar-reactor>` ignored its
+  `hidden` attribute because `:host { display: block }` overrides the
+  browser-default `[hidden] { display: none }` rule. Added the explicit
+  `:host([hidden]) { display: none }` companion to both `ar-reactor` and
+  `ar-post-cta` and a regression guard in
+  `tests/components/host-hidden-honor.test.ts`.
+  ([#167](https://github.com/yocreoquesi/nukebg/pull/167))
+- **`/#reactor` rendered hard-left** instead of in the centered 960 px
+  column the home view uses. The global `* { margin: 0 }` reset beat
+  the component's `:host { margin: 0 auto }` (rules outside a shadow
+  root always trump `:host`). Added an external `#reactor-section` rule
+  that restores centering and matches `.main-content`'s width so
+  navigating home → /#reactor → home stays in the same column.
+  ([#172](https://github.com/yocreoquesi/nukebg/pull/172))
+- **Footer rendered the literal string `footer.reactorStatus`** instead
+  of the translated text. The reactor-status injector calls three i18n
+  keys (`footer.reactorStatus`, `marquee.funding`, `footer.kofiAria`)
+  that were never added to `src/i18n/index.ts`; with no entry, `t()`
+  returns the raw key. Added the 3 missing keys to all six locales
+  with `{burn}` / `{runtime}` interpolation.
+  ([#168](https://github.com/yocreoquesi/nukebg/pull/168))
+- **Cloudflare Pages deploys failed** when github.com Releases
+  returned a 502 because `onnxruntime-node`'s postinstall fetched
+  ~200 MB of CUDA binaries we never use (NukeBG runs
+  `onnxruntime-web` in the browser). Added `.npmrc` with
+  `onnxruntime-node-install-cuda=skip` — the package still installs
+  (transformers.js needs it for type resolution in Node contexts),
+  the postinstall just no-ops.
+  ([#169](https://github.com/yocreoquesi/nukebg/pull/169))
+
+### Changed
+
+- **Footer link to `/reactor`**. Replaced the footer's "☕ Tip the
+  reactor" Ko-fi link with `# /sys/reactor` pointing at the existing
+  transparency page (`#reactor` hash route). The reactor page already
+  has its own "Alimentar el reactor →" CTA into Ko-fi, so the
+  donation flow now naturally lands through the cost-breakdown first
+  — more honest, less pushy. Also fixes the previously-unreachable
+  transparency page.
+  ([#170](https://github.com/yocreoquesi/nukebg/pull/170))
+- **README donation link cleanup**. Cut from 5 mentions of Ko-fi /
+  Sponsor (3 in the first scroll) to 2 mentions consolidated in the
+  `## > support` section. Added a quick-link to the `/reactor`
+  transparency page in the masthead links bar.
+  ([#170](https://github.com/yocreoquesi/nukebg/pull/170))
+
+### Internal
+
+- **Behavioural test coverage for the 7 untested web components**
+  — ar-viewer, ar-dropzone, ar-app, ar-editor-advanced, ar-privacy,
+  ar-batch-grid, ar-batch-item. +130 cases (689 → 819 tests). Two
+  brittle source-pattern tests retired now that their surface is
+  covered behaviourally.
+  ([#166](https://github.com/yocreoquesi/nukebg/pull/166))
+
 ## [2.9.0] — 2026-04-26
 
 ### Added
