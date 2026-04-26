@@ -490,6 +490,21 @@ body::after {
   width: 100%;
 }
 
+/* Page-level reactor route container. Sits as a sibling of <main> in
+   the body flex column. The universal `* { margin: 0 }` reset above
+   beats the component's `:host { margin: 0 auto }` (rules outside a
+   shadow root always trump :host defaults), so the host renders left
+   when the route is active. We restore the centering here and match
+   .main-content's max-width so navigating between / and /#reactor is
+   visually seamless. */
+#reactor-section {
+  max-width: 960px;
+  margin-left: auto;
+  margin-right: auto;
+  width: 100%;
+  flex: 1 0 auto;
+}
+
 /* === Footer === */
 .footer {
   border-top: 1px solid var(--color-surface-border, #1a3a1a);
