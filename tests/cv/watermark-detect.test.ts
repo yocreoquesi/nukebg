@@ -121,6 +121,85 @@ describe('watermarkDetect', () => {
     }
   });
 
+  it('rechaza cluster rojo brillante en esquina (no es color Gemini) — issue #152', () => {
+    const w = 512, h = 512;
+    const pixels = solidImage(w, h, 200, 200, 200);
+
+    // Cluster denso de pixeles ROJOS en bottom-right — antes del fix
+    // disparaba falso positivo porque la deviation era alta. Con el
+    // gate de color (blanco/azulado solamente), debe rechazarse.
+    const scanSize = Math.max(200, Math.floor(Math.min(h, w) / 5));
+    const cy = h - Math.floor(scanSize / 2);
+    const cx = w - Math.floor(scanSize / 2);
+    for (let dy = -6; dy <= 6; dy++) {
+      for (let dx = -6; dx <= 6; dx++) {
+        if (Math.sqrt(dy * dy + dx * dx) <= 6) {
+          const y = cy + dy;
+          const x = cx + dx;
+          if (y >= 0 && y < h && x >= 0 && x < w) {
+            const i = (y * w + x) * 4;
+            pixels[i] = 220;     // r — rojo brillante (flor, logo, reflejo)
+            pixels[i + 1] = 30;  // g
+            pixels[i + 2] = 30;  // b
+          }
+        }
+      }
+    }
+
+    const result = watermarkDetect(pixels, w, h, [200, 200, 200], [200, 200, 200]);
+    expect(result.detected).toBe(false);
+  });
+
+  it('rechaza cluster amarillo brillante en esquina (no es color Gemini) — issue #152', () => {
+    const w = 512, h = 512;
+    const pixels = solidImage(w, h, 100, 100, 100);
+
+    const cy = h - 50;
+    const cx = w - 50;
+    for (let dy = -4; dy <= 4; dy++) {
+      for (let dx = -4; dx <= 4; dx++) {
+        const y = cy + dy;
+        const x = cx + dx;
+        if (y >= 0 && y < h && x >= 0 && x < w) {
+          const i = (y * w + x) * 4;
+          pixels[i] = 255;
+          pixels[i + 1] = 255;
+          pixels[i + 2] = 0;     // amarillo puro — saturación alta, no Gemini
+        }
+      }
+    }
+
+    const result = watermarkDetect(pixels, w, h, [100, 100, 100], [100, 100, 100]);
+    expect(result.detected).toBe(false);
+  });
+
+  it('detecta sparkle blanco-azulado simulado (color Gemini válido) — issue #152', () => {
+    const w = 512, h = 512;
+    const pixels = solidImage(w, h, 100, 150, 80); // fondo verde
+
+    const scanSize = Math.max(200, Math.floor(Math.min(h, w) / 5));
+    const cy = h - Math.floor(scanSize / 2);
+    const cx = w - Math.floor(scanSize / 2);
+    for (let dy = -6; dy <= 6; dy++) {
+      for (let dx = -6; dx <= 6; dx++) {
+        if (Math.sqrt(dy * dy + dx * dx) <= 6) {
+          const y = cy + dy;
+          const x = cx + dx;
+          if (y >= 0 && y < h && x >= 0 && x < w) {
+            const i = (y * w + x) * 4;
+            // Blanco con tinte azulado — color Gemini canónico
+            pixels[i] = 220;
+            pixels[i + 1] = 230;
+            pixels[i + 2] = 245;
+          }
+        }
+      }
+    }
+
+    const result = watermarkDetect(pixels, w, h, [100, 150, 80], [100, 150, 80]);
+    expect(result.detected).toBe(true);
+  });
+
   it('maneja imagen pequena sin crash', () => {
     const w = 100, h = 100;
     const pixels = solidImage(w, h, 200, 200, 200);
