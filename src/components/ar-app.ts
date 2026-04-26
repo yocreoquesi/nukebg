@@ -919,7 +919,7 @@ export class ArApp extends HTMLElement {
       <section class="hero" id="hero">
         <h1>
           <span class="hero-title-long"><span class="accent">${t('hero.title.accent')}</span> ${t('hero.title.rest')}</span>
-          <span class="hero-title-short"><span class="accent">$ </span>${t('hero.title.short')}</span>
+          <span class="hero-title-short"><span class="accent">${t('hero.title.short')}</span></span>
         </h1>
         <p class="subline">
           <span class="subline-long">${t('hero.subtitle').replace(/\n/g, ' ')}</span>
@@ -1039,7 +1039,7 @@ export class ArApp extends HTMLElement {
     const h1 = root.querySelector('h1');
     if (h1) h1.innerHTML =
       `<span class="hero-title-long"><span class="accent">${t('hero.title.accent')}</span> ${t('hero.title.rest')}</span>` +
-      `<span class="hero-title-short"><span class="accent">$ </span>${t('hero.title.short')}</span>`;
+      `<span class="hero-title-short"><span class="accent">${t('hero.title.short')}</span></span>`;
     const subline = root.querySelector('.subline');
     if (subline) subline.innerHTML =
       `<span class="subline-long">${t('hero.subtitle').replace(/\n/g, ' ')}</span>` +

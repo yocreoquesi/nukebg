@@ -19,7 +19,7 @@ test('capture coche output + mirror console/network', async ({ page }, testInfo)
   await page.goto('/');
   await page.waitForLoadState('networkidle');
 
-  const fileInput = page.locator('ar-dropzone').locator('input[type="file"]:not(.dz-camera-input)');
+  const fileInput = page.locator('ar-dropzone').locator('input[type="file"]');
   await fileInput.setInputFiles(FIXTURE);
 
   const downloadBtn = page.locator('ar-download').locator('#dl-png');

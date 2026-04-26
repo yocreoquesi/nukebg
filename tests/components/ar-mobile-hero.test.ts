@@ -32,36 +32,21 @@ describe('Mobile hero — short-form copy swap (#73)', () => {
   });
 });
 
-describe('Dropzone camera CTA (#73)', () => {
-  it('renders a second <input type="file" capture="environment">', () => {
-    expect(DZ).toMatch(/<input[^>]*type="file"[^>]*capture="environment"[^>]*class="dz-camera-input"/);
-  });
-
-  it('renders a #dz-camera-cta button with takePhoto label', () => {
-    expect(DZ).toMatch(/id="dz-camera-cta"/);
-    expect(DZ).toMatch(/t\(['"]dropzone\.takePhoto['"]\)/);
-  });
-
-  it('camera CTA is visible only on coarse pointer OR ≤ 480 px', () => {
-    expect(DZ).toMatch(/\.dz-camera-cta \{[\s\S]*?display: none;/);
-    expect(DZ).toMatch(/@media \(pointer: coarse\), \(max-width: 480px\) \{[\s\S]*?\.dz-camera-cta \{ display: inline-flex/);
-  });
-
-  it('camera CTA click stops propagation + triggers the camera input, not the main one', () => {
-    expect(DZ).toMatch(/cameraBtn\?\.addEventListener\(['"]click['"],[\s\S]*?stopPropagation\(\)[\s\S]*?this\.cameraInput\.click\(\)/);
-  });
-
-  it('main dropzone click ignores events bubbling from the camera CTA', () => {
-    expect(DZ).toMatch(/target\?\.closest\(['"]#dz-camera-cta['"]\)\) return/);
-  });
-
-  it('cameraInput "change" handler routes into the existing handleFiles path', () => {
-    expect(DZ).toMatch(/this\.cameraInput\.addEventListener\(['"]change['"],[\s\S]*?this\.handleFiles\(this\.cameraInput\.files\)/);
+// Camera CTA (#73) was removed in #146 — tapping the dropzone box on
+// mobile already opens the OS file picker, which exposes the camera as
+// one of the source options. The dedicated button was duplicating that
+// affordance and made the mobile UX inconsistent with desktop.
+describe('Dropzone camera CTA — removed (#146)', () => {
+  it('no longer ships a dedicated camera input or CTA button', () => {
+    expect(DZ).not.toMatch(/dz-camera-cta/);
+    expect(DZ).not.toMatch(/dz-camera-input/);
+    expect(DZ).not.toMatch(/capture="environment"/);
+    expect(DZ).not.toMatch(/dropzone\.takePhoto/);
   });
 });
 
-describe('i18n parity — hero.*.short + dropzone.takePhoto', () => {
-  const keys = ['hero.title.short', 'hero.subtitle.short', 'dropzone.takePhoto'];
+describe('i18n parity — hero.*.short', () => {
+  const keys = ['hero.title.short', 'hero.subtitle.short'];
   for (const key of keys) {
     it(`'${key}' declared in all six locales`, () => {
       const re = new RegExp(`'${key.replace(/\./g, '\\.')}'\\s*:`, 'g');

@@ -41,10 +41,8 @@ test.describe('pipeline end-to-end', () => {
     await page.goto('/');
     await page.waitForLoadState('networkidle');
 
-    // ar-dropzone exposes two hidden <input type="file"> elements (regular +
-    // mobile camera CTA). Disambiguate with :not(.dz-camera-input) — same
-    // selector the component itself uses internally.
-    const fileInput = page.locator('ar-dropzone').locator('input[type="file"]:not(.dz-camera-input)');
+    // ar-dropzone exposes a single hidden <input type="file"> in shadow DOM.
+    const fileInput = page.locator('ar-dropzone').locator('input[type="file"]');
     await fileInput.setInputFiles(FIXTURE);
 
     // ar-download makes its #dl-png href a blob: URL only after the pipeline
