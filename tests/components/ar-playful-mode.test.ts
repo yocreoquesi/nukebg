@@ -3,61 +3,53 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 /**
- * data-playful + quiet mode (#79) source invariants.
+ * Quiet-mode toggle (#79) was removed in #148.
+ *
+ * After the Reactor pivot (#113) and smoke cleanup (#118), the toggle
+ * stopped gating any visual effect except the slider reveal animation
+ * in ar-viewer — which is already covered by `prefers-reduced-motion`.
+ * The button promised to silence things that no longer exist, so it
+ * was removed entirely.
+ *
+ * These tests guard the removal so the toggle doesn't sneak back in.
  */
 
 const ROOT = resolve(__dirname, '..', '..');
 const APP = readFileSync(resolve(ROOT, 'src/components/ar-app.ts'), 'utf8');
+const VIEWER = readFileSync(resolve(ROOT, 'src/components/ar-viewer.ts'), 'utf8');
 const HTML = readFileSync(resolve(ROOT, 'index.html'), 'utf8');
 const CSS = readFileSync(resolve(ROOT, 'src/styles/main.css'), 'utf8');
 const I18N = readFileSync(resolve(ROOT, 'src/i18n/index.ts'), 'utf8');
 
-describe('playful-mode gating (#79)', () => {
-  it('isPlayful() reads document.documentElement.dataset.playful', () => {
-    expect(APP).toMatch(/private isPlayful\(\): boolean/);
-    expect(APP).toMatch(/document\.documentElement\.dataset\.playful !== ['"]false['"]/);
+describe('playful / quiet mode — removed (#148)', () => {
+  it('ar-app no longer ships the playful gating helpers', () => {
+    expect(APP).not.toMatch(/isPlayful\(\)/);
+    expect(APP).not.toMatch(/setPlayfulMode/);
+    expect(APP).not.toMatch(/resolvePlayfulMode/);
+    expect(APP).not.toMatch(/syncQuietModeToggle/);
+    expect(APP).not.toMatch(/nukebg:playful/);
   });
 
-  it('resolvePlayfulMode defaults on; prefers-reduced-motion flips it off; localStorage wins', () => {
-    expect(APP).toMatch(/resolvePlayfulMode\(\): void/);
-    expect(APP).toMatch(/localStorage\.getItem\(['"]nukebg:playful['"]\)/);
-    expect(APP).toMatch(/matchMedia\(['"]\(prefers-reduced-motion: reduce\)['"]\)/);
-    expect(APP).toMatch(/dataset\.playful = reducedMotion \? ['"]false['"] : ['"]true['"]/);
+  it('ar-app no longer carries the .crt-word-flicker rule that was its only CSS gate', () => {
+    expect(APP).not.toMatch(/\.crt-word-flicker/);
   });
 
-  it('setPlayfulMode persists to localStorage', () => {
-    expect(APP).toMatch(/setPlayfulMode\(playful: boolean\): void/);
-    expect(APP).toMatch(/localStorage\.setItem\(['"]nukebg:playful['"], playful \? ['"]true['"] : ['"]false['"]\)/);
+  it('ar-viewer slider reveal still respects prefers-reduced-motion', () => {
+    expect(VIEWER).toMatch(/window\.matchMedia\(['"]\(prefers-reduced-motion: reduce\)['"]\)/);
+    expect(VIEWER).not.toMatch(/dataset\.playful/);
   });
 
-  it('boot hook calls resolvePlayfulMode before first render', () => {
-    expect(APP).toMatch(
-      /connectedCallback\(\): void \{[\s\S]*?this\.resolvePlayfulMode\(\);[\s\S]*?this\.render\(\);/,
-    );
-  });
-});
-
-describe('quiet-mode toggle in the footer', () => {
-  it('index.html renders <button id="quiet-mode-toggle"> in the footer', () => {
-    expect(HTML).toMatch(/<button[^>]*id="quiet-mode-toggle"[^>]*class="footer-quiet-btn"/);
+  it('index.html no longer renders the quiet-mode toggle', () => {
+    expect(HTML).not.toMatch(/quiet-mode-toggle/);
+    expect(HTML).not.toMatch(/footer-quiet-btn/);
   });
 
-  it('main.css styles .footer-quiet-btn with the same footer tone + accent pressed state', () => {
-    expect(CSS).toMatch(/\.footer-quiet-btn \{[\s\S]*?color: var\(--color-text-tertiary\)/);
-    expect(CSS).toMatch(/\.footer-quiet-btn\[aria-pressed="true"\] \{[\s\S]*?color: var\(--color-accent-primary\)/);
+  it('main.css no longer styles .footer-quiet-btn', () => {
+    expect(CSS).not.toMatch(/\.footer-quiet-btn/);
   });
 
-  it('setupEvents wires click through setPlayfulMode(!this.isPlayful())', () => {
-    expect(APP).toMatch(/getElementById\(['"]quiet-mode-toggle['"]\)/);
-    expect(APP).toMatch(/this\.setPlayfulMode\(!this\.isPlayful\(\)\)/);
+  it('i18n no longer ships footer.quietMode / footer.playfulMode', () => {
+    expect(I18N).not.toMatch(/'footer\.quietMode'/);
+    expect(I18N).not.toMatch(/'footer\.playfulMode'/);
   });
-});
-
-describe('i18n parity — footer.{quiet,playful}Mode', () => {
-  for (const key of ['footer.quietMode', 'footer.playfulMode']) {
-    it(`'${key}' declared in all six locales`, () => {
-      const re = new RegExp(`'${key.replace(/\./g, '\\.')}'\\s*:`, 'g');
-      expect((I18N.match(re) ?? []).length).toBe(6);
-    });
-  }
 });

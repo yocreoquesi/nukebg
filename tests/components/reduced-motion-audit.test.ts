@@ -32,19 +32,13 @@ describe('reduced-motion audit (#35)', () => {
     });
   }
 
-  it('ar-viewer slider reveal skips when reduced-motion OR quiet-mode is active', () => {
+  it('ar-viewer slider reveal skips when reduced-motion is active', () => {
+    // Quiet-mode toggle (#79) was removed in #148; only the OS preference
+    // remains as the gate, which was always the canonical signal.
     const v = readFileSync(resolve(ROOT, 'src/components/ar-viewer.ts'), 'utf8');
     expect(v).toMatch(/matchMedia\(['"]\(prefers-reduced-motion: reduce\)['"]\)/);
-    expect(v).toMatch(/document\.documentElement\.dataset\.playful === ['"]false['"]/);
-    expect(v).toMatch(/if \(reducedMotion \|\| quietMode\)/);
-  });
-
-  it('ar-app defaults data-playful="false" when OS reports reduced-motion', () => {
-    const a = readFileSync(resolve(ROOT, 'src/components/ar-app.ts'), 'utf8');
-    expect(a).toMatch(
-      /reducedMotion = window\.matchMedia\(['"]\(prefers-reduced-motion: reduce\)['"]\)/,
-    );
-    expect(a).toMatch(/dataset\.playful = reducedMotion \? ['"]false['"] : ['"]true['"]/);
+    expect(v).toMatch(/if \(reducedMotion\)/);
+    expect(v).not.toMatch(/dataset\.playful/);
   });
 
   it('ar-editor-advanced gates hint-pulse under reduced-motion', () => {
