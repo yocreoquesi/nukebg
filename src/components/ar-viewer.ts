@@ -431,11 +431,11 @@ export class ArViewer extends HTMLElement {
     this.resultCanvas.height = imageData.height;
     ctx.putImageData(imageData, 0, 0);
 
-    // Animate slider reveal. Skip if either OS reports reduced-motion
-    // OR the user has toggled quiet mode via the footer (#79).
+    // Animate slider reveal. Skip if OS reports reduced-motion.
+    // (Quiet-mode toggle removed in #148 — it gated only this animation
+    // and prefers-reduced-motion already covers the same intent.)
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const quietMode = document.documentElement.dataset.playful === 'false';
-    if (reducedMotion || quietMode) {
+    if (reducedMotion) {
       this.sliderPos = 0;
       this.updateSlider();
     } else {
