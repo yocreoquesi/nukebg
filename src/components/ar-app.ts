@@ -457,9 +457,19 @@ export class ArApp extends HTMLElement {
           -webkit-mask-image: linear-gradient(90deg, transparent, #000 48px, #000 calc(100% - 48px), transparent);
                   mask-image: linear-gradient(90deg, transparent, #000 48px, #000 calc(100% - 48px), transparent);
         }
-        .marquee-bleed span {
-          display: inline-block;
-          animation: marquee-scroll 26s linear infinite;
+        .marquee-bleed > span {
+          display: inline-flex;
+          gap: 0;
+          animation: marquee-scroll 32s linear infinite;
+          will-change: transform;
+        }
+        /* Two identical halves animate from 0 to -50%; when the first
+           half scrolls off the left, the second half sits exactly where
+           the first started — seamless, single continuous message
+           (no doubled overlap on wide viewports). */
+        .marquee-bleed > span > span.marquee-half {
+          flex: 0 0 auto;
+          padding-right: 3em;
         }
         /* Consolidated [STATUS] line */
         .status-line {
@@ -561,11 +571,11 @@ export class ArApp extends HTMLElement {
           .status-details summary { min-height: 44px; padding: 10px 0; }
         }
         @keyframes marquee-scroll {
-          0% { transform: translateX(100%); }
-          100% { transform: translateX(-100%); }
+          0% { transform: translateX(0); }
+          100% { transform: translateX(-50%); }
         }
         @media (prefers-reduced-motion: reduce) {
-          .marquee-bleed span { animation: none; }
+          .marquee-bleed > span { animation: none; }
         }
 
         /* Smoke is rendered outside shadow DOM - see main thread */
@@ -923,7 +933,7 @@ export class ArApp extends HTMLElement {
       <!-- Full-bleed marquee outside the main column per design #69.
            Gradient mask fades text in/out at the edges so it never
            clips mid-word the way the old column-scoped marquee did. -->
-      <div class="marquee-bleed" id="precision-marquee-bleed"><span>☢ NUKEBG | DROP. NUKE. DOWNLOAD. | Your images never leave your device | <span data-marquee-runtime>development funded for 0 months — tip to extend runway</span> | nukebg.app ☢ NUKEBG | DROP. NUKE. DOWNLOAD. | <span data-marquee-runtime>development funded for 0 months — tip to extend runway</span> | nukebg.app ☢</span></div>
+      <div class="marquee-bleed" id="precision-marquee-bleed"><span><span class="marquee-half">☢ NUKEBG | DROP. NUKE. DOWNLOAD. | <span data-marquee-runtime>development funded for 0 months — tip to extend runway</span> | nukebg.app ☢</span><span class="marquee-half" aria-hidden="true">☢ NUKEBG | DROP. NUKE. DOWNLOAD. | <span data-marquee-runtime>development funded for 0 months — tip to extend runway</span> | nukebg.app ☢</span></span></div>
 
       <section class="hero" id="hero">
         <h1>
