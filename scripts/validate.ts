@@ -47,16 +47,23 @@ async function processImage(inputPath: string): Promise<void> {
 
   if (bgInfo.isCheckerboard) {
     const grid = detectCheckerGrid(
-      new Uint8ClampedArray(pixels), width, height,
-      bgInfo.colorA, bgInfo.colorB
+      new Uint8ClampedArray(pixels),
+      width,
+      height,
+      bgInfo.colorA,
+      bgInfo.colorB,
     );
     console.log(`  Grid: size=${grid.gridSize}, phase=${grid.phase}`);
 
     if (grid.gridSize > 0) {
       bgMask = gridFloodFill(
-        new Uint8ClampedArray(pixels), width, height,
-        bgInfo.colorA, bgInfo.colorB,
-        grid.gridSize, grid.phase
+        new Uint8ClampedArray(pixels),
+        width,
+        height,
+        bgInfo.colorA,
+        bgInfo.colorB,
+        grid.gridSize,
+        grid.phase,
       );
 
       let bgCount = 0;
@@ -67,13 +74,20 @@ async function processImage(inputPath: string): Promise<void> {
       if (coverage < CV_PARAMS.LOW_COVERAGE_THRESHOLD) {
         console.log(`  Low coverage — subject exclusion + simple flood...`);
         const exclMask = subjectExclusion(
-          new Uint8ClampedArray(pixels), width, height,
-          bgInfo.colorA, bgInfo.colorB,
-          grid.gridSize, grid.phase
+          new Uint8ClampedArray(pixels),
+          width,
+          height,
+          bgInfo.colorA,
+          bgInfo.colorB,
+          grid.gridSize,
+          grid.phase,
         );
         const floodMask = simpleFloodFill(
-          new Uint8ClampedArray(pixels), width, height,
-          bgInfo.colorA, bgInfo.colorB
+          new Uint8ClampedArray(pixels),
+          width,
+          height,
+          bgInfo.colorA,
+          bgInfo.colorB,
         );
         bgMask = new Uint8Array(width * height);
         for (let i = 0; i < bgMask.length; i++) {
@@ -82,31 +96,43 @@ async function processImage(inputPath: string): Promise<void> {
       }
     } else {
       bgMask = simpleFloodFill(
-        new Uint8ClampedArray(pixels), width, height,
-        bgInfo.colorA, bgInfo.colorB
+        new Uint8ClampedArray(pixels),
+        width,
+        height,
+        bgInfo.colorA,
+        bgInfo.colorB,
       );
     }
   } else if (bgInfo.cornerVariance < CV_PARAMS.SOLID_BG_VARIANCE) {
     bgMask = simpleFloodFill(
-      new Uint8ClampedArray(pixels), width, height,
-      bgInfo.colorA, bgInfo.colorB
+      new Uint8ClampedArray(pixels),
+      width,
+      height,
+      bgInfo.colorA,
+      bgInfo.colorB,
     );
   } else {
     console.log(`  Complex background — would need ML`);
     bgMask = simpleFloodFill(
-      new Uint8ClampedArray(pixels), width, height,
-      bgInfo.colorA, bgInfo.colorB
+      new Uint8ClampedArray(pixels),
+      width,
+      height,
+      bgInfo.colorA,
+      bgInfo.colorB,
     );
   }
 
   let bgCount = 0;
   for (let i = 0; i < bgMask.length; i++) if (bgMask[i]) bgCount++;
-  console.log(`  BG after flood: ${(bgCount / (width * height) * 100).toFixed(1)}%`);
+  console.log(`  BG after flood: ${((bgCount / (width * height)) * 100).toFixed(1)}%`);
 
   // Step 3: Watermark
   const wmResult = watermarkDetect(
-    new Uint8ClampedArray(pixels), width, height,
-    bgInfo.colorA, bgInfo.colorB
+    new Uint8ClampedArray(pixels),
+    width,
+    height,
+    bgInfo.colorA,
+    bgInfo.colorB,
   );
   if (wmResult.detected && wmResult.mask) {
     const newMask = new Uint8Array(width * height);
@@ -120,10 +146,7 @@ async function processImage(inputPath: string): Promise<void> {
   }
 
   // Step 4: Shadow cleanup
-  bgMask = shadowCleanup(
-    new Uint8ClampedArray(pixels), width, height,
-    bgMask
-  );
+  bgMask = shadowCleanup(new Uint8ClampedArray(pixels), width, height, bgMask);
 
   // Step 5: Alpha refinement
   const alpha = alphaRefine(bgMask, width, height);
@@ -141,7 +164,7 @@ async function processImage(inputPath: string): Promise<void> {
 
   let transparent = 0;
   for (let i = 0; i < width * height; i++) if (alpha[i] === 0) transparent++;
-  console.log(`  Final: ${(transparent / (width * height) * 100).toFixed(1)}% transparent`);
+  console.log(`  Final: ${((transparent / (width * height)) * 100).toFixed(1)}% transparent`);
   console.log(`  Time: ${totalMs.toFixed(0)}ms`);
 
   // Save transparent PNG

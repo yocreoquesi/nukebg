@@ -23,17 +23,33 @@ async function sniffImageFormat(file: File): Promise<SupportedFormat | null> {
   if (head.length < 12) return null;
 
   // PNG:  89 50 4E 47 0D 0A 1A 0A
-  if (head[0] === 0x89 && head[1] === 0x50 && head[2] === 0x4E && head[3] === 0x47 &&
-      head[4] === 0x0D && head[5] === 0x0A && head[6] === 0x1A && head[7] === 0x0A) {
+  if (
+    head[0] === 0x89 &&
+    head[1] === 0x50 &&
+    head[2] === 0x4e &&
+    head[3] === 0x47 &&
+    head[4] === 0x0d &&
+    head[5] === 0x0a &&
+    head[6] === 0x1a &&
+    head[7] === 0x0a
+  ) {
     return 'image/png';
   }
   // JPEG: FF D8 FF
-  if (head[0] === 0xFF && head[1] === 0xD8 && head[2] === 0xFF) {
+  if (head[0] === 0xff && head[1] === 0xd8 && head[2] === 0xff) {
     return 'image/jpeg';
   }
   // WebP: "RIFF" <size> "WEBP"
-  if (head[0] === 0x52 && head[1] === 0x49 && head[2] === 0x46 && head[3] === 0x46 &&
-      head[8] === 0x57 && head[9] === 0x45 && head[10] === 0x42 && head[11] === 0x50) {
+  if (
+    head[0] === 0x52 &&
+    head[1] === 0x49 &&
+    head[2] === 0x46 &&
+    head[3] === 0x46 &&
+    head[8] === 0x57 &&
+    head[9] === 0x45 &&
+    head[10] === 0x42 &&
+    head[11] === 0x50
+  ) {
     return 'image/webp';
   }
   return null;
@@ -48,7 +64,9 @@ export async function loadImage(file: File): Promise<ImageLoadResult> {
   }
 
   if (file.size > MAX_FILE_SIZE) {
-    throw new Error(`File too large: ${Math.round(file.size / 1024 / 1024)} MB. Maximum is ${Math.round(MAX_FILE_SIZE / 1024 / 1024)} MB.`);
+    throw new Error(
+      `File too large: ${Math.round(file.size / 1024 / 1024)} MB. Maximum is ${Math.round(MAX_FILE_SIZE / 1024 / 1024)} MB.`,
+    );
   }
 
   // Magic-byte sniff: refuses renamed non-image files before the decoder
@@ -114,7 +132,9 @@ async function rasterizeBitmap(
     canvas.width = width;
     canvas.height = height;
   }
-  const ctx = canvas.getContext('2d')! as CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D;
+  const ctx = canvas.getContext('2d')! as
+    | CanvasRenderingContext2D
+    | OffscreenCanvasRenderingContext2D;
   // High-quality downscale for better alpha-edge results after upscale.
   ctx.imageSmoothingEnabled = true;
   ctx.imageSmoothingQuality = 'high';
@@ -148,8 +168,8 @@ export async function exportPng(imageData: ImageData): Promise<Blob> {
     });
   }
   return injectPngMetadata(rawBlob, {
-    'Software': 'NukeBG v2.8.0',
-    'Source': 'https://nukebg.app',
+    Software: 'NukeBG v2.8.0',
+    Source: 'https://nukebg.app',
   });
 }
 
@@ -171,10 +191,14 @@ export async function exportWebp(imageData: ImageData, quality = 0.95): Promise<
   const ctx = canvas.getContext('2d')!;
   ctx.putImageData(imageData, 0, 0);
   return new Promise<Blob>((resolve, reject) => {
-    canvas.toBlob((blob) => {
-      if (blob) resolve(blob);
-      else reject(new Error('Canvas toBlob failed for WebP'));
-    }, 'image/webp', quality);
+    canvas.toBlob(
+      (blob) => {
+        if (blob) resolve(blob);
+        else reject(new Error('Canvas toBlob failed for WebP'));
+      },
+      'image/webp',
+      quality,
+    );
   });
 }
 
@@ -183,10 +207,7 @@ export async function exportWebp(imageData: ImageData, quality = 0.95): Promise<
  * PNG format: signature + chunks. Each chunk = length(4) + type(4) + data + crc(4).
  * We insert tEXt chunks right before the IEND chunk.
  */
-async function injectPngMetadata(
-  blob: Blob,
-  metadata: Record<string, string>,
-): Promise<Blob> {
+async function injectPngMetadata(blob: Blob, metadata: Record<string, string>): Promise<Blob> {
   const buffer = await blob.arrayBuffer();
   const data = new Uint8Array(buffer);
 
@@ -203,13 +224,16 @@ async function injectPngMetadata(
   // Combine: everything before IEND + text chunks + IEND
   const beforeIEND = data.slice(0, iendOffset);
   const iendChunk = data.slice(iendOffset);
-  const totalSize = beforeIEND.length + textChunks.reduce((s, c) => s + c.length, 0) + iendChunk.length;
+  const totalSize =
+    beforeIEND.length + textChunks.reduce((s, c) => s + c.length, 0) + iendChunk.length;
 
   const result = new Uint8Array(totalSize);
   let offset = 0;
-  result.set(beforeIEND, offset); offset += beforeIEND.length;
+  result.set(beforeIEND, offset);
+  offset += beforeIEND.length;
   for (const chunk of textChunks) {
-    result.set(chunk, offset); offset += chunk.length;
+    result.set(chunk, offset);
+    offset += chunk.length;
   }
   result.set(iendChunk, offset);
 
@@ -220,8 +244,7 @@ async function injectPngMetadata(
 function findIEND(data: Uint8Array): number {
   // Search backwards for "IEND" (0x49 0x45 0x4E 0x44)
   for (let i = data.length - 8; i >= 8; i--) {
-    if (data[i] === 0x49 && data[i + 1] === 0x45 &&
-        data[i + 2] === 0x4E && data[i + 3] === 0x44) {
+    if (data[i] === 0x49 && data[i + 1] === 0x45 && data[i + 2] === 0x4e && data[i + 3] === 0x44) {
       return i - 4; // -4 for the length field before the type
     }
   }
@@ -259,65 +282,191 @@ function createTextChunk(keyword: string, text: string): Uint8Array {
 
 /** CRC32 for PNG chunks */
 function crc32(data: Uint8Array): number {
-  let crc = 0xFFFFFFFF;
+  let crc = 0xffffffff;
   for (let i = 0; i < data.length; i++) {
     crc ^= data[i];
     for (let j = 0; j < 8; j++) {
-      crc = (crc >>> 1) ^ (crc & 1 ? 0xEDB88320 : 0);
+      crc = (crc >>> 1) ^ (crc & 1 ? 0xedb88320 : 0);
     }
   }
-  return (crc ^ 0xFFFFFFFF) >>> 0;
+  return (crc ^ 0xffffffff) >>> 0;
 }
 
 /** Nuclear-themed prefixes that rotate randomly, keyed by locale */
 const NUKE_PREFIXES: Record<string, string[]> = {
   en: [
-    'nuked', 'decontaminated', 'defused', 'irradiated', 'fallout-free',
-    'meltdown', 'reactor-clean', 'half-life', 'chain-reaction',
-    'ground-zero', 'critical-mass', 'blast-zone', 'warhead', 'enriched',
-    'fission', 'fusion', 'plutonium', 'uranium', 'chernobyl', 'geiger',
-    'containment', 'bunker', 'hazmat', 'atomic', 'thermonuclear',
-    'payload', 'detonated', 'vaporized', 'obliterated',
+    'nuked',
+    'decontaminated',
+    'defused',
+    'irradiated',
+    'fallout-free',
+    'meltdown',
+    'reactor-clean',
+    'half-life',
+    'chain-reaction',
+    'ground-zero',
+    'critical-mass',
+    'blast-zone',
+    'warhead',
+    'enriched',
+    'fission',
+    'fusion',
+    'plutonium',
+    'uranium',
+    'chernobyl',
+    'geiger',
+    'containment',
+    'bunker',
+    'hazmat',
+    'atomic',
+    'thermonuclear',
+    'payload',
+    'detonated',
+    'vaporized',
+    'obliterated',
   ],
   es: [
-    'nukeado', 'descontaminado', 'desactivado', 'irradiado', 'sin-radiacion',
-    'fusion-nuclear', 'reactor-limpio', 'vida-media', 'reaccion-en-cadena',
-    'zona-cero', 'masa-critica', 'zona-de-impacto', 'ojiva', 'enriquecido',
-    'fision', 'plutonio', 'uranio', 'chernobyl', 'geiger',
-    'contencion', 'bunker', 'atomico', 'termonuclear',
-    'detonado', 'vaporizado', 'obliterado',
+    'nukeado',
+    'descontaminado',
+    'desactivado',
+    'irradiado',
+    'sin-radiacion',
+    'fusion-nuclear',
+    'reactor-limpio',
+    'vida-media',
+    'reaccion-en-cadena',
+    'zona-cero',
+    'masa-critica',
+    'zona-de-impacto',
+    'ojiva',
+    'enriquecido',
+    'fision',
+    'plutonio',
+    'uranio',
+    'chernobyl',
+    'geiger',
+    'contencion',
+    'bunker',
+    'atomico',
+    'termonuclear',
+    'detonado',
+    'vaporizado',
+    'obliterado',
   ],
   fr: [
-    'atomise', 'decontamine', 'desactive', 'irradie', 'sans-retombees',
-    'fusion-nucleaire', 'reacteur-propre', 'demi-vie', 'reaction-en-chaine',
-    'point-zero', 'masse-critique', 'zone-de-tir', 'ogive', 'enrichi',
-    'fission', 'plutonium', 'uranium', 'tchernobyl', 'geiger',
-    'confinement', 'bunker', 'atomique', 'thermonucleaire',
-    'detone', 'vaporise', 'pulverise',
+    'atomise',
+    'decontamine',
+    'desactive',
+    'irradie',
+    'sans-retombees',
+    'fusion-nucleaire',
+    'reacteur-propre',
+    'demi-vie',
+    'reaction-en-chaine',
+    'point-zero',
+    'masse-critique',
+    'zone-de-tir',
+    'ogive',
+    'enrichi',
+    'fission',
+    'plutonium',
+    'uranium',
+    'tchernobyl',
+    'geiger',
+    'confinement',
+    'bunker',
+    'atomique',
+    'thermonucleaire',
+    'detone',
+    'vaporise',
+    'pulverise',
   ],
   de: [
-    'genuked', 'dekontaminiert', 'entschaerft', 'bestrahlt', 'fallout-frei',
-    'kernschmelze', 'reaktor-sauber', 'halbwertszeit', 'kettenreaktion',
-    'ground-zero', 'kritische-masse', 'sprengzone', 'sprengkopf', 'angereichert',
-    'spaltung', 'fusion', 'plutonium', 'uran', 'tschernobyl', 'geiger',
-    'sicherheitsbehaelter', 'bunker', 'gefahrgut', 'atomar', 'thermonuklear',
-    'gezuendet', 'verdampft', 'ausgeloescht',
+    'genuked',
+    'dekontaminiert',
+    'entschaerft',
+    'bestrahlt',
+    'fallout-frei',
+    'kernschmelze',
+    'reaktor-sauber',
+    'halbwertszeit',
+    'kettenreaktion',
+    'ground-zero',
+    'kritische-masse',
+    'sprengzone',
+    'sprengkopf',
+    'angereichert',
+    'spaltung',
+    'fusion',
+    'plutonium',
+    'uran',
+    'tschernobyl',
+    'geiger',
+    'sicherheitsbehaelter',
+    'bunker',
+    'gefahrgut',
+    'atomar',
+    'thermonuklear',
+    'gezuendet',
+    'verdampft',
+    'ausgeloescht',
   ],
   pt: [
-    'nukeado', 'descontaminado', 'desarmado', 'irradiado', 'sem-fallout',
-    'fusao-nuclear', 'reator-limpo', 'meia-vida', 'reacao-em-cadeia',
-    'marco-zero', 'massa-critica', 'zona-de-impacto', 'ogiva', 'enriquecido',
-    'fissao', 'plutonio', 'uranio', 'chernobyl', 'geiger',
-    'contencao', 'bunker', 'atomico', 'termonuclear',
-    'detonado', 'vaporizado', 'obliterado',
+    'nukeado',
+    'descontaminado',
+    'desarmado',
+    'irradiado',
+    'sem-fallout',
+    'fusao-nuclear',
+    'reator-limpo',
+    'meia-vida',
+    'reacao-em-cadeia',
+    'marco-zero',
+    'massa-critica',
+    'zona-de-impacto',
+    'ogiva',
+    'enriquecido',
+    'fissao',
+    'plutonio',
+    'uranio',
+    'chernobyl',
+    'geiger',
+    'contencao',
+    'bunker',
+    'atomico',
+    'termonuclear',
+    'detonado',
+    'vaporizado',
+    'obliterado',
   ],
   zh: [
-    'hebao', 'jinghua', 'paishe', 'fushe', 'ling-wuran',
-    'ronghe', 'fanying-qingjie', 'ban-shuaiqi', 'lianshi-fanying',
-    'yuanbao-zhongxin', 'linjie-zhiliang', 'baozha-quyu', 'dantou', 'nongsu',
-    'liebian', 'jubian', 'bu', 'you', 'qieernobeili', 'gaige',
-    'anquan-ke', 'yanbi', 'yuanzi', 'renhe',
-    'yinbao', 'zhengfa', 'huimie',
+    'hebao',
+    'jinghua',
+    'paishe',
+    'fushe',
+    'ling-wuran',
+    'ronghe',
+    'fanying-qingjie',
+    'ban-shuaiqi',
+    'lianshi-fanying',
+    'yuanbao-zhongxin',
+    'linjie-zhiliang',
+    'baozha-quyu',
+    'dantou',
+    'nongsu',
+    'liebian',
+    'jubian',
+    'bu',
+    'you',
+    'qieernobeili',
+    'gaige',
+    'anquan-ke',
+    'yanbi',
+    'yuanzi',
+    'renhe',
+    'yinbao',
+    'zhengfa',
+    'huimie',
   ],
 };
 
@@ -338,7 +487,11 @@ const HOLIDAY_PREFIXES: Record<string, string> = {
  */
 let holidayUsed = false;
 
-export function generateOutputFilename(inputName: string, format: ExportFormat = 'png', locale = 'en'): string {
+export function generateOutputFilename(
+  inputName: string,
+  format: ExportFormat = 'png',
+  locale = 'en',
+): string {
   const base = inputName.replace(/\.[^.]+$/, '');
   const now = new Date();
   const monthDay = `${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;

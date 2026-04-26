@@ -16,11 +16,15 @@ if (typeof globalThis.ImageData === 'undefined') {
     data: Uint8ClampedArray;
     width: number;
     height: number;
-    constructor(dataOrWidth: Uint8ClampedArray | number, widthOrHeight: number, maybeHeight?: number) {
+    constructor(
+      dataOrWidth: Uint8ClampedArray | number,
+      widthOrHeight: number,
+      maybeHeight?: number,
+    ) {
       if (dataOrWidth instanceof Uint8ClampedArray) {
         this.data = dataOrWidth;
         this.width = widthOrHeight;
-        this.height = maybeHeight ?? (dataOrWidth.length / (widthOrHeight * 4));
+        this.height = maybeHeight ?? dataOrWidth.length / (widthOrHeight * 4);
       } else {
         this.width = dataOrWidth;
         this.height = widthOrHeight;
@@ -54,12 +58,20 @@ vi.spyOn(document, 'createElement').mockImplementation((tag: string, options?: a
 });
 
 // Tambien patchear OffscreenCanvas (usado en redraw)
-vi.stubGlobal('OffscreenCanvas', class {
-  width: number;
-  height: number;
-  constructor(w: number, h: number) { this.width = w; this.height = h; }
-  getContext() { return mockCtx; }
-});
+vi.stubGlobal(
+  'OffscreenCanvas',
+  class {
+    width: number;
+    height: number;
+    constructor(w: number, h: number) {
+      this.width = w;
+      this.height = h;
+    }
+    getContext() {
+      return mockCtx;
+    }
+  },
+);
 
 // Register the component
 import '../../src/components/ar-editor';
@@ -113,7 +125,7 @@ describe('ArEditor component', () => {
   describe('setImage', () => {
     it('establece la imagen y se puede recuperar con getResultImageData', () => {
       const img = makeTestImageData();
-      setImg(editor,img);
+      setImg(editor, img);
 
       const result = editor.getResultImageData();
       expect(result).not.toBeNull();
@@ -123,7 +135,7 @@ describe('ArEditor component', () => {
 
     it('crea una copia independiente de los datos', () => {
       const img = makeTestImageData();
-      setImg(editor,img);
+      setImg(editor, img);
 
       // Modify the original
       img.data[0] = 0;
@@ -140,7 +152,7 @@ describe('ArEditor component', () => {
       img.data[2] = 30;
       img.data[3] = 128;
 
-      setImg(editor,img);
+      setImg(editor, img);
 
       const result = editor.getResultImageData();
       expect(result.data[0]).toBe(10);
@@ -150,7 +162,7 @@ describe('ArEditor component', () => {
     });
 
     it('resetea las pilas de undo/redo al cargar nueva imagen', () => {
-      setImg(editor,makeTestImageData());
+      setImg(editor, makeTestImageData());
 
       const undoBtn = editor.shadowRoot!.querySelector('#undo-btn') as HTMLButtonElement;
       const redoBtn = editor.shadowRoot!.querySelector('#redo-btn') as HTMLButtonElement;
@@ -162,7 +174,7 @@ describe('ArEditor component', () => {
   describe('getResultImageData', () => {
     it('devuelve el ImageData actual del editor', () => {
       const img = makeTestImageData(8, 8);
-      setImg(editor,img);
+      setImg(editor, img);
 
       const result = editor.getResultImageData();
       expect(result).toBeInstanceOf(ImageData);
@@ -172,7 +184,7 @@ describe('ArEditor component', () => {
 
   describe('reset', () => {
     it('limpia el estado interno', () => {
-      setImg(editor,makeTestImageData());
+      setImg(editor, makeTestImageData());
       editor.reset();
 
       const result = editor.getResultImageData();
@@ -182,13 +194,13 @@ describe('ArEditor component', () => {
 
   describe('undo/redo', () => {
     it('undo esta deshabilitado antes de editar', () => {
-      setImg(editor,makeTestImageData(4, 4));
+      setImg(editor, makeTestImageData(4, 4));
       const undoBtn = editor.shadowRoot!.querySelector('#undo-btn') as HTMLButtonElement;
       expect(undoBtn.disabled).toBe(true);
     });
 
     it('redo esta deshabilitado antes de editar', () => {
-      setImg(editor,makeTestImageData(4, 4));
+      setImg(editor, makeTestImageData(4, 4));
       const redoBtn = editor.shadowRoot!.querySelector('#redo-btn') as HTMLButtonElement;
       expect(redoBtn.disabled).toBe(true);
     });
@@ -196,7 +208,7 @@ describe('ArEditor component', () => {
 
   describe('eventos', () => {
     it('emite ar:editor-done con imageData al hacer click en Done', async () => {
-      setImg(editor,makeTestImageData(4, 4));
+      setImg(editor, makeTestImageData(4, 4));
 
       const donePromise = new Promise<CustomEvent>((resolve) => {
         editor.addEventListener('ar:editor-done', (e) => resolve(e as CustomEvent), { once: true });
@@ -210,7 +222,7 @@ describe('ArEditor component', () => {
     });
 
     it('emite ar:editor-cancel al hacer click en Cancel', async () => {
-      setImg(editor,makeTestImageData());
+      setImg(editor, makeTestImageData());
 
       const cancelPromise = new Promise<Event>((resolve) => {
         editor.addEventListener('ar:editor-cancel', (e) => resolve(e), { once: true });
@@ -273,7 +285,7 @@ describe('ArEditor component', () => {
       const select = editor.shadowRoot!.querySelector('#brush-tool') as HTMLSelectElement;
       expect(select).not.toBeNull();
       expect(select.value).toBe('erase');
-      const values = Array.from(select.options).map(o => o.value);
+      const values = Array.from(select.options).map((o) => o.value);
       expect(values).toEqual(['erase', 'restore']);
     });
 

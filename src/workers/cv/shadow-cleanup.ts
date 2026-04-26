@@ -10,7 +10,7 @@ export function shadowCleanup(
   width: number,
   height: number,
   mask: Uint8Array,
-  maxBlobSize: number = SHADOW_PARAMS.MAX_BLOB_SIZE
+  maxBlobSize: number = SHADOW_PARAMS.MAX_BLOB_SIZE,
 ): Uint8Array {
   const result = new Uint8Array(mask);
   const totalPixels = width * height;
@@ -32,9 +32,11 @@ export function shadowCleanup(
       const sat = mx > 0 ? (mx - mn) / mx : 0;
       const brightness = (r + g + b) / 3;
 
-      if (sat < SHADOW_PARAMS.SATURATION_THRESHOLD &&
-          brightness < SHADOW_PARAMS.BRIGHTNESS_MAX &&
-          brightness > SHADOW_PARAMS.BRIGHTNESS_MIN) {
+      if (
+        sat < SHADOW_PARAMS.SATURATION_THRESHOLD &&
+        brightness < SHADOW_PARAMS.BRIGHTNESS_MAX &&
+        brightness > SHADOW_PARAMS.BRIGHTNESS_MIN
+      ) {
         candidate[pos] = 1;
       }
     }

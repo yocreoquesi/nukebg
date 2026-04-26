@@ -33,7 +33,9 @@ describe('Download CTA — ar-download.ts invariants', () => {
     expect(DL).toMatch(/private async prepareWebp\(imageData: ImageData\): Promise<void>/);
     expect(DL).toMatch(/void this\.prepareWebp\(imageData\);/);
     // PNG blob URL is set before prepareWebp fires.
-    expect(DL).toMatch(/this\.pngBlobUrl = URL\.createObjectURL\(blob\);[\s\S]*?this\.updateCtaAnchors\(['"]png-only['"]\)/);
+    expect(DL).toMatch(
+      /this\.pngBlobUrl = URL\.createObjectURL\(blob\);[\s\S]*?this\.updateCtaAnchors\(['"]png-only['"]\)/,
+    );
   });
 
   it('updateCtaAnchors fills href + download filename + meta line for each anchor', () => {
@@ -57,7 +59,9 @@ describe('Download CTA — ar-download.ts invariants', () => {
   });
 
   it('reset() clears both blob URLs and hides both anchors', () => {
-    expect(DL).toMatch(/reset\(\): void \{[\s\S]*?pngBlobUrl[\s\S]*?webpBlobUrl[\s\S]*?png\.hidden = true[\s\S]*?webp\.hidden = true/);
+    expect(DL).toMatch(
+      /reset\(\): void \{[\s\S]*?pngBlobUrl[\s\S]*?webpBlobUrl[\s\S]*?png\.hidden = true[\s\S]*?webp\.hidden = true/,
+    );
   });
 });
 

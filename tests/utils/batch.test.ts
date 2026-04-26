@@ -24,7 +24,10 @@ describe('getBatchLimit', () => {
   });
 
   it('uses desktop cap exactly at breakpoint', () => {
-    Object.defineProperty(window, 'innerWidth', { configurable: true, value: BATCH_LIMITS.MOBILE_BREAKPOINT });
+    Object.defineProperty(window, 'innerWidth', {
+      configurable: true,
+      value: BATCH_LIMITS.MOBILE_BREAKPOINT,
+    });
     expect(getBatchLimit()).toBe(BATCH_LIMITS.DESKTOP);
   });
 });

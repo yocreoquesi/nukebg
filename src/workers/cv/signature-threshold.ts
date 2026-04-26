@@ -42,7 +42,7 @@ export function signatureThreshold(
       alpha[i] = 0; // solid background
     } else {
       // Anti-aliased transition: linear interpolation across the band
-      alpha[i] = Math.round(255 * (diff + halfBand) / P.AA_BAND_SIZE);
+      alpha[i] = Math.round((255 * (diff + halfBand)) / P.AA_BAND_SIZE);
     }
   }
 

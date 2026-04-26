@@ -107,13 +107,13 @@ export function estimateForeground(
     const a = alpha[i];
     out[i * 4 + 3] = a;
     if (a >= 254) {
-      out[i * 4]     = observed[i * 4];
+      out[i * 4] = observed[i * 4];
       out[i * 4 + 1] = observed[i * 4 + 1];
       out[i * 4 + 2] = observed[i * 4 + 2];
     } else if (a <= 1) {
       // Invisible — leave RGB at zero.
     } else {
-      out[i * 4]     = Math.max(0, Math.min(255, Math.round(F[i * 3])));
+      out[i * 4] = Math.max(0, Math.min(255, Math.round(F[i * 3])));
       out[i * 4 + 1] = Math.max(0, Math.min(255, Math.round(F[i * 3 + 1])));
       out[i * 4 + 2] = Math.max(0, Math.min(255, Math.round(F[i * 3 + 2])));
     }
@@ -153,7 +153,7 @@ function buildPyramid(
 function initializeFromImage(image: Uint8ClampedArray, out: Float32Array): void {
   const n = out.length / 3;
   for (let i = 0; i < n; i++) {
-    out[i * 3]     = image[i * 4];
+    out[i * 3] = image[i * 4];
     out[i * 3 + 1] = image[i * 4 + 1];
     out[i * 3 + 2] = image[i * 4 + 2];
   }
@@ -214,7 +214,9 @@ function weightedBoxBlur3(
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
       let wsum = 0;
-      let sr = 0, sg = 0, sb = 0;
+      let sr = 0,
+        sg = 0,
+        sb = 0;
       for (let dy = -r; dy <= r; dy++) {
         const yi = Math.min(Math.max(y + dy, 0), height - 1);
         for (let dx = -r; dx <= r; dx++) {
@@ -230,11 +232,11 @@ function weightedBoxBlur3(
       }
       const oi = y * width + x;
       if (wsum > 1e-6) {
-        out[oi * 3]     = sr / wsum;
+        out[oi * 3] = sr / wsum;
         out[oi * 3 + 1] = sg / wsum;
         out[oi * 3 + 2] = sb / wsum;
       } else {
-        out[oi * 3]     = src[oi * 3];
+        out[oi * 3] = src[oi * 3];
         out[oi * 3 + 1] = src[oi * 3 + 1];
         out[oi * 3 + 2] = src[oi * 3 + 2];
       }
@@ -244,7 +246,13 @@ function weightedBoxBlur3(
 }
 
 /** Bilinear upsample of a 3-channel interleaved Float32 buffer. */
-function upsample3(src: Float32Array, srcW: number, srcH: number, dstW: number, dstH: number): Float32Array {
+function upsample3(
+  src: Float32Array,
+  srcW: number,
+  srcH: number,
+  dstW: number,
+  dstH: number,
+): Float32Array {
   const dst = new Float32Array(dstW * dstH * 3);
   const xRatio = srcW > 1 ? (srcW - 1) / (dstW - 1 || 1) : 0;
   const yRatio = srcH > 1 ? (srcH - 1) / (dstH - 1 || 1) : 0;
@@ -278,8 +286,11 @@ function upsample3(src: Float32Array, srcW: number, srcH: number, dstW: number, 
 
 /** 2× downsample of an RGBA buffer into (dstW × dstH) using 2×2 averaging. */
 function downsample2xRGBA(
-  src: Uint8ClampedArray, srcW: number, srcH: number,
-  dstW: number, dstH: number,
+  src: Uint8ClampedArray,
+  srcW: number,
+  srcH: number,
+  dstW: number,
+  dstH: number,
 ): Uint8ClampedArray {
   const dst = new Uint8ClampedArray(dstW * dstH * 4);
   for (let y = 0; y < dstH; y++) {
@@ -289,8 +300,11 @@ function downsample2xRGBA(
       const x0 = Math.min(x * 2, srcW - 1);
       const x1 = Math.min(x0 + 1, srcW - 1);
       for (let ch = 0; ch < 3; ch++) {
-        const s = src[(y0 * srcW + x0) * 4 + ch] + src[(y0 * srcW + x1) * 4 + ch]
-                + src[(y1 * srcW + x0) * 4 + ch] + src[(y1 * srcW + x1) * 4 + ch];
+        const s =
+          src[(y0 * srcW + x0) * 4 + ch] +
+          src[(y0 * srcW + x1) * 4 + ch] +
+          src[(y1 * srcW + x0) * 4 + ch] +
+          src[(y1 * srcW + x1) * 4 + ch];
         dst[(y * dstW + x) * 4 + ch] = (s + 2) >> 2;
       }
       dst[(y * dstW + x) * 4 + 3] = 255;
@@ -301,8 +315,11 @@ function downsample2xRGBA(
 
 /** 2× downsample of a Uint8 buffer using 2×2 averaging. */
 function downsample2xU8(
-  src: Uint8Array, srcW: number, srcH: number,
-  dstW: number, dstH: number,
+  src: Uint8Array,
+  srcW: number,
+  srcH: number,
+  dstW: number,
+  dstH: number,
 ): Uint8Array {
   const dst = new Uint8Array(dstW * dstH);
   for (let y = 0; y < dstH; y++) {
@@ -311,8 +328,8 @@ function downsample2xU8(
     for (let x = 0; x < dstW; x++) {
       const x0 = Math.min(x * 2, srcW - 1);
       const x1 = Math.min(x0 + 1, srcW - 1);
-      const s = src[y0 * srcW + x0] + src[y0 * srcW + x1]
-              + src[y1 * srcW + x0] + src[y1 * srcW + x1];
+      const s =
+        src[y0 * srcW + x0] + src[y0 * srcW + x1] + src[y1 * srcW + x0] + src[y1 * srcW + x1];
       dst[y * dstW + x] = (s + 2) >> 2;
     }
   }

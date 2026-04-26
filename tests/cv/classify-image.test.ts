@@ -17,7 +17,8 @@ describe('extractImageFeatures', () => {
   });
 
   it('extracts correct features from a colorful image', () => {
-    const w = 200, h = 200;
+    const w = 200,
+      h = 200;
     const pixels = new Uint8ClampedArray(w * h * 4);
     // Fill with varied colors (gradient)
     for (let y = 0; y < h; y++) {
@@ -39,7 +40,8 @@ describe('extractImageFeatures', () => {
 
 describe('classifyImage', () => {
   it('classifies mostly white image with dark strokes as SIGNATURE', () => {
-    const w = 300, h = 150;
+    const w = 300,
+      h = 150;
     // White background
     const pixels = solidImage(w, h, 255, 255, 255);
     // Draw a thin dark "signature" line across the middle
@@ -60,13 +62,14 @@ describe('classifyImage', () => {
     expect(result).toBe('SIGNATURE');
     expect(features.brightnessMean).toBeGreaterThan(150);
     expect(features.saturationMean).toBeLessThan(0.08);
-    expect(features.nearWhiteRatio).toBeGreaterThan(0.50);
+    expect(features.nearWhiteRatio).toBeGreaterThan(0.5);
     expect(features.darkPixelRatio).toBeGreaterThan(0.01);
-    expect(features.darkPixelRatio).toBeLessThan(0.40);
+    expect(features.darkPixelRatio).toBeLessThan(0.4);
   });
 
   it('classifies colorful varied image as PHOTO', () => {
-    const w = 400, h = 300;
+    const w = 400,
+      h = 300;
     const pixels = new Uint8ClampedArray(w * h * 4);
     // Rich photo-like content with many colors
     for (let y = 0; y < h; y++) {
@@ -87,7 +90,8 @@ describe('classifyImage', () => {
   });
 
   it('classifies small low-color square image as ICON', () => {
-    const w = 64, h = 64;
+    const w = 64,
+      h = 64;
     // Flat color icon with few colors
     const pixels = solidImage(w, h, 50, 120, 200);
     // Add a second color region
@@ -104,7 +108,8 @@ describe('classifyImage', () => {
   });
 
   it('classifies medium-color low-variance image as ILLUSTRATION', () => {
-    const w = 600, h = 400;
+    const w = 600,
+      h = 400;
     const pixels = new Uint8ClampedArray(w * h * 4);
     // Flat shaded regions with per-pixel variation (illustration-like):
     // many bands with x-based and y-based subtle gradients to produce 50-800 unique quantized colors
@@ -146,7 +151,8 @@ describe('classifyImage', () => {
   });
 
   it('defaults to PHOTO for ambiguous images', () => {
-    const w = 800, h = 600;
+    const w = 800,
+      h = 600;
     const pixels = new Uint8ClampedArray(w * h * 4);
     // High variation, many colors, large size
     for (let y = 0; y < h; y++) {

@@ -1,9 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import {
-  patchDistance,
-  initNNF,
-  patchMatchInpaint,
-} from '../../src/workers/cv/patchmatch-inpaint';
+import { patchDistance, initNNF, patchMatchInpaint } from '../../src/workers/cv/patchmatch-inpaint';
 
 /** RGBA image filled with a solid color. */
 function solid(w: number, h: number, r: number, g: number, b: number): Uint8ClampedArray {
@@ -67,7 +63,8 @@ describe('patchDistance', () => {
 
 describe('initNNF', () => {
   it('produces valid source coordinates for each target pixel', () => {
-    const w = 20, h = 20;
+    const w = 20,
+      h = 20;
     const mask = circleMask(w, h, 10, 10, 3);
     const nnf = initNNF(w, h, mask, 3);
     expect(nnf.length).toBe(w * h * 2);
@@ -91,7 +88,8 @@ describe('initNNF', () => {
 
 describe('patchMatchInpaint', () => {
   it('does not modify pixels outside the mask', () => {
-    const w = 32, h = 32;
+    const w = 32,
+      h = 32;
     const src = stripes(w, h, 4);
     const mask = circleMask(w, h, 16, 16, 3);
     const out = patchMatchInpaint(src, w, h, mask, { iterations: 2, patchRadius: 3 });
@@ -107,7 +105,8 @@ describe('patchMatchInpaint', () => {
   });
 
   it('fills a uniform-color mask with the same color', () => {
-    const w = 40, h = 40;
+    const w = 40,
+      h = 40;
     const src = solid(w, h, 140, 80, 40);
     const mask = circleMask(w, h, 20, 20, 5);
     const out = patchMatchInpaint(src, w, h, mask, { iterations: 2, patchRadius: 3 });
@@ -124,7 +123,8 @@ describe('patchMatchInpaint', () => {
   });
 
   it('reconstructs a striped pattern consistently (structure + texture)', () => {
-    const w = 48, h = 48;
+    const w = 48,
+      h = 48;
     const period = 4;
     const src = stripes(w, h, period);
     // Small square mask in the middle
@@ -147,11 +147,12 @@ describe('patchMatchInpaint', () => {
       }
     }
     // At least 70% of reconstructed pixels should be crisp (not midtone mush)
-    expect(crisp / total).toBeGreaterThan(0.70);
+    expect(crisp / total).toBeGreaterThan(0.7);
   });
 
   it('preserves the alpha channel at 255 in the mask region', () => {
-    const w = 30, h = 30;
+    const w = 30,
+      h = 30;
     const src = solid(w, h, 100, 100, 100);
     const mask = circleMask(w, h, 15, 15, 4);
     const out = patchMatchInpaint(src, w, h, mask, { iterations: 2, patchRadius: 3 });
@@ -161,7 +162,8 @@ describe('patchMatchInpaint', () => {
   });
 
   it('respects a search region restriction (no source patches from forbidden zone)', () => {
-    const w = 60, h = 60;
+    const w = 60,
+      h = 60;
     // Left half is red, right half is blue. Mask is in the center column.
     const pixels = new Uint8ClampedArray(w * h * 4);
     for (let y = 0; y < h; y++) {

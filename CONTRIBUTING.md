@@ -48,13 +48,13 @@ $ npm run build
 
 ### Available scripts
 
-| Command | What it does |
-|---------|-------------|
-| `npm run dev` | Vite dev server with HMR |
-| `npm run build` | TypeScript compile + Vite production build |
-| `npm run preview` | Preview the production build locally |
-| `npm test` | Run tests once (Vitest) |
-| `npm run test:watch` | Run tests in watch mode |
+| Command              | What it does                               |
+| -------------------- | ------------------------------------------ |
+| `npm run dev`        | Vite dev server with HMR                   |
+| `npm run build`      | TypeScript compile + Vite production build |
+| `npm run preview`    | Preview the production build locally       |
+| `npm test`           | Run tests once (Vitest)                    |
+| `npm run test:watch` | Run tests in watch mode                    |
 
 ---
 
@@ -213,16 +213,16 @@ Format: `type: short description`
 
 ### Types
 
-| Type | When to use |
-|------|------------|
-| `feat` | New functionality |
-| `fix` | Bug fix |
-| `docs` | Documentation changes |
-| `test` | Adding or fixing tests |
+| Type       | When to use                      |
+| ---------- | -------------------------------- |
+| `feat`     | New functionality                |
+| `fix`      | Bug fix                          |
+| `docs`     | Documentation changes            |
+| `test`     | Adding or fixing tests           |
 | `refactor` | Refactor without behavior change |
-| `infra` | Build, CI/CD, deployment |
-| `security` | Security-related changes |
-| `design` | UI/UX changes |
+| `infra`    | Build, CI/CD, deployment         |
+| `security` | Security-related changes         |
+| `design`   | UI/UX changes                    |
 
 ### Examples
 

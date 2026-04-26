@@ -4,7 +4,12 @@
  * Transformers.js handles ONNX Runtime, WebGPU/WASM detection,
  * model download, caching - all internally.
  */
-import type { MlWorkerRequest, MlRefineOptions, ModelId, WarmupDiagnostic } from '../types/worker-messages';
+import type {
+  MlWorkerRequest,
+  MlRefineOptions,
+  ModelId,
+  WarmupDiagnostic,
+} from '../types/worker-messages';
 import { REFINE_PARAMS } from '../pipeline/constants';
 
 const DEFAULT_MODEL: ModelId = 'briaai/RMBG-1.4';
@@ -19,14 +24,22 @@ const MODEL_REVISIONS: Record<ModelId, string> = {
 
 /** Transformers.js pipeline entry - shape is dynamic from the library */
 interface SegmenterEntry {
-  pipeline: { dispose?: () => void; (image: unknown, opts: unknown): Promise<Array<{ mask?: { data: Uint8Array; width: number; height: number } }>>; };
+  pipeline: {
+    dispose?: () => void;
+    (
+      image: unknown,
+      opts: unknown,
+    ): Promise<Array<{ mask?: { data: Uint8Array; width: number; height: number } }>>;
+  };
   type: string;
 }
 
 /** Cache segmenters by model ID so switching is instant after first load */
 const segmenters = new Map<string, SegmenterEntry>();
 let currentModelId: ModelId = DEFAULT_MODEL;
-let RawImageClass: (new (data: Uint8ClampedArray, w: number, h: number, channels: number) => unknown) | null = null;
+let RawImageClass:
+  | (new (data: Uint8ClampedArray, w: number, h: number, channels: number) => unknown)
+  | null = null;
 
 /** Detect compute device - currently forced to WASM */
 async function detectDevice(): Promise<'webgpu' | 'wasm'> {
@@ -131,13 +144,18 @@ function morphOpen(alpha: Uint8Array, w: number, h: number, radius: number): Uin
     for (let x = 0; x < w; x++) {
       if (alpha[y * w + x] < threshold) continue;
       let allOpaque = true;
-      outer:
-      for (let dy = -radius; dy <= radius; dy++) {
+      outer: for (let dy = -radius; dy <= radius; dy++) {
         for (let dx = -radius; dx <= radius; dx++) {
           const ny = y + dy;
           const nx = x + dx;
-          if (ny < 0 || ny >= h || nx < 0 || nx >= w) { allOpaque = false; break outer; }
-          if (alpha[ny * w + nx] < threshold) { allOpaque = false; break outer; }
+          if (ny < 0 || ny >= h || nx < 0 || nx >= w) {
+            allOpaque = false;
+            break outer;
+          }
+          if (alpha[ny * w + nx] < threshold) {
+            allOpaque = false;
+            break outer;
+          }
         }
       }
       if (allOpaque) eroded[y * w + x] = alpha[y * w + x];
@@ -172,7 +190,13 @@ function morphOpen(alpha: Uint8Array, w: number, h: number, radius: number): Uin
 }
 
 /** Remove small opaque clusters not connected to the main subject */
-function removeSmallClusters(alpha: Uint8Array, w: number, h: number, minSize: number, clusterRatio?: number): Uint8Array {
+function removeSmallClusters(
+  alpha: Uint8Array,
+  w: number,
+  h: number,
+  minSize: number,
+  clusterRatio?: number,
+): Uint8Array {
   const result = new Uint8Array(alpha);
   const visited = new Uint8Array(w * h);
 
@@ -194,7 +218,12 @@ function removeSmallClusters(alpha: Uint8Array, w: number, h: number, minSize: n
       const cx = idx % w;
       const cy = (idx - cx) / w;
 
-      for (const [dx, dy] of [[-1,0],[1,0],[0,-1],[0,1]]) {
+      for (const [dx, dy] of [
+        [-1, 0],
+        [1, 0],
+        [0, -1],
+        [0, 1],
+      ]) {
         const nx = cx + dx;
         const ny = cy + dy;
         if (nx < 0 || nx >= w || ny < 0 || ny >= h) continue;
@@ -211,7 +240,7 @@ function removeSmallClusters(alpha: Uint8Array, w: number, h: number, minSize: n
 
   // Find the largest component (= the subject)
   if (components.length === 0) return result;
-  const maxSize = Math.max(...components.map(c => c.size));
+  const maxSize = Math.max(...components.map((c) => c.size));
 
   // Remove components smaller than CLUSTER_RATIO of the main subject OR below absolute minSize
   const ratio = clusterRatio ?? REFINE_PARAMS.CLUSTER_RATIO;
@@ -228,7 +257,11 @@ function removeSmallClusters(alpha: Uint8Array, w: number, h: number, minSize: n
 }
 
 const progressCb = (id: string) => (progress: { status: string; progress?: number }) => {
-  if (progress.status === 'progress' && progress.progress !== null && progress.progress !== undefined) {
+  if (
+    progress.status === 'progress' &&
+    progress.progress !== null &&
+    progress.progress !== undefined
+  ) {
     const pct = 10 + Math.round(progress.progress * 0.8);
     self.postMessage({ id, type: 'model-progress', progress: pct });
   }
@@ -237,7 +270,11 @@ const progressCb = (id: string) => (progress: { status: string; progress?: numbe
   }
 };
 
-async function loadModel(id: string, modelId: ModelId = DEFAULT_MODEL, emitReady = true): Promise<void> {
+async function loadModel(
+  id: string,
+  modelId: ModelId = DEFAULT_MODEL,
+  emitReady = true,
+): Promise<void> {
   const device = await detectDevice();
 
   if (segmenters.has(modelId)) {
@@ -255,7 +292,9 @@ async function loadModel(id: string, modelId: ModelId = DEFAULT_MODEL, emitReady
       // Free previous model to avoid OOM
       try {
         if (entry.pipeline?.dispose) entry.pipeline.dispose();
-      } catch { /* ignore dispose errors */ }
+      } catch {
+        /* ignore dispose errors */
+      }
       segmenters.delete(key);
     }
   }
@@ -275,7 +314,10 @@ async function loadModel(id: string, modelId: ModelId = DEFAULT_MODEL, emitReady
     revision: MODEL_REVISIONS[modelId],
     progress_callback: progressCb(id),
   });
-  segmenters.set(modelId, { pipeline: seg as unknown as SegmenterEntry['pipeline'], type: 'pipeline' });
+  segmenters.set(modelId, {
+    pipeline: seg as unknown as SegmenterEntry['pipeline'],
+    type: 'pipeline',
+  });
 
   // Warmup: run a tiny inference to force WASM full compilation.
   // This ensures consistent results from the very first real image.
@@ -292,14 +334,20 @@ async function loadModel(id: string, modelId: ModelId = DEFAULT_MODEL, emitReady
     elapsedMs: 0,
     device,
     userAgent: typeof self !== 'undefined' && self.navigator ? self.navigator.userAgent : undefined,
-    hardwareConcurrency: typeof self !== 'undefined' && self.navigator ? self.navigator.hardwareConcurrency : undefined,
+    hardwareConcurrency:
+      typeof self !== 'undefined' && self.navigator
+        ? self.navigator.hardwareConcurrency
+        : undefined,
   };
   try {
     if (RawImageClass) {
       const warmupSize = 256;
       const warmupPixels = new Uint8ClampedArray(warmupSize * warmupSize * 4);
       const warmupImg = new RawImageClass(warmupPixels, warmupSize, warmupSize, 4);
-      const warmupPromise = (seg as unknown as SegmenterEntry['pipeline'])(warmupImg, { threshold: 0.5, return_mask: true });
+      const warmupPromise = (seg as unknown as SegmenterEntry['pipeline'])(warmupImg, {
+        threshold: 0.5,
+        return_mask: true,
+      });
       const timeoutPromise = new Promise<never>((_, reject) => {
         setTimeout(() => reject(new Error(`warmup_timeout_${warmupTimeoutMs}ms`)), warmupTimeoutMs);
       });
@@ -356,10 +404,7 @@ async function segment(
     return_mask: true,
   });
   const segmentTimeout = new Promise<never>((_, reject) => {
-    setTimeout(
-      () => reject(new Error(`segment_timeout_${segmentTimeoutMs}ms`)),
-      segmentTimeoutMs,
-    );
+    setTimeout(() => reject(new Error(`segment_timeout_${segmentTimeoutMs}ms`)), segmentTimeoutMs);
   });
   const results = await Promise.race([segmentPromise, segmentTimeout]);
 
@@ -416,11 +461,11 @@ async function segment(
   }
 
   const totalPx = rawAlpha.length;
-  const allSameRange = (rawMax - rawMin) < 5;
+  const allSameRange = rawMax - rawMin < 5;
   if (allSameRange && totalPx > 100) {
     console.warn(
       `[NukeBG ML] Suspicious mask: min=${rawMin} max=${rawMax} range=${rawMax - rawMin} - ` +
-      `model may have returned uniform output.`
+        `model may have returned uniform output.`,
     );
   }
 
@@ -430,10 +475,7 @@ async function segment(
   // Light edge cleanup: remove isolated residue pixels only.
   const alphaMask = refineEdges(rawAlpha, pixels, width, height, refineOpts);
 
-  self.postMessage(
-    { id, type: 'segment-result', result: alphaMask },
-    [alphaMask.buffer],
-  );
+  self.postMessage({ id, type: 'segment-result', result: alphaMask }, [alphaMask.buffer]);
 }
 
 self.onmessage = async (e: MessageEvent<MlWorkerRequest>) => {
@@ -448,7 +490,15 @@ self.onmessage = async (e: MessageEvent<MlWorkerRequest>) => {
         const { payload } = msg;
         const modelId = msg.modelId || currentModelId;
         const threshold = msg.threshold ?? 0.5;
-        await segment(msg.id, payload.pixels, payload.width, payload.height, modelId, threshold, msg.refine);
+        await segment(
+          msg.id,
+          payload.pixels,
+          payload.width,
+          payload.height,
+          modelId,
+          threshold,
+          msg.refine,
+        );
         break;
       }
     }

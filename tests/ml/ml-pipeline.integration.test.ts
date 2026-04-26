@@ -40,7 +40,8 @@ function gradientImage(w: number, h: number): Uint8ClampedArray {
 
 describe('Inpaint Telea FMM', () => {
   it('no modifica pixeles fuera de la mascara', () => {
-    const w = 64, h = 64;
+    const w = 64,
+      h = 64;
     const pixels = solidImage(w, h, 128, 64, 32);
     const mask = new Uint8Array(w * h); // Mascara vacia: nada que reconstruir
 
@@ -53,11 +54,13 @@ describe('Inpaint Telea FMM', () => {
   });
 
   it('reconstruye una zona pequena en imagen solida', () => {
-    const w = 64, h = 64;
+    const w = 64,
+      h = 64;
     const pixels = solidImage(w, h, 200, 100, 50);
 
     // Corrupt a 4x4 block in the center
-    const cx = 32, cy = 32;
+    const cx = 32,
+      cy = 32;
     for (let dy = -2; dy <= 2; dy++) {
       for (let dx = -2; dx <= 2; dx++) {
         const i = (cy + dy) * w + (cx + dx);
@@ -81,19 +84,20 @@ describe('Inpaint Telea FMM', () => {
     for (let dy = -2; dy <= 2; dy++) {
       for (let dx = -2; dx <= 2; dx++) {
         const i = (cy + dy) * w + (cx + dx);
-        expect(result[i * 4]).toBeGreaterThan(150);     // R ~200
+        expect(result[i * 4]).toBeGreaterThan(150); // R ~200
         expect(result[i * 4]).toBeLessThan(255);
-        expect(result[i * 4 + 1]).toBeGreaterThan(50);  // G ~100
+        expect(result[i * 4 + 1]).toBeGreaterThan(50); // G ~100
         expect(result[i * 4 + 1]).toBeLessThan(150);
-        expect(result[i * 4 + 2]).toBeGreaterThan(10);  // B ~50
+        expect(result[i * 4 + 2]).toBeGreaterThan(10); // B ~50
         expect(result[i * 4 + 2]).toBeLessThan(100);
-        expect(result[i * 4 + 3]).toBe(255);            // Alpha opaco
+        expect(result[i * 4 + 3]).toBe(255); // Alpha opaco
       }
     }
   });
 
   it('produce valores RGBA en rango [0, 255]', () => {
-    const w = 64, h = 64;
+    const w = 64,
+      h = 64;
     const pixels = gradientImage(w, h);
 
     // Mascara diagonal
@@ -112,7 +116,8 @@ describe('Inpaint Telea FMM', () => {
   });
 
   it('funciona con mascara en esquina inferior derecha (watermark tipico)', () => {
-    const w = 128, h = 128;
+    const w = 128,
+      h = 128;
     const pixels = solidImage(w, h, 180, 180, 180);
 
     // Simular watermark en esquina inferior derecha: bloque de 20x20
@@ -146,7 +151,8 @@ describe('Inpaint Telea FMM', () => {
   });
 
   it('devuelve una nueva copia (no muta el input)', () => {
-    const w = 32, h = 32;
+    const w = 32,
+      h = 32;
     const pixels = solidImage(w, h, 100, 100, 100);
     const originalCopy = new Uint8ClampedArray(pixels);
     const mask = new Uint8Array(w * h);
@@ -163,12 +169,15 @@ describe('Inpaint Telea FMM', () => {
   });
 
   it('es rapido para mascaras de watermark tipicas', () => {
-    const w = 512, h = 512;
+    const w = 512,
+      h = 512;
     const pixels = gradientImage(w, h);
 
     // Mascara circular de radio ~30px en esquina (simula sparkle de Gemini)
     const mask = new Uint8Array(w * h);
-    const cx = w - 60, cy = h - 60, r = 30;
+    const cx = w - 60,
+      cy = h - 60,
+      r = 30;
     for (let y = 0; y < h; y++) {
       for (let x = 0; x < w; x++) {
         if ((x - cx) ** 2 + (y - cy) ** 2 <= r * r) {

@@ -62,8 +62,7 @@ describe('bilinearUpscaleRGB', () => {
   it('preserves corner RGB when upscaling 2x2 to 4x4', () => {
     // Pixel (0,0) red=100, (1,0) green=200, (0,1) blue=50, (1,1) gray=10
     const src = new Uint8ClampedArray([
-      100, 0, 0, 255,    0, 200, 0, 255,
-      0, 0, 50, 255,    10, 10, 10, 255,
+      100, 0, 0, 255, 0, 200, 0, 255, 0, 0, 50, 255, 10, 10, 10, 255,
     ]);
     const out = bilinearUpscaleRGB(src, 2, 2, 4, 4);
     // Top-left: (100, 0, 0)
@@ -77,8 +76,9 @@ describe('bilinearUpscaleRGB', () => {
   });
 
   it('forces alpha=255 in output', () => {
-    const src = new Uint8ClampedArray([255, 255, 255, 0, 255, 255, 255, 0,
-                                        255, 255, 255, 0, 255, 255, 255, 0]);
+    const src = new Uint8ClampedArray([
+      255, 255, 255, 0, 255, 255, 255, 0, 255, 255, 255, 0, 255, 255, 255, 0,
+    ]);
     const out = bilinearUpscaleRGB(src, 2, 2, 4, 4);
     for (let i = 0; i < out.length; i += 4) {
       expect(out[i + 3]).toBe(255);
@@ -173,17 +173,21 @@ describe('composeAtOriginal', () => {
     // After bilinear upsample the alpha spreads into a soft ramp across the
     // boundary. refineUpscaledAlpha should push left-column α toward 0 and
     // right-column α toward 255 using the RGB edge as guide.
-    const origW = 8, origH = 8;
+    const origW = 8,
+      origH = 8;
     const original = new Uint8ClampedArray(origW * origH * 4);
     for (let y = 0; y < origH; y++) {
       for (let x = 0; x < origW; x++) {
         const idx = (y * origW + x) * 4;
         const v = x < 4 ? 0 : 255;
-        original[idx] = v; original[idx + 1] = v; original[idx + 2] = v;
+        original[idx] = v;
+        original[idx + 1] = v;
+        original[idx + 2] = v;
         original[idx + 3] = 255;
       }
     }
-    const workW = 4, workH = 4;
+    const workW = 4,
+      workH = 4;
     const working = new Uint8ClampedArray(workW * workH * 4);
     const workAlpha = new Uint8Array(workW * workH);
     for (let i = 0; i < workAlpha.length; i++) {
@@ -226,7 +230,7 @@ describe('composeAtOriginal', () => {
     // Bottom-right of output should still be pristine red (mask=0 there).
     const topLeft = out.data.slice(0, 3);
     expect(topLeft[2]).toBeGreaterThan(topLeft[0]);
-    const bottomRight = out.data.slice((15) * 4, (15) * 4 + 3);
+    const bottomRight = out.data.slice(15 * 4, 15 * 4 + 3);
     expect(bottomRight[0]).toBe(255);
     expect(bottomRight[2]).toBe(0);
   });
@@ -245,7 +249,8 @@ describe('refineUpscaledAlpha', () => {
   };
 
   it('leaves all-zero alpha untouched (BAND_LO gate)', () => {
-    const w = 8, h = 8;
+    const w = 8,
+      h = 8;
     const alpha = new Uint8Array(w * h); // all 0
     const rgba = makeFlatRgba(w, h, 128);
     const out = refineUpscaledAlpha(alpha, rgba, w, h);
@@ -253,7 +258,8 @@ describe('refineUpscaledAlpha', () => {
   });
 
   it('leaves all-255 alpha untouched (BAND_HI gate)', () => {
-    const w = 8, h = 8;
+    const w = 8,
+      h = 8;
     const alpha = new Uint8Array(w * h).fill(255);
     const rgba = makeFlatRgba(w, h, 128);
     const out = refineUpscaledAlpha(alpha, rgba, w, h);
@@ -262,13 +268,17 @@ describe('refineUpscaledAlpha', () => {
 
   it('keeps pixels outside [BAND_LO, BAND_HI] verbatim even when guide has structure', () => {
     // 4x4 with a hard vertical RGB edge in the middle.
-    const w = 4, h = 4;
+    const w = 4,
+      h = 4;
     const rgba = new Uint8ClampedArray(w * h * 4);
     for (let y = 0; y < h; y++) {
       for (let x = 0; x < w; x++) {
         const v = x < 2 ? 0 : 255;
         const idx = (y * w + x) * 4;
-        rgba[idx] = v; rgba[idx + 1] = v; rgba[idx + 2] = v; rgba[idx + 3] = 255;
+        rgba[idx] = v;
+        rgba[idx + 1] = v;
+        rgba[idx + 2] = v;
+        rgba[idx + 3] = 255;
       }
     }
     // Alpha: all extremes (0 on left, 255 on right) — nothing in the trimap band.
@@ -282,7 +292,8 @@ describe('refineUpscaledAlpha', () => {
   });
 
   it('returns the same length as input alpha', () => {
-    const w = 5, h = 7;
+    const w = 5,
+      h = 7;
     const alpha = new Uint8Array(w * h).fill(128);
     const rgba = makeFlatRgba(w, h, 200);
     const out = refineUpscaledAlpha(alpha, rgba, w, h);
@@ -292,12 +303,16 @@ describe('refineUpscaledAlpha', () => {
   it('sharpens a soft alpha ramp when guide has a sharp edge', () => {
     // 8x1 guide: sharp step at x=4 (left=0, right=255).
     // 8x1 alpha: smooth ramp across the whole width (simulates JBU residual).
-    const w = 8, h = 1;
+    const w = 8,
+      h = 1;
     const rgba = new Uint8ClampedArray(w * h * 4);
     for (let x = 0; x < w; x++) {
       const v = x < 4 ? 0 : 255;
       const idx = x * 4;
-      rgba[idx] = v; rgba[idx + 1] = v; rgba[idx + 2] = v; rgba[idx + 3] = 255;
+      rgba[idx] = v;
+      rgba[idx + 1] = v;
+      rgba[idx + 2] = v;
+      rgba[idx + 3] = 255;
     }
     const alpha = new Uint8Array([30, 60, 90, 120, 150, 180, 210, 240]);
     const out = refineUpscaledAlpha(alpha, rgba, w, h);
@@ -314,12 +329,10 @@ describe('refineUpscaledAlpha', () => {
   });
 
   it('does not mutate the input alpha buffer', () => {
-    const w = 4, h = 4;
+    const w = 4,
+      h = 4;
     const alpha = new Uint8Array([
-      0, 0, 128, 255,
-      0, 64, 192, 255,
-      0, 96, 200, 255,
-      0, 128, 220, 255,
+      0, 0, 128, 255, 0, 64, 192, 255, 0, 96, 200, 255, 0, 128, 220, 255,
     ]);
     const snapshot = new Uint8Array(alpha);
     const rgba = makeFlatRgba(w, h, 128);

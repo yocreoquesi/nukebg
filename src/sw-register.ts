@@ -32,22 +32,15 @@ if ('serviceWorker' in navigator) {
           if (!newWorker) return;
 
           newWorker.addEventListener('statechange', () => {
-            if (
-              newWorker.state === 'installed' &&
-              navigator.serviceWorker.controller
-            ) {
-              document.dispatchEvent(
-                new CustomEvent('nukebg:sw-update-available')
-              );
+            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+              document.dispatchEvent(new CustomEvent('nukebg:sw-update-available'));
             }
           });
         };
 
         // Check if there's already a waiting worker
         if (registration.waiting && navigator.serviceWorker.controller) {
-          document.dispatchEvent(
-            new CustomEvent('nukebg:sw-update-available')
-          );
+          document.dispatchEvent(new CustomEvent('nukebg:sw-update-available'));
         }
 
         registration.addEventListener('updatefound', onUpdateFound);

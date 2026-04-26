@@ -4,7 +4,8 @@ import { solidImage, paintRect, countBg } from '../helpers';
 
 describe('shadowCleanup', () => {
   it('no modifica la mascara si no hay sombras', () => {
-    const w = 64, h = 64;
+    const w = 64,
+      h = 64;
     const pixels = solidImage(w, h, 255, 0, 0); // sujeto rojo saturado
     // Mascara donde todo el borde es fondo
     const mask = new Uint8Array(w * h);
@@ -25,7 +26,8 @@ describe('shadowCleanup', () => {
   });
 
   it('marca sombras pequenas como fondo', () => {
-    const w = 128, h = 128;
+    const w = 128,
+      h = 128;
     // Fondo blanco con un sujeto colorido
     const pixels = solidImage(w, h, 255, 255, 255);
     // Sujeto rojo en el centro
@@ -57,7 +59,8 @@ describe('shadowCleanup', () => {
   });
 
   it('no marca blobs grandes como fondo (limite maxBlobSize)', () => {
-    const w = 200, h = 200;
+    const w = 200,
+      h = 200;
     const pixels = solidImage(w, h, 255, 255, 255);
     // Blob gris grande (mayor que maxBlobSize=100 para este test)
     paintRect(pixels, w, 50, 50, 60, 60, 80, 80, 80);
@@ -83,7 +86,8 @@ describe('shadowCleanup', () => {
   });
 
   it('no toca pixeles saturados (sujeto colorido)', () => {
-    const w = 64, h = 64;
+    const w = 64,
+      h = 64;
     // Sujeto rojo intenso (saturacion alta)
     const pixels = solidImage(w, h, 255, 0, 0);
     const mask = new Uint8Array(w * h); // todo foreground
@@ -95,7 +99,8 @@ describe('shadowCleanup', () => {
   });
 
   it('maneja mascara vacia (todo foreground)', () => {
-    const w = 32, h = 32;
+    const w = 32,
+      h = 32;
     const pixels = solidImage(w, h, 100, 100, 100);
     const mask = new Uint8Array(w * h);
 
@@ -105,7 +110,8 @@ describe('shadowCleanup', () => {
   });
 
   it('maneja mascara llena (todo background)', () => {
-    const w = 32, h = 32;
+    const w = 32,
+      h = 32;
     const pixels = solidImage(w, h, 100, 100, 100);
     const mask = new Uint8Array(w * h).fill(1);
 

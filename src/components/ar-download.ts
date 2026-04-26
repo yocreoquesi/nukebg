@@ -29,7 +29,8 @@ export class ArDownload extends HTMLElement {
   private updateTexts(): void {
     const root = this.shadowRoot!;
     const copyBtn = root.querySelector('#copy-btn');
-    if (copyBtn && !copyBtn.classList.contains('copied')) copyBtn.innerHTML = `${t('download.copy')}<br><small>PNG</small>`;
+    if (copyBtn && !copyBtn.classList.contains('copied'))
+      copyBtn.innerHTML = `${t('download.copy')}<br><small>PNG</small>`;
     const anotherBtn = root.querySelector('#another-btn');
     if (anotherBtn) anotherBtn.textContent = t('download.another');
     this.updateCtaLabels();
@@ -46,10 +47,16 @@ export class ArDownload extends HTMLElement {
   disconnectedCallback(): void {
     if (this.pngBlobUrl) URL.revokeObjectURL(this.pngBlobUrl);
     if (this.webpBlobUrl) URL.revokeObjectURL(this.webpBlobUrl);
-    if (this.boundLocaleHandler) document.removeEventListener('nukebg:locale-changed', this.boundLocaleHandler);
+    if (this.boundLocaleHandler)
+      document.removeEventListener('nukebg:locale-changed', this.boundLocaleHandler);
   }
 
-  async setResult(imageData: ImageData, inputFilename: string, _totalTimeMs: number, blob?: Blob): Promise<void> {
+  async setResult(
+    imageData: ImageData,
+    inputFilename: string,
+    _totalTimeMs: number,
+    blob?: Blob,
+  ): Promise<void> {
     this.currentImageData = imageData;
     this.selectedFormat = 'png';
     this.pngFilename = generateOutputFilename(inputFilename, 'png', getLocale());
@@ -329,9 +336,7 @@ export class ArDownload extends HTMLElement {
         this.pngBlob = pngBlob;
       }
       try {
-        await navigator.clipboard.write([
-          new ClipboardItem({ 'image/png': pngBlob }),
-        ]);
+        await navigator.clipboard.write([new ClipboardItem({ 'image/png': pngBlob })]);
         const btn = this.shadowRoot!.querySelector('#copy-btn')!;
         btn.classList.add('copied');
         btn.innerHTML = `${t('download.copied')}<br><small>PNG</small>`;
@@ -397,8 +402,14 @@ export class ArDownload extends HTMLElement {
   reset(): void {
     const bar = this.shadowRoot!.querySelector('#bar');
     if (bar) bar.classList.remove('visible');
-    if (this.pngBlobUrl) { URL.revokeObjectURL(this.pngBlobUrl); this.pngBlobUrl = null; }
-    if (this.webpBlobUrl) { URL.revokeObjectURL(this.webpBlobUrl); this.webpBlobUrl = null; }
+    if (this.pngBlobUrl) {
+      URL.revokeObjectURL(this.pngBlobUrl);
+      this.pngBlobUrl = null;
+    }
+    if (this.webpBlobUrl) {
+      URL.revokeObjectURL(this.webpBlobUrl);
+      this.webpBlobUrl = null;
+    }
     this.pngBlob = null;
     this.webpBlob = null;
     this.currentImageData = null;
@@ -406,8 +417,14 @@ export class ArDownload extends HTMLElement {
     const root = this.shadowRoot!;
     const png = root.querySelector('#dl-png') as HTMLAnchorElement | null;
     const webp = root.querySelector('#dl-webp') as HTMLAnchorElement | null;
-    if (png) { png.hidden = true; png.removeAttribute('href'); }
-    if (webp) { webp.hidden = true; webp.removeAttribute('href'); }
+    if (png) {
+      png.hidden = true;
+      png.removeAttribute('href');
+    }
+    if (webp) {
+      webp.hidden = true;
+      webp.removeAttribute('href');
+    }
   }
 }
 

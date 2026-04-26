@@ -40,8 +40,11 @@ function solidImage(w: number, h: number, r: number, g: number, b: number): Uint
 
 /** Crea una imagen checkerboard */
 function checkerboardImage(
-  w: number, h: number, gs: number,
-  dark: [number, number, number], light: [number, number, number]
+  w: number,
+  h: number,
+  gs: number,
+  dark: [number, number, number],
+  light: [number, number, number],
 ): Uint8ClampedArray {
   const data = new Uint8ClampedArray(w * h * 4);
   for (let y = 0; y < h; y++) {
@@ -62,9 +65,15 @@ function checkerboardImage(
 
 /** Pinta un rectangulo */
 function paintRect(
-  data: Uint8ClampedArray, w: number,
-  x0: number, y0: number, rw: number, rh: number,
-  r: number, g: number, b: number
+  data: Uint8ClampedArray,
+  w: number,
+  x0: number,
+  y0: number,
+  rw: number,
+  rh: number,
+  r: number,
+  g: number,
+  b: number,
 ): void {
   for (let y = y0; y < y0 + rh; y++) {
     for (let x = x0; x < x0 + rw; x++) {
@@ -89,18 +98,26 @@ function runCvPipeline(pixels: Uint8ClampedArray, width: number, height: number)
     const grid = detectCheckerGrid(pixels, width, height, bgInfo.colorA, bgInfo.colorB);
     if (grid.gridSize > 0) {
       bgMask = gridFloodFill(
-        pixels, width, height,
-        bgInfo.colorA, bgInfo.colorB,
-        grid.gridSize, grid.phase
+        pixels,
+        width,
+        height,
+        bgInfo.colorA,
+        bgInfo.colorB,
+        grid.gridSize,
+        grid.phase,
       );
       let bgCount = 0;
       for (let i = 0; i < bgMask.length; i++) if (bgMask[i]) bgCount++;
       const coverage = bgCount / (width * height);
       if (coverage < CV_PARAMS.LOW_COVERAGE_THRESHOLD) {
         const exclMask = subjectExclusion(
-          pixels, width, height,
-          bgInfo.colorA, bgInfo.colorB,
-          grid.gridSize, grid.phase
+          pixels,
+          width,
+          height,
+          bgInfo.colorA,
+          bgInfo.colorB,
+          grid.gridSize,
+          grid.phase,
         );
         const floodMask = simpleFloodFill(pixels, width, height, bgInfo.colorA, bgInfo.colorB);
         bgMask = new Uint8Array(width * height);
@@ -149,50 +166,55 @@ interface MascotDef {
 const mascots: MascotDef[] = [
   {
     name: 'mascot-cartoon-checker',
-    width: 256, height: 256,
+    width: 256,
+    height: 256,
     build() {
       const p = checkerboardImage(256, 256, 16, [191, 191, 191], [255, 255, 255]);
       paintRect(p, 256, 80, 40, 96, 176, 220, 60, 60);
       paintRect(p, 256, 100, 50, 56, 40, 255, 200, 150);
       paintRect(p, 256, 100, 150, 56, 40, 60, 60, 200);
       return p;
-    }
+    },
   },
   {
     name: 'mascot-geometric-white',
-    width: 256, height: 256,
+    width: 256,
+    height: 256,
     build() {
       const p = solidImage(256, 256, 255, 255, 255);
       paintRect(p, 256, 60, 30, 136, 196, 50, 150, 200);
       paintRect(p, 256, 90, 50, 76, 76, 255, 200, 50);
       paintRect(p, 256, 100, 180, 56, 40, 50, 200, 50);
       return p;
-    }
+    },
   },
   {
     name: 'mascot-realistic-black',
-    width: 256, height: 256,
+    width: 256,
+    height: 256,
     build() {
       const p = solidImage(256, 256, 0, 0, 0);
       paintRect(p, 256, 70, 30, 116, 196, 180, 130, 90);
       paintRect(p, 256, 90, 40, 76, 76, 220, 180, 150);
       paintRect(p, 256, 70, 140, 116, 86, 50, 50, 150);
       return p;
-    }
+    },
   },
   {
     name: 'mascot-pixel-checker',
-    width: 128, height: 128,
+    width: 128,
+    height: 128,
     build() {
       const p = checkerboardImage(128, 128, 8, [191, 191, 191], [255, 255, 255]);
       paintRect(p, 128, 40, 16, 48, 96, 200, 80, 80);
       paintRect(p, 128, 48, 24, 32, 24, 255, 200, 160);
       return p;
-    }
+    },
   },
   {
     name: 'mascot-icon-m-gray',
-    width: 128, height: 128,
+    width: 128,
+    height: 128,
     build() {
       const p = solidImage(128, 128, 220, 220, 220);
       paintRect(p, 128, 20, 20, 88, 88, 30, 30, 150);
@@ -200,7 +222,7 @@ const mascots: MascotDef[] = [
       paintRect(p, 128, 86, 30, 12, 68, 255, 255, 255);
       paintRect(p, 128, 50, 55, 14, 15, 255, 255, 255);
       return p;
-    }
+    },
   },
 ];
 
@@ -219,7 +241,9 @@ for (const m of mascots) {
   const status = passed ? 'PASS' : 'FAIL';
   if (!passed) allPassed = false;
 
-  console.log(`[${status}] ${m.name}: ${bgType}, ${fgPercent.toFixed(1)}% fg, ${elapsed.toFixed(0)}ms`);
+  console.log(
+    `[${status}] ${m.name}: ${bgType}, ${fgPercent.toFixed(1)}% fg, ${elapsed.toFixed(0)}ms`,
+  );
 
   // Guardar resultado como PNG
   const resultPixels = Buffer.alloc(m.width * m.height * 4);

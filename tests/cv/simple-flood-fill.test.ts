@@ -4,7 +4,8 @@ import { solidImage, paintRect, countBg } from '../helpers';
 
 describe('simpleFloodFill', () => {
   it('marca todo como fondo en imagen solida', () => {
-    const w = 64, h = 64;
+    const w = 64,
+      h = 64;
     const pixels = solidImage(w, h, 255, 255, 255);
     const colorA = [255, 255, 255];
     const colorB = [255, 255, 255];
@@ -15,7 +16,8 @@ describe('simpleFloodFill', () => {
   });
 
   it('no marca pixeles de un color distinto al fondo', () => {
-    const w = 64, h = 64;
+    const w = 64,
+      h = 64;
     const pixels = solidImage(w, h, 255, 255, 255);
     // Paint a red subject in the center that doesn't touch edges
     paintRect(pixels, w, 20, 20, 24, 24, 255, 0, 0);
@@ -39,7 +41,8 @@ describe('simpleFloodFill', () => {
   });
 
   it('funciona con fondo negro', () => {
-    const w = 64, h = 64;
+    const w = 64,
+      h = 64;
     const pixels = solidImage(w, h, 0, 0, 0);
     paintRect(pixels, w, 20, 20, 10, 10, 200, 100, 50);
 
@@ -56,7 +59,8 @@ describe('simpleFloodFill', () => {
   });
 
   it('no invade sujeto que toca el borde si color difiere', () => {
-    const w = 64, h = 64;
+    const w = 64,
+      h = 64;
     const pixels = solidImage(w, h, 255, 255, 255);
     // Sujeto azul tocando borde izquierdo
     paintRect(pixels, w, 0, 20, 10, 24, 0, 0, 255);
@@ -73,7 +77,8 @@ describe('simpleFloodFill', () => {
   });
 
   it('acepta dos colores de fondo distintos (colorA y colorB)', () => {
-    const w = 64, h = 64;
+    const w = 64,
+      h = 64;
     const pixels = solidImage(w, h, 200, 200, 200);
     // Mitad izquierda con un color, derecha con otro
     for (let y = 0; y < h; y++) {

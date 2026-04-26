@@ -29,7 +29,8 @@ export function extractImageFeatures(
   const P = IMAGE_CLASSIFY_PARAMS;
 
   // Sample pixels for unique color counting (full scan is too slow for large images)
-  const sampleStep = totalPixels > P.SAMPLE_THRESHOLD ? Math.ceil(totalPixels / P.SAMPLE_THRESHOLD) : 1;
+  const sampleStep =
+    totalPixels > P.SAMPLE_THRESHOLD ? Math.ceil(totalPixels / P.SAMPLE_THRESHOLD) : 1;
 
   let brightnessSum = 0;
   let brightnessSqSum = 0;

@@ -54,7 +54,10 @@ test.describe('pipeline end-to-end', () => {
 
     // Warmup must have fired — this catches regressions where the ML worker
     // boot path silently breaks (e.g. onnxruntime init errors swallowed).
-    expect(warmupLogs.length, `expected at least one warmup log, got ${warmupLogs.length}`).toBeGreaterThan(0);
+    expect(
+      warmupLogs.length,
+      `expected at least one warmup log, got ${warmupLogs.length}`,
+    ).toBeGreaterThan(0);
     expect(warmupLogs.some((line) => line.includes(' ok '))).toBe(true);
 
     // No uncaught page errors during the full run.

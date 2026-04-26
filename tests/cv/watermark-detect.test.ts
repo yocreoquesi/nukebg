@@ -4,7 +4,8 @@ import { solidImage, paintRect } from '../helpers';
 
 describe('watermarkDetect', () => {
   it('no detecta watermark en imagen limpia con fondo solido', () => {
-    const w = 512, h = 512;
+    const w = 512,
+      h = 512;
     const pixels = solidImage(w, h, 255, 255, 255);
 
     const result = watermarkDetect(pixels, w, h, [255, 255, 255], [255, 255, 255]);
@@ -14,7 +15,8 @@ describe('watermarkDetect', () => {
   });
 
   it('no detecta watermark en imagen con sujeto pero sin sparkle', () => {
-    const w = 512, h = 512;
+    const w = 512,
+      h = 512;
     const pixels = solidImage(w, h, 255, 255, 255);
     // Subject in the center
     paintRect(pixels, w, 200, 200, 112, 112, 100, 50, 150);
@@ -25,7 +27,8 @@ describe('watermarkDetect', () => {
   });
 
   it('detecta sparkle simulado en esquina inferior derecha', () => {
-    const w = 512, h = 512;
+    const w = 512,
+      h = 512;
     const pixels = solidImage(w, h, 200, 200, 200);
 
     // Simulate a cluster of bright pixels (sparkle) in bottom-right
@@ -41,7 +44,7 @@ describe('watermarkDetect', () => {
           const x = cx + dx;
           if (y >= 0 && y < h && x >= 0 && x < w) {
             const i = (y * w + x) * 4;
-            pixels[i] = 255;     // r - muy diferente a 200
+            pixels[i] = 255; // r - muy diferente a 200
             pixels[i + 1] = 255; // g
             pixels[i + 2] = 255; // b
           }
@@ -59,7 +62,8 @@ describe('watermarkDetect', () => {
   });
 
   it('no detecta ruido disperso como watermark (filtro de mediana de distancia)', () => {
-    const w = 512, h = 512;
+    const w = 512,
+      h = 512;
     const pixels = solidImage(w, h, 200, 200, 200);
 
     // Pintar pixeles brillantes dispersos (no clustered) en bottom-right
@@ -88,7 +92,8 @@ describe('watermarkDetect', () => {
   });
 
   it('genera mascara circular con radio razonable', () => {
-    const w = 512, h = 512;
+    const w = 512,
+      h = 512;
     const pixels = solidImage(w, h, 100, 100, 100);
 
     // Sparkle concentrado
@@ -122,7 +127,8 @@ describe('watermarkDetect', () => {
   });
 
   it('rechaza cluster rojo brillante en esquina (no es color Gemini) — issue #152', () => {
-    const w = 512, h = 512;
+    const w = 512,
+      h = 512;
     const pixels = solidImage(w, h, 200, 200, 200);
 
     // Cluster denso de pixeles ROJOS en bottom-right — antes del fix
@@ -138,9 +144,9 @@ describe('watermarkDetect', () => {
           const x = cx + dx;
           if (y >= 0 && y < h && x >= 0 && x < w) {
             const i = (y * w + x) * 4;
-            pixels[i] = 220;     // r — rojo brillante (flor, logo, reflejo)
-            pixels[i + 1] = 30;  // g
-            pixels[i + 2] = 30;  // b
+            pixels[i] = 220; // r — rojo brillante (flor, logo, reflejo)
+            pixels[i + 1] = 30; // g
+            pixels[i + 2] = 30; // b
           }
         }
       }
@@ -151,7 +157,8 @@ describe('watermarkDetect', () => {
   });
 
   it('rechaza cluster amarillo brillante en esquina (no es color Gemini) — issue #152', () => {
-    const w = 512, h = 512;
+    const w = 512,
+      h = 512;
     const pixels = solidImage(w, h, 100, 100, 100);
 
     const cy = h - 50;
@@ -164,7 +171,7 @@ describe('watermarkDetect', () => {
           const i = (y * w + x) * 4;
           pixels[i] = 255;
           pixels[i + 1] = 255;
-          pixels[i + 2] = 0;     // amarillo puro — saturación alta, no Gemini
+          pixels[i + 2] = 0; // amarillo puro — saturación alta, no Gemini
         }
       }
     }
@@ -174,7 +181,8 @@ describe('watermarkDetect', () => {
   });
 
   it('detecta sparkle blanco-azulado simulado (color Gemini válido) — issue #152', () => {
-    const w = 512, h = 512;
+    const w = 512,
+      h = 512;
     const pixels = solidImage(w, h, 100, 150, 80); // fondo verde
 
     const scanSize = Math.max(200, Math.floor(Math.min(h, w) / 5));
@@ -201,7 +209,8 @@ describe('watermarkDetect', () => {
   });
 
   it('maneja imagen pequena sin crash', () => {
-    const w = 100, h = 100;
+    const w = 100,
+      h = 100;
     const pixels = solidImage(w, h, 200, 200, 200);
 
     // No debe lanzar excepcion

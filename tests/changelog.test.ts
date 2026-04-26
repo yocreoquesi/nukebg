@@ -45,6 +45,8 @@ describe('CHANGELOG.md', () => {
 
   it('ships a release-checklist template and compare link at the bottom', () => {
     expect(CHANGELOG).toMatch(/## Release checklist template/);
-    expect(CHANGELOG).toMatch(/\[Unreleased\]: https:\/\/github\.com\/yocreoquesi\/nukebg\/compare\//);
+    expect(CHANGELOG).toMatch(
+      /\[Unreleased\]: https:\/\/github\.com\/yocreoquesi\/nukebg\/compare\//,
+    );
   });
 });

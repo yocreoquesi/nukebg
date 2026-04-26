@@ -257,7 +257,15 @@ export class ArEditorAdvanced extends HTMLElement {
     const shadow = this.shadowRoot;
     if (!shadow) return;
 
-    const ids = ['tool-brush', 'tool-eraser', 'tool-lasso', 'restore-original', 'reprocess', 'cancel', 'done'];
+    const ids = [
+      'tool-brush',
+      'tool-eraser',
+      'tool-lasso',
+      'restore-original',
+      'reprocess',
+      'cancel',
+      'done',
+    ];
     for (const id of ids) {
       const el = shadow.getElementById(id) as HTMLButtonElement | null;
       if (el) el.disabled = this.busy;
@@ -1667,9 +1675,7 @@ export class ArEditorAdvanced extends HTMLElement {
    * working buffer is NOT modified — the display renders a red/green tint
    * overlay so the user can confirm or cancel before the action is committed.
    */
-  private async previewAction(
-    kind: Exclude<LassoAction, 'remove-watermark'>,
-  ): Promise<void> {
+  private async previewAction(kind: Exclude<LassoAction, 'remove-watermark'>): Promise<void> {
     // 'remove-watermark' has its own handler (removeWatermarkInLasso) that
     // skips the preview/confirm pattern — inpainting is non-destructive
     // and any mistake is one Ctrl+Z away.

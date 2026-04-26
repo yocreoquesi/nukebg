@@ -7,7 +7,14 @@ import {
 } from '../../src/workers/cv/lama-crop';
 import { LAMA_PARAMS } from '../../src/pipeline/constants';
 
-function makeMask(w: number, h: number, rx: number, ry: number, rw: number, rh: number): Uint8Array {
+function makeMask(
+  w: number,
+  h: number,
+  rx: number,
+  ry: number,
+  rw: number,
+  rh: number,
+): Uint8Array {
   const m = new Uint8Array(w * h);
   for (let y = ry; y < ry + rh; y++) {
     for (let x = rx; x < rx + rw; x++) {
@@ -35,7 +42,8 @@ describe('computeLamaCropRect', () => {
   });
 
   it('produces a square crop (w === h)', () => {
-    const w = 400, h = 300;
+    const w = 400,
+      h = 300;
     const mask = makeMask(w, h, 50, 40, 30, 60); // non-square bbox
     const rect = computeLamaCropRect(mask, w, h)!;
     expect(rect).not.toBeNull();
@@ -43,14 +51,16 @@ describe('computeLamaCropRect', () => {
   });
 
   it('enforces MIN_CROP_SIDE when the mask bbox is tiny', () => {
-    const w = 512, h = 512;
+    const w = 512,
+      h = 512;
     const mask = makeMask(w, h, 100, 100, 4, 4);
     const rect = computeLamaCropRect(mask, w, h)!;
     expect(rect.w).toBeGreaterThanOrEqual(LAMA_PARAMS.MIN_CROP_SIDE);
   });
 
   it('clamps the crop inside the image bounds', () => {
-    const w = 200, h = 200;
+    const w = 200,
+      h = 200;
     // Mask at the bottom-right corner — crop must not overflow.
     const mask = makeMask(w, h, 180, 180, 10, 10);
     const rect = computeLamaCropRect(mask, w, h)!;
@@ -61,7 +71,8 @@ describe('computeLamaCropRect', () => {
   });
 
   it('never returns a crop bigger than min(width, height)', () => {
-    const w = 80, h = 600;
+    const w = 80,
+      h = 600;
     const mask = makeMask(w, h, 10, 100, 60, 400); // very tall bbox
     const rect = computeLamaCropRect(mask, w, h)!;
     expect(rect.w).toBeLessThanOrEqual(Math.min(w, h));
@@ -69,7 +80,8 @@ describe('computeLamaCropRect', () => {
   });
 
   it('centres the square on the mask bbox midpoint when there is room', () => {
-    const w = 1000, h = 1000;
+    const w = 1000,
+      h = 1000;
     const mask = makeMask(w, h, 450, 450, 100, 100); // centred mask
     const rect = computeLamaCropRect(mask, w, h)!;
     const cx = rect.x + rect.w / 2;
@@ -81,13 +93,18 @@ describe('computeLamaCropRect', () => {
 
 describe('bilinearResizeRGBA', () => {
   it('resizing a solid colour preserves that colour exactly', () => {
-    const w = 200, h = 200;
+    const w = 200,
+      h = 200;
     const src = solidRgba(w, h, 120, 80, 200);
     const rect = { x: 50, y: 50, w: 100, h: 100 };
     const out = bilinearResizeRGBA(src, w, rect, 64);
     expect(out.length).toBe(64 * 64 * 4);
     // Sample a few interior pixels.
-    for (const [ox, oy] of [[0, 0], [32, 32], [63, 63]]) {
+    for (const [ox, oy] of [
+      [0, 0],
+      [32, 32],
+      [63, 63],
+    ]) {
       const i = (oy * 64 + ox) * 4;
       expect(out[i]).toBe(120);
       expect(out[i + 1]).toBe(80);
@@ -99,7 +116,8 @@ describe('bilinearResizeRGBA', () => {
 
 describe('nearestResizeMask', () => {
   it('output is strictly binary {0,1}', () => {
-    const w = 50, h = 50;
+    const w = 50,
+      h = 50;
     const mask = makeMask(w, h, 10, 10, 30, 30);
     const rect = { x: 0, y: 0, w, h };
     const out = nearestResizeMask(mask, w, rect, 32);
@@ -109,7 +127,8 @@ describe('nearestResizeMask', () => {
   });
 
   it('a fully-covered mask resizes to a fully-covered mask', () => {
-    const w = 32, h = 32;
+    const w = 32,
+      h = 32;
     const mask = new Uint8Array(w * h).fill(1);
     const rect = { x: 0, y: 0, w, h };
     const out = nearestResizeMask(mask, w, rect, 64);
@@ -119,7 +138,8 @@ describe('nearestResizeMask', () => {
 
 describe('spliceLamaOutput', () => {
   it('overwrites only the crop rectangle and leaves the rest untouched', () => {
-    const baseW = 100, baseH = 100;
+    const baseW = 100,
+      baseH = 100;
     const base = solidRgba(baseW, baseH, 10, 20, 30);
     // LaMa output: solid red at model resolution.
     const lamaSize = 64;

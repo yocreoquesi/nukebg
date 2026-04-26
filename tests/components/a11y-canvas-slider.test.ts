@@ -30,8 +30,12 @@ describe('editor canvas — focusable + described (#35)', () => {
 
 describe('viewer slider — WAI-ARIA keyboard steps (#35)', () => {
   it('handle is a role=slider with valuemin/valuemax/valuenow', () => {
-    expect(VIEWER).toMatch(/role="slider"[\s\S]*?aria-valuenow=[\s\S]*?aria-valuemin="0"[\s\S]*?aria-valuemax="100"/);
-    expect(VIEWER).toMatch(/aria-label="\$\{t\(['"]viewer\.original['"]\)\} \/ \$\{t\(['"]viewer\.result['"]\)\}"/);
+    expect(VIEWER).toMatch(
+      /role="slider"[\s\S]*?aria-valuenow=[\s\S]*?aria-valuemin="0"[\s\S]*?aria-valuemax="100"/,
+    );
+    expect(VIEWER).toMatch(
+      /aria-label="\$\{t\(['"]viewer\.original['"]\)\} \/ \$\{t\(['"]viewer\.result['"]\)\}"/,
+    );
   });
 
   it('supports ±2 / ±10 / Home / End / PageUp / PageDown per WAI-ARIA slider spec', () => {
@@ -39,7 +43,16 @@ describe('viewer slider — WAI-ARIA keyboard steps (#35)', () => {
     expect(keymap, 'slider key handler not found').not.toBeNull();
     const block = keymap![0];
     expect(block).toMatch(/e\.shiftKey \? 10 : 2/);
-    for (const key of ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'Home', 'End']) {
+    for (const key of [
+      'ArrowLeft',
+      'ArrowRight',
+      'ArrowUp',
+      'ArrowDown',
+      'PageUp',
+      'PageDown',
+      'Home',
+      'End',
+    ]) {
       expect(block).toContain(`case '${key}':`);
     }
   });

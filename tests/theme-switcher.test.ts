@@ -33,7 +33,10 @@ describe('theme switcher — DOM', () => {
   });
 
   it('green is the default (aria-checked="true" only on green)', () => {
-    const checkedTrue = HTML.match(/aria-checked="true"[^>]*data-theme="(\w+)"|data-theme="(\w+)"[^>]*aria-checked="true"/g) ?? [];
+    const checkedTrue =
+      HTML.match(
+        /aria-checked="true"[^>]*data-theme="(\w+)"|data-theme="(\w+)"[^>]*aria-checked="true"/g,
+      ) ?? [];
     expect(checkedTrue.length).toBe(1);
     expect(checkedTrue[0]).toMatch(/data-theme="green"/);
   });
@@ -42,13 +45,16 @@ describe('theme switcher — DOM', () => {
 describe('theme switcher — palettes in main.css', () => {
   for (const theme of ['amber', 'cyan', 'magenta']) {
     it(`:root[data-theme="${theme}"] overrides accent + text-* tokens`, () => {
-      const re = new RegExp(`:root\\[data-theme="${theme}"\\]\\s*\\{[\\s\\S]*?--color-accent-primary[\\s\\S]*?--color-text-primary`);
+      // Accept either quote style — prettier may normalize to single quotes.
+      const re = new RegExp(
+        `:root\\[data-theme=['"]${theme}['"]\\]\\s*\\{[\\s\\S]*?--color-accent-primary[\\s\\S]*?--color-text-primary`,
+      );
       expect(CSS).toMatch(re);
     });
   }
 
   it('green has no override block (it is the :root default)', () => {
-    expect(CSS).not.toMatch(/:root\[data-theme="green"\]/);
+    expect(CSS).not.toMatch(/:root\[data-theme=['"]green['"]\]/);
   });
 });
 
@@ -60,7 +66,9 @@ describe('theme switcher — main.ts wiring', () => {
   });
 
   it('applyTheme deletes data-theme for green and sets it for the others', () => {
-    expect(MAIN).toMatch(/if \(theme === ['"]green['"]\)[\s\S]*?delete document\.documentElement\.dataset\.theme/);
+    expect(MAIN).toMatch(
+      /if \(theme === ['"]green['"]\)[\s\S]*?delete document\.documentElement\.dataset\.theme/,
+    );
     expect(MAIN).toMatch(/document\.documentElement\.dataset\.theme = theme/);
   });
 

@@ -11,7 +11,7 @@ export function simpleFloodFill(
   height: number,
   colorA: number[],
   colorB: number[],
-  tolerance: number = CV_PARAMS.COLOR_TOLERANCE
+  tolerance: number = CV_PARAMS.COLOR_TOLERANCE,
 ): Uint8Array {
   const totalPixels = width * height;
 

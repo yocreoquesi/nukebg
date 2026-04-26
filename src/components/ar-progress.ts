@@ -24,7 +24,7 @@ export class ArProgress extends HTMLElement {
     this.render();
     this.boundLocaleHandler = () => {
       // Re-translate labels for active stages
-      this.stages.forEach(s => {
+      this.stages.forEach((s) => {
         if (s.stage === 'detect-background') s.label = t('progress.detectBg');
         else if (s.stage === 'watermark-scan') s.label = t('progress.watermarkScan');
         else if (s.stage === 'inpaint') s.label = t('progress.inpaint');
@@ -45,9 +45,13 @@ export class ArProgress extends HTMLElement {
       if (!target) return;
       const stage = target.getAttribute('data-stage') ?? '';
       if (target.classList.contains('stage-action-retry')) {
-        this.dispatchEvent(new CustomEvent('ar:stage-retry', { bubbles: true, composed: true, detail: { stage } }));
+        this.dispatchEvent(
+          new CustomEvent('ar:stage-retry', { bubbles: true, composed: true, detail: { stage } }),
+        );
       } else if (target.classList.contains('stage-action-report')) {
-        this.dispatchEvent(new CustomEvent('ar:stage-report', { bubbles: true, composed: true, detail: { stage } }));
+        this.dispatchEvent(
+          new CustomEvent('ar:stage-report', { bubbles: true, composed: true, detail: { stage } }),
+        );
       } else if (target.classList.contains('stage-action-reload')) {
         location.reload();
       }
@@ -55,7 +59,8 @@ export class ArProgress extends HTMLElement {
   }
 
   disconnectedCallback(): void {
-    if (this.boundLocaleHandler) document.removeEventListener('nukebg:locale-changed', this.boundLocaleHandler);
+    if (this.boundLocaleHandler)
+      document.removeEventListener('nukebg:locale-changed', this.boundLocaleHandler);
   }
 
   reset(): void {
@@ -84,7 +89,6 @@ export class ArProgress extends HTMLElement {
     // command bar's data-state attribute instead.
   }
 
-
   setStage(stage: PipelineStage, status: StageStatus, message?: string): void {
     // Extract content type from detect-background done message (e.g. "solid detected [signature]")
     if (stage === 'detect-background' && status === 'done' && message) {
@@ -92,14 +96,14 @@ export class ArProgress extends HTMLElement {
       if (typeMatch) {
         this.detectedContentType = typeMatch[1];
         // Enrich the stage 1 label with the detected content type
-        const detectStage = this.stages.find(s => s.stage === 'detect-background');
+        const detectStage = this.stages.find((s) => s.stage === 'detect-background');
         if (detectStage) {
           detectStage.label = `${t('progress.detectBg')} [${this.detectedContentType}]`;
         }
       }
     }
 
-    const existing = this.stages.find(s => s.stage === stage);
+    const existing = this.stages.find((s) => s.stage === stage);
     if (existing) {
       existing.status = status;
       existing.message = message;
@@ -110,7 +114,7 @@ export class ArProgress extends HTMLElement {
     } else if (status === 'done') {
       const start = this.startTimes.get(stage);
       if (start) {
-        const stageInfo = this.stages.find(s => s.stage === stage);
+        const stageInfo = this.stages.find((s) => s.stage === stage);
         if (stageInfo) {
           stageInfo.timeMs = performance.now() - start;
         }
@@ -309,32 +313,33 @@ export class ArProgress extends HTMLElement {
     if (!container) return;
 
     // Filter out stages that shouldn't be shown
-    const visibleStages = this.stages.filter(s => {
+    const visibleStages = this.stages.filter((s) => {
       // Hide inpaint if skipped (no watermark)
       if (s.stage === 'inpaint' && s.status === 'skipped') return false;
       return true;
     });
 
-    container.innerHTML = visibleStages.map(s => {
-      const icon = this.getIcon(s.status);
-      const timeStr = s.timeMs !== undefined ? `${(s.timeMs / 1000).toFixed(1)}s` : '';
-      const safeMessage = s.message ? this.escapeHtml(s.message) : '';
-      const msgStr = safeMessage ? `<span class="stage-message">${safeMessage}</span>` : '';
+    container.innerHTML = visibleStages
+      .map((s) => {
+        const icon = this.getIcon(s.status);
+        const timeStr = s.timeMs !== undefined ? `${(s.timeMs / 1000).toFixed(1)}s` : '';
+        const safeMessage = s.message ? this.escapeHtml(s.message) : '';
+        const msgStr = safeMessage ? `<span class="stage-message">${safeMessage}</span>` : '';
 
-      // Extract percentage from message like "Loading AI model... 45%"
-      const pctMatch = safeMessage.match(/(\d+)%/);
-      let progressBar = '';
-      if (s.status === 'running' && pctMatch) {
-        const pct = parseInt(pctMatch[1]);
-        // At 85% the model is being initialized (WASM compilation) - show pulsing bar
-        const isParsing = pct >= 80 && pct < 100;
-        const barClass = isParsing ? 'progress-fill parsing' : 'progress-fill';
-        const label = isParsing ? t('progress.initAI') : safeMessage;
-        progressBar = `<div class="progress-bar"><div class="${barClass}" style="width: ${pct}%"></div></div>`;
-        // Override message during parsing phase
-        if (isParsing) {
-          const msgEl = `<span class="stage-message">${label}</span>`;
-          return `
+        // Extract percentage from message like "Loading AI model... 45%"
+        const pctMatch = safeMessage.match(/(\d+)%/);
+        let progressBar = '';
+        if (s.status === 'running' && pctMatch) {
+          const pct = parseInt(pctMatch[1]);
+          // At 85% the model is being initialized (WASM compilation) - show pulsing bar
+          const isParsing = pct >= 80 && pct < 100;
+          const barClass = isParsing ? 'progress-fill parsing' : 'progress-fill';
+          const label = isParsing ? t('progress.initAI') : safeMessage;
+          progressBar = `<div class="progress-bar"><div class="${barClass}" style="width: ${pct}%"></div></div>`;
+          // Override message during parsing phase
+          if (isParsing) {
+            const msgEl = `<span class="stage-message">${label}</span>`;
+            return `
             <div class="stage ${this.escapeHtml(s.status)}">
               <span class="stage-icon">${icon}</span>
               <span class="stage-label">${this.escapeHtml(s.label)}</span>
@@ -343,21 +348,22 @@ export class ArProgress extends HTMLElement {
             </div>
             ${progressBar}
           `;
+          }
         }
-      }
 
-      // #78 — when a stage errors, render retry / report / reload
-      // actions inline so the user can recover without hunting the
-      // modal that the pipeline error surface also raises from #65.
-      const errorActions = s.status === 'error'
-        ? `<div class="stage-actions" role="group" aria-label="Error recovery">
+        // #78 — when a stage errors, render retry / report / reload
+        // actions inline so the user can recover without hunting the
+        // modal that the pipeline error surface also raises from #65.
+        const errorActions =
+          s.status === 'error'
+            ? `<div class="stage-actions" role="group" aria-label="Error recovery">
              <button type="button" class="stage-action stage-action-retry" data-stage="${this.escapeHtml(s.stage)}">${this.escapeHtml(t('error.retry'))}</button>
              <button type="button" class="stage-action stage-action-report" data-stage="${this.escapeHtml(s.stage)}">${this.escapeHtml(t('error.report'))}</button>
              <button type="button" class="stage-action stage-action-reload">${this.escapeHtml(t('error.reload'))}</button>
            </div>`
-        : '';
+            : '';
 
-      return `
+        return `
         <div class="stage ${this.escapeHtml(s.status)}">
           <span class="stage-icon">${icon}</span>
           <span class="stage-label">${this.escapeHtml(s.label)}</span>
@@ -367,7 +373,8 @@ export class ArProgress extends HTMLElement {
         ${progressBar}
         ${errorActions}
       `;
-    }).join('');
+      })
+      .join('');
 
     // Auto-scroll to bottom (terminal console behavior)
     container.scrollTop = container.scrollHeight;
@@ -380,7 +387,8 @@ export class ArProgress extends HTMLElement {
     const svg = (path: string): string =>
       `<svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square">${path}</svg>`;
     switch (status) {
-      case 'pending': return '';
+      case 'pending':
+        return '';
       case 'running':
         // Arc — rotates via parent .stage.running animation to form a spinner
         return svg('<circle cx="8" cy="8" r="5" stroke-dasharray="18 10"/>');

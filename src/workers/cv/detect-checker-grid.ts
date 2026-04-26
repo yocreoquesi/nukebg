@@ -11,11 +11,12 @@ export function detectCheckerGrid(
   width: number,
   height: number,
   colorDark: number[],
-  colorLight: number[]
+  colorLight: number[],
 ): GridResult {
   const midBrightness =
     ((colorDark[0] + colorDark[1] + colorDark[2]) / 3 +
-      (colorLight[0] + colorLight[1] + colorLight[2]) / 3) / 2;
+      (colorLight[0] + colorLight[1] + colorLight[2]) / 3) /
+    2;
 
   const gridSizes: number[] = [];
 

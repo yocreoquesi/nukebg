@@ -376,7 +376,8 @@ export class ArDropzone extends HTMLElement {
   }
 
   disconnectedCallback(): void {
-    if (this.boundLocaleHandler) document.removeEventListener('nukebg:locale-changed', this.boundLocaleHandler);
+    if (this.boundLocaleHandler)
+      document.removeEventListener('nukebg:locale-changed', this.boundLocaleHandler);
     if (this.boundPasteHandler) document.removeEventListener('paste', this.boundPasteHandler);
   }
 
@@ -401,7 +402,12 @@ export class ArDropzone extends HTMLElement {
    *   then hide after a short delay so the user sees completion
    * - `{ visible: false }` → hide immediately (error/abort fallback)
    */
-  setLoadingState(state: { visible: boolean; pct?: number; label?: string; ready?: boolean }): void {
+  setLoadingState(state: {
+    visible: boolean;
+    pct?: number;
+    label?: string;
+    ready?: boolean;
+  }): void {
     const root = this.shadowRoot;
     if (!root) return;
     const slot = root.getElementById('dz-loading') as HTMLElement | null;
@@ -440,18 +446,20 @@ export class ArDropzone extends HTMLElement {
 
     try {
       const result = await loadImage(file);
-      this.dispatchEvent(new CustomEvent('ar:image-loaded', {
-        bubbles: true,
-        composed: true,
-        detail: {
-          file,
-          imageData: result.imageData,
-          originalImageData: result.originalImageData,
-          originalWidth: result.originalWidth,
-          originalHeight: result.originalHeight,
-          wasDownsampled: result.wasDownsampled,
-        },
-      }));
+      this.dispatchEvent(
+        new CustomEvent('ar:image-loaded', {
+          bubbles: true,
+          composed: true,
+          detail: {
+            file,
+            imageData: result.imageData,
+            originalImageData: result.originalImageData,
+            originalWidth: result.originalWidth,
+            originalHeight: result.originalHeight,
+            wasDownsampled: result.wasDownsampled,
+          },
+        }),
+      );
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Failed to load image.';
       this.showError(msg);
@@ -519,11 +527,13 @@ export class ArDropzone extends HTMLElement {
       this.showError(t('batch.limitExceeded', { limit: String(limit) }));
     }
 
-    this.dispatchEvent(new CustomEvent('ar:images-loaded', {
-      bubbles: true,
-      composed: true,
-      detail: { images: loaded },
-    }));
+    this.dispatchEvent(
+      new CustomEvent('ar:images-loaded', {
+        bubbles: true,
+        composed: true,
+        detail: { images: loaded },
+      }),
+    );
   }
 
   private showError(message?: string): void {

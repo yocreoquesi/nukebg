@@ -1,5 +1,12 @@
 import { describe, it, expect } from 'vitest';
-import { RingBuffer, pixelIndex, maxChannelDiff, mean, std, median } from '../../src/workers/cv/utils';
+import {
+  RingBuffer,
+  pixelIndex,
+  maxChannelDiff,
+  mean,
+  std,
+  median,
+} from '../../src/workers/cv/utils';
 
 describe('pixelIndex', () => {
   it('calcula el indice RGBA correcto', () => {

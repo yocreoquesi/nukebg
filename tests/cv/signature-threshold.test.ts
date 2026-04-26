@@ -1,10 +1,15 @@
 import { describe, it, expect } from 'vitest';
-import { signatureThreshold, computeOtsu, morphologicalClose } from '../../src/workers/cv/signature-threshold';
+import {
+  signatureThreshold,
+  computeOtsu,
+  morphologicalClose,
+} from '../../src/workers/cv/signature-threshold';
 import { solidImage } from '../helpers';
 
 describe('signatureThreshold', () => {
   it('extracts dark strokes on white background', () => {
-    const w = 100, h = 100;
+    const w = 100,
+      h = 100;
     // White background
     const pixels = solidImage(w, h, 255, 255, 255);
     // Draw a black horizontal stripe at y=50
@@ -30,7 +35,8 @@ describe('signatureThreshold', () => {
   });
 
   it('handles gray background with dark strokes via Sauvola', () => {
-    const w = 300, h = 300;
+    const w = 300,
+      h = 300;
     // Gray background (not white)
     const pixels = solidImage(w, h, 180, 180, 180);
     // Draw black strokes
@@ -54,7 +60,8 @@ describe('signatureThreshold', () => {
   });
 
   it('returns all transparent for all-white image', () => {
-    const w = 100, h = 100;
+    const w = 100,
+      h = 100;
     const pixels = solidImage(w, h, 255, 255, 255);
 
     const alpha = signatureThreshold(pixels, w, h);
@@ -68,7 +75,8 @@ describe('signatureThreshold', () => {
   });
 
   it('returns uniform alpha for all-black image (no contrast to detect)', () => {
-    const w = 100, h = 100;
+    const w = 100,
+      h = 100;
     const pixels = solidImage(w, h, 0, 0, 0);
 
     const alpha = signatureThreshold(pixels, w, h);
@@ -79,7 +87,10 @@ describe('signatureThreshold', () => {
     const first = alpha[0];
     let allEqual = true;
     for (let i = 1; i < alpha.length; i++) {
-      if (alpha[i] !== first) { allEqual = false; break; }
+      if (alpha[i] !== first) {
+        allEqual = false;
+        break;
+      }
     }
     expect(allEqual).toBe(true);
     // Value should be at the midpoint of the anti-aliasing band
@@ -88,7 +99,8 @@ describe('signatureThreshold', () => {
   });
 
   it('falls back to Otsu for small images', () => {
-    const w = 50, h = 50;
+    const w = 50,
+      h = 50;
     // Small image: should use Otsu, not Sauvola
     const pixels = solidImage(w, h, 255, 255, 255);
     // Add a dark spot
@@ -141,7 +153,8 @@ describe('computeOtsu', () => {
 
 describe('morphologicalClose', () => {
   it('fills single-pixel gap in a horizontal line', () => {
-    const w = 10, h = 5;
+    const w = 10,
+      h = 5;
     const alpha = new Uint8Array(w * h);
 
     // Horizontal line at y=2 with a 1px gap at x=5
@@ -156,7 +169,8 @@ describe('morphologicalClose', () => {
   });
 
   it('does not expand isolated pixels beyond close radius', () => {
-    const w = 20, h = 20;
+    const w = 20,
+      h = 20;
     const alpha = new Uint8Array(w * h);
 
     // Single isolated pixel at center

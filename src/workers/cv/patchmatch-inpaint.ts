@@ -55,7 +55,7 @@ function makeRng(seed: number) {
     s ^= s << 13;
     s ^= s >>> 17;
     s ^= s << 5;
-    return ((s >>> 0) / 0xffffffff);
+    return (s >>> 0) / 0xffffffff;
   };
 }
 
@@ -126,7 +126,9 @@ export function initNNF(
         continue;
       }
       // Reject-sample a valid source
-      let sx = 0, sy = 0, tries = 0;
+      let sx = 0,
+        sy = 0,
+        tries = 0;
       do {
         sx = patchRadius + Math.floor(rng() * validSpanX);
         sy = patchRadius + Math.floor(rng() * validSpanY);
@@ -175,8 +177,17 @@ export function patchMatchInpaint(
     // Alternate scan direction between passes for fast propagation.
     const forward = (iter & 1) === 0;
     patchMatchPass(
-      work, width, height, mask, patchRadius, nnf, dist, searchRegion, rng,
-      forward, maxRadius,
+      work,
+      width,
+      height,
+      mask,
+      patchRadius,
+      nnf,
+      dist,
+      searchRegion,
+      rng,
+      forward,
+      maxRadius,
     );
     voteReconstruct(src, work, width, height, mask, patchRadius, nnf);
     // Distances are stale after voting; recompute for masked pixels.
@@ -212,7 +223,10 @@ function seedMaskedWithLocalMean(
   mask: Uint8Array,
 ): void {
   // Find mask bounding box
-  let minX = width, minY = height, maxX = -1, maxY = -1;
+  let minX = width,
+    minY = height,
+    maxX = -1,
+    maxY = -1;
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
       if (!mask[y * width + x]) continue;
@@ -225,14 +239,21 @@ function seedMaskedWithLocalMean(
   if (maxX < 0) return;
   // Take a ring around the bbox as reference
   const pad = Math.max(8, Math.floor(Math.max(maxX - minX, maxY - minY) * 0.5));
-  const rx0 = Math.max(0, minX - pad), rx1 = Math.min(width - 1, maxX + pad);
-  const ry0 = Math.max(0, minY - pad), ry1 = Math.min(height - 1, maxY + pad);
-  let r = 0, g = 0, b = 0, n = 0;
+  const rx0 = Math.max(0, minX - pad),
+    rx1 = Math.min(width - 1, maxX + pad);
+  const ry0 = Math.max(0, minY - pad),
+    ry1 = Math.min(height - 1, maxY + pad);
+  let r = 0,
+    g = 0,
+    b = 0,
+    n = 0;
   for (let y = ry0; y <= ry1; y++) {
     for (let x = rx0; x <= rx1; x++) {
       if (mask[y * width + x]) continue;
       const i = (y * width + x) * 4;
-      r += img[i]; g += img[i + 1]; b += img[i + 2];
+      r += img[i];
+      g += img[i + 1];
+      b += img[i + 2];
       n++;
     }
   }
@@ -243,7 +264,10 @@ function seedMaskedWithLocalMean(
   for (let i = 0; i < mask.length; i++) {
     if (!mask[i]) continue;
     const p = i * 4;
-    img[p] = r; img[p + 1] = g; img[p + 2] = b; img[p + 3] = 255;
+    img[p] = r;
+    img[p + 1] = g;
+    img[p + 2] = b;
+    img[p + 3] = 255;
   }
 }
 
@@ -259,9 +283,16 @@ function computeInitialDistances(
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
       const idx = y * width + x;
-      if (!mask[idx]) { dist[idx] = 0; continue; }
-      if (!fits(x, y, width, height, patchRadius)) { dist[idx] = Infinity; continue; }
-      const sx = nnf[idx * 2], sy = nnf[idx * 2 + 1];
+      if (!mask[idx]) {
+        dist[idx] = 0;
+        continue;
+      }
+      if (!fits(x, y, width, height, patchRadius)) {
+        dist[idx] = Infinity;
+        continue;
+      }
+      const sx = nnf[idx * 2],
+        sy = nnf[idx * 2 + 1];
       dist[idx] = patchDistance(work, work, width, height, x, y, sx, sy, patchRadius);
     }
   }
@@ -281,7 +312,8 @@ function recomputeMaskedDistances(
       const idx = y * width + x;
       if (!mask[idx]) continue;
       if (!fits(x, y, width, height, patchRadius)) continue;
-      const sx = nnf[idx * 2], sy = nnf[idx * 2 + 1];
+      const sx = nnf[idx * 2],
+        sy = nnf[idx * 2 + 1];
       dist[idx] = patchDistance(work, work, width, height, x, y, sx, sy, patchRadius);
     }
   }
@@ -336,7 +368,11 @@ function patchMatchPass(
         const candY = nnf[nidx * 2 + 1];
         if (isValidSource(candX, candY, width, height, mask, patchRadius, searchRegion)) {
           const d = patchDistance(work, work, width, height, x, y, candX, candY, patchRadius);
-          if (d < bestD) { bestD = d; bestSx = candX; bestSy = candY; }
+          if (d < bestD) {
+            bestD = d;
+            bestSx = candX;
+            bestSy = candY;
+          }
         }
       }
       // ── Propagation from vertical neighbour ──
@@ -347,7 +383,11 @@ function patchMatchPass(
         const candY = nnf[nidx * 2 + 1] - off;
         if (isValidSource(candX, candY, width, height, mask, patchRadius, searchRegion)) {
           const d = patchDistance(work, work, width, height, x, y, candX, candY, patchRadius);
-          if (d < bestD) { bestD = d; bestSx = candX; bestSy = candY; }
+          if (d < bestD) {
+            bestD = d;
+            bestSx = candX;
+            bestSy = candY;
+          }
         }
       }
 
@@ -358,7 +398,11 @@ function patchMatchPass(
         const candY = Math.round(bestSy + (rng() * 2 - 1) * radius);
         if (isValidSource(candX, candY, width, height, mask, patchRadius, searchRegion)) {
           const d = patchDistance(work, work, width, height, x, y, candX, candY, patchRadius);
-          if (d < bestD) { bestD = d; bestSx = candX; bestSy = candY; }
+          if (d < bestD) {
+            bestD = d;
+            bestSx = candX;
+            bestSy = candY;
+          }
         }
         radius = Math.floor(radius / 2);
       }
@@ -418,7 +462,8 @@ function voteReconstruct(
       // contribution averages over all overlapping source patches.
       for (let dy = -patchRadius; dy <= patchRadius; dy++) {
         for (let dx = -patchRadius; dx <= patchRadius; dx++) {
-          const tx = x + dx, ty = y + dy;
+          const tx = x + dx,
+            ty = y + dy;
           if (tx < 0 || ty < 0 || tx >= width || ty >= height) continue;
           const tIdx = ty * width + tx;
           if (!mask[tIdx]) continue; // only write masked pixels

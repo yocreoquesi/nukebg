@@ -39,11 +39,11 @@ export function watermarkDetect(
   width: number,
   height: number,
   colorA: number[],
-  colorB: number[]
+  colorB: number[],
 ): WatermarkResult {
   let scanSize = Math.max(
     WATERMARK_PARAMS.MIN_SCAN_SIZE,
-    Math.floor(Math.min(height, width) / WATERMARK_PARAMS.SCAN_FRACTION)
+    Math.floor(Math.min(height, width) / WATERMARK_PARAMS.SCAN_FRACTION),
   );
   scanSize = Math.min(scanSize, Math.floor(Math.min(height, width) / 2));
 
@@ -65,12 +65,12 @@ export function watermarkDetect(
         const diffA = Math.max(
           Math.abs(r - colorA[0]),
           Math.abs(g - colorA[1]),
-          Math.abs(b - colorA[2])
+          Math.abs(b - colorA[2]),
         );
         const diffB = Math.max(
           Math.abs(r - colorB[0]),
           Math.abs(g - colorB[1]),
-          Math.abs(b - colorB[2])
+          Math.abs(b - colorB[2]),
         );
         const deviation = Math.min(diffA, diffB);
 
@@ -96,7 +96,8 @@ export function watermarkDetect(
   }
 
   // Compute center
-  let sumY = 0, sumX = 0;
+  let sumY = 0,
+    sumX = 0;
   for (const [ly, lx] of sparkleCoords) {
     sumY += ly;
     sumX += lx;
@@ -120,7 +121,10 @@ export function watermarkDetect(
   const cxAbs = width - scanSize + cxLocal;
 
   // Compute spread and radius
-  let minY = Infinity, maxY = -Infinity, minX = Infinity, maxX = -Infinity;
+  let minY = Infinity,
+    maxY = -Infinity,
+    minX = Infinity,
+    maxX = -Infinity;
   for (const [ly, lx] of sparkleCoords) {
     minY = Math.min(minY, ly);
     maxY = Math.max(maxY, ly);
@@ -148,12 +152,12 @@ export function watermarkDetect(
         const diffA = Math.max(
           Math.abs(r - colorA[0]),
           Math.abs(g - colorA[1]),
-          Math.abs(b - colorA[2])
+          Math.abs(b - colorA[2]),
         );
         const diffB = Math.max(
           Math.abs(r - colorB[0]),
           Math.abs(g - colorB[1]),
-          Math.abs(b - colorB[2])
+          Math.abs(b - colorB[2]),
         );
         const dev = Math.min(diffA, diffB);
         if (dev > WATERMARK_PARAMS.HALO_DEVIATION_THRESHOLD && isGeminiSparkleColor(r, g, b)) {

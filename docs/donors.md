@@ -98,7 +98,7 @@ When the response arrives, edit the JSON.
   "name": "<as approved by the donor>",
   "amount_eur": 25,
   "date": "2026-04-30",
-  "consent": "explicit"
+  "consent": "explicit",
 }
 ```
 
@@ -146,7 +146,7 @@ The reactor page footer surfaces the removal contact email so
 supporters never have to dig:
 
 > "If you appear here and want to be removed, email <contact> —
->  done within 7 days, no questions."
+> done within 7 days, no questions."
 
 ## What NOT to do
 
@@ -172,14 +172,14 @@ in `src/utils/reactor-economics.ts` via the `DonorsFile` interface):
 ```typescript
 interface DonorsFile {
   version: 1;
-  updated_at: string;        // YYYY-MM-DD
+  updated_at: string; // YYYY-MM-DD
   supporters: Array<{
-    name: string;            // as approved by the donor
-    amount_eur: number;      // EUR, integer or one decimal
-    date: string;            // YYYY-MM-DD donation date
-    consent: 'explicit';     // only value accepted right now
+    name: string; // as approved by the donor
+    amount_eur: number; // EUR, integer or one decimal
+    date: string; // YYYY-MM-DD donation date
+    consent: 'explicit'; // only value accepted right now
   }>;
-  anonymous_count: number;   // bucket size
+  anonymous_count: number; // bucket size
   anonymous_total_eur: number;
 }
 ```

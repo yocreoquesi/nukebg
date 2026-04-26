@@ -104,7 +104,7 @@ describe('ar-progress — replay after reset', () => {
     ];
     replay(el, history);
     const stages = stageEls(el);
-    const errorStage = stages.find(s => s.className.includes('error'));
+    const errorStage = stages.find((s) => s.className.includes('error'));
     expect(errorStage).toBeDefined();
     // Error icon draws two crossing <line> elements
     expect(iconHtml(errorStage!)).toContain('<line');

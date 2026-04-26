@@ -9,10 +9,10 @@ Playwright ships its own WebKit build (same engine Apple uses on macOS
 and iOS). On every PR, CI runs the `e2e-safari` matrix with two
 projects:
 
-| Project  | Playwright preset      | Why                                    |
-|----------|------------------------|----------------------------------------|
-| `webkit` | `Desktop Safari`       | Catches desktop Safari rendering bugs. |
-| `iphone` | `iPhone 15 Pro`        | Touch + viewport + iOS-ish behaviour.  |
+| Project  | Playwright preset | Why                                    |
+| -------- | ----------------- | -------------------------------------- |
+| `webkit` | `Desktop Safari`  | Catches desktop Safari rendering bugs. |
+| `iphone` | `iPhone 15 Pro`   | Touch + viewport + iOS-ish behaviour.  |
 
 The job is `continue-on-error: true` today because:
 
@@ -64,18 +64,18 @@ drain in an afternoon otherwise.
 
 ## What each tier catches
 
-| Class of bug                                        | Tier 1 | Tier 2 | Tier 3 |
-|-----------------------------------------------------|--------|--------|--------|
-| CSS / layout rendering                              | ✅     | ✅     | ✅     |
-| Font hinting / kerning                              | ≈      | ✅     | ✅     |
-| WebKit-specific JS engine quirks                    | ✅     | ✅     | ✅     |
-| Touch gesture timing (synthetic vs native)          | ≈      | ≈      | ✅     |
-| ITP / Intelligent Tracking Prevention / storage     | ❌     | ≈      | ✅     |
-| `navigator.share` behaviour                         | ❌     | ❌     | ✅     |
-| `capture="environment"` on `<input type="file">`    | ❌     | ❌     | ✅     |
-| PWA "Add to Home Screen"                            | ❌     | ❌     | ✅     |
-| SharedArrayBuffer + COOP / COEP                     | ≈      | ✅     | ✅     |
-| iOS Safari warmup hang at 96 % (real ML)            | ❌     | ≈      | ✅     |
+| Class of bug                                     | Tier 1 | Tier 2 | Tier 3 |
+| ------------------------------------------------ | ------ | ------ | ------ |
+| CSS / layout rendering                           | ✅     | ✅     | ✅     |
+| Font hinting / kerning                           | ≈      | ✅     | ✅     |
+| WebKit-specific JS engine quirks                 | ✅     | ✅     | ✅     |
+| Touch gesture timing (synthetic vs native)       | ≈      | ≈      | ✅     |
+| ITP / Intelligent Tracking Prevention / storage  | ❌     | ≈      | ✅     |
+| `navigator.share` behaviour                      | ❌     | ❌     | ✅     |
+| `capture="environment"` on `<input type="file">` | ❌     | ❌     | ✅     |
+| PWA "Add to Home Screen"                         | ❌     | ❌     | ✅     |
+| SharedArrayBuffer + COOP / COEP                  | ≈      | ✅     | ✅     |
+| iOS Safari warmup hang at 96 % (real ML)         | ❌     | ≈      | ✅     |
 
 Legend: ✅ reliable · ≈ partial · ❌ not testable.
 

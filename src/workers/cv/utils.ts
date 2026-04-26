@@ -64,15 +64,11 @@ export function pixelIndex(x: number, y: number, width: number): number {
 }
 
 /** Max channel difference between pixel at (x,y) and an RGB color */
-export function maxChannelDiff(
-  pixels: Uint8ClampedArray,
-  idx: number,
-  color: number[]
-): number {
+export function maxChannelDiff(pixels: Uint8ClampedArray, idx: number, color: number[]): number {
   return Math.max(
     Math.abs(pixels[idx] - color[0]),
     Math.abs(pixels[idx + 1] - color[1]),
-    Math.abs(pixels[idx + 2] - color[2])
+    Math.abs(pixels[idx + 2] - color[2]),
   );
 }
 
@@ -101,7 +97,5 @@ export function median(arr: number[]): number {
   if (arr.length === 0) return 0;
   const sorted = arr.slice().sort((a, b) => a - b);
   const mid = Math.floor(sorted.length / 2);
-  return sorted.length % 2 !== 0
-    ? sorted[mid]
-    : (sorted[mid - 1] + sorted[mid]) / 2;
+  return sorted.length % 2 !== 0 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
 }

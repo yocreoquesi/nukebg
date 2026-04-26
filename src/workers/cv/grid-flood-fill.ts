@@ -13,7 +13,7 @@ export function gridFloodFill(
   colorLight: number[],
   gridSize: number,
   phase: number,
-  tolerance: number = CV_PARAMS.COLOR_TOLERANCE
+  tolerance: number = CV_PARAMS.COLOR_TOLERANCE,
 ): Uint8Array {
   const totalPixels = width * height;
   const potentialBg = new Uint8Array(totalPixels);
@@ -33,9 +33,7 @@ export function gridFloodFill(
       const diffLight = maxChannelDiff(pixels, idx, colorLight);
 
       // Grid-aware match: pixel matches expected color for its cell
-      const gridMatch = parity === 0
-        ? diffDark <= tolerance
-        : diffLight <= tolerance;
+      const gridMatch = parity === 0 ? diffDark <= tolerance : diffLight <= tolerance;
 
       // Near boundary: accept either color for connectivity
       const distBx = Math.min(x % gridSize, gridSize - 1 - (x % gridSize));

@@ -7,7 +7,9 @@ describe('subjectExclusion', () => {
   const light: [number, number, number] = [255, 255, 255];
 
   it('marca todo como fondo en checkerboard puro', () => {
-    const w = 128, h = 128, gs = 16;
+    const w = 128,
+      h = 128,
+      gs = 16;
     const pixels = checkerboardImage(w, h, gs, dark, light);
 
     const mask = subjectExclusion(pixels, w, h, dark, light, gs, 0);
@@ -18,7 +20,9 @@ describe('subjectExclusion', () => {
   });
 
   it('identifica sujeto colorido central', () => {
-    const w = 128, h = 128, gs = 16;
+    const w = 128,
+      h = 128,
+      gs = 16;
     const pixels = checkerboardImage(w, h, gs, dark, light);
 
     // Sujeto rojo brillante de 48x48 en el centro
@@ -39,7 +43,9 @@ describe('subjectExclusion', () => {
   });
 
   it('el fondo checkerboard alrededor del sujeto se marca como bg', () => {
-    const w = 128, h = 128, gs = 16;
+    const w = 128,
+      h = 128,
+      gs = 16;
     const pixels = checkerboardImage(w, h, gs, dark, light);
     paintRect(pixels, w, 40, 40, 48, 48, 0, 200, 0);
 
@@ -58,7 +64,9 @@ describe('subjectExclusion', () => {
   });
 
   it('devuelve todo fondo si no hay sujeto detectable (baja saturacion)', () => {
-    const w = 64, h = 64, gs = 16;
+    const w = 64,
+      h = 64,
+      gs = 16;
     const pixels = checkerboardImage(w, h, gs, dark, light);
 
     const mask = subjectExclusion(pixels, w, h, dark, light, gs, 0);
@@ -69,7 +77,9 @@ describe('subjectExclusion', () => {
   });
 
   it('maneja imagen pequena sin crash', () => {
-    const w = 16, h = 16, gs = 8;
+    const w = 16,
+      h = 16,
+      gs = 8;
     const pixels = checkerboardImage(w, h, gs, dark, light);
 
     const mask = subjectExclusion(pixels, w, h, dark, light, gs, 0);
