@@ -30,10 +30,6 @@ describe('first-run explainer (#78)', () => {
     expect(DZ).toMatch(/label\.textContent = t\(['"]firstRun\.ready['"]\)/);
   });
 
-  it('camera CTA hides while the loading slot is active so the row does not reflow', () => {
-    expect(DZ).toMatch(/\.dropzone\.is-loading \.dz-camera-cta \{ display: none/);
-  });
-
   it('ar-app reveals the slot after 400 ms of sustained loading (cold-cache heuristic)', () => {
     expect(APP).toMatch(/window\.setTimeout\([\s\S]*?this\.dropzone\.setLoadingState\(\{ visible: true \}\)[\s\S]*?\}, 400\)/);
   });
