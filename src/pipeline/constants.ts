@@ -333,4 +333,44 @@ export const IMAGE_CLASSIFY_PARAMS = {
  * MobileSAM — interactive click-to-segment. Encoder runs once per image,
  * decoder runs per click (~300ms). Models from Acly/MobileSAM on HuggingFace
  * (MIT license, compatible with GPL-3.0). Lab-only for now.
+ *
+ *  Integrity:
+ *  - URLs are pinned to a specific repo commit (not `main`) so an upstream
+ *    replacement is caught by the SHA-256 checks below.
+ *  - The worker computes SHA-256 of the downloaded bytes and refuses
+ *    to hand them to ORT if it diverges (mirror of LAMA_PARAMS pattern).
+ *  Audit date: 2026-04-26.
  */
+export const MOBILESAM_PARAMS = {
+  REVISION: '0d3b403339b4674a82493d5e97964dd78089ddc8',
+  ENCODER_URL:
+    'https://huggingface.co/Acly/MobileSAM/resolve/0d3b403339b4674a82493d5e97964dd78089ddc8/mobile_sam_image_encoder.onnx',
+  ENCODER_SIZE: 28_157_093,
+  ENCODER_SHA256: '580f5fb648ea1062c0aabc26217aed56921985f03f0cbbd852bba81d760cc749',
+  DECODER_URL:
+    'https://huggingface.co/Acly/MobileSAM/resolve/0d3b403339b4674a82493d5e97964dd78089ddc8/sam_mask_decoder_single.onnx',
+  DECODER_SIZE: 16_501_323,
+  DECODER_SHA256: '93915fc7c993ab9d59ab8c9ccd3bce37f7509c81ab4150a74abd4d2abbd8570d',
+} as const;
+
+/**
+ * RMBG-1.4 — primary background-removal model loaded by transformers.js
+ * with `dtype: 'q8'`. The library caches the quantized ONNX in the
+ * standard browser Cache API ("transformers-cache" by default). After
+ * `pipeline()` resolves we re-read that cached blob and SHA-256 it
+ * against the audited hash; on mismatch we evict the cache entry and
+ * refuse to use the loaded session.
+ *
+ *  Source: briaai/RMBG-1.4 on HuggingFace (CC-BY-NC-4.0).
+ *  Audit date: 2026-04-26.
+ */
+export const RMBG_PARAMS = {
+  REVISION: '2ceba5a5efaec153162aedea169f76caf9b46cf8',
+  /** Cache key transformers.js uses (full URL of the file it fetched). */
+  MODEL_URL:
+    'https://huggingface.co/briaai/RMBG-1.4/resolve/2ceba5a5efaec153162aedea169f76caf9b46cf8/onnx/model_quantized.onnx',
+  EXPECTED_SIZE: 44_403_226,
+  EXPECTED_SHA256: 'a6648479275dfd0ede0f3a8abc20aa5c437b394681b05e5af6d268250aaf40f3',
+  /** Cache name used by @huggingface/transformers v3 in the browser. */
+  CACHE_NAME: 'transformers-cache',
+} as const;

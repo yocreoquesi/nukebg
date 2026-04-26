@@ -13,9 +13,8 @@
  */
 import * as ort from 'onnxruntime-web';
 import type { SamWorkerRequest, SamWorkerResponse } from '../types/worker-messages';
+import { MOBILESAM_PARAMS } from '../pipeline/constants';
 const SAM_PARAMS = {
-  ENCODER_URL: 'https://huggingface.co/Acly/MobileSAM/resolve/main/mobile_sam_image_encoder.onnx',
-  DECODER_URL: 'https://huggingface.co/Acly/MobileSAM/resolve/main/sam_mask_decoder_single.onnx',
   INPUT_SIZE: 1024,
   MASK_SIZE: 256,
   MASK_THRESHOLD: 0.0,
@@ -38,6 +37,8 @@ async function fetchModel(
   url: string,
   id: string,
   stage: 'encoder' | 'decoder',
+  expectedSize: number,
+  expectedSha256: string,
 ): Promise<Uint8Array> {
   const response = await fetch(url);
   if (!response.ok) throw new Error(`SAM ${stage} fetch failed: HTTP ${response.status}`);
@@ -66,12 +67,32 @@ async function fetchModel(
       }
     }
   }
+
+  if (received !== expectedSize) {
+    throw new Error(
+      `SAM ${stage} size mismatch: got ${received} bytes, expected ${expectedSize}. ` +
+        `Upstream may have been replaced.`,
+    );
+  }
+
   const buffer = new Uint8Array(received);
   let offset = 0;
   for (const c of chunks) {
     buffer.set(c, offset);
     offset += c.byteLength;
   }
+
+  const digestBuf = await crypto.subtle.digest('SHA-256', buffer);
+  const digestHex = Array.from(new Uint8Array(digestBuf))
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
+  if (digestHex !== expectedSha256) {
+    throw new Error(
+      `SAM ${stage} hash mismatch: got ${digestHex}, expected ${expectedSha256}. ` +
+        `Refusing to load.`,
+    );
+  }
+
   return buffer;
 }
 
@@ -86,8 +107,20 @@ async function loadModels(id: string): Promise<void> {
       logSeverityLevel: 3,
     };
     const [encBuf, decBuf] = await Promise.all([
-      fetchModel(SAM_PARAMS.ENCODER_URL, id, 'encoder'),
-      fetchModel(SAM_PARAMS.DECODER_URL, id, 'decoder'),
+      fetchModel(
+        MOBILESAM_PARAMS.ENCODER_URL,
+        id,
+        'encoder',
+        MOBILESAM_PARAMS.ENCODER_SIZE,
+        MOBILESAM_PARAMS.ENCODER_SHA256,
+      ),
+      fetchModel(
+        MOBILESAM_PARAMS.DECODER_URL,
+        id,
+        'decoder',
+        MOBILESAM_PARAMS.DECODER_SIZE,
+        MOBILESAM_PARAMS.DECODER_SHA256,
+      ),
     ]);
     encoderSession = await ort.InferenceSession.create(encBuf, opts);
     decoderSession = await ort.InferenceSession.create(decBuf, opts);
