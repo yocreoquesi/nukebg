@@ -191,6 +191,13 @@ const translations: Translations = {
     // Header / Footer (index.html)
     'header.skipLink': 'Skip to main content',
     'footer.kofi': '\u2615 Support on Ko-fi',
+    'cta.firstStar.text': '$ if this saved you 5 minutes, drop a star on the repo',
+    'cta.firstStar.cta': 'star on github',
+    'cta.fiveTip.text': '$ stat reactor: tip €5 = +1.6 days of dev runway',
+    'cta.fiveTip.cta': 'tip the reactor',
+    'cta.tenReview.text': '$ echo "nukebg works" | wall: drop a review where devs hang out',
+    'cta.tenReview.cta': 'open discussion',
+    'cta.dismiss': 'dismiss',
     'footer.privacy': 'Your images never leave your device. Zero uploads. Zero BS.',
 
     // Pipeline error
@@ -414,6 +421,13 @@ const translations: Translations = {
     // Header / Footer (index.html)
     'header.skipLink': 'Saltar al contenido principal',
     'footer.kofi': '\u2615 Apoyar en Ko-fi',
+    'cta.firstStar.text': '$ si te ahorró 5 minutos, dejá una estrella en el repo',
+    'cta.firstStar.cta': 'estrella en github',
+    'cta.fiveTip.text': '$ stat reactor: tip €5 = +1.6 días de runway',
+    'cta.fiveTip.cta': 'alimentar el reactor',
+    'cta.tenReview.text': '$ echo "nukebg funciona" | wall: dejá una review donde los devs hablan',
+    'cta.tenReview.cta': 'abrir discusión',
+    'cta.dismiss': 'cerrar',
     'footer.privacy': 'Tus im\u00E1genes nunca salen de tu dispositivo. Cero subidas. Cero complicaciones.',
 
     // Pipeline error
@@ -637,6 +651,13 @@ const translations: Translations = {
     // Header / Footer (index.html)
     'header.skipLink': 'Aller au contenu principal',
     'footer.kofi': '\u2615 Soutenir sur Ko-fi',
+    'cta.firstStar.text': '$ si ça t a fait gagner 5 minutes, laisse une étoile sur le repo',
+    'cta.firstStar.cta': 'étoile sur github',
+    'cta.fiveTip.text': '$ stat reactor: tip €5 = +1.6 jours de runway',
+    'cta.fiveTip.cta': 'alimenter le réacteur',
+    'cta.tenReview.text': '$ echo "nukebg marche" | wall: laisse un avis là où les devs traînent',
+    'cta.tenReview.cta': 'ouvrir une discussion',
+    'cta.dismiss': 'fermer',
     'footer.privacy': 'Tes images ne quittent jamais ton appareil. Z\u00E9ro upload. Z\u00E9ro baratin.',
 
     // Pipeline error
@@ -860,6 +881,13 @@ const translations: Translations = {
     // Header / Footer (index.html)
     'header.skipLink': 'Zum Hauptinhalt springen',
     'footer.kofi': '\u2615 Unterst\u00FCtzen auf Ko-fi',
+    'cta.firstStar.text': '$ wenn das 5 Minuten gespart hat, gib einen Stern auf dem Repo',
+    'cta.firstStar.cta': 'Stern auf GitHub',
+    'cta.fiveTip.text': '$ stat reactor: Tip €5 = +1.6 Tage Runway',
+    'cta.fiveTip.cta': 'Reaktor speisen',
+    'cta.tenReview.text': '$ echo "nukebg funktioniert" | wall: Bewertung wo Devs hängen',
+    'cta.tenReview.cta': 'Diskussion öffnen',
+    'cta.dismiss': 'schließen',
     'footer.privacy': 'Deine Bilder verlassen nie dein Ger\u00E4t. Null Uploads. Null Bullshit.',
 
     // Pipeline error
@@ -1083,6 +1111,13 @@ const translations: Translations = {
     // Header / Footer (index.html)
     'header.skipLink': 'Pular para o conte\u00FAdo principal',
     'footer.kofi': '\u2615 Apoiar no Ko-fi',
+    'cta.firstStar.text': '$ se te poupou 5 minutos, deixa uma estrela no repo',
+    'cta.firstStar.cta': 'estrela no github',
+    'cta.fiveTip.text': '$ stat reactor: tip €5 = +1.6 dias de runway',
+    'cta.fiveTip.cta': 'alimentar o reator',
+    'cta.tenReview.text': '$ echo "nukebg funciona" | wall: deixa uma review onde os devs ficam',
+    'cta.tenReview.cta': 'abrir discussão',
+    'cta.dismiss': 'fechar',
     'footer.privacy': 'Suas imagens nunca saem do seu dispositivo. Zero uploads. Zero enrola\u00E7\u00E3o.',
 
     // Pipeline error
@@ -1306,6 +1341,13 @@ const translations: Translations = {
     // Header / Footer (index.html)
     'header.skipLink': '\u8DF3\u8F6C\u5230\u4E3B\u8981\u5185\u5BB9',
     'footer.kofi': '\u2615 \u5728 Ko-fi \u4E0A\u652F\u6301\u6211\u4EEC',
+    'cta.firstStar.text': '$ \u5982\u679C\u7701\u4E86\u4F60 5 \u5206\u949F, \u8BF7\u5728\u4ED3\u5E93\u70B9\u4E2A star',
+    'cta.firstStar.cta': 'github star',
+    'cta.fiveTip.text': '$ stat reactor: \u8D44\u52A9 \u20AC5 = +1.6 \u5929\u5F00\u53D1\u65F6\u95F4',
+    'cta.fiveTip.cta': '\u8D44\u52A9\u53CD\u5E94\u5806',
+    'cta.tenReview.text': '$ echo "nukebg \u597D\u7528" | wall: \u5728\u5F00\u53D1\u8005\u793E\u533A\u7559\u4E2A\u8BC4\u4EF7',
+    'cta.tenReview.cta': '\u6253\u5F00\u8BA8\u8BBA',
+    'cta.dismiss': '\u5173\u95ED',
     'footer.privacy': '\u4F60\u7684\u56FE\u7247\u6C38\u8FDC\u4E0D\u4F1A\u79BB\u5F00\u4F60\u7684\u8BBE\u5907\u3002\u96F6\u4E0A\u4F20\u3002\u4E0D\u6574\u865A\u7684\u3002',
 
     // Pipeline error

@@ -1675,6 +1675,10 @@ export class ArApp extends HTMLElement {
         this.isProcessing = false;
         this.enableWorkspaceButtons();
         this.updateCommandBarState('ready');
+        // Notify the post-process CTA module so it can decide whether
+        // to surface a star/tip/review ask. Light DOM listener — fires
+        // and forgets, no return contract.
+        document.dispatchEvent(new CustomEvent('ar:nuke-success'));
       }
     }
   }
