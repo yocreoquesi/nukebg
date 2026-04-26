@@ -182,6 +182,13 @@ class ArReactor extends HTMLElement {
         font-family: 'JetBrains Mono', monospace;
         color: var(--color-text-primary, #00ff41);
       }
+      /* Custom-element gotcha: an explicit \`:host { display: block }\`
+         overrides the browser-default \`[hidden] { display: none }\` rule,
+         so the host stays visible even when the hash router applies the
+         \`hidden\` attribute. Restore the expected behaviour. */
+      :host([hidden]) {
+        display: none;
+      }
       .reactor-head {
         margin-bottom: var(--space-5, 1.5rem);
       }
