@@ -27,8 +27,8 @@ interface ReactorStatusStrings {
   footerStatus: (runtime: string) => string;
   /** Marquee segment. Receives `{runtime}` as the runtime label. */
   marqueeFunding: (runtime: string) => string;
-  /** aria-label / title for the Ko-fi link. Receives `{runtime}`. */
-  kofiAriaLabel: (runtime: string) => string;
+  /** aria-label for the footer link to the /reactor page. Receives `{runtime}`. */
+  reactorLinkAria: (runtime: string) => string;
 }
 
 export async function applyReactorStatus(strings: ReactorStatusStrings): Promise<void> {
@@ -66,8 +66,8 @@ function applyDom(runtimeLabel: string, strings: ReactorStatusStrings): void {
     el.textContent = strings.marqueeFunding(runtimeLabel);
   });
 
-  const kofi = document.getElementById('kofi-link');
-  if (kofi) kofi.setAttribute('aria-label', strings.kofiAriaLabel(runtimeLabel));
+  const reactorLink = document.getElementById('reactor-link');
+  if (reactorLink) reactorLink.setAttribute('aria-label', strings.reactorLinkAria(runtimeLabel));
 }
 
 /** Exported for tests — the burn rate in human-readable form. */
