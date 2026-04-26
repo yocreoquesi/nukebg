@@ -3,8 +3,36 @@ import type { WatermarkResult } from '../../types/pipeline';
 import { pixelIndex } from './utils';
 
 /**
+ * Returns true when the pixel matches the Gemini sparkle palette: a
+ * near-white or slightly cyan-tinted bright pixel. The original sparkle
+ * is pure white (#FFFFFF) with a light blue halo (~#A0D8E0), and JPEG
+ * compression rounds those into a tight high-luminance / low-saturation
+ * region. Without this gate the deviation accumulator counts ANY weird
+ * pixel in the bottom-right corner — bright reflections, white spots in
+ * flowers, product marks, sun glare — all triggered false positives
+ * (issue #152).
+ */
+function isGeminiSparkleColor(r: number, g: number, b: number): boolean {
+  // Near-white: high luminance + low saturation
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  if (max < 200) return false;
+  const saturation = max - min;
+  if (saturation <= 35) return true; // white / very light grey
+  // Slight blueish-white halo: blue channel slightly leads, all bright
+  if (b >= r && b >= g && r >= 180 && g >= 180) return true;
+  return false;
+}
+
+/**
  * Detect the Gemini sparkle watermark in the bottom-right corner.
  * Port of Python detect_gemini_watermark().
+ *
+ * Now gated by `isGeminiSparkleColor` (issue #152) so that only pixels
+ * matching the actual sparkle palette count toward the deviation
+ * accumulator. Eliminates the broad family of false positives where
+ * bright non-sparkle features in the bottom-right corner fired the
+ * detector.
  */
 export function watermarkDetect(
   pixels: Uint8ClampedArray,
@@ -46,7 +74,7 @@ export function watermarkDetect(
         );
         const deviation = Math.min(diffA, diffB);
 
-        if (deviation > threshold) {
+        if (deviation > threshold && isGeminiSparkleColor(r, g, b)) {
           sparkleCoords.push([ly, lx]);
         }
       }
@@ -128,7 +156,7 @@ export function watermarkDetect(
           Math.abs(b - colorB[2])
         );
         const dev = Math.min(diffA, diffB);
-        if (dev > WATERMARK_PARAMS.HALO_DEVIATION_THRESHOLD) {
+        if (dev > WATERMARK_PARAMS.HALO_DEVIATION_THRESHOLD && isGeminiSparkleColor(r, g, b)) {
           mask[y * width + x] = 1;
         }
       }
