@@ -10,6 +10,82 @@ Unreleased entries accumulate on the `dev` branch. When we cut a release we copy
 
 ## [Unreleased]
 
+## [2.9.0] — 2026-04-26
+
+### Added
+
+- **`/reactor` transparency page** — public sunk-cost + forward-burn breakdown
+  (estimated hours × fair Spain rate, AI assistant subs + domain), runtime
+  remaining vs. lifetime donations, donor consent workflow with 7-day GDPR
+  removal SLA, and methodology footnote.
+  ([#137](https://github.com/yocreoquesi/nukebg/pull/137),
+  [#138](https://github.com/yocreoquesi/nukebg/pull/138),
+  [#139](https://github.com/yocreoquesi/nukebg/pull/139),
+  [#140](https://github.com/yocreoquesi/nukebg/pull/140),
+  [#141](https://github.com/yocreoquesi/nukebg/pull/141))
+- **Footer + marquee runtime-aware copy** — Ko-fi CTA renamed to "Tip the
+  reactor", marquee surfaces forward runtime when funded.
+  ([#138](https://github.com/yocreoquesi/nukebg/pull/138))
+- **Post-process CTA rotation** — first-star at run #1, five-tip at #5,
+  ten-review at #10. localStorage-tracked, dismissable.
+  ([#139](https://github.com/yocreoquesi/nukebg/pull/139))
+- **Manual remove-watermark lasso action** — distinct from erase-object: uses
+  PatchMatch inpaint to reconstruct pixels rather than zeroing alpha.
+  Best for unwanted logos / marks the auto-detector misses.
+  ([#152](https://github.com/yocreoquesi/nukebg/pull/152))
+- **SHA-256 supply-chain verification for RMBG-1.4 + MobileSAM** — both models
+  now pinned to a 40-hex commit SHA and hash-verified post-download (mirrors
+  the existing LaMa pattern). Tampered or upstream-replaced blobs are rejected
+  before reaching the ONNX runtime.
+  ([#132](https://github.com/yocreoquesi/nukebg/pull/132))
+- **Contributor licensing terms (CLA)** alongside MobileSAM + LaMa license
+  documentation in repo. ([#130](https://github.com/yocreoquesi/nukebg/pull/130))
+
+### Changed
+
+- **Watermark detection: color-specificity gate** — rejects Gemini-sparkle
+  false positives that the deviation accumulator was flagging on real photos.
+  ([#152](https://github.com/yocreoquesi/nukebg/pull/152))
+- **ES localization rewritten in peninsular tuteo** — voseo forms removed
+  (no more "dejá / mirá / mandá / aparecés"), Spanglish cleaned ("watermark"
+  → "marca de agua"), the broken `hero.subtitle.short` fragment fixed to
+  mirror the EN imperative, and the brand verb \`nukea / nukear / nukeada\`
+  preserved where the EN uses "nuke".
+  ([#147](https://github.com/yocreoquesi/nukebg/pull/147))
+- **Download CTAs stack at ≤640px** (was ≤480) so the buttons no longer
+  overflow on mid-size mobile viewports.
+  ([#150](https://github.com/yocreoquesi/nukebg/pull/150))
+- **CI: Lint + format job is now blocking** after the prettier sweep
+  cleared the 159-file backlog.
+  ([#134](https://github.com/yocreoquesi/nukebg/pull/134))
+
+### Removed
+
+- **Quiet mode toggle** — redundant after the Reactor pivot. The motion /
+  flicker layer it gated had already been removed; OS \`prefers-reduced-motion\`
+  is the only switch that still matters.
+  ([#148](https://github.com/yocreoquesi/nukebg/pull/148))
+- **Web Share button** in the result actions — duplicated the native browser
+  share, made the CTA row overflow on mobile.
+  ([#150](https://github.com/yocreoquesi/nukebg/pull/150))
+- **"Nueva imagen" command-bar button** — duplicate of "procesar otra".
+  ([#151](https://github.com/yocreoquesi/nukebg/pull/151))
+- **Camera CTA + "Tomar foto"** in the dropzone — confusing on mobile, the
+  native file picker already exposes the camera.
+  ([#155](https://github.com/yocreoquesi/nukebg/pull/155))
+
+### Fixed
+
+- **Mobile hero `$` glyph duplication** — the short-form hero was rendering
+  `$ $` because both the template and the i18n short-form prefixed the
+  prompt. ([#155](https://github.com/yocreoquesi/nukebg/pull/155))
+- **Footer "privacy" overflow on ≤480 px** — hidden on the smallest
+  viewports so the brand row fits.
+  ([#155](https://github.com/yocreoquesi/nukebg/pull/155))
+- **e2e \`coche-capture\` cold-start budget bumped** — partial fix
+  (200 s → 300 s). Proper warmup beforeAll tracked separately in #160.
+  ([#160](https://github.com/yocreoquesi/nukebg/issues/160))
+
 ## [2.8.0] — 2026-04-25
 
 ### Added
