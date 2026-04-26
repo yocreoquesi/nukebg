@@ -976,7 +976,6 @@ export class ArApp extends HTMLElement {
               </span>
             </div>
             <div class="cmd-right">
-              <button type="button" class="cmd-btn" id="cmd-new-image">${t('cmdbar.newImage')}</button>
               <button type="button" class="cmd-btn cmd-btn-danger" id="cmd-cancel" hidden>${t('cmdbar.cancel')}</button>
             </div>
           </div>
@@ -1084,8 +1083,6 @@ export class ArApp extends HTMLElement {
     if (errRetry) errRetry.textContent = t('error.retry');
     const errDismiss = root.querySelector('#error-modal-dismiss');
     if (errDismiss) errDismiss.textContent = t('error.dismiss');
-    const cmdNew = root.querySelector('#cmd-new-image');
-    if (cmdNew) cmdNew.textContent = t('cmdbar.newImage');
     const cmdCancel = root.querySelector('#cmd-cancel');
     if (cmdCancel) cmdCancel.textContent = t('cmdbar.cancel');
     const cmdStateLabel = root.querySelector('#cmd-state-label') as HTMLElement | null;
@@ -1141,16 +1138,6 @@ export class ArApp extends HTMLElement {
 
     const cmdCancel = this.shadowRoot!.querySelector('#cmd-cancel') as HTMLButtonElement | null;
     cmdCancel?.addEventListener('click', bubbleCancel, { signal });
-
-    const cmdNewImage = this.shadowRoot!.querySelector('#cmd-new-image') as HTMLButtonElement | null;
-    cmdNewImage?.addEventListener('click', () => {
-      // Abort any in-flight single-image run first; resetToIdle
-      // already handles the batch-mode abort internally.
-      if (this.processingAbortController && !this.processingAbortController.signal.aborted) {
-        this.processingAbortController.abort('new image requested');
-      }
-      this.resetToIdle();
-    }, { signal });
 
     // #78 — inline error-stage actions in ar-progress. Retry reuses
     // the existing retryFromError() path; report opens a pre-filled
