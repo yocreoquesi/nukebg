@@ -190,7 +190,10 @@ const translations: Translations = {
     'download.share.text': 'Processed with nukebg.app — stays local',
     // Header / Footer (index.html)
     'header.skipLink': 'Skip to main content',
-    'footer.kofi': '\u2615 Support on Ko-fi',
+    'footer.kofi': '\u2615 Tip the reactor \u2192',
+    'footer.kofiAria': 'Tip the reactor \u2014 currently funded for {runtime}',
+    'footer.reactorStatus': 'Ships only while the budget holds ({burn}). Currently funded for {runtime}.',
+    'marquee.funding': 'development funded for {runtime} \u2014 tip to extend runway',
     'footer.privacy': 'Your images never leave your device. Zero uploads. Zero BS.',
 
     // Pipeline error
@@ -413,7 +416,10 @@ const translations: Translations = {
     'download.share.text': 'Procesado con nukebg.app — todo local',
     // Header / Footer (index.html)
     'header.skipLink': 'Saltar al contenido principal',
-    'footer.kofi': '\u2615 Apoyar en Ko-fi',
+    'footer.kofi': '\u2615 Alimentar el reactor \u2192',
+    'footer.kofiAria': 'Alimentar el reactor \u2014 actualmente financiado por {runtime}',
+    'footer.reactorStatus': 'Sigue funcionando mientras el presupuesto aguante ({burn}). Actualmente financiado por {runtime}.',
+    'marquee.funding': 'desarrollo financiado por {runtime} \u2014 ap\u00F3yanos para extender el runway',
     'footer.privacy': 'Tus im\u00E1genes nunca salen de tu dispositivo. Cero subidas. Cero complicaciones.',
 
     // Pipeline error
@@ -636,7 +642,10 @@ const translations: Translations = {
     'download.share.text': 'Traité avec nukebg.app — 100% local',
     // Header / Footer (index.html)
     'header.skipLink': 'Aller au contenu principal',
-    'footer.kofi': '\u2615 Soutenir sur Ko-fi',
+    'footer.kofi': '\u2615 Alimenter le r\u00E9acteur \u2192',
+    'footer.kofiAria': 'Alimenter le r\u00E9acteur \u2014 actuellement financ\u00E9 pour {runtime}',
+    'footer.reactorStatus': 'Continue tant que le budget tient ({burn}). Actuellement financ\u00E9 pour {runtime}.',
+    'marquee.funding': 'd\u00E9veloppement financ\u00E9 pour {runtime} \u2014 soutenez pour prolonger',
     'footer.privacy': 'Tes images ne quittent jamais ton appareil. Z\u00E9ro upload. Z\u00E9ro baratin.',
 
     // Pipeline error
@@ -859,7 +868,10 @@ const translations: Translations = {
     'download.share.text': 'Mit nukebg.app verarbeitet — bleibt lokal',
     // Header / Footer (index.html)
     'header.skipLink': 'Zum Hauptinhalt springen',
-    'footer.kofi': '\u2615 Unterst\u00FCtzen auf Ko-fi',
+    'footer.kofi': '\u2615 Reaktor speisen \u2192',
+    'footer.kofiAria': 'Reaktor speisen \u2014 aktuell finanziert f\u00FCr {runtime}',
+    'footer.reactorStatus': 'L\u00E4uft solange das Budget reicht ({burn}). Aktuell finanziert f\u00FCr {runtime}.',
+    'marquee.funding': 'Entwicklung finanziert f\u00FCr {runtime} \u2014 speisen um zu verl\u00E4ngern',
     'footer.privacy': 'Deine Bilder verlassen nie dein Ger\u00E4t. Null Uploads. Null Bullshit.',
 
     // Pipeline error
@@ -1082,7 +1094,10 @@ const translations: Translations = {
     'download.share.text': 'Processado com nukebg.app — fica local',
     // Header / Footer (index.html)
     'header.skipLink': 'Pular para o conte\u00FAdo principal',
-    'footer.kofi': '\u2615 Apoiar no Ko-fi',
+    'footer.kofi': '\u2615 Alimentar o reator \u2192',
+    'footer.kofiAria': 'Alimentar o reator \u2014 atualmente financiado por {runtime}',
+    'footer.reactorStatus': 'Continua enquanto o or\u00E7amento aguentar ({burn}). Atualmente financiado por {runtime}.',
+    'marquee.funding': 'desenvolvimento financiado por {runtime} \u2014 apoia para estender',
     'footer.privacy': 'Suas imagens nunca saem do seu dispositivo. Zero uploads. Zero enrola\u00E7\u00E3o.',
 
     // Pipeline error
@@ -1305,7 +1320,10 @@ const translations: Translations = {
     'download.share.text': '\u7531 nukebg.app \u5904\u7406—\u672C\u5730\u8FD0\u884C',
     // Header / Footer (index.html)
     'header.skipLink': '\u8DF3\u8F6C\u5230\u4E3B\u8981\u5185\u5BB9',
-    'footer.kofi': '\u2615 \u5728 Ko-fi \u4E0A\u652F\u6301\u6211\u4EEC',
+    'footer.kofi': '\u2615 \u8D44\u52A9\u53CD\u5E94\u5806 \u2192',
+    'footer.kofiAria': '\u8D44\u52A9\u53CD\u5E94\u5806 \u2014 \u76EE\u524D\u8D44\u91D1\u53EF\u7EF4\u6301 {runtime}',
+    'footer.reactorStatus': '\u9884\u7B97\u591F\u7528\u5C31\u7EE7\u7EED\u8FD0\u884C ({burn})\u3002\u76EE\u524D\u8D44\u91D1\u53EF\u7EF4\u6301 {runtime}',
+    'marquee.funding': '\u5F00\u53D1\u8D44\u91D1\u53EF\u7EF4\u6301 {runtime} \u2014 \u8D44\u52A9\u4EE5\u5EF6\u957F',
     'footer.privacy': '\u4F60\u7684\u56FE\u7247\u6C38\u8FDC\u4E0D\u4F1A\u79BB\u5F00\u4F60\u7684\u8BBE\u5907\u3002\u96F6\u4E0A\u4F20\u3002\u4E0D\u6574\u865A\u7684\u3002',
 
     // Pipeline error

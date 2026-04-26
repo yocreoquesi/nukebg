@@ -959,7 +959,7 @@ export class ArApp extends HTMLElement {
       <!-- Full-bleed marquee outside the main column per design #69.
            Gradient mask fades text in/out at the edges so it never
            clips mid-word the way the old column-scoped marquee did. -->
-      <div class="marquee-bleed" id="precision-marquee-bleed"><span>☢ NUKEBG | DROP. NUKE. DOWNLOAD. | Your images never leave your device | nukebg.app ☢ NUKEBG | DROP. NUKE. DOWNLOAD. | Your images never leave your device | nukebg.app ☢</span></div>
+      <div class="marquee-bleed" id="precision-marquee-bleed"><span>☢ NUKEBG | DROP. NUKE. DOWNLOAD. | Your images never leave your device | <span data-marquee-runtime>development funded for 0 months — tip to extend runway</span> | nukebg.app ☢ NUKEBG | DROP. NUKE. DOWNLOAD. | <span data-marquee-runtime>development funded for 0 months — tip to extend runway</span> | nukebg.app ☢</span></div>
 
       <section class="hero" id="hero">
         <h1>
