@@ -161,7 +161,7 @@ function createShortcutOverlay(): HTMLDivElement {
 function showConsoleLogo(): void {
   const logo = `
 %c    ☢ NUKEBG ☢
-    v2.9.1 | Terminal Edition
+    v2.9.2 | Terminal Edition
 
     Your images never leave this machine.
     Don't believe us? Read the source:
@@ -635,8 +635,6 @@ function initI18n(): void {
 function updateHtmlTexts(): void {
   const skipLink = document.getElementById('skip-link');
   if (skipLink) skipLink.textContent = t('header.skipLink');
-  const footerPrivacy = document.getElementById('footer-privacy');
-  if (footerPrivacy) footerPrivacy.textContent = t('footer.privacy');
 }
 
 // === Terminal Prompt Easter Egg ===
