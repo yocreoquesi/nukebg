@@ -3,7 +3,8 @@ import { alphaRefine } from '../../src/workers/cv/alpha-refine';
 
 describe('alphaRefine', () => {
   it('convierte mascara binaria a alpha: bg=0, fg=255', () => {
-    const w = 10, h = 10;
+    const w = 10,
+      h = 10;
     const mask = new Uint8Array(w * h);
     // Mitad superior: fondo (1), mitad inferior: sujeto (0)
     for (let y = 0; y < 5; y++) {
@@ -15,7 +16,8 @@ describe('alphaRefine', () => {
     const alpha = alphaRefine(mask, w, h);
 
     // Los pixeles de fondo deben tener alpha = 0
-    for (let y = 0; y < 3; y++) { // margenes internos por blur
+    for (let y = 0; y < 3; y++) {
+      // margenes internos por blur
       for (let x = 1; x < w - 1; x++) {
         expect(alpha[y * w + x]).toBe(0);
       }
@@ -30,7 +32,8 @@ describe('alphaRefine', () => {
   });
 
   it('todo fondo produce todo alpha 0', () => {
-    const w = 16, h = 16;
+    const w = 16,
+      h = 16;
     const mask = new Uint8Array(w * h).fill(1); // todo bg
 
     const alpha = alphaRefine(mask, w, h);
@@ -41,7 +44,8 @@ describe('alphaRefine', () => {
   });
 
   it('todo sujeto produce todo alpha 255', () => {
-    const w = 16, h = 16;
+    const w = 16,
+      h = 16;
     const mask = new Uint8Array(w * h); // todo fg (0)
 
     const alpha = alphaRefine(mask, w, h);
@@ -52,7 +56,8 @@ describe('alphaRefine', () => {
   });
 
   it('el borde entre fg y bg tiene transicion suave', () => {
-    const w = 20, h = 20;
+    const w = 20,
+      h = 20;
     const mask = new Uint8Array(w * h);
     // Izquierda: fondo, derecha: sujeto
     for (let y = 0; y < h; y++) {
@@ -66,7 +71,7 @@ describe('alphaRefine', () => {
     // In the transition zone (x=9-10) there may be intermediate values
     // o un salto brusco post-threshold. El punto es que no crashee
     // y los extremos sean correctos
-    expect(alpha[10 * w + 0]).toBe(0);   // bg lejano
+    expect(alpha[10 * w + 0]).toBe(0); // bg lejano
     expect(alpha[10 * w + 19]).toBe(255); // fg lejano
   });
 
@@ -83,7 +88,8 @@ describe('alphaRefine', () => {
   });
 
   it('produce valores dentro de [0, 255]', () => {
-    const w = 50, h = 50;
+    const w = 50,
+      h = 50;
     const mask = new Uint8Array(w * h);
     // Patron aleatorio-ish
     for (let i = 0; i < mask.length; i++) {

@@ -147,7 +147,7 @@ export function inpaintTelea(
   for (let i = 0; i < size; i++) {
     const inMask = mask[i] ? 1 : 0;
     const inDilated = dilated[i] ? 1 : 0;
-    flag[i] = (inDilated * 2) - (inMask ^ inDilated);
+    flag[i] = inDilated * 2 - (inMask ^ inDilated);
     if (flag[i] === UNKNOWN) {
       u[i] = LARGE_VALUE;
     }

@@ -73,13 +73,14 @@ async function testImage(inputPath: string): Promise<boolean> {
     }
   }
 
-  const fgPct = (100 * fgCount / (width * height)).toFixed(1);
+  const fgPct = ((100 * fgCount) / (width * height)).toFixed(1);
   console.log(`  Foreground: ${fgPct}%`);
 
   // Save next to input as <name>-clean.png
   const outPath = path.join(path.dirname(inputPath), `${name}-clean.png`);
   await sharp(resultPixels, { raw: { width, height, channels: 4 } })
-    .png().toFile(outPath);
+    .png()
+    .toFile(outPath);
 
   console.log(`  Output: ${outPath}`);
   console.log(`  PASS`);
@@ -97,7 +98,8 @@ let passed = 0;
 let failed = 0;
 for (const file of files) {
   const ok = await testImage(file);
-  if (ok) passed++; else failed++;
+  if (ok) passed++;
+  else failed++;
 }
 
 console.log(`\n${passed} passed, ${failed} failed`);

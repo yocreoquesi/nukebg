@@ -38,5 +38,5 @@ while ((m = re.exec(html)) !== null) {
 }
 
 console.log('# CSP hashes for inline <script> blocks in index.html');
-console.log('# Paste into the script-src directive after \'self\'.');
+console.log("# Paste into the script-src directive after 'self'.");
 console.log(hashes.join(' '));

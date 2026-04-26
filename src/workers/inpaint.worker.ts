@@ -17,7 +17,11 @@ async function inpaint(
   height: number,
   mask: Uint8Array,
 ): Promise<void> {
-  self.postMessage({ id, type: 'inpaint-progress', stage: 'processing' } satisfies InpaintWorkerResponse);
+  self.postMessage({
+    id,
+    type: 'inpaint-progress',
+    stage: 'processing',
+  } satisfies InpaintWorkerResponse);
 
   const resultPixels = patchMatchInpaint(pixels, width, height, mask, {
     iterations: PATCHMATCH_PARAMS.ITERATIONS,
@@ -46,6 +50,10 @@ self.onmessage = async (e: MessageEvent<InpaintWorkerRequest>) => {
       }
     }
   } catch (err) {
-    self.postMessage({ id: msg.id, type: 'error', error: String(err) } satisfies InpaintWorkerResponse);
+    self.postMessage({
+      id: msg.id,
+      type: 'error',
+      error: String(err),
+    } satisfies InpaintWorkerResponse);
   }
 };

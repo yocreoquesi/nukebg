@@ -39,6 +39,8 @@ import {
 } from '../refine/loaders/mobile-sam';
 import { processRoi } from '../refine/roi-process';
 import { rasterizePolygon } from '../refine/roi-process';
+import { patchMatchInpaint } from '../workers/cv/patchmatch-inpaint';
+import { PATCHMATCH_PARAMS } from '../pipeline/constants';
 import { t } from '../i18n';
 import { simplifyClosed, type Point } from './lasso-simplify';
 
@@ -63,7 +65,7 @@ const MAX_ZOOM = 10;
 const ZOOM_STEP = 1.15;
 
 type Tool = 'brush' | 'eraser' | 'lasso';
-type LassoAction = 'crop' | 'refine' | 'erase-object';
+type LassoAction = 'crop' | 'refine' | 'erase-object' | 'remove-watermark';
 
 interface PendingPreview {
   kind: LassoAction;
@@ -255,7 +257,15 @@ export class ArEditorAdvanced extends HTMLElement {
     const shadow = this.shadowRoot;
     if (!shadow) return;
 
-    const ids = ['tool-brush', 'tool-eraser', 'tool-lasso', 'restore-original', 'reprocess', 'cancel', 'done'];
+    const ids = [
+      'tool-brush',
+      'tool-eraser',
+      'tool-lasso',
+      'restore-original',
+      'reprocess',
+      'cancel',
+      'done',
+    ];
     for (const id of ids) {
       const el = shadow.getElementById(id) as HTMLButtonElement | null;
       if (el) el.disabled = this.busy;
@@ -849,6 +859,7 @@ export class ArEditorAdvanced extends HTMLElement {
             <button type="button" class="action-btn" id="action-crop" title="${t('advanced.actionCropHint')}">${t('advanced.actionCrop')}</button>
             <button type="button" class="action-btn" id="action-refine" title="${t('advanced.actionRefineHint')}">${t('advanced.actionRefine')}</button>
             <button type="button" class="action-btn danger" id="action-erase-object" title="${t('advanced.actionEraseObjectHint')}">${t('advanced.actionEraseObject')}</button>
+            <button type="button" class="action-btn" id="action-remove-watermark" title="${t('advanced.actionRemoveWatermarkHint')}">${t('advanced.actionRemoveWatermark')}</button>
             <span class="busy-indicator hidden" id="busy">${t('advanced.working')}</span>
             <button type="button" class="action-btn cancel-action hidden" id="cancel-action">${t('advanced.cancelAction')}</button>
           </div>
@@ -912,6 +923,9 @@ export class ArEditorAdvanced extends HTMLElement {
     shadow
       .getElementById('action-erase-object')!
       .addEventListener('click', () => this.previewAction('erase-object'), { signal });
+    shadow
+      .getElementById('action-remove-watermark')!
+      .addEventListener('click', () => this.removeWatermarkInLasso(), { signal });
     shadow
       .getElementById('action-apply-preview')!
       .addEventListener('click', () => this.applyPreview(), { signal });
@@ -1661,7 +1675,10 @@ export class ArEditorAdvanced extends HTMLElement {
    * working buffer is NOT modified — the display renders a red/green tint
    * overlay so the user can confirm or cancel before the action is committed.
    */
-  private async previewAction(kind: LassoAction): Promise<void> {
+  private async previewAction(kind: Exclude<LassoAction, 'remove-watermark'>): Promise<void> {
+    // 'remove-watermark' has its own handler (removeWatermarkInLasso) that
+    // skips the preview/confirm pattern — inpainting is non-destructive
+    // and any mistake is one Ctrl+Z away.
     if (this.busy) return;
     const hasLasso = this.lassoAnchors !== null && this.lassoAnchors.length >= MIN_ANCHORS;
     const hasMask = this.selectionMask !== null;
@@ -1816,6 +1833,61 @@ export class ArEditorAdvanced extends HTMLElement {
     this.clearSelection();
     this.redrawDisplay();
     this.syncHistoryUI();
+  }
+
+  /**
+   * Remove watermark inside the lasso polygon via PatchMatch inpainting.
+   * Distinct from `erase-object` (which just zeroes alpha and leaves a
+   * transparent hole): inpainting RECONSTRUCTS the underlying pixels so
+   * the photo looks untouched. Alpha is preserved — only RGB changes.
+   *
+   * Skips the preview/confirm pattern: inpainting is non-destructive
+   * (alpha unchanged) and any mistake is one Ctrl+Z away. Saves the
+   * user a click for what is usually a one-shot operation.
+   */
+  private async removeWatermarkInLasso(): Promise<void> {
+    if (this.busy) return;
+    if (!this.working || !this.current) return;
+    if (!this.lassoAnchors || this.lassoAnchors.length < MIN_ANCHORS) return;
+
+    const w = this.current.width;
+    const h = this.current.height;
+    const mask = rasterizePolygon(this.lassoAnchors, w, h);
+
+    this.busy = true;
+    this.syncBusyUI();
+    try {
+      const wctx = this.working.getContext('2d')!;
+      const img = wctx.getImageData(0, 0, w, h);
+      const inpainted = patchMatchInpaint(img.data, w, h, mask, {
+        iterations: PATCHMATCH_PARAMS.ITERATIONS,
+        patchRadius: PATCHMATCH_PARAMS.PATCH_RADIUS,
+      });
+
+      this.pushUndo();
+      // Replace ONLY masked pixels' RGB; keep alpha and unmasked pixels intact.
+      for (let i = 0; i < mask.length; i++) {
+        if (!mask[i]) continue;
+        const di = i * 4;
+        img.data[di] = inpainted[di];
+        img.data[di + 1] = inpainted[di + 1];
+        img.data[di + 2] = inpainted[di + 2];
+        // alpha untouched
+      }
+      wctx.putImageData(img, 0, 0);
+      this.clearLasso();
+      this.clearSelection();
+      this.redrawDisplay();
+      this.syncHistoryUI();
+    } catch (err) {
+      console.error('[ar-editor-advanced] remove-watermark failed', err);
+      const hint = this.shadowRoot?.getElementById('hint');
+      if (hint) hint.textContent = t('advanced.removeWatermarkError');
+    } finally {
+      this.busy = false;
+      this.syncBusyUI();
+      this.syncLassoActionsUI();
+    }
   }
 
   /**

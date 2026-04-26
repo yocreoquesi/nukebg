@@ -43,13 +43,13 @@ describe('ar-editor — mini command bar (#76-C)', () => {
     expect(ED).toMatch(/private syncCmdBarMeta\(\): void/);
     // Tool select + size slider + keyboard shortcuts all route through it.
     expect(ED).toMatch(/#brush-tool[\s\S]*?this\.syncCmdBarMeta\(\)/);
-    expect(ED).toMatch(/sizeInput\.addEventListener\(['"]input['"],[\s\S]*?this\.syncCmdBarMeta\(\)/);
+    expect(ED).toMatch(
+      /sizeInput\.addEventListener\(\s*['"]input['"][\s\S]*?this\.syncCmdBarMeta\(\)/,
+    );
     expect(ED).toMatch(/updateSizeUI\(\)[\s\S]*?this\.syncCmdBarMeta\(\)/);
   });
 
   it('CSS styles command bar buttons with ≥ 44 px min-height on coarse pointers', () => {
-    expect(ED).toMatch(
-      /@media \(pointer: coarse\) \{[\s\S]*?\.editor-cmd-btn \{ min-height: 44px/,
-    );
+    expect(ED).toMatch(/@media \(pointer: coarse\) \{[\s\S]*?\.editor-cmd-btn \{ min-height: 44px/);
   });
 });

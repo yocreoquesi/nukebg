@@ -1,12 +1,7 @@
 import type { PipelineResult, PipelineStage, StageStatus } from './pipeline';
 
 /** Per-item state in a batch-processing run. */
-export type BatchItemState =
-  | 'pending'
-  | 'processing'
-  | 'done'
-  | 'failed'
-  | 'discarded';
+export type BatchItemState = 'pending' | 'processing' | 'done' | 'failed' | 'discarded';
 
 /**
  * Snapshot of a single stage transition emitted by the pipeline.

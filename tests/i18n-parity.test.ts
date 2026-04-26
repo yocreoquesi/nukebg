@@ -30,7 +30,7 @@ const EXPECTED_LOCALES = ['en', 'es', 'fr', 'de', 'pt', 'zh'] as const;
  * fact that each locale block sits at two-space indentation followed by
  * `<code>: {` and closes at a sibling `},` at the same indent.
  */
-function extractLocaleBlock(code: typeof EXPECTED_LOCALES[number]): string {
+function extractLocaleBlock(code: (typeof EXPECTED_LOCALES)[number]): string {
   const openRe = new RegExp(`^  ${code}:\\s*\\{`, 'm');
   const openMatch = openRe.exec(SOURCE);
   if (!openMatch) throw new Error(`locale "${code}" block not found in i18n/index.ts`);
@@ -75,12 +75,12 @@ describe('i18n key parity across locales', () => {
     it(`${code} declares exactly the same keys as en`, () => {
       const block = extractLocaleBlock(code);
       const keys = extractKeys(block);
-      const missing = enKeys.filter(k => !keys.includes(k));
-      const extra = keys.filter(k => !enKeys.includes(k));
-      expect(
-        { missing, extra },
-        `locale "${code}" key drift vs en`,
-      ).toEqual({ missing: [], extra: [] });
+      const missing = enKeys.filter((k) => !keys.includes(k));
+      const extra = keys.filter((k) => !enKeys.includes(k));
+      expect({ missing, extra }, `locale "${code}" key drift vs en`).toEqual({
+        missing: [],
+        extra: [],
+      });
     });
   }
 });

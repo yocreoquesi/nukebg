@@ -4,10 +4,10 @@ import { loadImage } from '../../src/utils/image-io';
 // All headers padded to 12 bytes — sniffImageFormat() refuses anything
 // shorter (covered by its own dedicated test below).
 const PNG_MAGIC = new Uint8Array([
-  0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0x00, 0x00, 0x00, 0x0D,
+  0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00, 0x00, 0x0d,
 ]);
 const JPEG_MAGIC = new Uint8Array([
-  0xFF, 0xD8, 0xFF, 0xE0, 0x00, 0x10, 0x4A, 0x46, 0x49, 0x46, 0x00, 0x01,
+  0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46, 0x49, 0x46, 0x00, 0x01,
 ]);
 const WEBP_MAGIC = new Uint8Array([
   0x52, 0x49, 0x46, 0x46, 0x00, 0x00, 0x00, 0x00, 0x57, 0x45, 0x42, 0x50,
@@ -23,7 +23,7 @@ function fileFrom(bytes: Uint8Array, name: string, type: string): File {
 
 describe('loadImage magic-byte sniffing', () => {
   it('rejects a file whose MIME says PNG but whose bytes do not match', async () => {
-    const fake = fileFrom(new Uint8Array([0x4D, 0x5A, 0x90, 0x00]), 'fake.png', 'image/png');
+    const fake = fileFrom(new Uint8Array([0x4d, 0x5a, 0x90, 0x00]), 'fake.png', 'image/png');
     await expect(loadImage(fake)).rejects.toThrow(/not a valid PNG, JPG, or WebP|does not match/i);
   });
 
@@ -38,7 +38,7 @@ describe('loadImage magic-byte sniffing', () => {
   });
 
   it('rejects files below the 12-byte sniff window', async () => {
-    const tiny = fileFrom(new Uint8Array([0x89, 0x50, 0x4E]), 'tiny.png', 'image/png');
+    const tiny = fileFrom(new Uint8Array([0x89, 0x50, 0x4e]), 'tiny.png', 'image/png');
     await expect(loadImage(tiny)).rejects.toThrow(/not a valid PNG, JPG, or WebP/i);
   });
 

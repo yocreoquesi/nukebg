@@ -16,7 +16,8 @@ function makePixels(w: number, h: number, gray: number): Uint8ClampedArray {
 
 describe('guidedFilter (alpha matting)', () => {
   it('binary mask: smooths borders without destroying core regions', () => {
-    const w = 64, h = 64;
+    const w = 64,
+      h = 64;
     const alpha = new Uint8Array(w * h);
     const pixels = new Uint8ClampedArray(w * h * 4);
 
@@ -42,19 +43,20 @@ describe('guidedFilter (alpha matting)', () => {
     const result = guidedFilter(alpha, pixels, w, h, 5, 1e-4);
 
     // Deep subject pixels should remain mostly opaque
-    expect(result[h / 2 * w + 5]).toBeGreaterThan(200);
+    expect(result[(h / 2) * w + 5]).toBeGreaterThan(200);
 
     // Deep background pixels should remain mostly transparent
-    expect(result[h / 2 * w + (w - 5)]).toBeLessThan(55);
+    expect(result[(h / 2) * w + (w - 5)]).toBeLessThan(55);
 
     // Border region (around x=32) should contain intermediate values
-    const borderVal = result[h / 2 * w + w / 2];
+    const borderVal = result[(h / 2) * w + w / 2];
     expect(borderVal).toBeGreaterThanOrEqual(0);
     expect(borderVal).toBeLessThanOrEqual(255);
   });
 
   it('already-smooth mask: does not degrade quality', () => {
-    const w = 32, h = 32;
+    const w = 32,
+      h = 32;
     // Create a smooth gradient mask
     const alpha = new Uint8Array(w * h);
     for (let y = 0; y < h; y++) {
@@ -67,8 +69,13 @@ describe('guidedFilter (alpha matting)', () => {
     const result = guidedFilter(alpha, pixels, w, h, 3, 1e-4);
 
     // Should still be a gradient (left should be darker, right brighter)
-    const leftAvg = (result[h / 2 * w + 0] + result[h / 2 * w + 1] + result[h / 2 * w + 2]) / 3;
-    const rightAvg = (result[h / 2 * w + (w - 1)] + result[h / 2 * w + (w - 2)] + result[h / 2 * w + (w - 3)]) / 3;
+    const leftAvg =
+      (result[(h / 2) * w + 0] + result[(h / 2) * w + 1] + result[(h / 2) * w + 2]) / 3;
+    const rightAvg =
+      (result[(h / 2) * w + (w - 1)] +
+        result[(h / 2) * w + (w - 2)] +
+        result[(h / 2) * w + (w - 3)]) /
+      3;
     expect(rightAvg).toBeGreaterThan(leftAvg);
 
     // All values in valid range
@@ -79,7 +86,8 @@ describe('guidedFilter (alpha matting)', () => {
   });
 
   it('all-opaque mask stays opaque', () => {
-    const w = 16, h = 16;
+    const w = 16,
+      h = 16;
     const alpha = new Uint8Array(w * h).fill(255);
     const pixels = makePixels(w, h, 180);
 
@@ -91,7 +99,8 @@ describe('guidedFilter (alpha matting)', () => {
   });
 
   it('all-transparent mask stays transparent', () => {
-    const w = 16, h = 16;
+    const w = 16,
+      h = 16;
     const alpha = new Uint8Array(w * h).fill(0);
     const pixels = makePixels(w, h, 100);
 
@@ -113,10 +122,13 @@ describe('guidedFilter (alpha matting)', () => {
   });
 
   it('performance: 1024x1024 completes in <500ms', () => {
-    const w = 1024, h = 1024;
+    const w = 1024,
+      h = 1024;
     const alpha = new Uint8Array(w * h);
     // Create a circle mask
-    const cx = w / 2, cy = h / 2, r = w / 3;
+    const cx = w / 2,
+      cy = h / 2,
+      r = w / 3;
     for (let y = 0; y < h; y++) {
       for (let x = 0; x < w; x++) {
         const dist = Math.sqrt((x - cx) ** 2 + (y - cy) ** 2);
@@ -134,7 +146,8 @@ describe('guidedFilter (alpha matting)', () => {
   });
 
   it('produces values strictly within [0, 255]', () => {
-    const w = 50, h = 50;
+    const w = 50,
+      h = 50;
     const alpha = new Uint8Array(w * h);
     const pixels = new Uint8ClampedArray(w * h * 4);
 
@@ -156,4 +169,3 @@ describe('guidedFilter (alpha matting)', () => {
     }
   });
 });
-

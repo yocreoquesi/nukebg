@@ -92,7 +92,9 @@ describe('Landing redesign — ar-dropzone.ts invariants', () => {
 
   it('outer dropzone border uses accent-primary (not surface-border) + glow shadow', () => {
     expect(DZ).toMatch(/border:\s*1px solid var\(--color-accent-primary/);
-    expect(DZ).toMatch(/box-shadow:\s*\n?\s*0 0 14px rgba\(var\(--color-accent-rgb[^)]+\),\s*0\.08\)/);
+    expect(DZ).toMatch(
+      /box-shadow:\s*\n?\s*0 0 14px rgba\(var\(--color-accent-rgb[^)]+\),\s*0\.08\)/,
+    );
   });
 
   it('mobile dropzone gets min-height: 44vh so it occupies most of the viewport', () => {
@@ -101,7 +103,12 @@ describe('Landing redesign — ar-dropzone.ts invariants', () => {
 });
 
 describe('Landing redesign — i18n invariants', () => {
-  const keys = ['status.reactor.online', 'status.model.cached', 'status.limitations', 'dropzone.hint'];
+  const keys = [
+    'status.reactor.online',
+    'status.model.cached',
+    'status.limitations',
+    'dropzone.hint',
+  ];
   for (const key of keys) {
     it(`has '${key}' in all six locales`, () => {
       const matches = I18N.match(new RegExp(`'${key.replace(/\./g, '\\.')}'\\s*:`, 'g')) ?? [];

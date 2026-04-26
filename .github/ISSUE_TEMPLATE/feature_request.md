@@ -1,6 +1,6 @@
 ---
-name: "Feature request"
-about: "Got an idea? Drop it here."
+name: 'Feature request'
+about: 'Got an idea? Drop it here.'
 title: '[FEATURE] '
 labels: enhancement
 assignees: ''

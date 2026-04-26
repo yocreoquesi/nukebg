@@ -1,17 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import {
-  compositeWithFeather,
-  dilateMask,
-} from '../../src/workers/cv/inpaint-blend';
+import { compositeWithFeather, dilateMask } from '../../src/workers/cv/inpaint-blend';
 
 /** RGBA image filled with a solid color. */
-function solid(
-  w: number,
-  h: number,
-  r: number,
-  g: number,
-  b: number,
-): Uint8ClampedArray {
+function solid(w: number, h: number, r: number, g: number, b: number): Uint8ClampedArray {
   const out = new Uint8ClampedArray(w * h * 4);
   for (let i = 0; i < out.length; i += 4) {
     out[i] = r;
@@ -60,7 +51,8 @@ describe('dilateMask', () => {
 
 describe('compositeWithFeather', () => {
   it('leaves pixels outside the dilated mask untouched', () => {
-    const w = 40, h = 40;
+    const w = 40,
+      h = 40;
     const original = solid(w, h, 100, 150, 200);
     // Paint a different solid color into "inpainted"
     const inpainted = solid(w, h, 255, 0, 0);
@@ -79,7 +71,8 @@ describe('compositeWithFeather', () => {
   });
 
   it('replaces pixels at the core of the mask with inpainted values', () => {
-    const w = 40, h = 40;
+    const w = 40,
+      h = 40;
     const original = solid(w, h, 100, 150, 200);
     const inpainted = solid(w, h, 255, 0, 0);
     const mask = circleMask(w, h, 20, 20, 6);
@@ -97,7 +90,8 @@ describe('compositeWithFeather', () => {
   });
 
   it('produces intermediate blend values in the feather ring', () => {
-    const w = 60, h = 60;
+    const w = 60,
+      h = 60;
     const original = solid(w, h, 0, 0, 0);
     const inpainted = solid(w, h, 200, 200, 200);
     const mask = circleMask(w, h, 30, 30, 8);
@@ -114,7 +108,8 @@ describe('compositeWithFeather', () => {
   });
 
   it('preserves alpha channel at 255 everywhere', () => {
-    const w = 30, h = 30;
+    const w = 30,
+      h = 30;
     const original = solid(w, h, 50, 50, 50);
     const inpainted = solid(w, h, 150, 150, 150);
     const mask = circleMask(w, h, 15, 15, 4);
@@ -130,7 +125,8 @@ describe('compositeWithFeather', () => {
   });
 
   it('injects noise inside the mask when noiseSigma > 0', () => {
-    const w = 40, h = 40;
+    const w = 40,
+      h = 40;
     const original = solid(w, h, 100, 100, 100);
     const inpainted = solid(w, h, 100, 100, 100); // identical to original
     const mask = circleMask(w, h, 20, 20, 6);
@@ -145,7 +141,8 @@ describe('compositeWithFeather', () => {
     const r2 = 4 * 4; // sample near core
     for (let y = 16; y <= 24; y++) {
       for (let x = 16; x <= 24; x++) {
-        const dx = x - 20, dy = y - 20;
+        const dx = x - 20,
+          dy = y - 20;
         if (dx * dx + dy * dy > r2) continue;
         const i = (y * w + x) * 4;
         if (result[i] !== 100) varied++;
@@ -155,7 +152,8 @@ describe('compositeWithFeather', () => {
   });
 
   it('does not add noise outside the mask', () => {
-    const w = 40, h = 40;
+    const w = 40,
+      h = 40;
     const original = solid(w, h, 100, 100, 100);
     const inpainted = solid(w, h, 100, 100, 100);
     const mask = circleMask(w, h, 20, 20, 4);

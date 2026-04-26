@@ -41,10 +41,8 @@ test.describe('pipeline end-to-end', () => {
     await page.goto('/');
     await page.waitForLoadState('networkidle');
 
-    // ar-dropzone exposes two hidden <input type="file"> elements (regular +
-    // mobile camera CTA). Disambiguate with :not(.dz-camera-input) — same
-    // selector the component itself uses internally.
-    const fileInput = page.locator('ar-dropzone').locator('input[type="file"]:not(.dz-camera-input)');
+    // ar-dropzone exposes a single hidden <input type="file"> in shadow DOM.
+    const fileInput = page.locator('ar-dropzone').locator('input[type="file"]');
     await fileInput.setInputFiles(FIXTURE);
 
     // ar-download makes its #dl-png href a blob: URL only after the pipeline
@@ -56,7 +54,10 @@ test.describe('pipeline end-to-end', () => {
 
     // Warmup must have fired — this catches regressions where the ML worker
     // boot path silently breaks (e.g. onnxruntime init errors swallowed).
-    expect(warmupLogs.length, `expected at least one warmup log, got ${warmupLogs.length}`).toBeGreaterThan(0);
+    expect(
+      warmupLogs.length,
+      `expected at least one warmup log, got ${warmupLogs.length}`,
+    ).toBeGreaterThan(0);
     expect(warmupLogs.some((line) => line.includes(' ok '))).toBe(true);
 
     // No uncaught page errors during the full run.

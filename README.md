@@ -2,7 +2,7 @@
 
 > Nuke backgrounds from any image. 100% client-side. Zero uploads. Zero BS.
 
-[![Version](https://img.shields.io/badge/version-2.8.0-brightgreen.svg)](https://github.com/yocreoquesi/nukebg/releases)
+[![Version](https://img.shields.io/badge/version-2.9.0-brightgreen.svg)](https://github.com/yocreoquesi/nukebg/releases)
 [![License: GPL-3.0](https://img.shields.io/badge/License-GPL%20v3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![Client-Side](https://img.shields.io/badge/Processing-100%25%20Client--Side-green.svg)](#-privacy)
 [![Ko-fi](https://img.shields.io/badge/Ko--fi-Support%20NukeBG-FF5E5B?logo=ko-fi&logoColor=white)](https://ko-fi.com/yocreoquesi)
@@ -130,19 +130,19 @@ The ML model is lazy-loaded on first use, then cached by the Service Worker for 
 
 ## > tech_stack
 
-| Layer | Technology |
-|-------|-----------|
-| Language | Vanilla TypeScript (no framework) |
-| UI | Web Components (`<ar-dropzone>`, `<ar-viewer>`, `<ar-progress>`) |
-| Build | Vite 6 |
-| Testing | Vitest |
-| ML Runtime | Transformers.js (ONNX Runtime Web) |
-| ML Models | RMBG-1.4 INT8 (~45MB) |
-| GPU | WASM (WebGPU reserved for future) |
-| Processing | Canvas API + OffscreenCanvas in Web Workers |
-| Caching | Service Worker + Cache API |
-| Styling | Custom CSS (JetBrains Mono, zero dependencies) |
-| i18n | Lightweight custom system (EN/ES/FR/DE/PT/ZH) |
+| Layer      | Technology                                                       |
+| ---------- | ---------------------------------------------------------------- |
+| Language   | Vanilla TypeScript (no framework)                                |
+| UI         | Web Components (`<ar-dropzone>`, `<ar-viewer>`, `<ar-progress>`) |
+| Build      | Vite 6                                                           |
+| Testing    | Vitest                                                           |
+| ML Runtime | Transformers.js (ONNX Runtime Web)                               |
+| ML Models  | RMBG-1.4 INT8 (~45MB)                                            |
+| GPU        | WASM (WebGPU reserved for future)                                |
+| Processing | Canvas API + OffscreenCanvas in Web Workers                      |
+| Caching    | Service Worker + Cache API                                       |
+| Styling    | Custom CSS (JetBrains Mono, zero dependencies)                   |
+| i18n       | Lightweight custom system (EN/ES/FR/DE/PT/ZH)                    |
 
 ## > privacy
 
@@ -167,27 +167,29 @@ you should see after the first warmup are the initial page load.
 
 ## > comparison
 
-| Feature | NukeBG | remove.bg | backgroundless.io | Photoshop |
-|---------|--------|-----------|-------------------|-----------|
-| ML background removal (RMBG-1.4) | Yes | Yes (proprietary) | Yes | Yes |
-| Auto content-type detection | Yes | No | No | No |
-| Checkerboard detection | Yes | No | No | Manual |
-| Watermark removal (Gemini + DALL-E) | Yes | No | No | Manual |
-| Client-side (private) | Yes | No | Yes | N/A |
-| Free and unlimited | Yes | No (credits) | Yes | No ($22/mo) |
-| Open source | Yes (GPL-3.0) | No | No | No |
-| Works offline | Yes | No | No | Yes |
+| Feature                             | NukeBG        | remove.bg         | backgroundless.io | Photoshop   |
+| ----------------------------------- | ------------- | ----------------- | ----------------- | ----------- |
+| ML background removal (RMBG-1.4)    | Yes           | Yes (proprietary) | Yes               | Yes         |
+| Auto content-type detection         | Yes           | No                | No                | No          |
+| Checkerboard detection              | Yes           | No                | No                | Manual      |
+| Watermark removal (Gemini + DALL-E) | Yes           | No                | No                | Manual      |
+| Client-side (private)               | Yes           | No                | Yes               | N/A         |
+| Free and unlimited                  | Yes           | No (credits)      | Yes               | No ($22/mo) |
+| Open source                         | Yes (GPL-3.0) | No                | No                | No          |
+| Works offline                       | Yes           | No                | No                | Yes         |
 
 ## > license_compliance
 
 NukeBG itself is GPL-3.0 (see [LICENSE](LICENSE)), but it ships with third-party
 artifacts whose licenses carry independent obligations:
 
-| Component | License | Notes |
-|-----------|---------|-------|
-| RMBG-1.4 ML model (BRIA AI) | [bria-rmbg-1.4 license](https://huggingface.co/briaai/RMBG-1.4) | **Non-commercial use only**. Commercial deployments — paid products, paid APIs, paid SaaS — require a commercial agreement with BRIA AI, or swapping to a different model. The GPL-3.0 license of NukeBG's code does not override this. |
-| JetBrains Mono font | [SIL Open Font License 1.1](public/fonts/OFL.txt) | Bundled self-hosted. Attribution preserved in `public/fonts/OFL.txt`. |
-| Transformers.js, ONNX Runtime Web | Apache-2.0 / MIT | Compatible. |
+| Component                                         | License                                                                        | Notes                                                                                                                                                                                                                                                                                                             |
+| ------------------------------------------------- | ------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| RMBG-1.4 ML model (BRIA AI)                       | [bria-rmbg-1.4 license](https://huggingface.co/briaai/RMBG-1.4) — CC-BY-NC-4.0 | **Non-commercial use only**. Commercial deployments — paid products, paid APIs, paid SaaS, ad-supported products — require a commercial agreement with BRIA AI, or swapping to a different model. The GPL-3.0 license of NukeBG's code does not override this. Donations to cover hosting / maintenance are fine. |
+| MobileSAM ML models (Acly/MobileSAM)              | [MIT](https://huggingface.co/Acly/MobileSAM)                                   | Used by the advanced editor for interactive click-to-segment. Commercial use OK. Encoder + decoder fetched from Hugging Face at runtime; not bundled.                                                                                                                                                             |
+| LaMa inpainting ML model (opencv/inpainting_lama) | [Apache-2.0](https://huggingface.co/opencv/inpainting_lama)                    | Used by the watermark-removal pipeline for content-aware reconstruction. Commercial use OK. Single FP32 ONNX (~95 MB) fetched from Hugging Face at runtime; not bundled.                                                                                                                                          |
+| JetBrains Mono font                               | [SIL Open Font License 1.1](public/fonts/OFL.txt)                              | Bundled self-hosted. Attribution preserved in `public/fonts/OFL.txt`.                                                                                                                                                                                                                                             |
+| Transformers.js, ONNX Runtime Web                 | Apache-2.0 / MIT                                                               | Compatible.                                                                                                                                                                                                                                                                                                       |
 
 If you fork NukeBG and host it commercially, you are responsible for complying
 with the RMBG-1.4 model license. The project does not bundle the model weights —
@@ -216,4 +218,4 @@ If NukeBG saves you time, consider keeping the reactor running:
 
 **Built for creators who are done dealing with garbage backgrounds. Open source forever.**
 
-*Built with the assistance of AI agents ([Claude](https://www.anthropic.com/claude) by Anthropic).*
+_Built with the assistance of AI agents ([Claude](https://www.anthropic.com/claude) by Anthropic)._

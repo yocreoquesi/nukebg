@@ -2,11 +2,7 @@
 export type ImageContentType = 'PHOTO' | 'ILLUSTRATION' | 'SIGNATURE' | 'ICON';
 
 /** Stage identifiers for progress reporting */
-export type PipelineStage =
-  | 'detect-background'
-  | 'ml-segmentation'
-  | 'watermark-scan'
-  | 'inpaint';
+export type PipelineStage = 'detect-background' | 'ml-segmentation' | 'watermark-scan' | 'inpaint';
 
 export type StageStatus = 'running' | 'done' | 'skipped' | 'error';
 
@@ -59,8 +55,8 @@ export interface PipelineResult {
 
 /** Result from background color detection */
 export interface BgColorResult {
-  colorA: number[];  // RGB, 3 values
-  colorB: number[];  // RGB, 3 values
+  colorA: number[]; // RGB, 3 values
+  colorB: number[]; // RGB, 3 values
   isCheckerboard: boolean;
   cornerVariance: number;
 }

@@ -140,10 +140,7 @@ export function refineUpscaledAlpha(
   const out = new Uint8Array(alpha.length);
   for (let i = 0; i < alpha.length; i++) {
     const a = alpha[i];
-    out[i] =
-      a <= EDGE_REFINE_PARAMS.BAND_LO || a >= EDGE_REFINE_PARAMS.BAND_HI
-        ? a
-        : filtered[i];
+    out[i] = a <= EDGE_REFINE_PARAMS.BAND_LO || a >= EDGE_REFINE_PARAMS.BAND_HI ? a : filtered[i];
   }
   return out;
 }
@@ -180,9 +177,14 @@ export interface ComposeAtOriginalInput {
  */
 export function composeAtOriginal(input: ComposeAtOriginalInput): ImageData {
   const {
-    originalRgba, originalWidth: oW, originalHeight: oH,
-    workingRgba, workingWidth: wW, workingHeight: wH,
-    workingAlpha, inpaintMask,
+    originalRgba,
+    originalWidth: oW,
+    originalHeight: oH,
+    workingRgba,
+    workingWidth: wW,
+    workingHeight: wH,
+    workingAlpha,
+    inpaintMask,
   } = input;
 
   const sameSize = oW === wW && oH === wH;

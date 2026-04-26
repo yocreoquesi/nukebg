@@ -48,13 +48,13 @@ $ npm run build
 
 ### Available scripts
 
-| Command | What it does |
-|---------|-------------|
-| `npm run dev` | Vite dev server with HMR |
-| `npm run build` | TypeScript compile + Vite production build |
-| `npm run preview` | Preview the production build locally |
-| `npm test` | Run tests once (Vitest) |
-| `npm run test:watch` | Run tests in watch mode |
+| Command              | What it does                               |
+| -------------------- | ------------------------------------------ |
+| `npm run dev`        | Vite dev server with HMR                   |
+| `npm run build`      | TypeScript compile + Vite production build |
+| `npm run preview`    | Preview the production build locally       |
+| `npm test`           | Run tests once (Vitest)                    |
+| `npm run test:watch` | Run tests in watch mode                    |
 
 ---
 
@@ -213,16 +213,16 @@ Format: `type: short description`
 
 ### Types
 
-| Type | When to use |
-|------|------------|
-| `feat` | New functionality |
-| `fix` | Bug fix |
-| `docs` | Documentation changes |
-| `test` | Adding or fixing tests |
+| Type       | When to use                      |
+| ---------- | -------------------------------- |
+| `feat`     | New functionality                |
+| `fix`      | Bug fix                          |
+| `docs`     | Documentation changes            |
+| `test`     | Adding or fixing tests           |
 | `refactor` | Refactor without behavior change |
-| `infra` | Build, CI/CD, deployment |
-| `security` | Security-related changes |
-| `design` | UI/UX changes |
+| `infra`    | Build, CI/CD, deployment         |
+| `security` | Security-related changes         |
+| `design`   | UI/UX changes                    |
 
 ### Examples
 
@@ -282,6 +282,55 @@ Components are in `src/components/`. Native Web Components with Shadow DOM. Acce
 ### Tests
 
 More test coverage is always welcome. Especially CV algorithm tests with edge-case images.
+
+---
+
+## > operational_docs
+
+Runbooks for one-off maintainer tasks. Not user-facing.
+
+- [`docs/donors.md`](docs/donors.md) — donor consent workflow, email
+  template, JSON edits, GDPR removal procedure for the supporters
+  shown on `/reactor`.
+
+---
+
+## > licensing_of_contributions
+
+NukeBG is published under [GPL-3.0-only](LICENSE). To keep the door open for
+future relicensing decisions (dual-licensing, swapping to a more permissive OSI
+license, or repackaging parts of the codebase under a different model), every
+contribution accepted into this repo is governed by the following terms.
+
+By submitting a pull request to this repository, you (the contributor) certify
+that:
+
+1. **Origin** — The contribution was created in whole by you, or you have the
+   right to submit it under the licensing terms below. If your contribution
+   includes third-party code, you have made that clear in the PR description
+   along with the third-party license.
+2. **Project license grant** — Your contribution is licensed under
+   [GPL-3.0-only](LICENSE) for inclusion in the project.
+3. **Relicense grant** — You additionally grant the project owner
+   ([@yocreoquesi](https://github.com/yocreoquesi)) a perpetual, worldwide,
+   non-exclusive, royalty-free, irrevocable right to relicense your
+   contribution under any [OSI-approved license](https://opensource.org/licenses)
+   in the future, at the project owner's discretion. This keeps the project's
+   relicensing options open without requiring contributor sign-off for every
+   change.
+4. **Patent grant** — You grant the same perpetual patent license to anyone
+   using the project as the GPL-3.0 already provides for the GPL portion.
+
+You are not assigning copyright — you keep ownership of your work. You are
+granting the project the rights it needs to ship and evolve.
+
+This sits in lieu of a separate signed CLA. By opening a PR you acknowledge
+these terms; the maintainer will check this is understood on first-time
+contributions before merging.
+
+If any of the above is a problem for your contribution (e.g. corporate IP that
+can't be licensed this way), open an issue first to discuss before submitting
+the PR. We can usually find a path.
 
 ---
 

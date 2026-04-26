@@ -69,7 +69,7 @@ describe('sparkleDetect', () => {
     expect(result.mask).not.toBeNull();
     // Sparkle sits in the bottom-right quadrant of the downscaled selfie
     expect(result.centerX).toBeGreaterThan(width * 0.75);
-    expect(result.centerY).toBeGreaterThan(height * 0.70);
+    expect(result.centerY).toBeGreaterThan(height * 0.7);
     // Radius should be within the relative band (1.5%-5.5% of min dim)
     const minDim = Math.min(width, height);
     expect(result.radius).toBeGreaterThanOrEqual(Math.floor(minDim * 0.015));
@@ -86,11 +86,7 @@ describe('sparkleDetect', () => {
   });
 
   // Real-world negatives — production false positives we must reject.
-  const cleanFixtures = [
-    'motorcycles-clean.png',
-    'fiat-clean.png',
-    'trump-clean.png',
-  ] as const;
+  const cleanFixtures = ['motorcycles-clean.png', 'fiat-clean.png', 'trump-clean.png'] as const;
   for (const name of cleanFixtures) {
     it(`does not detect on clean real photo: ${name}`, async () => {
       const { pixels, width, height } = await loadFixture(name);
@@ -100,7 +96,8 @@ describe('sparkleDetect', () => {
   }
 
   it('does not detect on a solid color image', () => {
-    const w = 512, h = 512;
+    const w = 512,
+      h = 512;
     const pixels = solidImage(w, h, 180, 140, 100);
 
     const result = sparkleDetect(pixels, w, h);
@@ -109,7 +106,8 @@ describe('sparkleDetect', () => {
   });
 
   it('detects a synthetic 4-pointed sparkle painted on a uniform bg', () => {
-    const w = 500, h = 500;
+    const w = 500,
+      h = 500;
     const pixels = solidImage(w, h, 90, 70, 60);
     // Paint a sparkle in the bottom-right area. Radius 20 sits inside the
     // detector's 1.5-5.5% band (500 * 0.055 = 27.5).
@@ -125,7 +123,8 @@ describe('sparkleDetect', () => {
   });
 
   it('returns a non-empty circular mask when detected', () => {
-    const w = 500, h = 500;
+    const w = 500,
+      h = 500;
     const pixels = solidImage(w, h, 80, 80, 80);
     paintSparkle(pixels, w, 430, 430, 18, [240, 240, 240]);
 
@@ -141,7 +140,8 @@ describe('sparkleDetect', () => {
   });
 
   it('handles small images without crashing', () => {
-    const w = 80, h = 80;
+    const w = 80,
+      h = 80;
     const pixels = solidImage(w, h, 200, 200, 200);
 
     const result = sparkleDetect(pixels, w, h);

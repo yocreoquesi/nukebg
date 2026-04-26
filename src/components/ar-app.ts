@@ -11,7 +11,12 @@ import type { ArDropzone } from './ar-dropzone';
 import type { ArBatchGrid } from './ar-batch-grid';
 import type { BatchItem, StageSnapshot } from '../types/batch';
 import { createZip, safeZipEntryName, downloadBlob } from '../utils/zip';
-import { refineEdges, dropOrphanBlobs, fillSubjectHoles, promoteSpeckleAlpha } from '../pipeline/finalize';
+import {
+  refineEdges,
+  dropOrphanBlobs,
+  fillSubjectHoles,
+  promoteSpeckleAlpha,
+} from '../pipeline/finalize';
 import { composeAtOriginal } from '../utils/final-composite';
 import { exportPng } from '../utils/image-io';
 import type { ArEditorAdvanced } from './ar-editor-advanced';
@@ -56,49 +61,10 @@ export class ArApp extends HTMLElement {
 
   connectedCallback(): void {
     this.abortController = new AbortController();
-    // #79 — resolve playful mode before the first render so the rest of
-    // the component tree sees the correct `data-playful` attribute.
-    this.resolvePlayfulMode();
     this.render();
     this.setupComponents();
     this.setupEvents();
     this.preloadModel();
-  }
-
-  /**
-   * Decide whether playful (CRT / smoke / vibrate / palette swap) is on.
-   * Priority: explicit localStorage pref → prefers-reduced-motion → on.
-   */
-  private resolvePlayfulMode(): void {
-    try {
-      const stored = localStorage.getItem('nukebg:playful');
-      if (stored === 'true' || stored === 'false') {
-        document.documentElement.dataset.playful = stored;
-        return;
-      }
-    } catch {
-      // localStorage unavailable (Safari private mode); fall through.
-    }
-    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    document.documentElement.dataset.playful = reducedMotion ? 'false' : 'true';
-  }
-
-  private setPlayfulMode(playful: boolean): void {
-    document.documentElement.dataset.playful = playful ? 'true' : 'false';
-    try { localStorage.setItem('nukebg:playful', playful ? 'true' : 'false'); } catch {
-      /* ignore storage failures */
-    }
-    // Sync the footer toggle label.
-    this.syncQuietModeToggle();
-  }
-
-  private syncQuietModeToggle(): void {
-    // Footer lives in light DOM (index.html), not the ar-app shadow root.
-    const btn = document.getElementById('quiet-mode-toggle') as HTMLButtonElement | null;
-    if (!btn) return;
-    const playful = this.isPlayful();
-    btn.textContent = playful ? `# ${t('footer.quietMode')}` : `# ${t('footer.playfulMode')}`;
-    btn.setAttribute('aria-pressed', playful ? 'false' : 'true');
   }
 
   /** Pre-load model + warmup as soon as page opens */
@@ -117,7 +83,7 @@ export class ArApp extends HTMLElement {
         if (!m) return;
         const pct = Math.min(100, Math.max(0, parseInt(m[1], 10)));
         this.dropzone.setLoadingState({ visible: true, pct, label: message });
-      }
+      },
     );
 
     const el = statusEl();
@@ -141,42 +107,46 @@ export class ArApp extends HTMLElement {
       this.dropzone.setLoadingState({ visible: false, ready });
     };
 
-    this.pipeline.preloadModel(ArApp.MODEL_ID).then(() => {
-      finish(true);
-      const s = statusEl();
-      if (s) {
-        (s as HTMLElement).dataset.state = 'ready';
-        s.textContent = t('hero.modelStatus');
-        s.classList.add('ready');
-      }
-      const r = this.shadowRoot?.querySelector('#status-reactor') as HTMLElement | null;
-      if (r) {
-        r.dataset.state = 'online';
-        r.textContent = t('status.reactor.online');
-      }
-      this.dropzone.setEnabled(true);
-    }).catch((err: unknown) => {
-      finish(false);
-      console.error('[NukeBG] Model preload failed, falling back to lazy load:', err);
-      const s = statusEl();
-      if (s) {
-        (s as HTMLElement).dataset.state = 'lazy';
-        s.textContent = t('status.model.lazy');
-      }
-      // Reactor stays "offline" — preload didn't resolve. The lazy-load
-      // path will flip it once the first real process() succeeds; until
-      // then the user sees an honest "reactor idle" state.
-      this.dropzone.setEnabled(true);
-    });
+    this.pipeline
+      .preloadModel(ArApp.MODEL_ID)
+      .then(() => {
+        finish(true);
+        const s = statusEl();
+        if (s) {
+          (s as HTMLElement).dataset.state = 'ready';
+          s.textContent = t('hero.modelStatus');
+          s.classList.add('ready');
+        }
+        const r = this.shadowRoot?.querySelector('#status-reactor') as HTMLElement | null;
+        if (r) {
+          r.dataset.state = 'online';
+          r.textContent = t('status.reactor.online');
+        }
+        this.dropzone.setEnabled(true);
+      })
+      .catch((err: unknown) => {
+        finish(false);
+        console.error('[NukeBG] Model preload failed, falling back to lazy load:', err);
+        const s = statusEl();
+        if (s) {
+          (s as HTMLElement).dataset.state = 'lazy';
+          s.textContent = t('status.model.lazy');
+        }
+        // Reactor stays "offline" — preload didn't resolve. The lazy-load
+        // path will flip it once the first real process() succeeds; until
+        // then the user sees an honest "reactor idle" state.
+        this.dropzone.setEnabled(true);
+      });
   }
 
   disconnectedCallback(): void {
-    if (this.boundLocaleHandler) document.removeEventListener('nukebg:locale-changed', this.boundLocaleHandler);
-    if (this.boundPwaInstallableHandler) document.removeEventListener('nukebg:pwa-installable', this.boundPwaInstallableHandler);
+    if (this.boundLocaleHandler)
+      document.removeEventListener('nukebg:locale-changed', this.boundLocaleHandler);
+    if (this.boundPwaInstallableHandler)
+      document.removeEventListener('nukebg:pwa-installable', this.boundPwaInstallableHandler);
     this.abortController?.abort();
     this.abortController = null;
   }
-
 
   private render(): void {
     this.shadowRoot!.innerHTML = `
@@ -681,12 +651,6 @@ export class ArApp extends HTMLElement {
           border-color: var(--color-accent-primary, #00ff41);
           box-shadow: 0 0 10px rgba(var(--color-accent-rgb, 0, 255, 65), 0.1);
         }
-        .crt-word-flicker {
-          opacity: 0.05;
-        }
-        @media (prefers-reduced-motion: reduce) {
-          .crt-word-flicker { opacity: 1; }
-        }
         /* === Hero controls row (slider) === */
         .hero-controls {
           display: flex;
@@ -959,12 +923,12 @@ export class ArApp extends HTMLElement {
       <!-- Full-bleed marquee outside the main column per design #69.
            Gradient mask fades text in/out at the edges so it never
            clips mid-word the way the old column-scoped marquee did. -->
-      <div class="marquee-bleed" id="precision-marquee-bleed"><span>☢ NUKEBG | DROP. NUKE. DOWNLOAD. | Your images never leave your device | nukebg.app ☢ NUKEBG | DROP. NUKE. DOWNLOAD. | Your images never leave your device | nukebg.app ☢</span></div>
+      <div class="marquee-bleed" id="precision-marquee-bleed"><span>☢ NUKEBG | DROP. NUKE. DOWNLOAD. | Your images never leave your device | <span data-marquee-runtime>development funded for 0 months — tip to extend runway</span> | nukebg.app ☢ NUKEBG | DROP. NUKE. DOWNLOAD. | <span data-marquee-runtime>development funded for 0 months — tip to extend runway</span> | nukebg.app ☢</span></div>
 
       <section class="hero" id="hero">
         <h1>
           <span class="hero-title-long"><span class="accent">${t('hero.title.accent')}</span> ${t('hero.title.rest')}</span>
-          <span class="hero-title-short"><span class="accent">$ </span>${t('hero.title.short')}</span>
+          <span class="hero-title-short"><span class="accent">${t('hero.title.short')}</span></span>
         </h1>
         <p class="subline">
           <span class="subline-long">${t('hero.subtitle').replace(/\n/g, ' ')}</span>
@@ -1021,7 +985,6 @@ export class ArApp extends HTMLElement {
               </span>
             </div>
             <div class="cmd-right">
-              <button type="button" class="cmd-btn" id="cmd-new-image">${t('cmdbar.newImage')}</button>
               <button type="button" class="cmd-btn cmd-btn-danger" id="cmd-cancel" hidden>${t('cmdbar.cancel')}</button>
             </div>
           </div>
@@ -1082,24 +1045,31 @@ export class ArApp extends HTMLElement {
   private updateTexts(): void {
     const root = this.shadowRoot!;
     const h1 = root.querySelector('h1');
-    if (h1) h1.innerHTML =
-      `<span class="hero-title-long"><span class="accent">${t('hero.title.accent')}</span> ${t('hero.title.rest')}</span>` +
-      `<span class="hero-title-short"><span class="accent">$ </span>${t('hero.title.short')}</span>`;
+    if (h1)
+      h1.innerHTML =
+        `<span class="hero-title-long"><span class="accent">${t('hero.title.accent')}</span> ${t('hero.title.rest')}</span>` +
+        `<span class="hero-title-short"><span class="accent">${t('hero.title.short')}</span></span>`;
     const subline = root.querySelector('.subline');
-    if (subline) subline.innerHTML =
-      `<span class="subline-long">${t('hero.subtitle').replace(/\n/g, ' ')}</span>` +
-      `<span class="subline-short"># ${t('hero.subtitle.short')}</span>`;
+    if (subline)
+      subline.innerHTML =
+        `<span class="subline-long">${t('hero.subtitle').replace(/\n/g, ' ')}</span>` +
+        `<span class="subline-short"># ${t('hero.subtitle.short')}</span>`;
     const statusReactor = root.querySelector('#status-reactor');
     if (statusReactor) {
       const state = (statusReactor as HTMLElement).dataset.state ?? 'offline';
-      statusReactor.textContent = t(state === 'online' ? 'status.reactor.online' : 'status.reactor.offline');
+      statusReactor.textContent = t(
+        state === 'online' ? 'status.reactor.online' : 'status.reactor.offline',
+      );
     }
     const statusModel = root.querySelector('#status-model');
     if (statusModel) {
       const state = (statusModel as HTMLElement).dataset.state ?? 'loading';
-      const key = state === 'ready' ? 'hero.modelStatus'
-                : state === 'lazy' ? 'status.model.lazy'
-                : 'status.model.loading';
+      const key =
+        state === 'ready'
+          ? 'hero.modelStatus'
+          : state === 'lazy'
+            ? 'status.model.lazy'
+            : 'status.model.loading';
       statusModel.textContent = t(key);
     }
     const heroDisclaimer = root.querySelector('#hero-disclaimer');
@@ -1129,17 +1099,18 @@ export class ArApp extends HTMLElement {
     if (errRetry) errRetry.textContent = t('error.retry');
     const errDismiss = root.querySelector('#error-modal-dismiss');
     if (errDismiss) errDismiss.textContent = t('error.dismiss');
-    const cmdNew = root.querySelector('#cmd-new-image');
-    if (cmdNew) cmdNew.textContent = t('cmdbar.newImage');
     const cmdCancel = root.querySelector('#cmd-cancel');
     if (cmdCancel) cmdCancel.textContent = t('cmdbar.cancel');
     const cmdStateLabel = root.querySelector('#cmd-state-label') as HTMLElement | null;
     const cmdStateHost = root.querySelector('#cmd-state') as HTMLElement | null;
     if (cmdStateLabel && cmdStateHost) {
       const state = cmdStateHost.getAttribute('data-state') ?? 'running';
-      const key = state === 'running' ? 'cmdbar.running'
-                : state === 'ready' ? 'cmdbar.ready'
-                : 'cmdbar.failed';
+      const key =
+        state === 'running'
+          ? 'cmdbar.running'
+          : state === 'ready'
+            ? 'cmdbar.ready'
+            : 'cmdbar.failed';
       cmdStateLabel.textContent = t(key);
     }
   }
@@ -1173,60 +1144,56 @@ export class ArApp extends HTMLElement {
     // the shadow-root level so legacy listeners (progress component,
     // tests) still work.
     const bubbleCancel = (): void => {
-      this.dispatchEvent(new CustomEvent('ar:cancel-processing', { bubbles: true, composed: true }));
+      this.dispatchEvent(
+        new CustomEvent('ar:cancel-processing', { bubbles: true, composed: true }),
+      );
     };
-    this.shadowRoot!.addEventListener('ar:cancel-processing', () => {
-      if (this.processingAbortController && !this.processingAbortController.signal.aborted) {
-        this.processingAbortController.abort('user cancelled');
-      }
-      if (this.batchMode !== 'off') {
-        this.batchAborted = true;
-      }
-    }, { signal });
+    this.shadowRoot!.addEventListener(
+      'ar:cancel-processing',
+      () => {
+        if (this.processingAbortController && !this.processingAbortController.signal.aborted) {
+          this.processingAbortController.abort('user cancelled');
+        }
+        if (this.batchMode !== 'off') {
+          this.batchAborted = true;
+        }
+      },
+      { signal },
+    );
 
     const cmdCancel = this.shadowRoot!.querySelector('#cmd-cancel') as HTMLButtonElement | null;
     cmdCancel?.addEventListener('click', bubbleCancel, { signal });
-
-    const cmdNewImage = this.shadowRoot!.querySelector('#cmd-new-image') as HTMLButtonElement | null;
-    cmdNewImage?.addEventListener('click', () => {
-      // Abort any in-flight single-image run first; resetToIdle
-      // already handles the batch-mode abort internally.
-      if (this.processingAbortController && !this.processingAbortController.signal.aborted) {
-        this.processingAbortController.abort('new image requested');
-      }
-      this.resetToIdle();
-    }, { signal });
 
     // #78 — inline error-stage actions in ar-progress. Retry reuses
     // the existing retryFromError() path; report opens a pre-filled
     // GitHub issue URL with browser + session hints; reload is
     // handled by ar-progress itself (location.reload).
     this.progress.addEventListener('ar:stage-retry', () => this.retryFromError(), { signal });
-    this.progress.addEventListener('ar:stage-report', (ev) => {
-      const stage = (ev as CustomEvent<{ stage: string }>).detail.stage;
-      const ua = encodeURIComponent(navigator.userAgent);
-      const title = encodeURIComponent(`[stage:${stage}] pipeline error`);
-      const body = encodeURIComponent(
-        `**Stage:** \`${stage}\`\n**UA:** ${decodeURIComponent(ua)}\n**Locale:** ${document.documentElement.lang}\n\n<!-- what were you trying to do? drag the image that failed if possible -->`,
-      );
-      window.open(
-        `https://github.com/yocreoquesi/nukebg/issues/new?title=${title}&body=${body}`,
-        '_blank',
-        'noopener',
-      );
-    }, { signal });
-
-    // #79 — quiet-mode toggle lives in the footer (light DOM).
-    const quietBtn = document.getElementById('quiet-mode-toggle');
-    quietBtn?.addEventListener('click', () => {
-      this.setPlayfulMode(!this.isPlayful());
-    }, { signal });
-    // Initial label translation.
-    this.syncQuietModeToggle();
+    this.progress.addEventListener(
+      'ar:stage-report',
+      (ev) => {
+        const stage = (ev as CustomEvent<{ stage: string }>).detail.stage;
+        const ua = encodeURIComponent(navigator.userAgent);
+        const title = encodeURIComponent(`[stage:${stage}] pipeline error`);
+        const body = encodeURIComponent(
+          `**Stage:** \`${stage}\`\n**UA:** ${decodeURIComponent(ua)}\n**Locale:** ${document.documentElement.lang}\n\n<!-- what were you trying to do? drag the image that failed if possible -->`,
+        );
+        window.open(
+          `https://github.com/yocreoquesi/nukebg/issues/new?title=${title}&body=${body}`,
+          '_blank',
+          'noopener',
+        );
+      },
+      { signal },
+    );
 
     // Error modal wiring (#36).
-    const retryBtn = this.shadowRoot!.querySelector('#error-modal-retry') as HTMLButtonElement | null;
-    const dismissBtn = this.shadowRoot!.querySelector('#error-modal-dismiss') as HTMLButtonElement | null;
+    const retryBtn = this.shadowRoot!.querySelector(
+      '#error-modal-retry',
+    ) as HTMLButtonElement | null;
+    const dismissBtn = this.shadowRoot!.querySelector(
+      '#error-modal-dismiss',
+    ) as HTMLButtonElement | null;
     const backdrop = this.shadowRoot!.querySelector('#error-modal-backdrop') as HTMLElement | null;
     retryBtn?.addEventListener('click', () => this.retryFromError());
     dismissBtn?.addEventListener('click', () => this.hideErrorModal());
@@ -1276,72 +1243,102 @@ export class ArApp extends HTMLElement {
       }, 2000);
     }
 
-    installBtn.addEventListener('click', async () => {
-      // If native prompt available (Chromium), use it
-      if (hasNativePrompt) {
-        const accepted = await installApp();
-        if (accepted) {
-          installBtn.textContent = t('pwa.installed');
-          installBtn.disabled = true;
-          installGuide.classList.remove('visible');
+    installBtn.addEventListener(
+      'click',
+      async () => {
+        // If native prompt available (Chromium), use it
+        if (hasNativePrompt) {
+          const accepted = await installApp();
+          if (accepted) {
+            installBtn.textContent = t('pwa.installed');
+            installBtn.disabled = true;
+            installGuide.classList.remove('visible');
+          }
+          return;
         }
-        return;
-      }
-      // Otherwise show browser-specific instructions
-      const guide = this.getInstallGuide();
-      installGuide.innerHTML = guide;
-      installGuide.classList.toggle('visible');
-      const closeBtn = installGuide.querySelector('.install-guide-close');
-      if (closeBtn) {
-        closeBtn.addEventListener('click', () => installGuide.classList.remove('visible'), { signal });
-      }
-    }, { signal });
+        // Otherwise show browser-specific instructions
+        const guide = this.getInstallGuide();
+        installGuide.innerHTML = guide;
+        installGuide.classList.toggle('visible');
+        const closeBtn = installGuide.querySelector('.install-guide-close');
+        if (closeBtn) {
+          closeBtn.addEventListener('click', () => installGuide.classList.remove('visible'), {
+            signal,
+          });
+        }
+      },
+      { signal },
+    );
 
-    this.shadowRoot!.addEventListener('ar:image-loaded', async (e: Event) => {
-      const detail = (e as CustomEvent).detail;
-      this.currentFileName = detail.file.name || 'image.png';
+    this.shadowRoot!.addEventListener(
+      'ar:image-loaded',
+      async (e: Event) => {
+        const detail = (e as CustomEvent).detail;
+        this.currentFileName = detail.file.name || 'image.png';
 
-      // If currently processing, abort the in-flight pipeline and reset
-      if (this.isProcessing) {
-        this.processingAborted = true;
-        this.isProcessing = false;
-        this.enableWorkspaceButtons();
-      }
+        // If currently processing, abort the in-flight pipeline and reset
+        if (this.isProcessing) {
+          this.processingAborted = true;
+          this.isProcessing = false;
+          this.enableWorkspaceButtons();
+        }
 
-      await this.processImage(detail.imageData, detail.originalImageData ?? detail.imageData, detail.file.size);
-    }, { signal });
+        await this.processImage(
+          detail.imageData,
+          detail.originalImageData ?? detail.imageData,
+          detail.file.size,
+        );
+      },
+      { signal },
+    );
 
-    this.shadowRoot!.addEventListener('ar:images-loaded', async (e: Event) => {
-      const detail = (e as CustomEvent).detail as {
-        images: Array<{
-          file: File;
-          imageData: ImageData;
-          originalImageData: ImageData;
-          originalWidth: number;
-          originalHeight: number;
-          wasDownsampled: boolean;
-        }>;
-      };
-      if (this.isProcessing) {
-        this.processingAborted = true;
-        this.isProcessing = false;
-        this.enableWorkspaceButtons();
-      }
-      await this.startBatch(detail.images);
-    }, { signal });
+    this.shadowRoot!.addEventListener(
+      'ar:images-loaded',
+      async (e: Event) => {
+        const detail = (e as CustomEvent).detail as {
+          images: Array<{
+            file: File;
+            imageData: ImageData;
+            originalImageData: ImageData;
+            originalWidth: number;
+            originalHeight: number;
+            wasDownsampled: boolean;
+          }>;
+        };
+        if (this.isProcessing) {
+          this.processingAborted = true;
+          this.isProcessing = false;
+          this.enableWorkspaceButtons();
+        }
+        await this.startBatch(detail.images);
+      },
+      { signal },
+    );
 
-    this.shadowRoot!.addEventListener('batch:item-click', (e: Event) => {
-      const detail = (e as CustomEvent).detail as { id: string; state: string };
-      this.openBatchDetail(detail.id);
-    }, { signal });
+    this.shadowRoot!.addEventListener(
+      'batch:item-click',
+      (e: Event) => {
+        const detail = (e as CustomEvent).detail as { id: string; state: string };
+        this.openBatchDetail(detail.id);
+      },
+      { signal },
+    );
 
-    this.shadowRoot!.addEventListener('batch:download-zip', async () => {
-      await this.downloadBatchZip();
-    }, { signal });
+    this.shadowRoot!.addEventListener(
+      'batch:download-zip',
+      async () => {
+        await this.downloadBatchZip();
+      },
+      { signal },
+    );
 
-    this.shadowRoot!.addEventListener('batch:cancel', () => {
-      this.resetToIdle();
-    }, { signal });
+    this.shadowRoot!.addEventListener(
+      'batch:cancel',
+      () => {
+        this.resetToIdle();
+      },
+      { signal },
+    );
 
     const backBtn = this.shadowRoot!.querySelector('#back-to-grid-btn');
     if (backBtn) {
@@ -1356,134 +1353,150 @@ export class ArApp extends HTMLElement {
       discardBtn.addEventListener('click', () => this.discardBatchItem(), { signal });
     }
 
-    this.shadowRoot!.addEventListener('ar:process-another', () => {
-      this.resetToIdle();
-    }, { signal });
+    this.shadowRoot!.addEventListener(
+      'ar:process-another',
+      () => {
+        this.resetToIdle();
+      },
+      { signal },
+    );
 
     // Disclaimer click - toggle limitations detail
     // Limitations now live inside <details id="status-limits"> — native
     // disclosure widget handles open/close. No click wiring needed.
 
     // Edit button - opens editor or discards edits
-    this.shadowRoot!.querySelector('#edit-btn')?.addEventListener('click', async () => {
-      if (!this.lastResultImageData) return;
+    this.shadowRoot!.querySelector('#edit-btn')?.addEventListener(
+      'click',
+      async () => {
+        if (!this.lastResultImageData) return;
 
-      if (this.preEditResult) {
-        // Discard mode: restore pre-edit result, cache edit for instant re-apply
-        this.cachedEditResult = this.lastResultImageData;
-        this.lastResultImageData = this.preEditResult;
-        this.preEditResult = null;
+        if (this.preEditResult) {
+          // Discard mode: restore pre-edit result, cache edit for instant re-apply
+          this.cachedEditResult = this.lastResultImageData;
+          this.lastResultImageData = this.preEditResult;
+          this.preEditResult = null;
 
-        const blob = await exportPng(this.lastResultImageData);
-        const originalForViewer = this.currentOriginalImageData ?? this.currentImageData;
-        if (originalForViewer) this.viewer.setOriginal(originalForViewer, this.currentFileSize);
-        this.viewer.setResult(this.lastResultImageData, blob);
-        await this.download.setResult(this.lastResultImageData, this.currentFileName, 0, blob);
+          const blob = await exportPng(this.lastResultImageData);
+          const originalForViewer = this.currentOriginalImageData ?? this.currentImageData;
+          if (originalForViewer) this.viewer.setOriginal(originalForViewer, this.currentFileSize);
+          this.viewer.setResult(this.lastResultImageData, blob);
+          await this.download.setResult(this.lastResultImageData, this.currentFileName, 0, blob);
 
-        // Switch button back to "Edit manually"
-        const editBtn = this.shadowRoot!.querySelector('#edit-btn') as HTMLElement;
-        if (editBtn) editBtn.textContent = t('edit.btn');
-      } else {
-        // Edit mode: open editor, pass cached edit result for instant toggle if available
-        const editorSection = this.shadowRoot!.querySelector('#editor-section') as HTMLElement;
-        editorSection.style.display = 'block';
-        this.editor.setImage(
-          this.cachedEditResult ?? this.lastResultImageData,
-          (this.currentOriginalImageData ?? this.currentImageData)!,
-        );
-        this.cachedEditResult = null;
-        (this.shadowRoot!.querySelector('#edit-btn') as HTMLElement).style.display = 'none';
-      }
-    }, { signal });
-
-
+          // Switch button back to "Edit manually"
+          const editBtn = this.shadowRoot!.querySelector('#edit-btn') as HTMLElement;
+          if (editBtn) editBtn.textContent = t('edit.btn');
+        } else {
+          // Edit mode: open editor, pass cached edit result for instant toggle if available
+          const editorSection = this.shadowRoot!.querySelector('#editor-section') as HTMLElement;
+          editorSection.style.display = 'block';
+          this.editor.setImage(
+            this.cachedEditResult ?? this.lastResultImageData,
+            (this.currentOriginalImageData ?? this.currentImageData)!,
+          );
+          this.cachedEditResult = null;
+          (this.shadowRoot!.querySelector('#edit-btn') as HTMLElement).style.display = 'none';
+        }
+      },
+      { signal },
+    );
 
     // Editor cancel - discard edits, close editor
-    this.shadowRoot!.addEventListener('ar:editor-cancel', () => {
-      (this.shadowRoot!.querySelector('#editor-section') as HTMLElement).style.display = 'none';
-      (this.shadowRoot!.querySelector('#edit-btn') as HTMLElement).style.display = 'block';
-    }, { signal });
+    this.shadowRoot!.addEventListener(
+      'ar:editor-cancel',
+      () => {
+        (this.shadowRoot!.querySelector('#editor-section') as HTMLElement).style.display = 'none';
+        (this.shadowRoot!.querySelector('#edit-btn') as HTMLElement).style.display = 'block';
+      },
+      { signal },
+    );
 
     // Editor done - update viewer and download with edited result
-    this.shadowRoot!.addEventListener('ar:editor-done', async (e: Event) => {
-      const rawEdited = (e as CustomEvent).detail.imageData as ImageData;
-      // Refine: foreground decontamination + quintic alpha sharpening so manual
-      // brush strokes inherit the same studio-quality edge as the main pipeline.
-      // Topology cleanup is skipped — keepLargestComponent would discard manual
-      // restores that don't connect to the main subject body.
-      const editedData = await refineEdges(this.pipeline, rawEdited, {
-        skipTopologyCleanup: true,
-      });
-      const blob = await exportPng(editedData);
+    this.shadowRoot!.addEventListener(
+      'ar:editor-done',
+      async (e: Event) => {
+        const rawEdited = (e as CustomEvent).detail.imageData as ImageData;
+        // Refine: foreground decontamination + quintic alpha sharpening so manual
+        // brush strokes inherit the same studio-quality edge as the main pipeline.
+        // Topology cleanup is skipped — keepLargestComponent would discard manual
+        // restores that don't connect to the main subject body.
+        const editedData = await refineEdges(this.pipeline, rawEdited, {
+          skipTopologyCleanup: true,
+        });
+        const blob = await exportPng(editedData);
 
-      // Save pre-edit for discard functionality
-      this.preEditResult = this.lastResultImageData;
-      this.cachedEditResult = editedData;
-      this.lastResultImageData = editedData;
+        // Save pre-edit for discard functionality
+        this.preEditResult = this.lastResultImageData;
+        this.cachedEditResult = editedData;
+        this.lastResultImageData = editedData;
 
-      // "Before" stays as the original input image; only "after" updates
-      this.viewer.setResult(editedData, blob);
-      await this.download.setResult(editedData, this.currentFileName, 0, blob);
+        // "Before" stays as the original input image; only "after" updates
+        this.viewer.setResult(editedData, blob);
+        await this.download.setResult(editedData, this.currentFileName, 0, blob);
 
-      // Hide editor, show discard button
-      (this.shadowRoot!.querySelector('#editor-section') as HTMLElement).style.display = 'none';
-      const editBtn = this.shadowRoot!.querySelector('#edit-btn') as HTMLElement;
-      editBtn.style.display = 'block';
-      editBtn.textContent = t('edit.discard');
-    }, { signal });
+        // Hide editor, show discard button
+        (this.shadowRoot!.querySelector('#editor-section') as HTMLElement).style.display = 'none';
+        const editBtn = this.shadowRoot!.querySelector('#edit-btn') as HTMLElement;
+        editBtn.style.display = 'block';
+        editBtn.textContent = t('edit.discard');
+      },
+      { signal },
+    );
 
     // Advanced editor CTA toggle
-    this.shadowRoot!.querySelector('#advanced-cta')?.addEventListener('click', () => {
-      const adv = this.shadowRoot!.querySelector('#editor-advanced') as ArEditorAdvanced | null;
-      const btn = this.shadowRoot!.querySelector('#advanced-cta') as HTMLElement | null;
-      if (!adv || !btn) return;
-      const isOpen = adv.hasAttribute('active');
-      if (isOpen) {
-        adv.removeAttribute('active');
-        btn.removeAttribute('data-active');
-        return;
-      }
-      const current = this.lastResultImageData ?? this.currentImageData;
-      const original = this.currentOriginalImageData ?? this.currentImageData;
-      if (!current || !original) return;
-      adv.setImage(current, original);
-      adv.setAttribute('active', '');
-      btn.setAttribute('data-active', 'true');
-      adv.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }, { signal });
+    this.shadowRoot!.querySelector('#advanced-cta')?.addEventListener(
+      'click',
+      () => {
+        const adv = this.shadowRoot!.querySelector('#editor-advanced') as ArEditorAdvanced | null;
+        const btn = this.shadowRoot!.querySelector('#advanced-cta') as HTMLElement | null;
+        if (!adv || !btn) return;
+        const isOpen = adv.hasAttribute('active');
+        if (isOpen) {
+          adv.removeAttribute('active');
+          btn.removeAttribute('data-active');
+          return;
+        }
+        const current = this.lastResultImageData ?? this.currentImageData;
+        const original = this.currentOriginalImageData ?? this.currentImageData;
+        if (!current || !original) return;
+        adv.setImage(current, original);
+        adv.setAttribute('active', '');
+        btn.setAttribute('data-active', 'true');
+        adv.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      },
+      { signal },
+    );
 
     // Advanced editor — cancel
-    this.shadowRoot!.addEventListener('ar:advanced-cancel', () => {
-      const btn = this.shadowRoot!.querySelector('#advanced-cta') as HTMLElement | null;
-      btn?.removeAttribute('data-active');
-    }, { signal });
+    this.shadowRoot!.addEventListener(
+      'ar:advanced-cancel',
+      () => {
+        const btn = this.shadowRoot!.querySelector('#advanced-cta') as HTMLElement | null;
+        btn?.removeAttribute('data-active');
+      },
+      { signal },
+    );
 
     // Advanced editor — done
-    this.shadowRoot!.addEventListener('ar:advanced-done', async (e: Event) => {
-      const detail = (e as CustomEvent<{ imageData: ImageData }>).detail;
-      const btn = this.shadowRoot!.querySelector('#advanced-cta') as HTMLElement | null;
-      btn?.removeAttribute('data-active');
+    this.shadowRoot!.addEventListener(
+      'ar:advanced-done',
+      async (e: Event) => {
+        const detail = (e as CustomEvent<{ imageData: ImageData }>).detail;
+        const btn = this.shadowRoot!.querySelector('#advanced-cta') as HTMLElement | null;
+        btn?.removeAttribute('data-active');
 
-      // Same reasoning as the basic editor: skip topology cleanup so the
-      // user's lasso crops / restores survive the refinement pass.
-      const refined = await refineEdges(this.pipeline, detail.imageData, {
-        skipTopologyCleanup: true,
-      });
-      const blob = await exportPng(refined);
-      this.viewer.setResult(refined, blob);
-      await this.download.setResult(refined, this.currentFileName, 0, blob);
-      this.lastResultImageData = refined;
-    }, { signal });
-  }
-
-  /**
-   * Whether the UI is in "playful" mode — drives CRT flicker, smoke
-   * overlay, H1 vibration, and the per-precision-mode color palette
-   * swap. Default is on; users in quiet mode or with
-   * `prefers-reduced-motion: reduce` get the calm green default.
-   */
-  private isPlayful(): boolean {
-    return document.documentElement.dataset.playful !== 'false';
+        // Same reasoning as the basic editor: skip topology cleanup so the
+        // user's lasso crops / restores survive the refinement pass.
+        const refined = await refineEdges(this.pipeline, detail.imageData, {
+          skipTopologyCleanup: true,
+        });
+        const blob = await exportPng(refined);
+        this.viewer.setResult(refined, blob);
+        await this.download.setResult(refined, this.currentFileName, 0, blob);
+        this.lastResultImageData = refined;
+      },
+      { signal },
+    );
   }
 
   // Advanced CTA replaces the edit-btn when visible.
@@ -1537,7 +1550,11 @@ export class ArApp extends HTMLElement {
     }
   }
 
-  private async processImage(imageData: ImageData, originalImageData: ImageData, fileSize: number): Promise<void> {
+  private async processImage(
+    imageData: ImageData,
+    originalImageData: ImageData,
+    fileSize: number,
+  ): Promise<void> {
     // If a previous run is still going, hard-abort it so workers stop
     // immediately. Dropping a new image always wins over the previous one.
     if (this.processingAbortController && !this.processingAbortController.signal.aborted) {
@@ -1581,19 +1598,22 @@ export class ArApp extends HTMLElement {
       this.pipeline = new PipelineOrchestrator(
         (stage: PipelineStage, status: StageStatus, message?: string) => {
           this.progress.setStage(stage, status, message);
-        }
+        },
       );
     } else {
       // Update the callback to point to current progress component
       this.pipeline.setStageCallback(
         (stage: PipelineStage, status: StageStatus, message?: string) => {
           this.progress.setStage(stage, status, message);
-        }
+        },
       );
     }
 
     try {
-      if (originalImageData.width !== imageData.width || originalImageData.height !== imageData.height) {
+      if (
+        originalImageData.width !== imageData.width ||
+        originalImageData.height !== imageData.height
+      ) {
         const msg = t('progress.downscaled', {
           w: String(imageData.width),
           h: String(imageData.height),
@@ -1675,6 +1695,10 @@ export class ArApp extends HTMLElement {
         this.isProcessing = false;
         this.enableWorkspaceButtons();
         this.updateCommandBarState('ready');
+        // Notify the post-process CTA module so it can decide whether
+        // to surface a star/tip/review ask. Light DOM listener — fires
+        // and forgets, no return contract.
+        document.dispatchEvent(new CustomEvent('ar:nuke-success'));
       }
     }
   }
@@ -1696,9 +1720,7 @@ export class ArApp extends HTMLElement {
     if (fn) fn.textContent = payload.filename;
     const meta = root.querySelector('#cmd-meta');
     if (meta) {
-      const kb = payload.sizeBytes > 0
-        ? ` · ${this.formatBytes(payload.sizeBytes)}`
-        : '';
+      const kb = payload.sizeBytes > 0 ? ` · ${this.formatBytes(payload.sizeBytes)}` : '';
       meta.textContent = ` · ${payload.width}×${payload.height}${kb}`;
     }
     this.updateCommandBarState(payload.state);
@@ -1712,9 +1734,8 @@ export class ArApp extends HTMLElement {
     if (!stateEl || !label || !cancelBtn) return;
     stateEl.hidden = false;
     stateEl.setAttribute('data-state', state);
-    const key = state === 'running' ? 'cmdbar.running'
-              : state === 'ready' ? 'cmdbar.ready'
-              : 'cmdbar.failed';
+    const key =
+      state === 'running' ? 'cmdbar.running' : state === 'ready' ? 'cmdbar.ready' : 'cmdbar.failed';
     label.textContent = t(key);
     cancelBtn.hidden = state !== 'running';
   }
@@ -1735,7 +1756,9 @@ export class ArApp extends HTMLElement {
   private showErrorModal(msg: string): void {
     const modal = this.shadowRoot?.querySelector('#error-modal') as HTMLElement | null;
     const messageEl = this.shadowRoot?.querySelector('#error-modal-message');
-    const retryBtn = this.shadowRoot?.querySelector('#error-modal-retry') as HTMLButtonElement | null;
+    const retryBtn = this.shadowRoot?.querySelector(
+      '#error-modal-retry',
+    ) as HTMLButtonElement | null;
     if (!modal || !messageEl) return;
     messageEl.textContent = msg;
     const canRetry = !!(this.currentImageData && this.currentOriginalImageData);
@@ -1744,7 +1767,10 @@ export class ArApp extends HTMLElement {
     // Shift focus to the primary action so keyboard users can act
     // without hunting for the dialog.
     queueMicrotask(() => {
-      (canRetry ? retryBtn : (this.shadowRoot?.querySelector('#error-modal-dismiss') as HTMLElement | null))?.focus();
+      (canRetry
+        ? retryBtn
+        : (this.shadowRoot?.querySelector('#error-modal-dismiss') as HTMLElement | null)
+      )?.focus();
     });
   }
 
@@ -1761,11 +1787,7 @@ export class ArApp extends HTMLElement {
     this.hideErrorModal();
     // Re-run processing with the same inputs. processImage() already
     // handles the state reset (progress, viewer, abort controller, etc).
-    this.processImage(
-      this.currentImageData,
-      this.currentOriginalImageData,
-      this.currentFileSize,
-    );
+    this.processImage(this.currentImageData, this.currentOriginalImageData, this.currentFileSize);
   }
 
   private makeThumbnail(imageData: ImageData, maxSide = 200): string {
@@ -1818,14 +1840,16 @@ export class ArApp extends HTMLElement {
     this.batchMode = mode;
   }
 
-  private async startBatch(images: Array<{
-    file: File;
-    imageData: ImageData;
-    originalImageData: ImageData;
-    originalWidth: number;
-    originalHeight: number;
-    wasDownsampled: boolean;
-  }>): Promise<void> {
+  private async startBatch(
+    images: Array<{
+      file: File;
+      imageData: ImageData;
+      originalImageData: ImageData;
+      originalWidth: number;
+      originalHeight: number;
+      wasDownsampled: boolean;
+    }>,
+  ): Promise<void> {
     this.batchAborted = false;
     this.batchItems = images.map((img, i) => ({
       id: `batch-${Date.now()}-${i}`,
@@ -1852,7 +1876,11 @@ export class ArApp extends HTMLElement {
     // event into the item being processed so we can replay the exact
     // sequence (running → done / skipped / error) if the user reopens
     // that item's detail later.
-    const batchStageCallback = (stage: PipelineStage, status: StageStatus, message?: string): void => {
+    const batchStageCallback = (
+      stage: PipelineStage,
+      status: StageStatus,
+      message?: string,
+    ): void => {
       this.progress.setStage(stage, status, message);
       const current = this.batchCurrentProcessingItem;
       if (current) current.stageHistory.push({ stage, status, message });
@@ -1945,7 +1973,7 @@ export class ArApp extends HTMLElement {
   }
 
   private async openBatchDetail(id: string): Promise<void> {
-    const item = this.batchItems.find(i => i.id === id);
+    const item = this.batchItems.find((i) => i.id === id);
     if (!item) return;
     this.batchDetailId = id;
 
@@ -2067,7 +2095,7 @@ export class ArApp extends HTMLElement {
 
   private async retryBatchItem(): Promise<void> {
     if (!this.batchDetailId) return;
-    const item = this.batchItems.find(i => i.id === this.batchDetailId);
+    const item = this.batchItems.find((i) => i.id === this.batchDetailId);
     if (!item) return;
     item.state = 'pending';
     item.errorMessage = undefined;
@@ -2079,7 +2107,7 @@ export class ArApp extends HTMLElement {
 
   private discardBatchItem(): void {
     if (!this.batchDetailId) return;
-    const item = this.batchItems.find(i => i.id === this.batchDetailId);
+    const item = this.batchItems.find((i) => i.id === this.batchDetailId);
     if (!item) return;
     item.state = 'discarded';
     if (this.batchGrid) this.batchGrid.updateItem(item.id, 'discarded');
@@ -2087,7 +2115,7 @@ export class ArApp extends HTMLElement {
   }
 
   private async downloadBatchZip(): Promise<void> {
-    const done = this.batchItems.filter(i => i.state === 'done' && i.result);
+    const done = this.batchItems.filter((i) => i.state === 'done' && i.result);
     if (done.length === 0) return;
     const files = await Promise.all(
       done.map(async (item, idx) => ({

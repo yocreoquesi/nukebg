@@ -27,8 +27,9 @@ describe('safeZipEntryName', () => {
   });
 
   it('strips unsafe characters', () => {
-    expect(safeZipEntryName(1, 12, 'file/with:bad*chars?.png'))
-      .toBe('nukebg-01-file_with_bad_chars_.png');
+    expect(safeZipEntryName(1, 12, 'file/with:bad*chars?.png')).toBe(
+      'nukebg-01-file_with_bad_chars_.png',
+    );
   });
 
   it('falls back to "image" when base name is empty', () => {

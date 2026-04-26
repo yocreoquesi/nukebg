@@ -13,18 +13,14 @@
  */
 import * as ort from 'onnxruntime-web';
 import type { SamWorkerRequest, SamWorkerResponse } from '../types/worker-messages';
+import { MOBILESAM_PARAMS } from '../pipeline/constants';
 const SAM_PARAMS = {
-  ENCODER_URL:
-    'https://huggingface.co/Acly/MobileSAM/resolve/main/mobile_sam_image_encoder.onnx',
-  DECODER_URL:
-    'https://huggingface.co/Acly/MobileSAM/resolve/main/sam_mask_decoder_single.onnx',
   INPUT_SIZE: 1024,
   MASK_SIZE: 256,
   MASK_THRESHOLD: 0.0,
 } as const;
 
-ort.env.wasm.wasmPaths =
-  'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.24.3/dist/';
+ort.env.wasm.wasmPaths = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.24.3/dist/';
 ort.env.logLevel = 'error';
 
 let encoderSession: ort.InferenceSession | null = null;
@@ -41,6 +37,8 @@ async function fetchModel(
   url: string,
   id: string,
   stage: 'encoder' | 'decoder',
+  expectedSize: number,
+  expectedSha256: string,
 ): Promise<Uint8Array> {
   const response = await fetch(url);
   if (!response.ok) throw new Error(`SAM ${stage} fetch failed: HTTP ${response.status}`);
@@ -60,15 +58,41 @@ async function fetchModel(
       const pct = Math.floor((received / total) * 100);
       if (pct !== lastPct) {
         lastPct = pct;
-        self.postMessage(
-          { id, type: 'sam-load-progress', progress: pct, stage } satisfies SamWorkerResponse,
-        );
+        self.postMessage({
+          id,
+          type: 'sam-load-progress',
+          progress: pct,
+          stage,
+        } satisfies SamWorkerResponse);
       }
     }
   }
+
+  if (received !== expectedSize) {
+    throw new Error(
+      `SAM ${stage} size mismatch: got ${received} bytes, expected ${expectedSize}. ` +
+        `Upstream may have been replaced.`,
+    );
+  }
+
   const buffer = new Uint8Array(received);
   let offset = 0;
-  for (const c of chunks) { buffer.set(c, offset); offset += c.byteLength; }
+  for (const c of chunks) {
+    buffer.set(c, offset);
+    offset += c.byteLength;
+  }
+
+  const digestBuf = await crypto.subtle.digest('SHA-256', buffer);
+  const digestHex = Array.from(new Uint8Array(digestBuf))
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
+  if (digestHex !== expectedSha256) {
+    throw new Error(
+      `SAM ${stage} hash mismatch: got ${digestHex}, expected ${expectedSha256}. ` +
+        `Refusing to load.`,
+    );
+  }
+
   return buffer;
 }
 
@@ -83,8 +107,20 @@ async function loadModels(id: string): Promise<void> {
       logSeverityLevel: 3,
     };
     const [encBuf, decBuf] = await Promise.all([
-      fetchModel(SAM_PARAMS.ENCODER_URL, id, 'encoder'),
-      fetchModel(SAM_PARAMS.DECODER_URL, id, 'decoder'),
+      fetchModel(
+        MOBILESAM_PARAMS.ENCODER_URL,
+        id,
+        'encoder',
+        MOBILESAM_PARAMS.ENCODER_SIZE,
+        MOBILESAM_PARAMS.ENCODER_SHA256,
+      ),
+      fetchModel(
+        MOBILESAM_PARAMS.DECODER_URL,
+        id,
+        'decoder',
+        MOBILESAM_PARAMS.DECODER_SIZE,
+        MOBILESAM_PARAMS.DECODER_SHA256,
+      ),
     ]);
     encoderSession = await ort.InferenceSession.create(encBuf, opts);
     decoderSession = await ort.InferenceSession.create(decBuf, opts);
@@ -155,9 +191,9 @@ function bilinearResize(
       for (let c = 0; c < 4; c++) {
         out[idx + c] = Math.round(
           src[i00 + c] * (1 - fx) * (1 - fy) +
-          src[i10 + c] * fx * (1 - fy) +
-          src[i01 + c] * (1 - fx) * fy +
-          src[i11 + c] * fx * fy,
+            src[i10 + c] * fx * (1 - fy) +
+            src[i01 + c] * (1 - fx) * fy +
+            src[i11 + c] * fx * fy,
         );
       }
     }
@@ -165,12 +201,7 @@ function bilinearResize(
   return out;
 }
 
-async function encode(
-  id: string,
-  pixels: Uint8ClampedArray,
-  w: number,
-  h: number,
-): Promise<void> {
+async function encode(id: string, pixels: Uint8ClampedArray, w: number, h: number): Promise<void> {
   await loadModels(id);
   if (!encoderSession) throw new Error('Encoder not loaded');
 
@@ -261,9 +292,13 @@ async function decode(
     }
   }
 
-  self.postMessage(
-    { id, type: 'sam-mask', mask: binary, width: w, height: h } satisfies SamWorkerResponse,
-  );
+  self.postMessage({
+    id,
+    type: 'sam-mask',
+    mask: binary,
+    width: w,
+    height: h,
+  } satisfies SamWorkerResponse);
 }
 
 // ────────────────────────────── Dispose ─────────────────────────────────────
@@ -291,7 +326,13 @@ self.addEventListener('message', async (e: MessageEvent<SamWorkerRequest>) => {
         await encode(msg.id, msg.payload.pixels, msg.payload.width, msg.payload.height);
         break;
       case 'sam-decode':
-        await decode(msg.id, msg.payload.points, msg.payload.labels, msg.payload.width, msg.payload.height);
+        await decode(
+          msg.id,
+          msg.payload.points,
+          msg.payload.labels,
+          msg.payload.width,
+          msg.payload.height,
+        );
         break;
       case 'sam-dispose':
         dispose();

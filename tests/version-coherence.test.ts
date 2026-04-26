@@ -27,7 +27,8 @@ describe(`version coherence (package.json @ ${expected})`, () => {
 
   it('src/utils/image-io.ts PNG metadata carries the same version', () => {
     const src = read('src/utils/image-io.ts');
-    expect(src).toMatch(new RegExp(`'Software':\\s*'NukeBG v${esc(expected)}'`));
+    // Prettier may strip quotes from the property key; accept either form.
+    expect(src).toMatch(new RegExp(`['"]?Software['"]?:\\s*'NukeBG v${esc(expected)}'`));
   });
 
   it('index.html JSON-LD softwareVersion carries the same version', () => {

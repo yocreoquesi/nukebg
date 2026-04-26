@@ -10,7 +10,7 @@ export function detectBgColors(
   pixels: Uint8ClampedArray,
   width: number,
   height: number,
-  sampleSize: number = CV_PARAMS.CORNER_SAMPLE_SIZE
+  sampleSize: number = CV_PARAMS.CORNER_SAMPLE_SIZE,
 ): BgColorResult {
   const s = Math.min(sampleSize, Math.floor(height / 4), Math.floor(width / 4));
 

@@ -137,7 +137,8 @@ export function fillSubjectHoles(
   const n = width * height;
   const queue = new Int32Array(n);
   const bgVisited = new Uint8Array(n);
-  let head = 0, tail = 0;
+  let head = 0,
+    tail = 0;
 
   const seedBg = (idx: number) => {
     if (data[idx * 4 + 3] === 0 && !bgVisited[idx]) {
@@ -160,19 +161,31 @@ export function fillSubjectHoles(
     const y = (idx - x) / width;
     if (x > 0) {
       const ni = idx - 1;
-      if (!bgVisited[ni] && data[ni * 4 + 3] === 0) { bgVisited[ni] = 1; queue[tail++] = ni; }
+      if (!bgVisited[ni] && data[ni * 4 + 3] === 0) {
+        bgVisited[ni] = 1;
+        queue[tail++] = ni;
+      }
     }
     if (x < width - 1) {
       const ni = idx + 1;
-      if (!bgVisited[ni] && data[ni * 4 + 3] === 0) { bgVisited[ni] = 1; queue[tail++] = ni; }
+      if (!bgVisited[ni] && data[ni * 4 + 3] === 0) {
+        bgVisited[ni] = 1;
+        queue[tail++] = ni;
+      }
     }
     if (y > 0) {
       const ni = idx - width;
-      if (!bgVisited[ni] && data[ni * 4 + 3] === 0) { bgVisited[ni] = 1; queue[tail++] = ni; }
+      if (!bgVisited[ni] && data[ni * 4 + 3] === 0) {
+        bgVisited[ni] = 1;
+        queue[tail++] = ni;
+      }
     }
     if (y < height - 1) {
       const ni = idx + width;
-      if (!bgVisited[ni] && data[ni * 4 + 3] === 0) { bgVisited[ni] = 1; queue[tail++] = ni; }
+      if (!bgVisited[ni] && data[ni * 4 + 3] === 0) {
+        bgVisited[ni] = 1;
+        queue[tail++] = ni;
+      }
     }
   }
 
@@ -184,7 +197,8 @@ export function fillSubjectHoles(
     if (data[start * 4 + 3] !== 0) continue;
     if (bgVisited[start] || holeVisited[start]) continue;
 
-    head = 0; tail = 0;
+    head = 0;
+    tail = 0;
     let size = 0;
     queue[tail++] = start;
     holeVisited[start] = 1;
@@ -197,25 +211,33 @@ export function fillSubjectHoles(
       if (x > 0) {
         const ni = idx - 1;
         if (!holeVisited[ni] && !bgVisited[ni] && data[ni * 4 + 3] === 0) {
-          holeVisited[ni] = 1; queue[tail++] = ni; holeIndices[size++] = ni;
+          holeVisited[ni] = 1;
+          queue[tail++] = ni;
+          holeIndices[size++] = ni;
         }
       }
       if (x < width - 1) {
         const ni = idx + 1;
         if (!holeVisited[ni] && !bgVisited[ni] && data[ni * 4 + 3] === 0) {
-          holeVisited[ni] = 1; queue[tail++] = ni; holeIndices[size++] = ni;
+          holeVisited[ni] = 1;
+          queue[tail++] = ni;
+          holeIndices[size++] = ni;
         }
       }
       if (y > 0) {
         const ni = idx - width;
         if (!holeVisited[ni] && !bgVisited[ni] && data[ni * 4 + 3] === 0) {
-          holeVisited[ni] = 1; queue[tail++] = ni; holeIndices[size++] = ni;
+          holeVisited[ni] = 1;
+          queue[tail++] = ni;
+          holeIndices[size++] = ni;
         }
       }
       if (y < height - 1) {
         const ni = idx + width;
         if (!holeVisited[ni] && !bgVisited[ni] && data[ni * 4 + 3] === 0) {
-          holeVisited[ni] = 1; queue[tail++] = ni; holeIndices[size++] = ni;
+          holeVisited[ni] = 1;
+          queue[tail++] = ni;
+          holeIndices[size++] = ni;
         }
       }
     }
@@ -315,8 +337,14 @@ export function sharpenAlpha(alpha: Uint8Array): Uint8Array {
   const range = SHARPEN_HIGH - SHARPEN_LOW;
   for (let i = 0; i < alpha.length; i++) {
     const a = alpha[i];
-    if (a <= SHARPEN_LOW) { out[i] = 0; continue; }
-    if (a >= SHARPEN_HIGH) { out[i] = 255; continue; }
+    if (a <= SHARPEN_LOW) {
+      out[i] = 0;
+      continue;
+    }
+    if (a >= SHARPEN_HIGH) {
+      out[i] = 255;
+      continue;
+    }
     const n = (a - SHARPEN_LOW) / range;
     const s = n * n * n * (n * (n * 6 - 15) + 10);
     const v = Math.round(s * 255);
@@ -344,7 +372,8 @@ export function keepLargestComponent(bin: Uint8Array, w: number, h: number): voi
     if (bin[i] === 0 || labels[i] !== 0) continue;
     nextId++;
     labels[i] = nextId;
-    let head = 0, tail = 0;
+    let head = 0,
+      tail = 0;
     queue[tail++] = i;
     let size = 0;
     while (head < tail) {
@@ -393,7 +422,10 @@ function dilate1(bin: Uint8Array, w: number, h: number): Uint8Array {
   for (let y = 0; y < h; y++) {
     for (let x = 0; x < w; x++) {
       const idx = y * w + x;
-      if (bin[idx]) { out[idx] = 1; continue; }
+      if (bin[idx]) {
+        out[idx] = 1;
+        continue;
+      }
       let has = 0;
       for (let dy = -1; dy <= 1 && !has; dy++) {
         for (let dx = -1; dx <= 1 && !has; dx++) {
@@ -482,4 +514,3 @@ export async function refineEdges(
 
   return new ImageData(new Uint8ClampedArray(rgba), w, h);
 }
-

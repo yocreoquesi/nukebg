@@ -5,8 +5,17 @@
 // hatch. The file is tiny and served once per navigation.
 setTimeout(function () {
   if (document.getElementById('seo-content') && 'serviceWorker' in navigator) {
-    caches.keys().then(function (keys) {
-      return Promise.all(keys.map(function (k) { return caches.delete(k); }));
-    }).then(function () { location.reload(); });
+    caches
+      .keys()
+      .then(function (keys) {
+        return Promise.all(
+          keys.map(function (k) {
+            return caches.delete(k);
+          }),
+        );
+      })
+      .then(function () {
+        location.reload();
+      });
   }
 }, 5000);

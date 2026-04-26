@@ -3,19 +3,47 @@ import type { WatermarkResult } from '../../types/pipeline';
 import { pixelIndex } from './utils';
 
 /**
+ * Returns true when the pixel matches the Gemini sparkle palette: a
+ * near-white or slightly cyan-tinted bright pixel. The original sparkle
+ * is pure white (#FFFFFF) with a light blue halo (~#A0D8E0), and JPEG
+ * compression rounds those into a tight high-luminance / low-saturation
+ * region. Without this gate the deviation accumulator counts ANY weird
+ * pixel in the bottom-right corner — bright reflections, white spots in
+ * flowers, product marks, sun glare — all triggered false positives
+ * (issue #152).
+ */
+function isGeminiSparkleColor(r: number, g: number, b: number): boolean {
+  // Near-white: high luminance + low saturation
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  if (max < 200) return false;
+  const saturation = max - min;
+  if (saturation <= 35) return true; // white / very light grey
+  // Slight blueish-white halo: blue channel slightly leads, all bright
+  if (b >= r && b >= g && r >= 180 && g >= 180) return true;
+  return false;
+}
+
+/**
  * Detect the Gemini sparkle watermark in the bottom-right corner.
  * Port of Python detect_gemini_watermark().
+ *
+ * Now gated by `isGeminiSparkleColor` (issue #152) so that only pixels
+ * matching the actual sparkle palette count toward the deviation
+ * accumulator. Eliminates the broad family of false positives where
+ * bright non-sparkle features in the bottom-right corner fired the
+ * detector.
  */
 export function watermarkDetect(
   pixels: Uint8ClampedArray,
   width: number,
   height: number,
   colorA: number[],
-  colorB: number[]
+  colorB: number[],
 ): WatermarkResult {
   let scanSize = Math.max(
     WATERMARK_PARAMS.MIN_SCAN_SIZE,
-    Math.floor(Math.min(height, width) / WATERMARK_PARAMS.SCAN_FRACTION)
+    Math.floor(Math.min(height, width) / WATERMARK_PARAMS.SCAN_FRACTION),
   );
   scanSize = Math.min(scanSize, Math.floor(Math.min(height, width) / 2));
 
@@ -37,16 +65,16 @@ export function watermarkDetect(
         const diffA = Math.max(
           Math.abs(r - colorA[0]),
           Math.abs(g - colorA[1]),
-          Math.abs(b - colorA[2])
+          Math.abs(b - colorA[2]),
         );
         const diffB = Math.max(
           Math.abs(r - colorB[0]),
           Math.abs(g - colorB[1]),
-          Math.abs(b - colorB[2])
+          Math.abs(b - colorB[2]),
         );
         const deviation = Math.min(diffA, diffB);
 
-        if (deviation > threshold) {
+        if (deviation > threshold && isGeminiSparkleColor(r, g, b)) {
           sparkleCoords.push([ly, lx]);
         }
       }
@@ -68,7 +96,8 @@ export function watermarkDetect(
   }
 
   // Compute center
-  let sumY = 0, sumX = 0;
+  let sumY = 0,
+    sumX = 0;
   for (const [ly, lx] of sparkleCoords) {
     sumY += ly;
     sumX += lx;
@@ -92,7 +121,10 @@ export function watermarkDetect(
   const cxAbs = width - scanSize + cxLocal;
 
   // Compute spread and radius
-  let minY = Infinity, maxY = -Infinity, minX = Infinity, maxX = -Infinity;
+  let minY = Infinity,
+    maxY = -Infinity,
+    minX = Infinity,
+    maxX = -Infinity;
   for (const [ly, lx] of sparkleCoords) {
     minY = Math.min(minY, ly);
     maxY = Math.max(maxY, ly);
@@ -120,15 +152,15 @@ export function watermarkDetect(
         const diffA = Math.max(
           Math.abs(r - colorA[0]),
           Math.abs(g - colorA[1]),
-          Math.abs(b - colorA[2])
+          Math.abs(b - colorA[2]),
         );
         const diffB = Math.max(
           Math.abs(r - colorB[0]),
           Math.abs(g - colorB[1]),
-          Math.abs(b - colorB[2])
+          Math.abs(b - colorB[2]),
         );
         const dev = Math.min(diffA, diffB);
-        if (dev > WATERMARK_PARAMS.HALO_DEVIATION_THRESHOLD) {
+        if (dev > WATERMARK_PARAMS.HALO_DEVIATION_THRESHOLD && isGeminiSparkleColor(r, g, b)) {
           mask[y * width + x] = 1;
         }
       }

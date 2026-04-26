@@ -10,12 +10,7 @@
  * Compute box mean via separable sliding window - O(1) per pixel.
  * Two passes: horizontal then vertical, each using a running sum.
  */
-function boxMean(
-  src: Float32Array,
-  w: number,
-  h: number,
-  radius: number,
-): Float32Array {
+function boxMean(src: Float32Array, w: number, h: number, radius: number): Float32Array {
   const n = w * h;
   const tmp = new Float32Array(n);
   const out = new Float32Array(n);
@@ -138,4 +133,3 @@ export function guidedFilter(
 
   return result;
 }
-

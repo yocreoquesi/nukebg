@@ -11,11 +11,15 @@ if (typeof globalThis.ImageData === 'undefined') {
     data: Uint8ClampedArray;
     width: number;
     height: number;
-    constructor(dataOrWidth: Uint8ClampedArray | number, widthOrHeight: number, maybeHeight?: number) {
+    constructor(
+      dataOrWidth: Uint8ClampedArray | number,
+      widthOrHeight: number,
+      maybeHeight?: number,
+    ) {
       if (dataOrWidth instanceof Uint8ClampedArray) {
         this.data = dataOrWidth;
         this.width = widthOrHeight;
-        this.height = maybeHeight ?? (dataOrWidth.length / (widthOrHeight * 4));
+        this.height = maybeHeight ?? dataOrWidth.length / (widthOrHeight * 4);
       } else {
         this.width = dataOrWidth;
         this.height = widthOrHeight;
@@ -34,7 +38,8 @@ const runChain = (img: ImageData): ImageData =>
 
 // Build a synthetic image containing every defect class the chain must cure.
 const makeDefectiveSubject = () => {
-  const w = 40, h = 40;
+  const w = 40,
+    h = 40;
   const data = new Uint8ClampedArray(w * h * 4);
   // Solid body at (5,5)-(34,34): α=255, RGB=(200,100,50).
   for (let y = 5; y <= 34; y++) {
@@ -61,14 +66,32 @@ const countEnclosedHoles = (img: ImageData): number => {
   const n = w * h;
   const queue = new Int32Array(n);
   const bg = new Uint8Array(n);
-  let head = 0, tail = 0;
-  const seed = (i: number) => { if (data[i * 4 + 3] === 0 && !bg[i]) { bg[i] = 1; queue[tail++] = i; } };
-  for (let x = 0; x < w; x++) { seed(x); seed((h - 1) * w + x); }
-  for (let y = 1; y < h - 1; y++) { seed(y * w); seed(y * w + w - 1); }
+  let head = 0,
+    tail = 0;
+  const seed = (i: number) => {
+    if (data[i * 4 + 3] === 0 && !bg[i]) {
+      bg[i] = 1;
+      queue[tail++] = i;
+    }
+  };
+  for (let x = 0; x < w; x++) {
+    seed(x);
+    seed((h - 1) * w + x);
+  }
+  for (let y = 1; y < h - 1; y++) {
+    seed(y * w);
+    seed(y * w + w - 1);
+  }
   while (head < tail) {
     const i = queue[head++];
-    const x = i % w, y = (i - x) / w;
-    const push = (ni: number) => { if (data[ni * 4 + 3] === 0 && !bg[ni]) { bg[ni] = 1; queue[tail++] = ni; } };
+    const x = i % w,
+      y = (i - x) / w;
+    const push = (ni: number) => {
+      if (data[ni * 4 + 3] === 0 && !bg[ni]) {
+        bg[ni] = 1;
+        queue[tail++] = ni;
+      }
+    };
     if (x > 0) push(i - 1);
     if (x < w - 1) push(i + 1);
     if (y > 0) push(i - w);
@@ -79,11 +102,20 @@ const countEnclosedHoles = (img: ImageData): number => {
   for (let i = 0; i < n; i++) {
     if (data[i * 4 + 3] !== 0 || bg[i] || seen[i]) continue;
     holes++;
-    head = 0; tail = 0; queue[tail++] = i; seen[i] = 1;
+    head = 0;
+    tail = 0;
+    queue[tail++] = i;
+    seen[i] = 1;
     while (head < tail) {
       const j = queue[head++];
-      const x = j % w, y = (j - x) / w;
-      const push = (nj: number) => { if (data[nj * 4 + 3] === 0 && !bg[nj] && !seen[nj]) { seen[nj] = 1; queue[tail++] = nj; } };
+      const x = j % w,
+        y = (j - x) / w;
+      const push = (nj: number) => {
+        if (data[nj * 4 + 3] === 0 && !bg[nj] && !seen[nj]) {
+          seen[nj] = 1;
+          queue[tail++] = nj;
+        }
+      };
       if (x > 0) push(j - 1);
       if (x < w - 1) push(j + 1);
       if (y > 0) push(j - w);

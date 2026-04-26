@@ -76,7 +76,8 @@ describe('originalPixels no se corrompe al usar extractTransferables', () => {
     // Simula lo que hace PipelineOrchestrator.process():
     // const originalPixels = new Uint8ClampedArray(imageData.data);
     // luego cada cvCall usa: new Uint8ClampedArray(imageData.data) como copia
-    const width = 16, height = 16;
+    const width = 16,
+      height = 16;
     const originalData = new Uint8ClampedArray(width * height * 4);
     for (let i = 0; i < originalData.length; i++) {
       originalData[i] = i % 256;
@@ -104,7 +105,8 @@ describe('originalPixels no se corrompe al usar extractTransferables', () => {
   });
 
   it('multiples copias son independientes del original', () => {
-    const width = 8, height = 8;
+    const width = 8,
+      height = 8;
     const source = new Uint8ClampedArray(width * height * 4);
     for (let i = 0; i < source.length; i++) {
       source[i] = 200;
@@ -129,11 +131,12 @@ describe('originalPixels no se corrompe al usar extractTransferables', () => {
   });
 
   it('la composicion final usa originalPixels sin corrupcion', () => {
-    const width = 4, height = 4;
+    const width = 4,
+      height = 4;
     const imagePixels = new Uint8ClampedArray(width * height * 4);
     // Fill with known colors
     for (let i = 0; i < width * height; i++) {
-      imagePixels[i * 4] = 100;     // R
+      imagePixels[i * 4] = 100; // R
       imagePixels[i * 4 + 1] = 150; // G
       imagePixels[i * 4 + 2] = 200; // B
       imagePixels[i * 4 + 3] = 255; // A

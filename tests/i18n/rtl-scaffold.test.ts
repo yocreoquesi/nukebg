@@ -42,7 +42,9 @@ describe('i18n — getDirection', () => {
 describe('setLocale wires document.documentElement.dir (#38)', () => {
   it('i18n module ships RTL_LOCALES + getDirection + dir assignment in setLocale', () => {
     expect(I18N).toMatch(/RTL_LOCALES = new Set\(\[/);
-    expect(I18N).toMatch(/export function getDirection\(locale: string\): ['"]rtl['"] \| ['"]ltr['"]/);
+    expect(I18N).toMatch(
+      /export function getDirection\(locale: string\): ['"]rtl['"] \| ['"]ltr['"]/,
+    );
     expect(I18N).toMatch(/document\.documentElement\.dir = getDirection\(locale\)/);
   });
 

@@ -45,7 +45,8 @@ function makeScene(
 
 describe('estimateForeground', () => {
   it('fully opaque pixels are copied verbatim (no round-trip error)', () => {
-    const w = 16, h = 16;
+    const w = 16,
+      h = 16;
     const { observed, alpha } = makeScene(w, h, [200, 50, 50], [30, 30, 30], () => 255);
     const out = estimateForeground(observed, alpha, w, h);
     for (let i = 0; i < w * h; i++) {
@@ -57,7 +58,8 @@ describe('estimateForeground', () => {
   });
 
   it('fully transparent pixels output alpha=0', () => {
-    const w = 16, h = 16;
+    const w = 16,
+      h = 16;
     const { observed, alpha } = makeScene(w, h, [200, 50, 50], [30, 30, 30], () => 0);
     const out = estimateForeground(observed, alpha, w, h);
     for (let i = 0; i < w * h; i++) {
@@ -69,7 +71,8 @@ describe('estimateForeground', () => {
     // Horizontal stripes: α=255 (0..20), α=128 (20..40), α=0 (40..60).
     // The opaque and transparent stripes anchor F and B respectively, and
     // the solver propagates them into the middle band.
-    const w = 60, h = 60;
+    const w = 60,
+      h = 60;
     const FG: [number, number, number] = [230, 0, 0];
     const BG: [number, number, number] = [0, 230, 0];
     const { observed, alpha } = makeScene(w, h, FG, BG, (x) => {
@@ -80,7 +83,10 @@ describe('estimateForeground', () => {
     const out = estimateForeground(observed, alpha, w, h, { iterationsPerLevel: 12 });
 
     // Sample middle band far from boundaries.
-    let dr = 0, dg = 0, db = 0, n = 0;
+    let dr = 0,
+      dg = 0,
+      db = 0,
+      n = 0;
     for (let y = 10; y < h - 10; y++) {
       for (let x = 25; x < 35; x++) {
         const i = y * w + x;
@@ -102,8 +108,10 @@ describe('estimateForeground', () => {
     // Center disc α=255 (pure FG), ring of α=128 around it, bg α=0 outside.
     // The solver has strong anchoring from the opaque core — edge pixels
     // should come out very close to FG color.
-    const w = 64, h = 64;
-    const cx = w / 2, cy = h / 2;
+    const w = 64,
+      h = 64;
+    const cx = w / 2,
+      cy = h / 2;
     const FG: [number, number, number] = [255, 0, 0];
     const BG: [number, number, number] = [0, 255, 0];
     const { observed, alpha } = makeScene(w, h, FG, BG, (x, y) => {
@@ -122,13 +130,20 @@ describe('estimateForeground', () => {
     expect(alpha[i]).toBe(128);
     // With anchoring, recovered FG on the ring should be much redder than
     // the observed green ghost (128,128,0 would be the naive composite).
-    expect(out[i * 4]).toBeGreaterThan(150);     // red dominant
-    expect(out[i * 4 + 1]).toBeLessThan(100);    // green stripped
+    expect(out[i * 4]).toBeGreaterThan(150); // red dominant
+    expect(out[i * 4 + 1]).toBeLessThan(100); // green stripped
   });
 
   it('does not touch alpha channel', () => {
-    const w = 32, h = 32;
-    const { observed, alpha } = makeScene(w, h, [128, 64, 32], [200, 200, 200], (x, y) => (x + y) % 256);
+    const w = 32,
+      h = 32;
+    const { observed, alpha } = makeScene(
+      w,
+      h,
+      [128, 64, 32],
+      [200, 200, 200],
+      (x, y) => (x + y) % 256,
+    );
     const out = estimateForeground(observed, alpha, w, h);
     for (let i = 0; i < w * h; i++) {
       expect(out[i * 4 + 3]).toBe(alpha[i]);
@@ -136,13 +151,15 @@ describe('estimateForeground', () => {
   });
 
   it('handles degenerate tiny inputs without throwing', () => {
-    const w = 4, h = 4;
+    const w = 4,
+      h = 4;
     const { observed, alpha } = makeScene(w, h, [100, 100, 100], [0, 0, 0], () => 128);
     expect(() => estimateForeground(observed, alpha, w, h)).not.toThrow();
   });
 
   it('output array length is 4 × width × height', () => {
-    const w = 10, h = 7;
+    const w = 10,
+      h = 7;
     const { observed, alpha } = makeScene(w, h, [100, 100, 100], [50, 50, 50], () => 200);
     const out = estimateForeground(observed, alpha, w, h);
     expect(out.length).toBe(w * h * 4);

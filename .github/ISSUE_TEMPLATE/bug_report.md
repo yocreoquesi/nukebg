@@ -1,6 +1,6 @@
 ---
-name: "Bug report"
-about: "Something broke. Tell us what happened."
+name: 'Bug report'
+about: 'Something broke. Tell us what happened.'
 title: '[BUG] '
 labels: bug
 assignees: ''

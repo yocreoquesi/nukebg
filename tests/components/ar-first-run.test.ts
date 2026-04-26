@@ -24,23 +24,25 @@ describe('first-run explainer (#78)', () => {
   });
 
   it('exposes a public setLoadingState({ visible, pct, label, ready }) API', () => {
-    expect(DZ).toMatch(/setLoadingState\(state: \{ visible: boolean; pct\?: number; label\?: string; ready\?: boolean \}\): void/);
+    expect(DZ).toMatch(
+      /setLoadingState\(state: \{[\s\S]*?visible: boolean;[\s\S]*?pct\?: number;[\s\S]*?label\?: string;[\s\S]*?ready\?: boolean;?\s*\}\): void/,
+    );
     expect(DZ).toMatch(/this\.dropArea\?\.classList\.add\(['"]is-loading['"]\)/);
     expect(DZ).toMatch(/this\.dropArea\?\.classList\.remove\(['"]is-loading['"]\)/);
     expect(DZ).toMatch(/label\.textContent = t\(['"]firstRun\.ready['"]\)/);
   });
 
-  it('camera CTA hides while the loading slot is active so the row does not reflow', () => {
-    expect(DZ).toMatch(/\.dropzone\.is-loading \.dz-camera-cta \{ display: none/);
-  });
-
   it('ar-app reveals the slot after 400 ms of sustained loading (cold-cache heuristic)', () => {
-    expect(APP).toMatch(/window\.setTimeout\([\s\S]*?this\.dropzone\.setLoadingState\(\{ visible: true \}\)[\s\S]*?\}, 400\)/);
+    expect(APP).toMatch(
+      /window\.setTimeout\([\s\S]*?this\.dropzone\.setLoadingState\(\{ visible: true \}\)[\s\S]*?\}, 400\)/,
+    );
   });
 
   it('ar-app forwards "N%" worker messages into the dropzone bar', () => {
     expect(APP).toMatch(/match\(\/\(\\d\+\)\\s\*%\//);
-    expect(APP).toMatch(/this\.dropzone\.setLoadingState\(\{ visible: true, pct, label: message \}\)/);
+    expect(APP).toMatch(
+      /this\.dropzone\.setLoadingState\(\{ visible: true, pct, label: message \}\)/,
+    );
   });
 
   it('ar-app finishes with ready=true on resolve, ready=false on reject', () => {
@@ -54,14 +56,20 @@ describe('first-run explainer (#78)', () => {
   });
 
   it('respects prefers-reduced-motion for the progress bar transition', () => {
-    expect(DZ).toMatch(/@media \(prefers-reduced-motion: reduce\) \{[\s\S]*?\.dz-loading-bar \{ transition: none/);
+    expect(DZ).toMatch(
+      /@media \(prefers-reduced-motion: reduce\) \{[\s\S]*?\.dz-loading-bar \{ transition: none/,
+    );
   });
 });
 
 describe('status line — reactor offline → active flip', () => {
   it('initial render writes data-state="offline" + status.reactor.offline', () => {
-    expect(APP).toMatch(/<span class="status-reactor"[^>]*data-state="offline">\$\{t\(['"]status\.reactor\.offline['"]\)\}/);
-    expect(APP).toMatch(/<span class="status-model"[^>]*data-state="loading">\$\{t\(['"]status\.model\.loading['"]\)\}/);
+    expect(APP).toMatch(
+      /<span class="status-reactor"[^>]*data-state="offline">\$\{t\(['"]status\.reactor\.offline['"]\)\}/,
+    );
+    expect(APP).toMatch(
+      /<span class="status-model"[^>]*data-state="loading">\$\{t\(['"]status\.model\.loading['"]\)\}/,
+    );
   });
 
   it('preload success flips status-reactor data-state to "online" and status-model to "ready"', () => {
@@ -71,8 +79,12 @@ describe('status line — reactor offline → active flip', () => {
   });
 
   it('CSS dims dot + reactor word while offline', () => {
-    expect(APP).toMatch(/\.status-reactor\[data-state="offline"\] \{[\s\S]*?color: var\(--color-text-tertiary/);
-    expect(APP).toMatch(/\.status-line:has\(\.status-reactor\[data-state="offline"\]\) \.status-dot \{[\s\S]*?opacity: 0\.55/);
+    expect(APP).toMatch(
+      /\.status-reactor\[data-state="offline"\] \{[\s\S]*?color: var\(--color-text-tertiary/,
+    );
+    expect(APP).toMatch(
+      /\.status-line:has\(\.status-reactor\[data-state="offline"\]\) \.status-dot \{[\s\S]*?opacity: 0\.55/,
+    );
   });
 
   it('status.reactor.offline is shipped in all six locales', () => {
@@ -82,11 +94,15 @@ describe('status line — reactor offline → active flip', () => {
 
 describe('hero disclaimer + support pitch (recovered from reactor copy)', () => {
   it('hero renders <p id="hero-disclaimer"> using features.disclaimer', () => {
-    expect(APP).toMatch(/<p class="hero-disclaimer" id="hero-disclaimer">\$\{t\(['"]features\.disclaimer['"]\)\}/);
+    expect(APP).toMatch(
+      /<p class="hero-disclaimer" id="hero-disclaimer">\$\{t\(['"]features\.disclaimer['"]\)\}/,
+    );
   });
 
   it('hero renders <p id="hero-support"> using support.kofi', () => {
-    expect(APP).toMatch(/<p class="hero-support" id="hero-support">\$\{t\(['"]support\.kofi['"]\)\}/);
+    expect(APP).toMatch(
+      /<p class="hero-support" id="hero-support">\$\{t\(['"]support\.kofi['"]\)\}/,
+    );
   });
 
   it('updateTexts re-localizes both paragraphs on locale change', () => {

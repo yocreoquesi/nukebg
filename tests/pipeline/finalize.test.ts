@@ -16,11 +16,15 @@ if (typeof globalThis.ImageData === 'undefined') {
     data: Uint8ClampedArray;
     width: number;
     height: number;
-    constructor(dataOrWidth: Uint8ClampedArray | number, widthOrHeight: number, maybeHeight?: number) {
+    constructor(
+      dataOrWidth: Uint8ClampedArray | number,
+      widthOrHeight: number,
+      maybeHeight?: number,
+    ) {
       if (dataOrWidth instanceof Uint8ClampedArray) {
         this.data = dataOrWidth;
         this.width = widthOrHeight;
-        this.height = maybeHeight ?? (dataOrWidth.length / (widthOrHeight * 4));
+        this.height = maybeHeight ?? dataOrWidth.length / (widthOrHeight * 4);
       } else {
         this.width = dataOrWidth;
         this.height = widthOrHeight;
@@ -85,11 +89,12 @@ describe('sharpenAlpha (smoothstep [80, 180])', () => {
 
 describe('refineEdges', () => {
   it('without pipeline: RGB is untouched, α is sharpened', async () => {
-    const w = 4, h = 1;
+    const w = 4,
+      h = 1;
     const data = new Uint8ClampedArray(w * h * 4);
     // Connected blob on the left (opaque + AA edge), halo tail + transparent on the right.
     // Layout keeps both bin=1 pixels adjacent so the CC keep-largest pass preserves them.
-    data.set([255, 0, 0, 255,   100, 100, 100, 200,   50, 50, 50, 30,   0, 0, 0, 0]);
+    data.set([255, 0, 0, 255, 100, 100, 100, 200, 50, 50, 50, 30, 0, 0, 0, 0]);
     const img = new ImageData(data, w, h);
 
     const out = await refineEdges(null, img);
@@ -102,14 +107,15 @@ describe('refineEdges', () => {
     }
 
     // α=200 ≥ HIGH → 255, α=30 ≤ LOW → 0
-    expect(out.data[3]).toBe(255);                // opaque endpoint
-    expect(out.data[7]).toBeGreaterThan(215);     // was 200, sharpened to 255
-    expect(out.data[11]).toBeLessThan(5);         // was 30, killed to 0
-    expect(out.data[15]).toBe(0);                 // transparent endpoint
+    expect(out.data[3]).toBe(255); // opaque endpoint
+    expect(out.data[7]).toBeGreaterThan(215); // was 200, sharpened to 255
+    expect(out.data[11]).toBeLessThan(5); // was 30, killed to 0
+    expect(out.data[15]).toBe(0); // transparent endpoint
   });
 
   it('with pipeline: delegates decontamination to estimateForeground', async () => {
-    const w = 2, h = 1;
+    const w = 2,
+      h = 1;
     const data = new Uint8ClampedArray([10, 20, 30, 128, 40, 50, 60, 200]);
     const img = new ImageData(data, w, h);
 
@@ -150,7 +156,8 @@ describe('refineEdges', () => {
   });
 
   it('returns a fresh ImageData (does not mutate input)', async () => {
-    const w = 2, h = 1;
+    const w = 2,
+      h = 1;
     const data = new Uint8ClampedArray([10, 20, 30, 50, 40, 50, 60, 150]);
     const img = new ImageData(data, w, h);
     const snapshot = Array.from(data);
@@ -163,11 +170,15 @@ describe('refineEdges', () => {
   it('removes isolated opaque blobs disconnected from the main subject', async () => {
     // 5x5: a 3x3 opaque block in the middle (main subject) plus one
     // opaque pixel in the bottom-right corner (stray RMBG artifact).
-    const w = 5, h = 5;
+    const w = 5,
+      h = 5;
     const data = new Uint8ClampedArray(w * h * 4);
     const setPixel = (x: number, y: number, a: number) => {
       const i = (y * w + x) * 4;
-      data[i] = 200; data[i + 1] = 100; data[i + 2] = 50; data[i + 3] = a;
+      data[i] = 200;
+      data[i + 1] = 100;
+      data[i + 2] = 50;
+      data[i + 3] = a;
     };
     // Main 2x2 blob at (0,0)-(1,1), fully opaque
     for (let y = 0; y <= 1; y++) for (let x = 0; x <= 1; x++) setPixel(x, y, 255);
@@ -265,11 +276,15 @@ describe('tailLuminanceVariance / hasHaloRisk', () => {
 describe('dropOrphanBlobs', () => {
   it('zeros α on disconnected blobs and preserves the main body verbatim', () => {
     // 5x5 canvas. Main 3x3 opaque block top-left, stray opaque pixel at (4,4).
-    const w = 5, h = 5;
+    const w = 5,
+      h = 5;
     const data = new Uint8ClampedArray(w * h * 4);
     const paint = (x: number, y: number, r: number, g: number, b: number, a: number) => {
       const i = (y * w + x) * 4;
-      data[i] = r; data[i + 1] = g; data[i + 2] = b; data[i + 3] = a;
+      data[i] = r;
+      data[i + 1] = g;
+      data[i + 2] = b;
+      data[i + 3] = a;
     };
     for (let y = 0; y < 3; y++) for (let x = 0; x < 3; x++) paint(x, y, 200, 100, 50, 255);
     paint(4, 4, 50, 50, 50, 128);
@@ -287,7 +302,8 @@ describe('dropOrphanBlobs', () => {
   });
 
   it('does not mutate RGB on any pixel', () => {
-    const w = 4, h = 4;
+    const w = 4,
+      h = 4;
     const data = new Uint8ClampedArray(w * h * 4);
     for (let i = 0; i < w * h; i++) {
       data[i * 4] = (i * 7) % 256;
@@ -310,15 +326,19 @@ describe('dropOrphanBlobs', () => {
     // 7x7 canvas: 3x3 block at (1..3,1..3) with opaque center + AA ring,
     // and a stray α=200 at (6,6) — Chebyshev distance 3 from the block,
     // far enough to survive 8-connectivity's diagonal reach.
-    const w = 7, h = 7;
+    const w = 7,
+      h = 7;
     const data = new Uint8ClampedArray(w * h * 4);
     const paint = (x: number, y: number, a: number) => {
       const i = (y * w + x) * 4;
-      data[i] = 120; data[i + 1] = 120; data[i + 2] = 120; data[i + 3] = a;
+      data[i] = 120;
+      data[i + 1] = 120;
+      data[i + 2] = 120;
+      data[i + 3] = a;
     };
     for (let y = 1; y <= 3; y++) {
       for (let x = 1; x <= 3; x++) {
-        paint(x, y, (x === 2 && y === 2) ? 255 : 64);
+        paint(x, y, x === 2 && y === 2 ? 255 : 64);
       }
     }
     paint(6, 6, 200); // disconnected
@@ -333,7 +353,8 @@ describe('dropOrphanBlobs', () => {
   });
 
   it('returns a fresh ImageData (does not mutate input)', () => {
-    const w = 3, h = 3;
+    const w = 3,
+      h = 3;
     const data = new Uint8ClampedArray(w * h * 4);
     for (let i = 0; i < w * h; i++) data[i * 4 + 3] = 255;
     const snapshot = Array.from(data);
@@ -346,7 +367,8 @@ describe('fillSubjectHoles', () => {
   // Helper: 7x7 solid subject with a single α=0 speck at an interior pixel.
   // Border pixels remain α=255, so the speck is topologically enclosed.
   const makeBodyWithHole = (holeX: number, holeY: number) => {
-    const w = 7, h = 7;
+    const w = 7,
+      h = 7;
     const data = new Uint8ClampedArray(w * h * 4);
     for (let i = 0; i < w * h; i++) {
       data[i * 4 + 0] = 200;
@@ -374,7 +396,8 @@ describe('fillSubjectHoles', () => {
   });
 
   it('leaves a large hole alone when it exceeds maxHoleSize', () => {
-    const w = 10, h = 10;
+    const w = 10,
+      h = 10;
     const data = new Uint8ClampedArray(w * h * 4);
     for (let i = 0; i < w * h; i++) data[i * 4 + 3] = 255;
     // Carve a 4x4 interior hole (16 px) at (3,3)-(6,6), border stays opaque.
@@ -388,7 +411,8 @@ describe('fillSubjectHoles', () => {
   });
 
   it('never fills α=0 regions that connect to the image border', () => {
-    const w = 5, h = 5;
+    const w = 5,
+      h = 5;
     const data = new Uint8ClampedArray(w * h * 4);
     // Opaque 3x3 block at (1,1)-(3,3); everything else α=0 (connected to border).
     for (let y = 1; y <= 3; y++) {
@@ -424,7 +448,8 @@ describe('promoteSpeckleAlpha', () => {
   // holding α=alphaVal and full RGB. A 5x5 window around (cx, cy) is all α=255,
   // so opaque_neighbors = 24/24 which clears the 75% ratio.
   const makeBodyWithSpeck = (cx: number, cy: number, alphaVal: number) => {
-    const w = 9, h = 9;
+    const w = 9,
+      h = 9;
     const data = new Uint8ClampedArray(w * h * 4);
     for (let i = 0; i < w * h; i++) {
       data[i * 4 + 0] = 200;
@@ -455,7 +480,8 @@ describe('promoteSpeckleAlpha', () => {
   });
 
   it('does not promote AA edge pixels (neighborhood not opaque enough)', () => {
-    const w = 9, h = 9;
+    const w = 9,
+      h = 9;
     const data = new Uint8ClampedArray(w * h * 4);
     // Half-plane opaque: left 5 columns α=255, right 4 columns α=0.
     for (let y = 0; y < h; y++) {
@@ -493,7 +519,8 @@ describe('promoteSpeckleAlpha', () => {
     // Two adjacent specks at (4,4) and (5,4). Without snapshotting, the first
     // promotion would feed into the second's neighborhood count — we want the
     // decision based on the ORIGINAL α only.
-    const w = 9, h = 9;
+    const w = 9,
+      h = 9;
     const data = new Uint8ClampedArray(w * h * 4);
     for (let i = 0; i < w * h; i++) data[i * 4 + 3] = 255;
     data[(4 * w + 4) * 4 + 3] = 100;
@@ -508,11 +535,7 @@ describe('promoteSpeckleAlpha', () => {
 
 describe('keepLargestComponent', () => {
   it('leaves a single component untouched', () => {
-    const bin = new Uint8Array([
-      0, 1, 1, 0,
-      0, 1, 1, 0,
-      0, 0, 0, 0,
-    ]);
+    const bin = new Uint8Array([0, 1, 1, 0, 0, 1, 1, 0, 0, 0, 0, 0]);
     const snapshot = Array.from(bin);
     keepLargestComponent(bin, 4, 3);
     expect(Array.from(bin)).toEqual(snapshot);
@@ -520,26 +543,14 @@ describe('keepLargestComponent', () => {
 
   it('drops smaller components, keeps the largest', () => {
     // Left 2x2 block (4 pixels) and right isolated pixel (1 pixel)
-    const bin = new Uint8Array([
-      1, 1, 0, 0, 1,
-      1, 1, 0, 0, 0,
-      0, 0, 0, 0, 0,
-    ]);
+    const bin = new Uint8Array([1, 1, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0]);
     keepLargestComponent(bin, 5, 3);
-    expect(Array.from(bin)).toEqual([
-      1, 1, 0, 0, 0,
-      1, 1, 0, 0, 0,
-      0, 0, 0, 0, 0,
-    ]);
+    expect(Array.from(bin)).toEqual([1, 1, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0]);
   });
 
   it('uses 8-connectivity (diagonal neighbors count as connected)', () => {
     // Two pixels touching only diagonally — one component under 8-connectivity
-    const bin = new Uint8Array([
-      1, 0, 0,
-      0, 1, 0,
-      0, 0, 0,
-    ]);
+    const bin = new Uint8Array([1, 0, 0, 0, 1, 0, 0, 0, 0]);
     const snapshot = Array.from(bin);
     keepLargestComponent(bin, 3, 3);
     expect(Array.from(bin)).toEqual(snapshot);

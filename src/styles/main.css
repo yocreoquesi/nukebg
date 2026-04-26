@@ -35,9 +35,9 @@
 
   /* Semantic */
   --color-success: #00ff41;
-  --color-success-muted: rgba(var(--color-accent-rgb), 0.10);
+  --color-success-muted: rgba(var(--color-accent-rgb), 0.1);
   --color-warning: #ffcc00;
-  --color-warning-muted: rgba(255, 204, 0, 0.10);
+  --color-warning-muted: rgba(255, 204, 0, 0.1);
   --color-error: #ff3131;
   /* Was 0.12 — invisible on black. Bumped to 0.35 so error
      callouts using this as a background read clearly while still
@@ -45,7 +45,7 @@
   --color-error-muted: rgba(255, 49, 49, 0.35);
   --color-error-border: #3a1a1a;
   --color-info: #00ff41;
-  --color-info-muted: rgba(var(--color-accent-rgb), 0.10);
+  --color-info-muted: rgba(var(--color-accent-rgb), 0.1);
 
   /* Checkerboard Preview */
   --color-checker-light: #0a0a0a;
@@ -70,9 +70,9 @@
 
   /* Compressed per design #80 to a clean three-step scale so the low
      end isn't four near-identical sizes doing the same visual job. */
-  --text-xs: 0.75rem;   /* 12px — timestamps, quiet meta */
-  --text-sm: 0.875rem;  /* 14px — body secondary, subline */
-  --text-base: 1rem;    /* 16px — body */
+  --text-xs: 0.75rem; /* 12px — timestamps, quiet meta */
+  --text-sm: 0.875rem; /* 14px — body secondary, subline */
+  --text-base: 1rem; /* 16px — body */
   --text-lg: 1.25rem;
   --text-xl: 1.4375rem;
   --text-2xl: 1.75rem;
@@ -150,7 +150,7 @@
    semantic warning/error colors stay constant so the terminal feel
    doesn't get lost. data-theme is set on <html> by main.ts on boot
    and persisted via localStorage. */
-:root[data-theme="amber"] {
+:root[data-theme='amber'] {
   --color-text-primary: #ff8c00;
   --color-text-secondary: #cc7000;
   --color-text-tertiary: #995300;
@@ -162,7 +162,7 @@
   --color-surface-hover: #2a1f0a;
   --color-surface-active: #302510;
 }
-:root[data-theme="cyan"] {
+:root[data-theme='cyan'] {
   --color-text-primary: #00ddff;
   --color-text-secondary: #00aacc;
   --color-text-tertiary: #0088aa;
@@ -174,7 +174,7 @@
   --color-surface-hover: #0a1f2a;
   --color-surface-active: #102530;
 }
-:root[data-theme="magenta"] {
+:root[data-theme='magenta'] {
   --color-text-primary: #ff33ff;
   --color-text-secondary: #cc22cc;
   --color-text-tertiary: #991199;
@@ -186,7 +186,7 @@
   --color-surface-hover: #2a0a2a;
   --color-surface-active: #301030;
 }
-:root[data-theme="red"] {
+:root[data-theme='red'] {
   --color-text-primary: #ff3344;
   --color-text-secondary: #cc2233;
   --color-text-tertiary: #991122;
@@ -198,7 +198,7 @@
   --color-surface-hover: #2a0a0c;
   --color-surface-active: #301010;
 }
-:root[data-theme="yellow"] {
+:root[data-theme='yellow'] {
   --color-text-primary: #ffee00;
   --color-text-secondary: #ccbb00;
   --color-text-tertiary: #998800;
@@ -212,7 +212,9 @@
 }
 
 /* === Reset === */
-*, *::before, *::after {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
@@ -405,8 +407,9 @@ body::after {
   font-size: 12px;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  transition: color var(--duration-normal) var(--ease-default),
-              text-shadow var(--duration-normal) var(--ease-default);
+  transition:
+    color var(--duration-normal) var(--ease-default),
+    text-shadow var(--duration-normal) var(--ease-default);
 }
 
 .header-link:hover {
@@ -468,8 +471,13 @@ body::after {
   color: var(--color-error);
 }
 @keyframes blink-cursor {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
 }
 
 /* === Main === */
@@ -498,8 +506,9 @@ body::after {
 .footer a {
   color: var(--color-text-secondary);
   text-decoration: none;
-  transition: color var(--duration-normal) var(--ease-default),
-              text-shadow var(--duration-normal) var(--ease-default);
+  transition:
+    color var(--duration-normal) var(--ease-default),
+    text-shadow var(--duration-normal) var(--ease-default);
 }
 
 .footer a:hover {
@@ -516,36 +525,14 @@ body::after {
   color: var(--color-text-tertiary);
   text-decoration: none;
   cursor: pointer;
-  transition: color var(--duration-normal), text-shadow var(--duration-normal);
+  transition:
+    color var(--duration-normal),
+    text-shadow var(--duration-normal);
 }
 .footer-cache-btn:hover {
   color: var(--color-accent-primary);
   text-shadow: 0 0 6px var(--color-accent-glow);
 }
-/* Quiet-mode toggle (#79) — matches the footer-cache-btn tone since
-   both sit in the same footer row. aria-pressed="true" (i.e. user
-   has turned playful OFF) gets a brighter accent tint. */
-.footer-quiet-btn {
-  appearance: none;
-  background: transparent;
-  border: none;
-  color: var(--color-text-tertiary);
-  font-family: inherit;
-  font-size: inherit;
-  padding: 0;
-  cursor: pointer;
-  transition: color var(--duration-normal), text-shadow var(--duration-normal);
-}
-.footer-quiet-btn:hover,
-.footer-quiet-btn:focus-visible {
-  color: var(--color-accent-primary);
-  text-shadow: 0 0 6px var(--color-accent-glow);
-  outline: none;
-}
-.footer-quiet-btn[aria-pressed="true"] {
-  color: var(--color-accent-primary);
-}
-
 /* Theme picker — four small swatches in the footer that flip
    document.documentElement[data-theme]. Each swatch carries its own
    absolute color via the data-theme attribute so the active theme's
@@ -568,36 +555,73 @@ body::after {
   padding: 0;
   cursor: pointer;
   border-radius: 0;
-  transition: outline-offset var(--duration-fast), transform var(--duration-fast);
+  transition:
+    outline-offset var(--duration-fast),
+    transform var(--duration-fast);
   outline: 1px solid transparent;
   outline-offset: 0;
 }
-.theme-swatch[data-theme="green"]   { background: #00ff41; }
-.theme-swatch[data-theme="amber"]   { background: #ff8c00; }
-.theme-swatch[data-theme="cyan"]    { background: #00ddff; }
-.theme-swatch[data-theme="magenta"] { background: #ff33ff; }
-.theme-swatch[data-theme="red"]     { background: #ff3344; }
-.theme-swatch[data-theme="yellow"]  { background: #ffee00; }
+.theme-swatch[data-theme='green'] {
+  background: #00ff41;
+}
+.theme-swatch[data-theme='amber'] {
+  background: #ff8c00;
+}
+.theme-swatch[data-theme='cyan'] {
+  background: #00ddff;
+}
+.theme-swatch[data-theme='magenta'] {
+  background: #ff33ff;
+}
+.theme-swatch[data-theme='red'] {
+  background: #ff3344;
+}
+.theme-swatch[data-theme='yellow'] {
+  background: #ffee00;
+}
 .theme-swatch:hover,
 .theme-swatch:focus-visible {
   outline-color: var(--color-accent-primary);
   outline-offset: 2px;
 }
-.theme-swatch[data-theme="green"]:hover,   .theme-swatch[data-theme="green"]:focus-visible   { box-shadow: 0 0 8px #00ff41; }
-.theme-swatch[data-theme="amber"]:hover,   .theme-swatch[data-theme="amber"]:focus-visible   { box-shadow: 0 0 8px #ff8c00; }
-.theme-swatch[data-theme="cyan"]:hover,    .theme-swatch[data-theme="cyan"]:focus-visible    { box-shadow: 0 0 8px #00ddff; }
-.theme-swatch[data-theme="magenta"]:hover, .theme-swatch[data-theme="magenta"]:focus-visible { box-shadow: 0 0 8px #ff33ff; }
-.theme-swatch[data-theme="red"]:hover,     .theme-swatch[data-theme="red"]:focus-visible     { box-shadow: 0 0 8px #ff3344; }
-.theme-swatch[data-theme="yellow"]:hover,  .theme-swatch[data-theme="yellow"]:focus-visible  { box-shadow: 0 0 8px #ffee00; }
-.theme-swatch[aria-checked="true"] {
+.theme-swatch[data-theme='green']:hover,
+.theme-swatch[data-theme='green']:focus-visible {
+  box-shadow: 0 0 8px #00ff41;
+}
+.theme-swatch[data-theme='amber']:hover,
+.theme-swatch[data-theme='amber']:focus-visible {
+  box-shadow: 0 0 8px #ff8c00;
+}
+.theme-swatch[data-theme='cyan']:hover,
+.theme-swatch[data-theme='cyan']:focus-visible {
+  box-shadow: 0 0 8px #00ddff;
+}
+.theme-swatch[data-theme='magenta']:hover,
+.theme-swatch[data-theme='magenta']:focus-visible {
+  box-shadow: 0 0 8px #ff33ff;
+}
+.theme-swatch[data-theme='red']:hover,
+.theme-swatch[data-theme='red']:focus-visible {
+  box-shadow: 0 0 8px #ff3344;
+}
+.theme-swatch[data-theme='yellow']:hover,
+.theme-swatch[data-theme='yellow']:focus-visible {
+  box-shadow: 0 0 8px #ffee00;
+}
+.theme-swatch[aria-checked='true'] {
   outline: 1px solid var(--color-accent-primary);
   outline-offset: 2px;
 }
 @media (pointer: coarse) {
-  .theme-swatch { width: 18px; height: 18px; }
+  .theme-swatch {
+    width: 18px;
+    height: 18px;
+  }
 }
 @media (max-width: 480px) {
-  .theme-picker-label { display: none; }
+  .theme-picker-label {
+    display: none;
+  }
 }
 
 .footer-privacy {
@@ -651,7 +675,9 @@ body::after {
 
 /* === Reduced Motion === */
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
+  *,
+  *::before,
+  *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
@@ -677,7 +703,9 @@ body::after {
   z-index: var(--z-toast);
   opacity: 0;
   transform: translateY(8px);
-  transition: opacity var(--duration-normal), transform var(--duration-normal);
+  transition:
+    opacity var(--duration-normal),
+    transform var(--duration-normal);
   pointer-events: none;
 }
 
@@ -699,7 +727,9 @@ body::after {
   padding: var(--space-4);
   z-index: 10000;
 }
-.kbd-overlay[hidden] { display: none; }
+.kbd-overlay[hidden] {
+  display: none;
+}
 .kbd-overlay-card {
   background: #0a0a0a;
   border: 1px solid var(--color-accent-primary, #00ff41);
@@ -736,7 +766,10 @@ body::after {
   align-items: center;
   gap: 4px;
 }
-.kbd-overlay-list dd { margin: 0; opacity: 0.9; }
+.kbd-overlay-list dd {
+  margin: 0;
+  opacity: 0.9;
+}
 .kbd-overlay-list kbd {
   display: inline-block;
   padding: 1px 6px;
@@ -818,6 +851,11 @@ body::after {
     margin: 0 var(--space-1);
   }
   .footer-privacy {
+    /* #149 — already shown in marquee + hero subtitle on mobile;
+       repeating it in the footer is just clutter on a narrow viewport */
+    display: none;
+  }
+  .footer-reactor-status {
     font-size: var(--text-xs);
   }
   .kbd-toast {
