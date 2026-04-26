@@ -10,6 +10,17 @@ Unreleased entries accumulate on the `dev` branch. When we cut a release we copy
 
 ## [Unreleased]
 
+## [2.9.4] — 2026-04-27
+
+### Changed
+
+- **Footer slimmed once more**. Dropped the redundant `GPL-3.0` chip
+  (the badge in the README + the LICENSE file already say it), dropped
+  the funding status line (the top marquee already carries the same
+  message rotating), and brought back the `☕ Ko-fi` tip link in the
+  position GitHub used to occupy. Final order: `NukeBG vX.Y.Z | GitHub
+  | Ko-fi | # /sys/reactor | ☢ Clear cache | # theme`.
+
 ## [2.9.3] — 2026-04-27
 
 ### Fixed
