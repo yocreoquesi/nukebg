@@ -126,6 +126,12 @@ class ArPostCta extends HTMLElement {
         margin: var(--space-3, 0.75rem) auto 0;
         padding: 0 var(--space-3, 0.75rem);
       }
+      /* Same custom-element gotcha as ar-reactor: \`:host { display: block }\`
+         beats the browser-default \`[hidden] { display: none }\`, so the
+         host has to opt back in explicitly. */
+      :host([hidden]) {
+        display: none;
+      }
       .cta-bar {
         display: flex;
         align-items: center;
