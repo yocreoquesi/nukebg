@@ -189,6 +189,9 @@ const translations: Translations = {
     // Header / Footer (index.html)
     'header.skipLink': 'Skip to main content',
     'footer.kofi': '\u2615 Support on Ko-fi',
+    'footer.kofiAria': 'Tip on Ko-fi \u2014 currently funded for {runtime}',
+    'footer.reactorStatus': 'Ships only while the budget holds ({burn}). Currently funded for {runtime}.',
+    'marquee.funding': 'development funded for {runtime} \u2014 tip to extend runway',
     'cta.firstStar.text': '$ if this saved you 5 minutes, drop a star on the repo',
     'cta.firstStar.cta': 'star on github',
     'cta.fiveTip.text': '$ stat reactor: tip €5 = +1.6 days of dev runway',
@@ -452,6 +455,9 @@ const translations: Translations = {
     // Header / Footer (index.html)
     'header.skipLink': 'Saltar al contenido principal',
     'footer.kofi': '\u2615 Apoyar en Ko-fi',
+    'footer.kofiAria': 'Donar en Ko-fi \u2014 ahora financiado para {runtime}',
+    'footer.reactorStatus': 'Solo se actualiza mientras dure el presupuesto ({burn}). Ahora financiado para {runtime}.',
+    'marquee.funding': 'desarrollo financiado por {runtime} \u2014 alimenta el reactor',
     'cta.firstStar.text': '$ si te ahorró 5 minutos, deja una estrella en el repo',
     'cta.firstStar.cta': 'estrella en github',
     'cta.fiveTip.text': '$ stat reactor: tip €5 = +1.6 días de runway',
@@ -715,6 +721,9 @@ const translations: Translations = {
     // Header / Footer (index.html)
     'header.skipLink': 'Aller au contenu principal',
     'footer.kofi': '\u2615 Soutenir sur Ko-fi',
+    'footer.kofiAria': 'Soutenir sur Ko-fi \u2014 actuellement financ\u00E9 pour {runtime}',
+    'footer.reactorStatus': 'Mises \u00E0 jour tant que le budget tient ({burn}). Actuellement financ\u00E9 pour {runtime}.',
+    'marquee.funding': 'd\u00E9veloppement financ\u00E9 pour {runtime} \u2014 soutiens pour prolonger',
     'cta.firstStar.text': '$ si ça t a fait gagner 5 minutes, laisse une étoile sur le repo',
     'cta.firstStar.cta': 'étoile sur github',
     'cta.fiveTip.text': '$ stat reactor: tip €5 = +1.6 jours de runway',
@@ -978,6 +987,9 @@ const translations: Translations = {
     // Header / Footer (index.html)
     'header.skipLink': 'Zum Hauptinhalt springen',
     'footer.kofi': '\u2615 Unterst\u00FCtzen auf Ko-fi',
+    'footer.kofiAria': 'Auf Ko-fi unterst\u00FCtzen \u2014 derzeit finanziert f\u00FCr {runtime}',
+    'footer.reactorStatus': 'Wird nur ausgeliefert, solange das Budget reicht ({burn}). Derzeit finanziert f\u00FCr {runtime}.',
+    'marquee.funding': 'Entwicklung finanziert f\u00FCr {runtime} \u2014 spende, um zu verl\u00E4ngern',
     'cta.firstStar.text': '$ wenn das 5 Minuten gespart hat, gib einen Stern auf dem Repo',
     'cta.firstStar.cta': 'Stern auf GitHub',
     'cta.fiveTip.text': '$ stat reactor: Tip €5 = +1.6 Tage Runway',
@@ -1241,6 +1253,9 @@ const translations: Translations = {
     // Header / Footer (index.html)
     'header.skipLink': 'Pular para o conte\u00FAdo principal',
     'footer.kofi': '\u2615 Apoiar no Ko-fi',
+    'footer.kofiAria': 'Apoiar no Ko-fi \u2014 atualmente financiado por {runtime}',
+    'footer.reactorStatus': 'S\u00F3 atualiza enquanto o or\u00E7amento durar ({burn}). Atualmente financiado por {runtime}.',
+    'marquee.funding': 'desenvolvimento financiado por {runtime} \u2014 apoia para estender',
     'cta.firstStar.text': '$ se te poupou 5 minutos, deixa uma estrela no repo',
     'cta.firstStar.cta': 'estrela no github',
     'cta.fiveTip.text': '$ stat reactor: tip €5 = +1.6 dias de runway',
@@ -1504,6 +1519,9 @@ const translations: Translations = {
     // Header / Footer (index.html)
     'header.skipLink': '\u8DF3\u8F6C\u5230\u4E3B\u8981\u5185\u5BB9',
     'footer.kofi': '\u2615 \u5728 Ko-fi \u4E0A\u652F\u6301\u6211\u4EEC',
+    'footer.kofiAria': '\u5728 Ko-fi \u4E0A\u8D5E\u52A9 \u2014 \u76EE\u524D\u8D44\u91D1\u53EF\u7EF4\u6301 {runtime}',
+    'footer.reactorStatus': '\u4EC5\u5728\u9884\u7B97\u5141\u8BB8\u65F6\u66F4\u65B0\uFF08{burn}\uFF09\u3002\u76EE\u524D\u53EF\u7EF4\u6301 {runtime}\u3002',
+    'marquee.funding': '\u5F00\u53D1\u8D44\u91D1\u53EF\u7EF4\u6301 {runtime} \u2014 \u8D5E\u52A9\u4EE5\u5EF6\u957F',
     'cta.firstStar.text': '$ \u5982\u679C\u7701\u4E86\u4F60 5 \u5206\u949F, \u8BF7\u5728\u4ED3\u5E93\u70B9\u4E2A star',
     'cta.firstStar.cta': 'github star',
     'cta.fiveTip.text': '$ stat reactor: \u8D44\u52A9 \u20AC5 = +1.6 \u5929\u5F00\u53D1\u65F6\u95F4',
