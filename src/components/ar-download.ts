@@ -32,8 +32,6 @@ export class ArDownload extends HTMLElement {
     if (copyBtn && !copyBtn.classList.contains('copied')) copyBtn.innerHTML = `${t('download.copy')}<br><small>PNG</small>`;
     const anotherBtn = root.querySelector('#another-btn');
     if (anotherBtn) anotherBtn.textContent = t('download.another');
-    const shareBtn = root.querySelector('#share-btn');
-    if (shareBtn) shareBtn.innerHTML = `${t('download.share')}<br><small>PNG</small>`;
     this.updateCtaLabels();
   }
 
@@ -66,7 +64,6 @@ export class ArDownload extends HTMLElement {
     // Prepare WebP blob lazily — it's the secondary CTA; encode in the
     // background so its size metadata renders as soon as ready.
     this.updateCtaAnchors('png-only');
-    this.syncShareButton();
     void this.prepareWebp(imageData);
 
     this.show();
@@ -100,23 +97,6 @@ export class ArDownload extends HTMLElement {
   private show(): void {
     const bar = this.shadowRoot!.querySelector('#bar');
     if (bar) bar.classList.add('visible');
-  }
-
-  /**
-   * Show the Web Share button if (a) the PNG blob is ready and
-   * (b) the browser reports support for sharing files. Safari
-   * (desktop + iOS), Chromium on Android, and Edge qualify; desktop
-   * Chromium + Firefox return false and the button stays hidden.
-   */
-  private syncShareButton(): void {
-    const btn = this.shadowRoot?.querySelector('#share-btn') as HTMLButtonElement | null;
-    if (!btn || !this.pngBlob) return;
-    try {
-      const probe = new File([this.pngBlob], this.pngFilename, { type: 'image/png' });
-      btn.hidden = !(navigator.canShare && navigator.canShare({ files: [probe] }));
-    } catch {
-      btn.hidden = true;
-    }
   }
 
   private render(): void {
@@ -233,8 +213,12 @@ export class ArDownload extends HTMLElement {
           .btn-primary { animation: none !important; }
         }
 
-        /* === Mobile (max-width: 480px) === */
-        @media (max-width: 480px) {
+        /* === Phone (max-width: 640px) ===
+           #150 — bumped from 480px to 640px because the dl-cta min-width
+           of 220px + horizontal padding pushes the row past the viewport
+           on real phones rendering at 360-420 CSS px. Stack vertically
+           the moment we lose room for two columns. */
+        @media (max-width: 640px) {
           .download-bar {
             flex-direction: column;
             gap: 8px;
@@ -248,19 +232,14 @@ export class ArDownload extends HTMLElement {
           .dl-cta {
             min-width: 0;
             width: 100%;
+            box-sizing: border-box;
           }
           .dl-side {
             justify-content: center;
             flex-wrap: wrap;
-          }
-          .btn-secondary {
             width: 100%;
-            text-align: center;
-            min-height: 44px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
           }
+          .btn-secondary,
           .btn-copy {
             width: 100%;
             text-align: center;
@@ -268,6 +247,7 @@ export class ArDownload extends HTMLElement {
             display: flex;
             align-items: center;
             justify-content: center;
+            box-sizing: border-box;
           }
         }
 
@@ -320,7 +300,6 @@ export class ArDownload extends HTMLElement {
         </div>
         <div class="dl-side">
           <button class="btn-copy" id="copy-btn" title="Copy to clipboard" aria-live="polite">${t('download.copy')}<br><small>PNG</small></button>
-          <button class="btn-secondary" id="share-btn" hidden aria-live="polite">${t('download.share')}<br><small>PNG</small></button>
           <button class="btn-secondary" id="another-btn">${t('download.another')}</button>
         </div>
       </div>
@@ -330,33 +309,8 @@ export class ArDownload extends HTMLElement {
       this.dispatchEvent(new CustomEvent('ar:process-another', { bubbles: true, composed: true }));
     });
 
-    // Web Share API (#74). Only exposed on engines that can actually
-    // share files — `navigator.canShare({ files })` returns false on
-    // desktop Chromium + older Safari, so we keep the button hidden
-    // and let the Copy + Download paths handle those cases.
-    const shareBtn = this.shadowRoot!.querySelector('#share-btn') as HTMLButtonElement | null;
-    shareBtn?.addEventListener('click', async () => {
-      if (!this.pngBlob) return;
-      const file = new File([this.pngBlob], this.pngFilename, { type: 'image/png' });
-      try {
-        // canShare re-check at click time (user may have disabled
-        // sharing between page load and click).
-        if (!navigator.canShare || !navigator.canShare({ files: [file] })) {
-          shareBtn.hidden = true;
-          return;
-        }
-        await navigator.share({
-          files: [file],
-          title: t('download.share.title'),
-          text: t('download.share.text'),
-          url: 'https://nukebg.app',
-        });
-      } catch (err) {
-        // AbortError = user dismissed the share sheet; not an error.
-        if ((err as DOMException)?.name === 'AbortError') return;
-        console.warn('[ar-download] share failed:', err);
-      }
-    });
+    // Web Share API (#74) removed in #150 — the user wanted it gone
+    // from the result section. Copy + Download cover the export paths.
     // Track which format the user clicked so external callers (editor /
     // clipboard) know the latest intent via this.selectedFormat.
     this.shadowRoot!.querySelector('#dl-png')!.addEventListener('click', () => {
@@ -454,8 +408,6 @@ export class ArDownload extends HTMLElement {
     const webp = root.querySelector('#dl-webp') as HTMLAnchorElement | null;
     if (png) { png.hidden = true; png.removeAttribute('href'); }
     if (webp) { webp.hidden = true; webp.removeAttribute('href'); }
-    const shareBtn = root.querySelector('#share-btn') as HTMLButtonElement | null;
-    if (shareBtn) shareBtn.hidden = true;
   }
 }
 

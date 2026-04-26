@@ -188,9 +188,6 @@ const translations: Translations = {
     'footer.quietMode': 'quiet mode',
     'footer.playfulMode': 'playful mode',
     'firstRun.ready': '# ready — cached locally, offline-capable',
-    'download.share': 'Share',
-    'download.share.title': 'Nuked background',
-    'download.share.text': 'Processed with nukebg.app — stays local',
     // Header / Footer (index.html)
     'header.skipLink': 'Skip to main content',
     'footer.kofi': '\u2615 Support on Ko-fi',
@@ -456,9 +453,6 @@ const translations: Translations = {
     'footer.quietMode': 'modo silencio',
     'footer.playfulMode': 'modo playful',
     'firstRun.ready': '# listo — cacheado localmente, listo offline',
-    'download.share': 'Compartir',
-    'download.share.title': 'Fondo nukeado',
-    'download.share.text': 'Procesado con nukebg.app — todo local',
     // Header / Footer (index.html)
     'header.skipLink': 'Saltar al contenido principal',
     'footer.kofi': '\u2615 Apoyar en Ko-fi',
@@ -724,9 +718,6 @@ const translations: Translations = {
     'footer.quietMode': 'mode silencieux',
     'footer.playfulMode': 'mode expressif',
     'firstRun.ready': '# prêt — caché localement, prêt hors ligne',
-    'download.share': 'Partager',
-    'download.share.title': 'Arrière-plan nuké',
-    'download.share.text': 'Traité avec nukebg.app — 100% local',
     // Header / Footer (index.html)
     'header.skipLink': 'Aller au contenu principal',
     'footer.kofi': '\u2615 Soutenir sur Ko-fi',
@@ -992,9 +983,6 @@ const translations: Translations = {
     'footer.quietMode': 'ruhemodus',
     'footer.playfulMode': 'lebhaft',
     'firstRun.ready': '# bereit — lokal zwischengespeichert, offline-fähig',
-    'download.share': 'Teilen',
-    'download.share.title': 'Hintergrund genuked',
-    'download.share.text': 'Mit nukebg.app verarbeitet — bleibt lokal',
     // Header / Footer (index.html)
     'header.skipLink': 'Zum Hauptinhalt springen',
     'footer.kofi': '\u2615 Unterst\u00FCtzen auf Ko-fi',
@@ -1260,9 +1248,6 @@ const translations: Translations = {
     'footer.quietMode': 'modo silencioso',
     'footer.playfulMode': 'modo brincalhão',
     'firstRun.ready': '# pronto — em cache local, pronto offline',
-    'download.share': 'Compartilhar',
-    'download.share.title': 'Fundo nukeado',
-    'download.share.text': 'Processado com nukebg.app — fica local',
     // Header / Footer (index.html)
     'header.skipLink': 'Pular para o conte\u00FAdo principal',
     'footer.kofi': '\u2615 Apoiar no Ko-fi',
@@ -1528,9 +1513,6 @@ const translations: Translations = {
     'footer.quietMode': '\u5B89\u9759\u6A21\u5F0F',
     'footer.playfulMode': '\u6D3B\u6CFC\u6A21\u5F0F',
     'firstRun.ready': '# \u5C31\u7EEA — \u672C\u5730\u7F13\u5B58\uFF0C\u53EF\u79BB\u7EBF\u4F7F\u7528',
-    'download.share': '\u5206\u4EAB',
-    'download.share.title': '\u5DF2\u53BB\u9664\u7684\u80CC\u666F',
-    'download.share.text': '\u7531 nukebg.app \u5904\u7406—\u672C\u5730\u8FD0\u884C',
     // Header / Footer (index.html)
     'header.skipLink': '\u8DF3\u8F6C\u5230\u4E3B\u8981\u5185\u5BB9',
     'footer.kofi': '\u2615 \u5728 Ko-fi \u4E0A\u652F\u6301\u6211\u4EEC',
