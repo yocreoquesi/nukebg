@@ -285,6 +285,16 @@ More test coverage is always welcome. Especially CV algorithm tests with edge-ca
 
 ---
 
+## > operational_docs
+
+Runbooks for one-off maintainer tasks. Not user-facing.
+
+- [`docs/donors.md`](docs/donors.md) — donor consent workflow, email
+  template, JSON edits, GDPR removal procedure for the supporters
+  shown on `/reactor`.
+
+---
+
 ## > licensing_of_contributions
 
 NukeBG is published under [GPL-3.0-only](LICENSE). To keep the door open for

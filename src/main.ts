@@ -6,6 +6,7 @@ import './styles/main.css';
 
 // i18n - importar antes de los componentes para que detecte el locale
 import { getLocale, setLocale, getDirection, t } from './i18n';
+import { applyReactorStatus, formatBurnRate } from './utils/reactor-status-injector';
 
 // Register Web Components
 import './components/ar-dropzone';
@@ -18,6 +19,7 @@ import './components/ar-editor-advanced';
 import './components/ar-batch-item';
 import './components/ar-batch-grid';
 import './components/ar-app';
+import './components/ar-reactor';
 import './components/ar-post-cta';
 
 // Register Service Worker
@@ -957,6 +959,45 @@ function init(): void {
   initLogoClickCounter();
   initLogoDoubleTap();
   initShakeDetection();
+  initReactorStatus();
+  initReactorRoute();
+}
+
+function initReactorStatus(): void {
+  const burn = formatBurnRate();
+  void applyReactorStatus({
+    footerStatus: (runtime) =>
+      t('footer.reactorStatus', { burn, runtime }),
+    marqueeFunding: (runtime) =>
+      t('marquee.funding', { burn, runtime }),
+    kofiAriaLabel: (runtime) =>
+      t('footer.kofiAria', { runtime }),
+  });
+}
+
+/**
+ * Hash router for the /reactor transparency page (#137). Toggles
+ * visibility between the main app surface (`<main>`) and the reactor
+ * page (`<ar-reactor>`) based on `location.hash === '#reactor'`.
+ *
+ * No real router framework — the app is a single-page surface and
+ * this is the only route that exists. If we ever add more pages, swap
+ * for a real router.
+ */
+function initReactorRoute(): void {
+  const main = document.querySelector('main');
+  const reactor = document.getElementById('reactor-section');
+  const footer = document.querySelector('footer');
+  if (!main || !reactor) return;
+  const apply = () => {
+    const showReactor = window.location.hash === '#reactor';
+    (main as HTMLElement).hidden = showReactor;
+    reactor.hidden = !showReactor;
+    if (footer) (footer as HTMLElement).hidden = showReactor;
+    if (showReactor) window.scrollTo({ top: 0 });
+  };
+  apply();
+  window.addEventListener('hashchange', apply);
 }
 
 if (document.readyState === 'loading') {
