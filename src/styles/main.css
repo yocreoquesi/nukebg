@@ -636,14 +636,14 @@ body::after {
   color: var(--color-text-secondary);
 }
 
-.kofi-link {
+.reactor-link {
   color: var(--color-accent-primary) !important;
   font-weight: var(--font-semibold);
   text-shadow: 0 0 6px var(--color-accent-glow);
   transition: text-shadow var(--duration-fast);
 }
 
-.kofi-link:hover {
+.reactor-link:hover {
   text-shadow: 0 0 12px var(--color-accent-glow);
 }
 

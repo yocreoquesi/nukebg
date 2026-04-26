@@ -188,8 +188,7 @@ const translations: Translations = {
     'firstRun.ready': '# ready — cached locally, offline-capable',
     // Header / Footer (index.html)
     'header.skipLink': 'Skip to main content',
-    'footer.kofi': '\u2615 Support on Ko-fi',
-    'footer.kofiAria': 'Tip on Ko-fi \u2014 currently funded for {runtime}',
+    'footer.reactorLinkAria': 'View project costs and runtime \u2014 currently funded for {runtime}',
     'footer.reactorStatus': 'Ships only while the budget holds ({burn}). Currently funded for {runtime}.',
     'marquee.funding': 'development funded for {runtime} \u2014 tip to extend runway',
     'cta.firstStar.text': '$ if this saved you 5 minutes, drop a star on the repo',
@@ -454,8 +453,7 @@ const translations: Translations = {
     'firstRun.ready': '# listo — cacheado localmente, listo offline',
     // Header / Footer (index.html)
     'header.skipLink': 'Saltar al contenido principal',
-    'footer.kofi': '\u2615 Apoyar en Ko-fi',
-    'footer.kofiAria': 'Donar en Ko-fi \u2014 ahora financiado para {runtime}',
+    'footer.reactorLinkAria': 'Ver costes del proyecto y runtime \u2014 ahora financiado para {runtime}',
     'footer.reactorStatus': 'Solo se actualiza mientras dure el presupuesto ({burn}). Ahora financiado para {runtime}.',
     'marquee.funding': 'desarrollo financiado por {runtime} \u2014 alimenta el reactor',
     'cta.firstStar.text': '$ si te ahorró 5 minutos, deja una estrella en el repo',
@@ -720,8 +718,7 @@ const translations: Translations = {
     'firstRun.ready': '# prêt — caché localement, prêt hors ligne',
     // Header / Footer (index.html)
     'header.skipLink': 'Aller au contenu principal',
-    'footer.kofi': '\u2615 Soutenir sur Ko-fi',
-    'footer.kofiAria': 'Soutenir sur Ko-fi \u2014 actuellement financ\u00E9 pour {runtime}',
+    'footer.reactorLinkAria': 'Voir les co\u00FBts du projet et le runtime \u2014 actuellement financ\u00E9 pour {runtime}',
     'footer.reactorStatus': 'Mises \u00E0 jour tant que le budget tient ({burn}). Actuellement financ\u00E9 pour {runtime}.',
     'marquee.funding': 'd\u00E9veloppement financ\u00E9 pour {runtime} \u2014 soutiens pour prolonger',
     'cta.firstStar.text': '$ si ça t a fait gagner 5 minutes, laisse une étoile sur le repo',
@@ -986,8 +983,7 @@ const translations: Translations = {
     'firstRun.ready': '# bereit — lokal zwischengespeichert, offline-fähig',
     // Header / Footer (index.html)
     'header.skipLink': 'Zum Hauptinhalt springen',
-    'footer.kofi': '\u2615 Unterst\u00FCtzen auf Ko-fi',
-    'footer.kofiAria': 'Auf Ko-fi unterst\u00FCtzen \u2014 derzeit finanziert f\u00FCr {runtime}',
+    'footer.reactorLinkAria': 'Projektkosten und Laufzeit ansehen \u2014 derzeit finanziert f\u00FCr {runtime}',
     'footer.reactorStatus': 'Wird nur ausgeliefert, solange das Budget reicht ({burn}). Derzeit finanziert f\u00FCr {runtime}.',
     'marquee.funding': 'Entwicklung finanziert f\u00FCr {runtime} \u2014 spende, um zu verl\u00E4ngern',
     'cta.firstStar.text': '$ wenn das 5 Minuten gespart hat, gib einen Stern auf dem Repo',
@@ -1252,8 +1248,7 @@ const translations: Translations = {
     'firstRun.ready': '# pronto — em cache local, pronto offline',
     // Header / Footer (index.html)
     'header.skipLink': 'Pular para o conte\u00FAdo principal',
-    'footer.kofi': '\u2615 Apoiar no Ko-fi',
-    'footer.kofiAria': 'Apoiar no Ko-fi \u2014 atualmente financiado por {runtime}',
+    'footer.reactorLinkAria': 'Ver custos do projeto e runtime \u2014 atualmente financiado por {runtime}',
     'footer.reactorStatus': 'S\u00F3 atualiza enquanto o or\u00E7amento durar ({burn}). Atualmente financiado por {runtime}.',
     'marquee.funding': 'desenvolvimento financiado por {runtime} \u2014 apoia para estender',
     'cta.firstStar.text': '$ se te poupou 5 minutos, deixa uma estrela no repo',
@@ -1518,8 +1513,7 @@ const translations: Translations = {
     'firstRun.ready': '# \u5C31\u7EEA — \u672C\u5730\u7F13\u5B58\uFF0C\u53EF\u79BB\u7EBF\u4F7F\u7528',
     // Header / Footer (index.html)
     'header.skipLink': '\u8DF3\u8F6C\u5230\u4E3B\u8981\u5185\u5BB9',
-    'footer.kofi': '\u2615 \u5728 Ko-fi \u4E0A\u652F\u6301\u6211\u4EEC',
-    'footer.kofiAria': '\u5728 Ko-fi \u4E0A\u8D5E\u52A9 \u2014 \u76EE\u524D\u8D44\u91D1\u53EF\u7EF4\u6301 {runtime}',
+    'footer.reactorLinkAria': '\u67E5\u770B\u9879\u76EE\u6210\u672C\u4E0E\u8FD0\u884C\u65F6\u95F4 \u2014 \u76EE\u524D\u53EF\u7EF4\u6301 {runtime}',
     'footer.reactorStatus': '\u4EC5\u5728\u9884\u7B97\u5141\u8BB8\u65F6\u66F4\u65B0\uFF08{burn}\uFF09\u3002\u76EE\u524D\u53EF\u7EF4\u6301 {runtime}\u3002',
     'marquee.funding': '\u5F00\u53D1\u8D44\u91D1\u53EF\u7EF4\u6301 {runtime} \u2014 \u8D5E\u52A9\u4EE5\u5EF6\u957F',
     'cta.firstStar.text': '$ \u5982\u679C\u7701\u4E86\u4F60 5 \u5206\u949F, \u8BF7\u5728\u4ED3\u5E93\u70B9\u4E2A star',

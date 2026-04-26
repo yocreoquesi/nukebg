@@ -635,8 +635,6 @@ function initI18n(): void {
 function updateHtmlTexts(): void {
   const skipLink = document.getElementById('skip-link');
   if (skipLink) skipLink.textContent = t('header.skipLink');
-  const kofiLink = document.getElementById('kofi-link');
-  if (kofiLink) kofiLink.textContent = t('footer.kofi');
   const footerPrivacy = document.getElementById('footer-privacy');
   if (footerPrivacy) footerPrivacy.textContent = t('footer.privacy');
 }
@@ -1052,7 +1050,7 @@ function initReactorStatus(): void {
   void applyReactorStatus({
     footerStatus: (runtime) => t('footer.reactorStatus', { burn, runtime }),
     marqueeFunding: (runtime) => t('marquee.funding', { burn, runtime }),
-    kofiAriaLabel: (runtime) => t('footer.kofiAria', { runtime }),
+    reactorLinkAria: (runtime) => t('footer.reactorLinkAria', { runtime }),
   });
 }
 
