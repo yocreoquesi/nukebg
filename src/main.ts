@@ -6,6 +6,7 @@ import './styles/main.css';
 
 // i18n - importar antes de los componentes para que detecte el locale
 import { getLocale, setLocale, getDirection, t } from './i18n';
+import { applyReactorStatus, formatBurnRate } from './utils/reactor-status-injector';
 
 // Register Web Components
 import './components/ar-dropzone';
@@ -956,6 +957,19 @@ function init(): void {
   initLogoClickCounter();
   initLogoDoubleTap();
   initShakeDetection();
+  initReactorStatus();
+}
+
+function initReactorStatus(): void {
+  const burn = formatBurnRate();
+  void applyReactorStatus({
+    footerStatus: (runtime) =>
+      t('footer.reactorStatus', { burn, runtime }),
+    marqueeFunding: (runtime) =>
+      t('marquee.funding', { burn, runtime }),
+    kofiAriaLabel: (runtime) =>
+      t('footer.kofiAria', { runtime }),
+  });
 }
 
 if (document.readyState === 'loading') {
