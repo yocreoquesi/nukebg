@@ -56,49 +56,10 @@ export class ArApp extends HTMLElement {
 
   connectedCallback(): void {
     this.abortController = new AbortController();
-    // #79 — resolve playful mode before the first render so the rest of
-    // the component tree sees the correct `data-playful` attribute.
-    this.resolvePlayfulMode();
     this.render();
     this.setupComponents();
     this.setupEvents();
     this.preloadModel();
-  }
-
-  /**
-   * Decide whether playful (CRT / smoke / vibrate / palette swap) is on.
-   * Priority: explicit localStorage pref → prefers-reduced-motion → on.
-   */
-  private resolvePlayfulMode(): void {
-    try {
-      const stored = localStorage.getItem('nukebg:playful');
-      if (stored === 'true' || stored === 'false') {
-        document.documentElement.dataset.playful = stored;
-        return;
-      }
-    } catch {
-      // localStorage unavailable (Safari private mode); fall through.
-    }
-    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    document.documentElement.dataset.playful = reducedMotion ? 'false' : 'true';
-  }
-
-  private setPlayfulMode(playful: boolean): void {
-    document.documentElement.dataset.playful = playful ? 'true' : 'false';
-    try { localStorage.setItem('nukebg:playful', playful ? 'true' : 'false'); } catch {
-      /* ignore storage failures */
-    }
-    // Sync the footer toggle label.
-    this.syncQuietModeToggle();
-  }
-
-  private syncQuietModeToggle(): void {
-    // Footer lives in light DOM (index.html), not the ar-app shadow root.
-    const btn = document.getElementById('quiet-mode-toggle') as HTMLButtonElement | null;
-    if (!btn) return;
-    const playful = this.isPlayful();
-    btn.textContent = playful ? `# ${t('footer.quietMode')}` : `# ${t('footer.playfulMode')}`;
-    btn.setAttribute('aria-pressed', playful ? 'false' : 'true');
   }
 
   /** Pre-load model + warmup as soon as page opens */
@@ -681,12 +642,6 @@ export class ArApp extends HTMLElement {
           border-color: var(--color-accent-primary, #00ff41);
           box-shadow: 0 0 10px rgba(var(--color-accent-rgb, 0, 255, 65), 0.1);
         }
-        .crt-word-flicker {
-          opacity: 0.05;
-        }
-        @media (prefers-reduced-motion: reduce) {
-          .crt-word-flicker { opacity: 1; }
-        }
         /* === Hero controls row (slider) === */
         .hero-controls {
           display: flex;
@@ -964,7 +919,7 @@ export class ArApp extends HTMLElement {
       <section class="hero" id="hero">
         <h1>
           <span class="hero-title-long"><span class="accent">${t('hero.title.accent')}</span> ${t('hero.title.rest')}</span>
-          <span class="hero-title-short"><span class="accent">$ </span>${t('hero.title.short')}</span>
+          <span class="hero-title-short"><span class="accent">${t('hero.title.short')}</span></span>
         </h1>
         <p class="subline">
           <span class="subline-long">${t('hero.subtitle').replace(/\n/g, ' ')}</span>
@@ -1083,7 +1038,7 @@ export class ArApp extends HTMLElement {
     const h1 = root.querySelector('h1');
     if (h1) h1.innerHTML =
       `<span class="hero-title-long"><span class="accent">${t('hero.title.accent')}</span> ${t('hero.title.rest')}</span>` +
-      `<span class="hero-title-short"><span class="accent">$ </span>${t('hero.title.short')}</span>`;
+      `<span class="hero-title-short"><span class="accent">${t('hero.title.short')}</span></span>`;
     const subline = root.querySelector('.subline');
     if (subline) subline.innerHTML =
       `<span class="subline-long">${t('hero.subtitle').replace(/\n/g, ' ')}</span>` +
@@ -1202,14 +1157,6 @@ export class ArApp extends HTMLElement {
         'noopener',
       );
     }, { signal });
-
-    // #79 — quiet-mode toggle lives in the footer (light DOM).
-    const quietBtn = document.getElementById('quiet-mode-toggle');
-    quietBtn?.addEventListener('click', () => {
-      this.setPlayfulMode(!this.isPlayful());
-    }, { signal });
-    // Initial label translation.
-    this.syncQuietModeToggle();
 
     // Error modal wiring (#36).
     const retryBtn = this.shadowRoot!.querySelector('#error-modal-retry') as HTMLButtonElement | null;
@@ -1461,16 +1408,6 @@ export class ArApp extends HTMLElement {
       await this.download.setResult(refined, this.currentFileName, 0, blob);
       this.lastResultImageData = refined;
     }, { signal });
-  }
-
-  /**
-   * Whether the UI is in "playful" mode — drives CRT flicker, smoke
-   * overlay, H1 vibration, and the per-precision-mode color palette
-   * swap. Default is on; users in quiet mode or with
-   * `prefers-reduced-motion: reduce` get the calm green default.
-   */
-  private isPlayful(): boolean {
-    return document.documentElement.dataset.playful !== 'false';
   }
 
   // Advanced CTA replaces the edit-btn when visible.

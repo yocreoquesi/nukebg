@@ -522,30 +522,6 @@ body::after {
   color: var(--color-accent-primary);
   text-shadow: 0 0 6px var(--color-accent-glow);
 }
-/* Quiet-mode toggle (#79) — matches the footer-cache-btn tone since
-   both sit in the same footer row. aria-pressed="true" (i.e. user
-   has turned playful OFF) gets a brighter accent tint. */
-.footer-quiet-btn {
-  appearance: none;
-  background: transparent;
-  border: none;
-  color: var(--color-text-tertiary);
-  font-family: inherit;
-  font-size: inherit;
-  padding: 0;
-  cursor: pointer;
-  transition: color var(--duration-normal), text-shadow var(--duration-normal);
-}
-.footer-quiet-btn:hover,
-.footer-quiet-btn:focus-visible {
-  color: var(--color-accent-primary);
-  text-shadow: 0 0 6px var(--color-accent-glow);
-  outline: none;
-}
-.footer-quiet-btn[aria-pressed="true"] {
-  color: var(--color-accent-primary);
-}
-
 /* Theme picker — four small swatches in the footer that flip
    document.documentElement[data-theme]. Each swatch carries its own
    absolute color via the data-theme attribute so the active theme's
@@ -818,6 +794,11 @@ body::after {
     margin: 0 var(--space-1);
   }
   .footer-privacy {
+    /* #149 — already shown in marquee + hero subtitle on mobile;
+       repeating it in the footer is just clutter on a narrow viewport */
+    display: none;
+  }
+  .footer-reactor-status {
     font-size: var(--text-xs);
   }
   .kbd-toast {
