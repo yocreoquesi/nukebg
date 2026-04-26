@@ -10,7 +10,7 @@ import type {
   ModelId,
   WarmupDiagnostic,
 } from '../types/worker-messages';
-import { REFINE_PARAMS } from '../pipeline/constants';
+import { REFINE_PARAMS, RMBG_PARAMS } from '../pipeline/constants';
 
 const DEFAULT_MODEL: ModelId = 'briaai/RMBG-1.4';
 
@@ -19,8 +19,61 @@ const DEFAULT_MODEL: ModelId = 'briaai/RMBG-1.4';
 // Pinning guarantees the exact same model weights every load.
 // Bump manually after auditing upstream changes on huggingface.co.
 const MODEL_REVISIONS: Record<ModelId, string> = {
-  'briaai/RMBG-1.4': '2ceba5a5efaec153162aedea169f76caf9b46cf8',
+  'briaai/RMBG-1.4': RMBG_PARAMS.REVISION,
 };
+
+/**
+ * Supply-chain integrity check for RMBG-1.4. Runs AFTER
+ * `transformers.pipeline()` resolves — by then the quantized ONNX
+ * lives in the standard browser Cache API (`transformers-cache`).
+ * We re-read the cached blob, SHA-256 it, and either accept it or
+ * evict the entry and throw so the orchestrator surfaces an error
+ * and the next reload re-fetches from upstream.
+ *
+ * Skips silently if the Cache API is unavailable (e.g. http context,
+ * cross-origin restrictions) — verification is best-effort and never
+ * blocks a working install.
+ */
+async function verifyRmbgIntegrity(modelId: ModelId): Promise<void> {
+  if (modelId !== 'briaai/RMBG-1.4') return;
+  if (typeof caches === 'undefined') return;
+
+  let cache: Cache;
+  try {
+    cache = await caches.open(RMBG_PARAMS.CACHE_NAME);
+  } catch {
+    return;
+  }
+
+  const resp = await cache.match(RMBG_PARAMS.MODEL_URL);
+  if (!resp) {
+    console.warn(
+      '[NukeBG ML] Model blob not found in transformers cache — integrity check skipped.',
+    );
+    return;
+  }
+
+  const buf = await resp.arrayBuffer();
+  if (buf.byteLength !== RMBG_PARAMS.EXPECTED_SIZE) {
+    await cache.delete(RMBG_PARAMS.MODEL_URL);
+    throw new Error(
+      `RMBG-1.4 model size mismatch: got ${buf.byteLength} bytes, expected ` +
+        `${RMBG_PARAMS.EXPECTED_SIZE}. Cache evicted; reload to re-fetch.`,
+    );
+  }
+
+  const digestBuf = await crypto.subtle.digest('SHA-256', buf);
+  const digestHex = Array.from(new Uint8Array(digestBuf))
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
+  if (digestHex !== RMBG_PARAMS.EXPECTED_SHA256) {
+    await cache.delete(RMBG_PARAMS.MODEL_URL);
+    throw new Error(
+      `RMBG-1.4 hash mismatch: got ${digestHex}, expected ${RMBG_PARAMS.EXPECTED_SHA256}. ` +
+        `Cache evicted; reload to re-fetch.`,
+    );
+  }
+}
 
 /** Transformers.js pipeline entry - shape is dynamic from the library */
 interface SegmenterEntry {
@@ -314,6 +367,20 @@ async function loadModel(
     revision: MODEL_REVISIONS[modelId],
     progress_callback: progressCb(id),
   });
+
+  // Supply-chain integrity check: verify the cached q8 ONNX bytes match
+  // the audited SHA-256 before exposing the pipeline to inference.
+  try {
+    await verifyRmbgIntegrity(modelId);
+  } catch (err) {
+    try {
+      (seg as unknown as { dispose?: () => void }).dispose?.();
+    } catch {
+      /* ignore dispose errors */
+    }
+    throw err;
+  }
+
   segmenters.set(modelId, {
     pipeline: seg as unknown as SegmenterEntry['pipeline'],
     type: 'pipeline',
