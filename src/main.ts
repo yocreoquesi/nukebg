@@ -19,6 +19,7 @@ import './components/ar-editor-advanced';
 import './components/ar-batch-item';
 import './components/ar-batch-grid';
 import './components/ar-app';
+import './components/ar-reactor';
 
 // Register Service Worker
 import './sw-register';
@@ -958,6 +959,7 @@ function init(): void {
   initLogoDoubleTap();
   initShakeDetection();
   initReactorStatus();
+  initReactorRoute();
 }
 
 function initReactorStatus(): void {
@@ -970,6 +972,31 @@ function initReactorStatus(): void {
     kofiAriaLabel: (runtime) =>
       t('footer.kofiAria', { runtime }),
   });
+}
+
+/**
+ * Hash router for the /reactor transparency page (#137). Toggles
+ * visibility between the main app surface (`<main>`) and the reactor
+ * page (`<ar-reactor>`) based on `location.hash === '#reactor'`.
+ *
+ * No real router framework — the app is a single-page surface and
+ * this is the only route that exists. If we ever add more pages, swap
+ * for a real router.
+ */
+function initReactorRoute(): void {
+  const main = document.querySelector('main');
+  const reactor = document.getElementById('reactor-section');
+  const footer = document.querySelector('footer');
+  if (!main || !reactor) return;
+  const apply = () => {
+    const showReactor = window.location.hash === '#reactor';
+    (main as HTMLElement).hidden = showReactor;
+    reactor.hidden = !showReactor;
+    if (footer) (footer as HTMLElement).hidden = showReactor;
+    if (showReactor) window.scrollTo({ top: 0 });
+  };
+  apply();
+  window.addEventListener('hashchange', apply);
 }
 
 if (document.readyState === 'loading') {
