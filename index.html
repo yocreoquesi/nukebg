@@ -151,7 +151,7 @@
           "PNG export with true alpha transparency"
         ],
         "screenshot": "https://nukebg.app/og-image.png",
-        "softwareVersion": "2.9.4",
+        "softwareVersion": "2.9.5",
         "license": "https://www.gnu.org/licenses/gpl-3.0.html",
         "isAccessibleForFree": true,
         "creator": {
@@ -480,10 +480,14 @@
     </main>
 
     <ar-reactor id="reactor-section" hidden></ar-reactor>
-    <ar-post-cta id="post-cta"></ar-post-cta>
+    <!-- ar-post-cta disabled (#181) — current implementation fires on
+         every successful nuke and renders left-aligned. Re-enable when
+         the rotation/centering logic lands. The custom element is still
+         registered in main.ts so re-enabling is a one-line revert here. -->
+    <!-- <ar-post-cta id="post-cta"></ar-post-cta> -->
 
     <footer class="footer hazard-border-top" role="contentinfo">
-      <span>NukeBG <span style="color: var(--color-text-tertiary)">v2.9.4</span></span>
+      <span>NukeBG <span style="color: var(--color-text-tertiary)">v2.9.5</span></span>
       <span class="footer-sep">|</span>
       <a href="https://github.com/yocreoquesi/nukebg" target="_blank" rel="noopener noreferrer"
         >GitHub</a

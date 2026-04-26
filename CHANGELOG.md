@@ -10,6 +10,18 @@ Unreleased entries accumulate on the `dev` branch. When we cut a release we copy
 
 ## [Unreleased]
 
+## [2.9.5] — 2026-04-27
+
+### Changed
+
+- **Post-process CTA disabled** (`<ar-post-cta>`). Current
+  implementation fires on every successful nuke and renders
+  left-aligned — both pushy and visually broken. Element commented
+  out in `index.html`; the custom-element registration in `main.ts`
+  stays so re-enabling is a one-line revert. Proper fix tracked in
+  [#181](https://github.com/yocreoquesi/nukebg/issues/181)
+  (randomize within the eligible window + center against main).
+
 ## [2.9.4] — 2026-04-27
 
 ### Changed
