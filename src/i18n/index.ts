@@ -14,7 +14,7 @@ const translations: Translations = {
     'hero.subtitle': 'Drop any image. Get a clean transparent PNG.\nNo upload. No account. No BS.',
     'hero.title.short': 'NUKE BG',
     'hero.subtitle.short': 'Drop image · transparent PNG · stays local.',
-    'dropzone.takePhoto': 'take photo',    'hero.modelStatus': 'Ready to nuke',
+    'hero.modelStatus': 'Ready to nuke',
 
     // Dropzone
     'dropzone.title': 'Drop your image here',
@@ -177,7 +177,6 @@ const translations: Translations = {
     'status.model.loading': 'loading...',
     'status.model.lazy': 'model loads on first image',
     'status.limitations': 'known limitations',
-    'cmdbar.newImage': 'new image',
     'cmdbar.cancel': 'cancel',
     'cmdbar.running': 'running…',
     'cmdbar.ready': 'nuked',
@@ -185,8 +184,6 @@ const translations: Translations = {
     'download.cta.png': '$ download --png',
     'download.cta.webp': '$ download --webp',
     'download.groupLabel': 'Download',
-    'footer.quietMode': 'quiet mode',
-    'footer.playfulMode': 'playful mode',
     'firstRun.ready': '# ready — cached locally, offline-capable',
     // Header / Footer (index.html)
     'header.skipLink': 'Skip to main content',
@@ -279,7 +276,7 @@ const translations: Translations = {
     'hero.subtitle': 'Arrastra una imagen. Obt\u00E9n un PNG transparente.\nSin subidas. Sin cuenta. Sin complicaciones.',
     'hero.title.short': 'NUKE FONDOS',
     'hero.subtitle.short': 'Imagen · PNG transparente · nunca sale.',
-    'dropzone.takePhoto': 'tomar foto',    'hero.modelStatus': 'Listo para nukear',
+    'hero.modelStatus': 'Listo para nukear',
 
     // Dropzone
     'dropzone.title': 'Arrastra tu imagen aqu\u00ED',
@@ -442,7 +439,6 @@ const translations: Translations = {
     'status.model.loading': 'cargando...',
     'status.model.lazy': 'modelo carga al subir la primera imagen',
     'status.limitations': 'limitaciones conocidas',
-    'cmdbar.newImage': 'nueva imagen',
     'cmdbar.cancel': 'cancelar',
     'cmdbar.running': 'procesando…',
     'cmdbar.ready': 'nukeada',
@@ -450,8 +446,6 @@ const translations: Translations = {
     'download.cta.png': '$ download --png',
     'download.cta.webp': '$ download --webp',
     'download.groupLabel': 'Descargar',
-    'footer.quietMode': 'modo silencio',
-    'footer.playfulMode': 'modo playful',
     'firstRun.ready': '# listo — cacheado localmente, listo offline',
     // Header / Footer (index.html)
     'header.skipLink': 'Saltar al contenido principal',
@@ -544,7 +538,7 @@ const translations: Translations = {
     'hero.subtitle': "Balance ton image. R\u00E9cup\u00E8re un PNG transparent.\nZ\u00E9ro upload. Z\u00E9ro compte. Z\u00E9ro baratin.",
     'hero.title.short': 'NUKE ARRI\u00C8RE',
     'hero.subtitle.short': 'D\u00E9pose · PNG transparent · reste local.',
-    'dropzone.takePhoto': 'prendre photo',    'hero.modelStatus': 'Pr\u00EAt \u00E0 atomiser',
+    'hero.modelStatus': 'Pr\u00EAt \u00E0 atomiser',
 
     // Dropzone
     'dropzone.title': 'D\u00E9pose ton image ici',
@@ -707,7 +701,6 @@ const translations: Translations = {
     'status.model.loading': 'chargement...',
     'status.model.lazy': 'modèle chargé à la première image',
     'status.limitations': 'limitations connues',
-    'cmdbar.newImage': 'nouvelle image',
     'cmdbar.cancel': 'annuler',
     'cmdbar.running': 'en cours…',
     'cmdbar.ready': 'nukée',
@@ -715,8 +708,6 @@ const translations: Translations = {
     'download.cta.png': '$ download --png',
     'download.cta.webp': '$ download --webp',
     'download.groupLabel': 'Télécharger',
-    'footer.quietMode': 'mode silencieux',
-    'footer.playfulMode': 'mode expressif',
     'firstRun.ready': '# prêt — caché localement, prêt hors ligne',
     // Header / Footer (index.html)
     'header.skipLink': 'Aller au contenu principal',
@@ -809,7 +800,7 @@ const translations: Translations = {
     'hero.subtitle': 'Bild reinwerfen. Transparentes PNG kriegen.\nKein Upload. Kein Konto. Kein Bullshit.',
     'hero.title.short': 'NUKE BG',
     'hero.subtitle.short': 'Bild · transparentes PNG · bleibt lokal.',
-    'dropzone.takePhoto': 'foto machen',    'hero.modelStatus': 'Bereit zum Nuken',
+    'hero.modelStatus': 'Bereit zum Nuken',
 
     // Dropzone
     'dropzone.title': 'Bild hier ablegen',
@@ -972,7 +963,6 @@ const translations: Translations = {
     'status.model.loading': 'lädt...',
     'status.model.lazy': 'Modell lädt beim ersten Bild',
     'status.limitations': 'bekannte Einschr\u00E4nkungen',
-    'cmdbar.newImage': 'neues Bild',
     'cmdbar.cancel': 'abbrechen',
     'cmdbar.running': 'l\u00E4uft…',
     'cmdbar.ready': 'bereit',
@@ -980,8 +970,6 @@ const translations: Translations = {
     'download.cta.png': '$ download --png',
     'download.cta.webp': '$ download --webp',
     'download.groupLabel': 'Herunterladen',
-    'footer.quietMode': 'ruhemodus',
-    'footer.playfulMode': 'lebhaft',
     'firstRun.ready': '# bereit — lokal zwischengespeichert, offline-fähig',
     // Header / Footer (index.html)
     'header.skipLink': 'Zum Hauptinhalt springen',
@@ -1074,7 +1062,7 @@ const translations: Translations = {
     'hero.subtitle': 'Joga a imagem. Pega o PNG transparente.\nSem upload. Sem conta. Sem frescura.',
     'hero.title.short': 'NUKE FUNDO',
     'hero.subtitle.short': 'Imagem · PNG transparente · fica local.',
-    'dropzone.takePhoto': 'tirar foto',    'hero.modelStatus': 'Pronto pra nukear',
+    'hero.modelStatus': 'Pronto pra nukear',
 
     // Dropzone
     'dropzone.title': 'Solta a imagem aqui',
@@ -1237,7 +1225,6 @@ const translations: Translations = {
     'status.model.loading': 'carregando...',
     'status.model.lazy': 'modelo carrega na primeira imagem',
     'status.limitations': 'limita\u00E7\u00F5es conhecidas',
-    'cmdbar.newImage': 'nova imagem',
     'cmdbar.cancel': 'cancelar',
     'cmdbar.running': 'processando…',
     'cmdbar.ready': 'nukeada',
@@ -1245,8 +1232,6 @@ const translations: Translations = {
     'download.cta.png': '$ download --png',
     'download.cta.webp': '$ download --webp',
     'download.groupLabel': 'Baixar',
-    'footer.quietMode': 'modo silencioso',
-    'footer.playfulMode': 'modo brincalhão',
     'firstRun.ready': '# pronto — em cache local, pronto offline',
     // Header / Footer (index.html)
     'header.skipLink': 'Pular para o conte\u00FAdo principal',
@@ -1339,7 +1324,7 @@ const translations: Translations = {
     'hero.subtitle': '\u4E22\u5F20\u56FE\u7247\u8FDB\u6765\u3002\u62FF\u8D70\u900F\u660E PNG\u3002\n\u96F6\u4E0A\u4F20\u3002\u96F6\u6CE8\u518C\u3002\u96F6\u5E9F\u8BDD\u3002',
     'hero.title.short': '\u6838\u7206\u80CC\u666F',
     'hero.subtitle.short': '\u56FE\u7247 · \u900F\u660E PNG · \u672C\u5730\u5904\u7406',
-    'dropzone.takePhoto': '\u62CD\u7167',    'hero.modelStatus': '\u51C6\u5907\u6838\u7206',
+    'hero.modelStatus': '\u51C6\u5907\u6838\u7206',
 
     // Dropzone
     'dropzone.title': '\u628A\u56FE\u7247\u4E22\u8FD9\u91CC',
@@ -1502,7 +1487,6 @@ const translations: Translations = {
     'status.model.loading': '\u52A0\u8F7D\u4E2D...',
     'status.model.lazy': '\u9996\u6B21\u4E0A\u4F20\u65F6\u52A0\u8F7D\u6A21\u578B',
     'status.limitations': '\u5DF2\u77E5\u9650\u5236',
-    'cmdbar.newImage': '\u65B0\u56FE\u7247',
     'cmdbar.cancel': '\u53D6\u6D88',
     'cmdbar.running': '\u5904\u7406\u4E2D…',
     'cmdbar.ready': '\u5C31\u7EEA',
@@ -1510,8 +1494,6 @@ const translations: Translations = {
     'download.cta.png': '$ download --png',
     'download.cta.webp': '$ download --webp',
     'download.groupLabel': '\u4E0B\u8F7D',
-    'footer.quietMode': '\u5B89\u9759\u6A21\u5F0F',
-    'footer.playfulMode': '\u6D3B\u6CFC\u6A21\u5F0F',
     'firstRun.ready': '# \u5C31\u7EEA — \u672C\u5730\u7F13\u5B58\uFF0C\u53EF\u79BB\u7EBF\u4F7F\u7528',
     // Header / Footer (index.html)
     'header.skipLink': '\u8DF3\u8F6C\u5230\u4E3B\u8981\u5185\u5BB9',

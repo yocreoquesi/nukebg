@@ -33,10 +33,13 @@ describe('Command bar — ar-app.ts invariants', () => {
     expect(viewerIdx).toBeGreaterThan(idx);
   });
 
-  it('exposes #cmd-filename, #cmd-meta, #cmd-state, #cmd-new-image, #cmd-cancel', () => {
-    for (const id of ['cmd-filename', 'cmd-meta', 'cmd-state', 'cmd-new-image', 'cmd-cancel']) {
+  it('exposes #cmd-filename, #cmd-meta, #cmd-state, #cmd-cancel', () => {
+    // #151: 'new image' button removed — duplicated by 'procesar otra'
+    // in the result area. Only Cancel survives in the cmd-bar right side.
+    for (const id of ['cmd-filename', 'cmd-meta', 'cmd-state', 'cmd-cancel']) {
       expect(APP, id).toMatch(new RegExp(`id="${id}"`));
     }
+    expect(APP).not.toMatch(/id="cmd-new-image"/);
   });
 
   it('Cancel click dispatches ar:cancel-processing from the shadow root', () => {
@@ -45,10 +48,9 @@ describe('Command bar — ar-app.ts invariants', () => {
     expect(APP).toMatch(/cmdCancel\?\.addEventListener\(['"]click['"], bubbleCancel/);
   });
 
-  it('New Image aborts the in-flight run before calling resetToIdle', () => {
-    expect(APP).toMatch(
-      /cmdNewImage\?\.addEventListener\(['"]click['"],[\s\S]*?processingAbortController\.abort\(['"]new image requested['"][\s\S]*?this\.resetToIdle\(\)/,
-    );
+  it('New Image button removed in #151 — duplicated by procesar otra in result area', () => {
+    expect(APP).not.toMatch(/cmdNewImage/);
+    expect(APP).not.toMatch(/cmdbar\.newImage/);
   });
 
   it('updateCommandBar + updateCommandBarState methods exist with the documented signature', () => {
@@ -56,8 +58,7 @@ describe('Command bar — ar-app.ts invariants', () => {
     expect(APP).toMatch(/private updateCommandBarState\(state: ['"]running['"] \| ['"]ready['"] \| ['"]failed['"]\): void/);
   });
 
-  it('updateTexts re-translates the cmdbar labels on locale change', () => {
-    expect(APP).toMatch(/cmdNew.*t\(['"]cmdbar\.newImage['"]\)/);
+  it('updateTexts re-translates the surviving cmdbar labels on locale change', () => {
     expect(APP).toMatch(/cmdCancel.*t\(['"]cmdbar\.cancel['"]\)/);
   });
 });
@@ -93,7 +94,7 @@ describe('Viewer chips — #71', () => {
 });
 
 describe('i18n parity — cmdbar.*', () => {
-  const keys = ['cmdbar.newImage', 'cmdbar.cancel', 'cmdbar.running', 'cmdbar.ready', 'cmdbar.failed'];
+  const keys = ['cmdbar.cancel', 'cmdbar.running', 'cmdbar.ready', 'cmdbar.failed'];
   for (const key of keys) {
     it(`'${key}' declared in all six locales`, () => {
       const re = new RegExp(`'${key.replace(/\./g, '\\.')}'\\s*:`, 'g');

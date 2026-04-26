@@ -4,7 +4,6 @@ import { getBatchLimit } from '../types/batch';
 
 export class ArDropzone extends HTMLElement {
   private fileInput!: HTMLInputElement;
-  private cameraInput!: HTMLInputElement;
   private dropArea!: HTMLDivElement;
   private boundLocaleHandler: (() => void) | null = null;
   private boundPasteHandler: ((e: ClipboardEvent) => void) | null = null;
@@ -123,34 +122,6 @@ export class ArDropzone extends HTMLElement {
           content: '[*] ';
           color: var(--color-accent-primary, #00ff41);
         }
-        /* Camera CTA — mobile-only (#73). Triggers a second file input
-           with capture="environment" so iOS / Android opens the camera
-           directly instead of the photo library. */
-        .dz-camera-cta {
-          display: none;
-          margin-top: 10px;
-          padding: 10px 14px;
-          font-family: 'JetBrains Mono', monospace;
-          font-size: 13px;
-          letter-spacing: 0.05em;
-          background: transparent;
-          color: var(--color-accent-primary, #00ff41);
-          border: 1px solid var(--color-accent-primary, #00ff41);
-          border-radius: 0;
-          cursor: pointer;
-          min-height: 44px;
-          transition: background 0.15s ease, box-shadow 0.15s ease;
-        }
-        .dz-camera-cta:hover,
-        .dz-camera-cta:focus-visible {
-          background: rgba(var(--color-accent-rgb, 0, 255, 65), 0.08);
-          box-shadow: 0 0 8px rgba(var(--color-accent-rgb, 0, 255, 65), 0.2);
-          outline: none;
-        }
-        @media (pointer: coarse), (max-width: 480px) {
-          .dz-camera-cta { display: inline-flex; align-items: center; justify-content: center; }
-        }
-        .dz-camera-input { display: none; }
 
         /* Loading slot — model warmup progress lives inside the
            dropzone so the page doesn't reflow when fetch resolves.
@@ -199,9 +170,7 @@ export class ArDropzone extends HTMLElement {
           color: var(--color-text-tertiary, #00b34a);
         }
         /* When the loading slot is visible, the camera CTA hides so
-           the row swaps cleanly; when loading ends, the camera CTA
-           returns. */
-        .dropzone.is-loading .dz-camera-cta { display: none !important; }
+           the row swaps cleanly. */
         .dropzone:hover {
           box-shadow:
             0 0 18px rgba(var(--color-accent-rgb, 0, 255, 65), 0.14),
@@ -304,13 +273,14 @@ export class ArDropzone extends HTMLElement {
           <span id="dz-formats">${t('dropzone.formats')}</span>
           <span class="hint-multi" id="dz-multi">${t('dropzone.multi')}</span>
         </div>
-        <button type="button" class="dz-camera-cta" id="dz-camera-cta">
-          &#8227; ${t('dropzone.takePhoto')}
-        </button>
-        <!-- Loading slot — sits in the same vertical space as the
-             camera CTA so the dropzone doesn't reflow when the model
-             finishes warming up. ar-app drives visibility + progress
-             via setLoadingState(). -->
+        <!-- #146: dedicated 'tomar foto' camera CTA removed.
+             Tapping the dropzone box already opens the OS file picker,
+             which on mobile exposes the camera as one of the source
+             options. The extra button was duplicating that affordance
+             and making the mobile UX inconsistent with desktop. -->
+        <!-- Loading slot — sits where the old camera CTA was so the
+             dropzone doesn't reflow when the model finishes warming up.
+             ar-app drives visibility + progress via setLoadingState(). -->
         <div class="dz-loading" id="dz-loading" role="status" aria-live="polite" hidden>
           <div class="dz-loading-head">
             <span class="dz-loading-prompt">$</span>
@@ -323,12 +293,10 @@ export class ArDropzone extends HTMLElement {
         </div>
       </div>
       <input type="file" accept="image/png,image/jpeg,image/webp" multiple />
-      <input type="file" accept="image/*" capture="environment" class="dz-camera-input" />
     `;
 
     this.dropArea = this.shadowRoot!.querySelector('.dropzone')!;
-    this.fileInput = this.shadowRoot!.querySelector('input[type="file"]:not(.dz-camera-input)')!;
-    this.cameraInput = this.shadowRoot!.querySelector('input.dz-camera-input')!;
+    this.fileInput = this.shadowRoot!.querySelector('input[type="file"]')!;
   }
 
   private updateTexts(): void {
@@ -345,8 +313,6 @@ export class ArDropzone extends HTMLElement {
     if (dragover) dragover.textContent = t('dropzone.dragover');
     const dropzone = root.querySelector('.dropzone');
     if (dropzone) dropzone.setAttribute('aria-label', t('dropzone.ariaLabel'));
-    const camera = root.querySelector('#dz-camera-cta');
-    if (camera) camera.innerHTML = `&#8227; ${t('dropzone.takePhoto')}`;
   }
 
   private setupEvents(): void {
@@ -356,19 +322,16 @@ export class ArDropzone extends HTMLElement {
     };
     document.addEventListener('nukebg:locale-changed', this.boundLocaleHandler);
 
-    // Click to open file picker — but ignore clicks that bubbled from
-    // the inline camera CTA (it manages its own file input).
-    this.dropArea.addEventListener('click', (e) => {
-      const target = e.target as HTMLElement | null;
-      if (target?.closest('#dz-camera-cta')) return;
+    // Click to open file picker. The OS picker exposes the camera as
+    // one of the source options on mobile, so a dedicated camera CTA
+    // is unnecessary (#146).
+    this.dropArea.addEventListener('click', () => {
       this.fileInput.click();
     });
 
     // Keyboard support
     this.dropArea.addEventListener('keydown', (e) => {
       if (e.key === 'Enter' || e.key === ' ') {
-        const target = e.target as HTMLElement | null;
-        if (target?.closest('#dz-camera-cta')) return;
         e.preventDefault();
         this.fileInput.click();
       }
@@ -378,20 +341,6 @@ export class ArDropzone extends HTMLElement {
     this.fileInput.addEventListener('change', () => {
       if (this.fileInput.files && this.fileInput.files.length > 0) {
         this.handleFiles(this.fileInput.files);
-      }
-    });
-
-    // Camera CTA (#73). Opens a second file input with
-    // capture="environment" so iOS / Android treat it as a camera
-    // intent instead of the photo library picker.
-    const cameraBtn = this.shadowRoot!.querySelector('#dz-camera-cta') as HTMLButtonElement | null;
-    cameraBtn?.addEventListener('click', (e) => {
-      e.stopPropagation();
-      this.cameraInput.click();
-    });
-    this.cameraInput.addEventListener('change', () => {
-      if (this.cameraInput.files && this.cameraInput.files.length > 0) {
-        this.handleFiles(this.cameraInput.files);
       }
     });
 
