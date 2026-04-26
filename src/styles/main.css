@@ -639,20 +639,13 @@ body::after {
   }
 }
 
-.footer-reactor-status {
-  display: block;
-  width: 100%;
-  margin-top: var(--space-3);
-  font-size: var(--text-sm);
-  color: var(--color-text-tertiary);
-}
-
 .footer-holiday {
   display: block;
   margin-top: var(--space-2);
   color: var(--color-text-secondary);
 }
 
+.kofi-link,
 .reactor-link {
   color: var(--color-accent-primary) !important;
   font-weight: var(--font-semibold);
