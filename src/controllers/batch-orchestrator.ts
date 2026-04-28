@@ -23,11 +23,7 @@ import type { ArDownload } from '../components/ar-download';
 import type { ArBatchGrid } from '../components/ar-batch-grid';
 import type { BatchItem, StageSnapshot } from '../types/batch';
 import { createZip, safeZipEntryName, downloadBlob } from '../utils/zip';
-import {
-  dropOrphanBlobs,
-  fillSubjectHoles,
-  promoteSpeckleAlpha,
-} from '../pipeline/finalize';
+import { dropOrphanBlobs, fillSubjectHoles, promoteSpeckleAlpha } from '../pipeline/finalize';
 import { composeAtOriginal } from '../utils/final-composite';
 import { exportPng } from '../utils/image-io';
 

@@ -9,10 +9,7 @@ import type { ArDownload } from './ar-download';
 import type { ArEditor } from './ar-editor';
 import type { ArDropzone } from './ar-dropzone';
 import type { ArBatchGrid } from './ar-batch-grid';
-import {
-  BatchOrchestrator,
-  type BatchStageCallback,
-} from '../controllers/batch-orchestrator';
+import { BatchOrchestrator, type BatchStageCallback } from '../controllers/batch-orchestrator';
 import {
   refineEdges,
   dropOrphanBlobs,
