@@ -44,6 +44,7 @@ import { PATCHMATCH_PARAMS } from '../pipeline/constants';
 import { t } from '../i18n';
 import { type Point } from './lasso-simplify';
 import { LassoModel } from '../lib/lasso-model';
+import { HistoryManager } from '../lib/history-manager';
 
 const PAD_RATIO = 0.25;
 const DEFAULT_BRUSH = 24;
@@ -147,13 +148,11 @@ export class ArEditorAdvanced extends HTMLElement {
   private selectionOverlay: HTMLCanvasElement | null = null;
   private selectionHistory: Uint8Array[] = [];
 
-  // Undo/redo stacks of full RGBA snapshots (Uint8ClampedArray, image size).
+  // Undo/redo of full RGBA snapshots (Uint8ClampedArray, image size).
   // Full snapshots match ar-editor's pattern — simple, robust, and still
   // cheap to swap in. Depth is budget-capped per-image so we don't OOM on
   // 20-100MP payloads; see `computeMaxHistory`.
-  private undoStack: Uint8ClampedArray[] = [];
-  private redoStack: Uint8ClampedArray[] = [];
-  private maxHistory = 8;
+  private workingHistory = new HistoryManager<Uint8ClampedArray>(8);
 
   private abort: AbortController | null = null;
 
@@ -190,10 +189,11 @@ export class ArEditorAdvanced extends HTMLElement {
   }
 
   private resetHistory(): void {
-    this.undoStack = [];
-    this.redoStack = [];
+    this.workingHistory.clear();
     if (this.current) {
-      this.maxHistory = this.computeMaxHistory(this.current.width, this.current.height);
+      this.workingHistory.setMaxEntries(
+        this.computeMaxHistory(this.current.width, this.current.height),
+      );
     }
     this.syncHistoryUI();
   }
@@ -217,19 +217,16 @@ export class ArEditorAdvanced extends HTMLElement {
   private pushUndo(): void {
     const snap = this.snapshotWorking();
     if (!snap) return;
-    this.undoStack.push(snap);
-    if (this.undoStack.length > this.maxHistory) this.undoStack.shift();
-    // Any new action invalidates the redo branch.
-    this.redoStack = [];
+    this.workingHistory.push(snap);
     this.syncHistoryUI();
   }
 
   private undo(): void {
     if (this.tool === 'lasso' && this.undoSelection()) return;
-    if (this.undoStack.length === 0) return;
-    const before = this.undoStack.pop()!;
-    const after = this.snapshotWorking();
-    if (after) this.redoStack.push(after);
+    const current = this.snapshotWorking();
+    if (!current) return;
+    const before = this.workingHistory.undo(current);
+    if (!before) return;
     this.restoreWorking(before);
     this.clearLasso();
     this.redrawDisplay();
@@ -237,10 +234,10 @@ export class ArEditorAdvanced extends HTMLElement {
   }
 
   private redo(): void {
-    if (this.redoStack.length === 0) return;
-    const next = this.redoStack.pop()!;
     const current = this.snapshotWorking();
-    if (current) this.undoStack.push(current);
+    if (!current) return;
+    const next = this.workingHistory.redo(current);
+    if (!next) return;
     this.restoreWorking(next);
     this.clearLasso();
     this.redrawDisplay();
@@ -250,8 +247,8 @@ export class ArEditorAdvanced extends HTMLElement {
   private syncHistoryUI(): void {
     const undoBtn = this.shadowRoot?.getElementById('undo') as HTMLButtonElement | null;
     const redoBtn = this.shadowRoot?.getElementById('redo') as HTMLButtonElement | null;
-    if (undoBtn) undoBtn.disabled = this.busy || this.undoStack.length === 0;
-    if (redoBtn) redoBtn.disabled = this.busy || this.redoStack.length === 0;
+    if (undoBtn) undoBtn.disabled = this.busy || !this.workingHistory.canUndo();
+    if (redoBtn) redoBtn.disabled = this.busy || !this.workingHistory.canRedo();
   }
 
   private syncBusyUI(): void {

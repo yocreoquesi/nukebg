@@ -121,6 +121,44 @@ describe('HistoryManager', () => {
     });
   });
 
+  describe('setMaxEntries', () => {
+    it('trims existing entries when shrinking the cap', () => {
+      const h = new HistoryManager<number>(10);
+      for (let i = 0; i < 8; i++) h.push(i);
+      h.setMaxEntries(3);
+
+      // 8 pushed, cap shrunk to 3 → only [5, 6, 7] should remain
+      const seen: number[] = [];
+      let cur = 99;
+      while (h.canUndo()) {
+        const v = h.undo(cur)!;
+        seen.push(v);
+        cur = v;
+      }
+      expect(seen).toEqual([7, 6, 5]);
+    });
+
+    it('lets future pushes grow up to the new cap', () => {
+      const h = new HistoryManager<number>(2);
+      h.push(1);
+      h.push(2);
+      h.setMaxEntries(5);
+      h.push(3);
+      h.push(4);
+      h.push(5);
+
+      // 5 entries, cap 5 → all preserved
+      const seen: number[] = [];
+      let cur = 99;
+      while (h.canUndo()) {
+        const v = h.undo(cur)!;
+        seen.push(v);
+        cur = v;
+      }
+      expect(seen).toEqual([5, 4, 3, 2, 1]);
+    });
+  });
+
   describe('works with non-trivial state types', () => {
     it('handles Uint8ClampedArray snapshots without issue', () => {
       const h = new HistoryManager<Uint8ClampedArray>();
