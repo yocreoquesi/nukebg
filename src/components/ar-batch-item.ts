@@ -1,6 +1,6 @@
 import { t } from '../i18n';
 import type { BatchItemState } from '../types/batch';
-import { on } from '../lib/event-bus';
+import { emit, on } from '../lib/event-bus';
 
 /**
  * A single slot in the batch grid. Renders a thumbnail plus a state badge
@@ -26,12 +26,11 @@ export class ArBatchItem extends HTMLElement {
       // Pending slots are non-interactive. Processing IS clickable so the
       // user can open the live progress console for the current item.
       if (this.itemState === 'pending') return;
-      this.dispatchEvent(
-        new CustomEvent('batch:item-click', {
-          bubbles: true,
-          composed: true,
-          detail: { id: this.itemId, state: this.itemState },
-        }),
+      emit(
+        this,
+        'batch:item-click',
+        { id: this.itemId, state: this.itemState },
+        { bubbles: true, composed: true },
       );
     });
     this.shadowRoot!.addEventListener('keydown', (e) => {
@@ -39,12 +38,11 @@ export class ArBatchItem extends HTMLElement {
       if (ke.key !== 'Enter' && ke.key !== ' ') return;
       if (this.itemState === 'pending') return;
       ke.preventDefault();
-      this.dispatchEvent(
-        new CustomEvent('batch:item-click', {
-          bubbles: true,
-          composed: true,
-          detail: { id: this.itemId, state: this.itemState },
-        }),
+      emit(
+        this,
+        'batch:item-click',
+        { id: this.itemId, state: this.itemState },
+        { bubbles: true, composed: true },
       );
     });
     this.abortController = new AbortController();

@@ -7,7 +7,7 @@
 import { t } from '../i18n';
 import { BrushStroke, type BrushShape, type BrushTool } from '../lib/brush-stroke';
 import { HistoryManager } from '../lib/history-manager';
-import { on } from '../lib/event-bus';
+import { emit, on } from '../lib/event-bus';
 
 /** Generate a CSS cursor data URL that matches the brush shape, size and tool */
 function makeBrushCursor(
@@ -892,12 +892,7 @@ export class ArEditor extends HTMLElement {
     this.shadowRoot!.querySelector('#cancel-btn')!.addEventListener(
       'click',
       () => {
-        this.dispatchEvent(
-          new CustomEvent('ar:editor-cancel', {
-            bubbles: true,
-            composed: true,
-          }),
-        );
+        emit(this, 'ar:editor-cancel', undefined, { bubbles: true, composed: true });
       },
       { signal },
     );
@@ -906,12 +901,11 @@ export class ArEditor extends HTMLElement {
     this.shadowRoot!.querySelector('#done-btn')!.addEventListener(
       'click',
       () => {
-        this.dispatchEvent(
-          new CustomEvent('ar:editor-done', {
-            bubbles: true,
-            composed: true,
-            detail: { imageData: this.getResultImageData() },
-          }),
+        emit(
+          this,
+          'ar:editor-done',
+          { imageData: this.getResultImageData() },
+          { bubbles: true, composed: true },
         );
       },
       { signal },

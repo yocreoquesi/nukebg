@@ -1,6 +1,6 @@
 import type { PipelineStage, StageStatus } from '../types/pipeline';
 import { t } from '../i18n';
-import { on } from '../lib/event-bus';
+import { emit, on } from '../lib/event-bus';
 
 interface StageInfo {
   stage: PipelineStage;
@@ -51,13 +51,9 @@ export class ArProgress extends HTMLElement {
       if (!target) return;
       const stage = target.getAttribute('data-stage') ?? '';
       if (target.classList.contains('stage-action-retry')) {
-        this.dispatchEvent(
-          new CustomEvent('ar:stage-retry', { bubbles: true, composed: true, detail: { stage } }),
-        );
+        emit(this, 'ar:stage-retry', { stage }, { bubbles: true, composed: true });
       } else if (target.classList.contains('stage-action-report')) {
-        this.dispatchEvent(
-          new CustomEvent('ar:stage-report', { bubbles: true, composed: true, detail: { stage } }),
-        );
+        emit(this, 'ar:stage-report', { stage }, { bubbles: true, composed: true });
       } else if (target.classList.contains('stage-action-reload')) {
         location.reload();
       }

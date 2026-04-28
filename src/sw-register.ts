@@ -1,3 +1,5 @@
+import { emit } from './lib/event-bus';
+
 /** Deferred install prompt captured from beforeinstallprompt */
 let deferredPrompt: BeforeInstallPromptEvent | null = null;
 
@@ -33,14 +35,14 @@ if ('serviceWorker' in navigator) {
 
           newWorker.addEventListener('statechange', () => {
             if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-              document.dispatchEvent(new CustomEvent('nukebg:sw-update-available'));
+              emit(document, 'nukebg:sw-update-available', undefined);
             }
           });
         };
 
         // Check if there's already a waiting worker
         if (registration.waiting && navigator.serviceWorker.controller) {
-          document.dispatchEvent(new CustomEvent('nukebg:sw-update-available'));
+          emit(document, 'nukebg:sw-update-available', undefined);
         }
 
         registration.addEventListener('updatefound', onUpdateFound);
@@ -54,6 +56,6 @@ if ('serviceWorker' in navigator) {
   window.addEventListener('beforeinstallprompt', (e) => {
     e.preventDefault();
     deferredPrompt = e as BeforeInstallPromptEvent;
-    document.dispatchEvent(new CustomEvent('nukebg:pwa-installable'));
+    emit(document, 'nukebg:pwa-installable', undefined);
   });
 }
