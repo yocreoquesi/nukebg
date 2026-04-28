@@ -316,6 +316,10 @@ function dispose(): void {
 // ────────────────────────────── Message router ─────────────────────────────
 
 self.addEventListener('message', async (e: MessageEvent<SamWorkerRequest>) => {
+  // Reject cross-origin postMessage (CodeQL js/missing-origin-check, #187).
+  // Empty-origin events are allowed: dedicated Workers receive '' in some
+  // browsers; same-origin spawning is enforced by the page's CSP.
+  if (e.origin && e.origin !== self.location.origin) return;
   const msg = e.data;
   try {
     switch (msg.type) {
