@@ -10,6 +10,77 @@ Unreleased entries accumulate on the `dev` branch. When we cut a release we copy
 
 ## [Unreleased]
 
+## [2.10.2] — 2026-04-28
+
+Patch release. Six PRs landed since v2.10.1 — typed event-bus migration,
+two pipeline correctness fixes (watermark false-positive + disconnected
+subject preservation), one sparkle halo coverage fix, and the CI flake
+fix from #160.
+
+### Fixed
+
+- **Watermark detector no longer false-positives on real photos.** The
+  legacy color-deviation \`watermarkDetect\` flagged motostest.jpeg and
+  selfie-clean-corner.png as containing Gemini sparkle when they don't.
+  Cause: it counted bright clustered pixels in the bottom-right without
+  any shape gate. Retired in favor of the existing shape-based
+  \`sparkleDetect\` (6 strict gates: 4-arm symmetry, narrow-arm
+  isolation, center peak vs outer ring, etc.) and \`watermarkDetectDalle\`
+  (multicolor bar). Together they cover both real watermark families
+  without the false-positive surface
+  ([#223](https://github.com/yocreoquesi/nukebg/pull/223)).
+- **Disconnected real subject parts no longer get dropped as orphan
+  blobs.** \`coche.jpg\` lost its right side after segmentation because
+  RMBG produced a mask split into two disconnected blobs (a sun-glare
+  chrome stripe down the middle), and the previous \`dropOrphanBlobs\`
+  kept only the single largest. Switched to a 1%-of-largest threshold:
+  tiny false-positive specks (50-px sky reflections) still die; real
+  disconnected subject parts (5K-30K px) survive
+  ([#224](https://github.com/yocreoquesi/nukebg/pull/224)).
+- **Sparkle inpaint mask covers the natural halo again.** Follow-up to
+  #223. After retiring the legacy detector its halo logic went with it,
+  leaving the shape detector's tight 1.15× radius mask. Telea then
+  inpainted too small an area; near-white halo pixels survived and RMBG
+  classified them as background — visible as transparent dots around
+  inpainted sparkles. Bumped \`MASK_RADIUS_MULTIPLIER\` 1.15 → 1.5 to
+  cover the typical halo
+  ([#225](https://github.com/yocreoquesi/nukebg/pull/225)).
+- **e2e \`coche-capture\` no longer flakes on CI cold-start.** Renamed
+  to \`z-coche-capture.spec.ts\` so Playwright's alphabetical scheduling
+  runs it last. Football (11 KB fixture) and motostest (565 KB) absorb
+  the cold-start ML warmup; coche then runs warm in well under a minute
+  ([#222](https://github.com/yocreoquesi/nukebg/pull/222), closes
+  [#160](https://github.com/yocreoquesi/nukebg/issues/160)).
+
+### Changed
+
+- **Cross-component custom events now go through a typed event-bus.**
+  New \`src/lib/event-bus.ts\` exposes a \`NukeBgEventMap\` covering all
+  15 \`ar:_\` / \`batch:_\` / \`nukebg:\*\` events plus typed \`emit()\` and
+  \`on()\` helpers. \`on()\` requires an \`AbortSignal\` so cleanup ties to
+  component lifecycle; the manual \`boundLocaleHandler\` +
+  \`removeEventListener\` pattern across 9 components is gone. Every
+  consumer-side \`(e as CustomEvent<...>).detail\` cast retired — the
+  bus types the detail by event name. Public event surface unchanged
+  at runtime ([#220](https://github.com/yocreoquesi/nukebg/pull/220),
+  [#221](https://github.com/yocreoquesi/nukebg/pull/221), closes
+  [#217](https://github.com/yocreoquesi/nukebg/issues/217) and the
+  outstanding Phase 4 of [#47](https://github.com/yocreoquesi/nukebg/issues/47)).
+
+### Notes
+
+- Test count: 928 → 937 across the cycle (event-bus tests + 2 new
+  dropOrphanBlobs regression-guards).
+- Bundle \`index.js\` raw: 460.15 → 458.99 kB (−1.16 kB; the typed bus is
+  strictly leaner than the manual pattern, the sparkle radius bump from
+  #225 nudged 0.19 kB back).
+- Known limitation tracked in
+  [#226](https://github.com/yocreoquesi/nukebg/issues/226): RMBG-1.4
+  occasionally mis-segments the lower portion of thin chrome features
+  near subject edges (motostest front brake disc). Predates this cycle
+  by ~1 month; out-of-scope for the post-process layer until a better
+  permissive model is available (semi-annual model-market scan).
+
 ## [2.10.1] — 2026-04-28
 
 Patch release. Two follow-ups to v2.10.0 — bundle drops another 5 kB
