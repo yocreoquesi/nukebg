@@ -5,22 +5,15 @@
  */
 
 import { t } from '../i18n';
-
-type BrushShape = 'circle' | 'square';
-
-interface HistoryEntry {
-  // Full RGBA snapshot. Needed because the Restore tool writes RGB (not just
-  // alpha); alpha-only snapshots cannot undo color changes. Bounded by
-  // maxHistory to keep memory predictable on large images.
-  rgba: Uint8ClampedArray;
-}
+import { BrushStroke, type BrushShape, type BrushTool } from '../lib/brush-stroke';
+import { HistoryManager } from '../lib/history-manager';
 
 /** Generate a CSS cursor data URL that matches the brush shape, size and tool */
 function makeBrushCursor(
   size: number,
   shape: BrushShape,
   zoom: number,
-  tool: 'erase' | 'restore' = 'erase',
+  tool: BrushTool = 'erase',
 ): string {
   const raw = size * zoom;
   // Defensive: Number.isFinite guards against NaN from upstream state bugs.
@@ -82,7 +75,7 @@ export class ArEditor extends HTMLElement {
   // Brush state
   private brushSize = 20;
   private brushShape: BrushShape = 'circle';
-  private tool: 'erase' | 'restore' = 'erase';
+  private tool: BrushTool = 'erase';
   private isErasing = false;
 
   // Background preview
@@ -93,12 +86,10 @@ export class ArEditor extends HTMLElement {
   private lastPinchDist = 0;
   private isTouchErasing = false;
 
-  // History
-  private undoStack: HistoryEntry[] = [];
-  private redoStack: HistoryEntry[] = [];
-  // Full-RGBA snapshots × maxHistory — budget this conservatively so large
-  // images (up to 4096² ≈ 67 MB per entry) don't blow RAM.
-  private maxHistory = 12;
+  // History — full-RGBA snapshots, FIFO cap. Restore tool writes RGB (not
+  // just alpha); alpha-only snapshots can't undo color changes. Cap = 12
+  // so large images (up to 4096² ≈ 67 MB per entry) don't blow RAM.
+  private history = new HistoryManager<Uint8ClampedArray>(12);
   private boundLocaleHandler: (() => void) | null = null;
   private abortController: AbortController | null = null;
 
@@ -997,8 +988,7 @@ export class ArEditor extends HTMLElement {
       this.height,
     );
 
-    this.undoStack = [];
-    this.redoStack = [];
+    this.history.clear();
     this.updateUndoRedoButtons();
 
     this.fitToView();
@@ -1251,30 +1241,14 @@ export class ArEditor extends HTMLElement {
    */
   private stamp(cx: number, cy: number): void {
     if (!this.imageData || !this.originalImage) return;
-    const data = this.imageData.data;
-    const src = this.originalImage.data;
-    const restore = this.tool === 'restore';
-    const r = Math.floor(this.brushSize / 2);
-    const circle = this.brushShape === 'circle';
-    const r2 = r * r;
-
-    for (let dy = -r; dy <= r; dy++) {
-      for (let dx = -r; dx <= r; dx++) {
-        const px = cx + dx;
-        const py = cy + dy;
-        if (px < 0 || px >= this.width || py < 0 || py >= this.height) continue;
-        if (circle && dx * dx + dy * dy > r2) continue;
-        const i = (py * this.width + px) * 4;
-        if (restore) {
-          data[i] = src[i];
-          data[i + 1] = src[i + 1];
-          data[i + 2] = src[i + 2];
-          data[i + 3] = src[i + 3];
-        } else {
-          data[i + 3] = 0;
-        }
-      }
-    }
+    const stroke = new BrushStroke({
+      cx,
+      cy,
+      tool: this.tool,
+      size: this.brushSize,
+      shape: this.brushShape,
+    });
+    stroke.apply(this.imageData, this.originalImage, this.width, this.height);
     this.redraw();
   }
 
@@ -1284,26 +1258,24 @@ export class ArEditor extends HTMLElement {
 
   private pushUndo(): void {
     if (!this.imageData) return;
-    this.undoStack.push({ rgba: this.snapshot() });
-    if (this.undoStack.length > this.maxHistory) this.undoStack.shift();
-    this.redoStack = [];
+    this.history.push(this.snapshot());
     this.updateUndoRedoButtons();
   }
 
   private undo(): void {
-    if (!this.undoStack.length || !this.imageData) return;
-    this.redoStack.push({ rgba: this.snapshot() });
-    const prev = this.undoStack.pop()!;
-    this.imageData.data.set(prev.rgba);
+    if (!this.imageData) return;
+    const prev = this.history.undo(this.snapshot());
+    if (!prev) return;
+    this.imageData.data.set(prev);
     this.updateUndoRedoButtons();
     this.redraw();
   }
 
   private redo(): void {
-    if (!this.redoStack.length || !this.imageData) return;
-    this.undoStack.push({ rgba: this.snapshot() });
-    const next = this.redoStack.pop()!;
-    this.imageData.data.set(next.rgba);
+    if (!this.imageData) return;
+    const next = this.history.redo(this.snapshot());
+    if (!next) return;
+    this.imageData.data.set(next);
     this.updateUndoRedoButtons();
     this.redraw();
   }
@@ -1311,8 +1283,8 @@ export class ArEditor extends HTMLElement {
   private updateUndoRedoButtons(): void {
     const undoBtn = this.shadowRoot!.querySelector('#undo-btn') as HTMLButtonElement;
     const redoBtn = this.shadowRoot!.querySelector('#redo-btn') as HTMLButtonElement;
-    if (undoBtn) undoBtn.disabled = this.undoStack.length === 0;
-    if (redoBtn) redoBtn.disabled = this.redoStack.length === 0;
+    if (undoBtn) undoBtn.disabled = !this.history.canUndo();
+    if (redoBtn) redoBtn.disabled = !this.history.canRedo();
   }
 
   /** Get the edited ImageData */
@@ -1323,8 +1295,7 @@ export class ArEditor extends HTMLElement {
   reset(): void {
     this.imageData = null;
     this.originalImage = null;
-    this.undoStack = [];
-    this.redoStack = [];
+    this.history.clear();
   }
 }
 
