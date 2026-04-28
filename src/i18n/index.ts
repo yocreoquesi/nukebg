@@ -4,6 +4,8 @@
  * emite evento custom cuando cambia el locale.
  */
 
+import { emit } from '../lib/event-bus';
+
 type Translations = Record<string, Record<string, string>>;
 
 const translations: Translations = {
@@ -1551,9 +1553,7 @@ export function setLocale(locale: string): void {
   document.documentElement.dir = getDirection(locale);
 
   // Emit event so components re-render
-  document.dispatchEvent(new CustomEvent('nukebg:locale-changed', {
-    detail: { locale },
-  }));
+  emit(document, 'nukebg:locale-changed', { locale });
 }
 
 /** Gets the active locale */

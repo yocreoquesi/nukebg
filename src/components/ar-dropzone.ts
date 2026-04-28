@@ -1,7 +1,7 @@
 import { loadImage, isSupportedFormat } from '../utils/image-io';
 import { t } from '../i18n';
 import { getBatchLimit } from '../types/batch';
-import { on } from '../lib/event-bus';
+import { emit, on } from '../lib/event-bus';
 
 export class ArDropzone extends HTMLElement {
   private fileInput!: HTMLInputElement;
@@ -447,19 +447,18 @@ export class ArDropzone extends HTMLElement {
 
     try {
       const result = await loadImage(file);
-      this.dispatchEvent(
-        new CustomEvent('ar:image-loaded', {
-          bubbles: true,
-          composed: true,
-          detail: {
-            file,
-            imageData: result.imageData,
-            originalImageData: result.originalImageData,
-            originalWidth: result.originalWidth,
-            originalHeight: result.originalHeight,
-            wasDownsampled: result.wasDownsampled,
-          },
-        }),
+      emit(
+        this,
+        'ar:image-loaded',
+        {
+          file,
+          imageData: result.imageData,
+          originalImageData: result.originalImageData,
+          originalWidth: result.originalWidth,
+          originalHeight: result.originalHeight,
+          wasDownsampled: result.wasDownsampled,
+        },
+        { bubbles: true, composed: true },
       );
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Failed to load image.';
@@ -528,13 +527,7 @@ export class ArDropzone extends HTMLElement {
       this.showError(t('batch.limitExceeded', { limit: String(limit) }));
     }
 
-    this.dispatchEvent(
-      new CustomEvent('ar:images-loaded', {
-        bubbles: true,
-        composed: true,
-        detail: { images: loaded },
-      }),
-    );
+    emit(this, 'ar:images-loaded', { images: loaded }, { bubbles: true, composed: true });
   }
 
   private showError(message?: string): void {

@@ -1,7 +1,7 @@
 import { t } from '../i18n';
 import type { BatchItem, BatchItemState } from '../types/batch';
 import { ArBatchItem } from './ar-batch-item';
-import { on } from '../lib/event-bus';
+import { emit, on } from '../lib/event-bus';
 
 /**
  * Presentational container for the batch workflow. Holds BatchItem
@@ -134,21 +134,11 @@ export class ArBatchGrid extends HTMLElement {
     `;
 
     this.shadowRoot!.querySelector('#zip-btn')!.addEventListener('click', () => {
-      this.dispatchEvent(
-        new CustomEvent('batch:download-zip', {
-          bubbles: true,
-          composed: true,
-        }),
-      );
+      emit(this, 'batch:download-zip', undefined, { bubbles: true, composed: true });
     });
 
     this.shadowRoot!.querySelector('#cancel-btn')!.addEventListener('click', () => {
-      this.dispatchEvent(
-        new CustomEvent('batch:cancel', {
-          bubbles: true,
-          composed: true,
-        }),
-      );
+      emit(this, 'batch:cancel', undefined, { bubbles: true, composed: true });
     });
   }
 

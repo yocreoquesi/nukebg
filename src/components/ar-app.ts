@@ -11,7 +11,7 @@ import type { ArEditor } from './ar-editor';
 import type { ArDropzone } from './ar-dropzone';
 import type { ArBatchGrid } from './ar-batch-grid';
 import { BatchOrchestrator, type BatchStageCallback } from '../controllers/batch-orchestrator';
-import { on } from '../lib/event-bus';
+import { emit, on } from '../lib/event-bus';
 import {
   refineEdges,
   dropOrphanBlobs,
@@ -1165,11 +1165,10 @@ export class ArApp extends HTMLElement {
     // the shadow-root level so legacy listeners (progress component,
     // tests) still work.
     const bubbleCancel = (): void => {
-      this.dispatchEvent(
-        new CustomEvent('ar:cancel-processing', { bubbles: true, composed: true }),
-      );
+      emit(this, 'ar:cancel-processing', undefined, { bubbles: true, composed: true });
     };
-    this.shadowRoot!.addEventListener(
+    on(
+      this.shadowRoot!,
       'ar:cancel-processing',
       () => {
         if (this.processingAbortController && !this.processingAbortController.signal.aborted) {
@@ -1189,11 +1188,11 @@ export class ArApp extends HTMLElement {
     // the existing retryFromError() path; report opens a pre-filled
     // GitHub issue URL with browser + session hints; reload is
     // handled by ar-progress itself (location.reload).
-    this.progress.addEventListener('ar:stage-retry', () => this.retryFromError(), { signal });
-    this.progress.addEventListener(
+    on(this.progress, 'ar:stage-retry', () => this.retryFromError(), { signal });
+    on(
+      this.progress,
       'ar:stage-report',
-      (ev) => {
-        const stage = (ev as CustomEvent<{ stage: string }>).detail.stage;
+      ({ stage }) => {
         const ua = encodeURIComponent(navigator.userAgent);
         const title = encodeURIComponent(`[stage:${stage}] pipeline error`);
         const body = encodeURIComponent(
@@ -1232,10 +1231,10 @@ export class ArApp extends HTMLElement {
     // the same AbortSignal so cleanup is automatic on disconnect.
     this.installer.attach(signal);
 
-    this.shadowRoot!.addEventListener(
+    on(
+      this.shadowRoot!,
       'ar:image-loaded',
-      async (e: Event) => {
-        const detail = (e as CustomEvent).detail;
+      async (detail) => {
         this.currentFileName = detail.file.name || 'image.png';
 
         // If currently processing, abort the in-flight pipeline and reset
@@ -1254,19 +1253,10 @@ export class ArApp extends HTMLElement {
       { signal },
     );
 
-    this.shadowRoot!.addEventListener(
+    on(
+      this.shadowRoot!,
       'ar:images-loaded',
-      async (e: Event) => {
-        const detail = (e as CustomEvent).detail as {
-          images: Array<{
-            file: File;
-            imageData: ImageData;
-            originalImageData: ImageData;
-            originalWidth: number;
-            originalHeight: number;
-            wasDownsampled: boolean;
-          }>;
-        };
+      async (detail) => {
         if (this.isProcessing) {
           this.processingAborted = true;
           this.isProcessing = false;
@@ -1277,16 +1267,17 @@ export class ArApp extends HTMLElement {
       { signal },
     );
 
-    this.shadowRoot!.addEventListener(
+    on(
+      this.shadowRoot!,
       'batch:item-click',
-      (e: Event) => {
-        const detail = (e as CustomEvent).detail as { id: string; state: string };
-        this.openBatchDetail(detail.id);
+      ({ id }) => {
+        this.openBatchDetail(id);
       },
       { signal },
     );
 
-    this.shadowRoot!.addEventListener(
+    on(
+      this.shadowRoot!,
       'batch:download-zip',
       async () => {
         await this.batch.downloadZip();
@@ -1294,7 +1285,8 @@ export class ArApp extends HTMLElement {
       { signal },
     );
 
-    this.shadowRoot!.addEventListener(
+    on(
+      this.shadowRoot!,
       'batch:cancel',
       () => {
         this.resetToIdle();
@@ -1315,7 +1307,8 @@ export class ArApp extends HTMLElement {
       discardBtn.addEventListener('click', () => this.discardBatchItem(), { signal });
     }
 
-    this.shadowRoot!.addEventListener(
+    on(
+      this.shadowRoot!,
       'ar:process-another',
       () => {
         this.resetToIdle();
@@ -1364,7 +1357,8 @@ export class ArApp extends HTMLElement {
     );
 
     // Editor cancel - discard edits, close editor
-    this.shadowRoot!.addEventListener(
+    on(
+      this.shadowRoot!,
       'ar:editor-cancel',
       () => {
         (this.shadowRoot!.querySelector('#editor-section') as HTMLElement).style.display = 'none';
@@ -1374,10 +1368,10 @@ export class ArApp extends HTMLElement {
     );
 
     // Editor done - update viewer and download with edited result
-    this.shadowRoot!.addEventListener(
+    on(
+      this.shadowRoot!,
       'ar:editor-done',
-      async (e: Event) => {
-        const rawEdited = (e as CustomEvent).detail.imageData as ImageData;
+      async ({ imageData: rawEdited }) => {
         // Refine: foreground decontamination + quintic alpha sharpening so manual
         // brush strokes inherit the same studio-quality edge as the main pipeline.
         // Topology cleanup is skipped — keepLargestComponent would discard manual
@@ -1430,7 +1424,8 @@ export class ArApp extends HTMLElement {
     );
 
     // Advanced editor — cancel
-    this.shadowRoot!.addEventListener(
+    on(
+      this.shadowRoot!,
       'ar:advanced-cancel',
       () => {
         const btn = this.shadowRoot!.querySelector('#advanced-cta') as HTMLElement | null;
@@ -1440,16 +1435,16 @@ export class ArApp extends HTMLElement {
     );
 
     // Advanced editor — done
-    this.shadowRoot!.addEventListener(
+    on(
+      this.shadowRoot!,
       'ar:advanced-done',
-      async (e: Event) => {
-        const detail = (e as CustomEvent<{ imageData: ImageData }>).detail;
+      async ({ imageData }) => {
         const btn = this.shadowRoot!.querySelector('#advanced-cta') as HTMLElement | null;
         btn?.removeAttribute('data-active');
 
         // Same reasoning as the basic editor: skip topology cleanup so the
         // user's lasso crops / restores survive the refinement pass.
-        const refined = await refineEdges(this.pipeline, detail.imageData, {
+        const refined = await refineEdges(this.pipeline, imageData, {
           skipTopologyCleanup: true,
         });
         const blob = await exportPng(refined);
@@ -1660,7 +1655,7 @@ export class ArApp extends HTMLElement {
         // Notify the post-process CTA module so it can decide whether
         // to surface a star/tip/review ask. Light DOM listener — fires
         // and forgets, no return contract.
-        document.dispatchEvent(new CustomEvent('ar:nuke-success'));
+        emit(document, 'ar:nuke-success', undefined);
       }
     }
   }

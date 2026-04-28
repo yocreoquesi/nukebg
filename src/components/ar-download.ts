@@ -1,7 +1,7 @@
 import { exportPng, exportWebp, generateOutputFilename } from '../utils/image-io';
 import { t, getLocale } from '../i18n';
 import type { ExportFormat } from '../types/image';
-import { on } from '../lib/event-bus';
+import { emit, on } from '../lib/event-bus';
 
 export class ArDownload extends HTMLElement {
   private pngBlobUrl: string | null = null;
@@ -314,7 +314,7 @@ export class ArDownload extends HTMLElement {
     `;
 
     this.shadowRoot!.querySelector('#another-btn')!.addEventListener('click', () => {
-      this.dispatchEvent(new CustomEvent('ar:process-another', { bubbles: true, composed: true }));
+      emit(this, 'ar:process-another', undefined, { bubbles: true, composed: true });
     });
 
     // Web Share API (#74) removed in #150 — the user wanted it gone
