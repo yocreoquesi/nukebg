@@ -153,7 +153,10 @@
 :root[data-theme='amber'] {
   --color-text-primary: #ff8c00;
   --color-text-secondary: #cc7000;
-  --color-text-tertiary: #995300;
+  /* Tertiary was #995300 (3.59:1 on black, fails WCAG AA). Bumped to
+     #b06400 (~4.67:1, AA pass) while keeping it dimmer than secondary
+     to preserve the primary > secondary > tertiary luminance ramp. */
+  --color-text-tertiary: #b06400;
   --color-accent-rgb: 255, 140, 0;
   --color-accent-primary: #ff8c00;
   --color-accent-hover: #ffaa33;
