@@ -230,7 +230,6 @@ const translations: Translations = {
     'reactor.tipCta': 'Tip the reactor →',
     'reactor.methodology': 'How is this calculated?',
     'reactor.methodologyBody': 'Hours estimated from git commit count weighted by typical time-per-commit per category, with adjustments for research, debugging, and discarded explorations not visible in the commit log. Estimate accuracy: ±15h. Fair-rate set deliberately below mid-market freelance rate in Spain (€22-25/h for mid devs) to avoid inflation.',
-    'reactor.removalNotice': 'If you appear on this page and want to be removed, email yocreoquesi at gmail dot com — done within 7 days, no questions.',
     'reactor.noSupportersYet': 'No supporters yet — code shipping is currently funded by the maintainer pocket. Tip below to extend the runway.',
     'reactor.anonymousLine': '+ {count} anonymous supporters ({total} combined)',
 
@@ -494,7 +493,6 @@ const translations: Translations = {
     'reactor.tipCta': 'Alimentar el reactor →',
     'reactor.methodology': '¿Cómo se calcula?',
     'reactor.methodologyBody': 'Horas estimadas desde el commit count de git ponderado por tiempo típico por commit por categoría, con ajustes por investigación, debugging y exploraciones descartadas no visibles en los commits. Precisión estimada: ±15h. La tarifa se fija deliberadamente por debajo del rate mid-market freelance en España (€22-25/h para devs mid) para evitar inflación.',
-    'reactor.removalNotice': 'Si apareces en esta página y quieres que te quitemos, manda un correo a yocreoquesi arroba gmail punto com — resuelto en 7 días, sin preguntas.',
     'reactor.noSupportersYet': 'Sin supporters todavía — el shipeo de código está financiado actualmente por el bolsillo del maintainer. Alimenta abajo para extender el runway.',
     'reactor.anonymousLine': '+ {count} supporters anónimos ({total} combinados)',
 
@@ -758,7 +756,6 @@ const translations: Translations = {
     'reactor.tipCta': 'Alimenter le réacteur →',
     'reactor.methodology': 'Comment c\'est calculé ?',
     'reactor.methodologyBody': 'Heures estimées depuis le commit count git pondéré par temps typique par commit par catégorie, avec ajustements pour la recherche, le debugging et les explorations abandonnées non visibles dans les commits. Précision : ±15h. Tarif fixé délibérément en dessous du mid-market freelance en Espagne (€22-25/h pour devs mid) pour éviter l\'inflation.',
-    'reactor.removalNotice': 'Si tu apparais sur cette page et veux être retiré, envoie un email à yocreoquesi arobase gmail point com — fait sous 7 jours, sans questions.',
     'reactor.noSupportersYet': 'Pas encore de supporters — le shipping de code est actuellement financé par les fonds personnels du maintainer. Alimente en dessous pour étendre le runway.',
     'reactor.anonymousLine': '+ {count} supporters anonymes ({total} cumulé)',
 
@@ -1022,7 +1019,6 @@ const translations: Translations = {
     'reactor.tipCta': 'Reaktor speisen →',
     'reactor.methodology': 'Wie wird das berechnet?',
     'reactor.methodologyBody': 'Stunden geschätzt aus Git-Commit-Anzahl, gewichtet nach typischer Zeit-pro-Commit pro Kategorie, mit Anpassungen für Forschung, Debugging und verworfene Explorationen, die nicht in Commits sichtbar sind. Genauigkeit: ±15h. Stundensatz bewusst unter dem Mid-Market-Freelance-Satz in Spanien (€22-25/h für Mid-Devs) gesetzt, um Inflation zu vermeiden.',
-    'reactor.removalNotice': 'Wenn Sie auf dieser Seite erscheinen und entfernt werden möchten, mailen Sie an yocreoquesi at gmail dot com — innerhalb 7 Tagen erledigt, keine Fragen.',
     'reactor.noSupportersYet': 'Noch keine Supporter — Code-Shipping wird aktuell aus eigener Tasche des Maintainers finanziert. Speisen Sie unten, um das Runway zu verlängern.',
     'reactor.anonymousLine': '+ {count} anonyme Supporter ({total} kombiniert)',
 
@@ -1286,7 +1282,6 @@ const translations: Translations = {
     'reactor.tipCta': 'Alimentar o reator →',
     'reactor.methodology': 'Como é calculado?',
     'reactor.methodologyBody': 'Horas estimadas pelo commit count git ponderado por tempo típico por commit por categoria, com ajustes para pesquisa, debugging e explorações descartadas não visíveis nos commits. Precisão: ±15h. Taxa fixada deliberadamente abaixo do mid-market freelance na Espanha (€22-25/h para devs mid) para evitar inflação.',
-    'reactor.removalNotice': 'Se você aparece nesta página e quer ser removido, envie email para yocreoquesi arroba gmail ponto com — feito em 7 dias, sem perguntas.',
     'reactor.noSupportersYet': 'Sem supporters ainda — o shipping de código está financiado pelo bolso do maintainer. Alimente abaixo para estender o runway.',
     'reactor.anonymousLine': '+ {count} supporters anônimos ({total} combinado)',
 
@@ -1550,7 +1545,6 @@ const translations: Translations = {
     'reactor.tipCta': '\u8D44\u52A9\u53CD\u5E94\u5806 \u2192',
     'reactor.methodology': '\u5982\u4F55\u8BA1\u7B97?',
     'reactor.methodologyBody': '\u6839\u636E git \u63D0\u4EA4\u6570\u91CF\u6309\u7C7B\u522B\u4F30\u7B97\u5178\u578B\u6BCF\u63D0\u4EA4\u65F6\u95F4, \u5E76\u8C03\u6574\u63D0\u4EA4\u65E5\u5FD7\u4E2D\u4E0D\u53EF\u89C1\u7684\u7814\u7A76\u3001\u8C03\u8BD5\u548C\u5E9F\u5F03\u63A2\u7D22\u3002\u7CBE\u5EA6: \u00B115h\u3002\u65F6\u85AA\u6545\u610F\u4F4E\u4E8E\u897F\u73ED\u7259\u4E2D\u7AEF\u81EA\u7531\u804C\u4E1A\u5E02\u573A (\u20AC22-25/h) \u4EE5\u907F\u514D\u81A8\u80C0\u3002',
-    'reactor.removalNotice': '\u5982\u679C\u60A8\u51FA\u73B0\u5728\u6B64\u9875\u9762\u5E76\u5E0C\u671B\u88AB\u79FB\u9664, \u8BF7\u53D1\u9001\u90AE\u4EF6\u81F3 yocreoquesi at gmail dot com \u2014 7 \u5929\u5185\u5904\u7406, \u4E0D\u95EE\u95EE\u9898\u3002',
     'reactor.noSupportersYet': '\u8FD8\u6CA1\u6709\u652F\u6301\u8005 \u2014 \u4EE3\u7801\u53D1\u5E03\u76EE\u524D\u7531\u7EF4\u62A4\u8005\u81EA\u638F\u8170\u5305\u8D44\u52A9\u3002\u5728\u4E0B\u9762\u8D44\u52A9\u4EE5\u5EF6\u957F\u8FD0\u884C\u65F6\u95F4\u3002',
     'reactor.anonymousLine': '+ {count} \u4F4D\u533F\u540D\u652F\u6301\u8005 (\u5408\u8BA1 {total})',
 

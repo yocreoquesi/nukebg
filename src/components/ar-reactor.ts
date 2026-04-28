@@ -134,7 +134,6 @@ class ArReactor extends HTMLElement {
         <section class="block prose methodology" id="methodology">
           <h2 class="block-title">── ${t('reactor.methodology')} ──</h2>
           <p>${t('reactor.methodologyBody')}</p>
-          <p class="muted">${t('reactor.removalNotice')}</p>
         </section>
       </article>
     `;
