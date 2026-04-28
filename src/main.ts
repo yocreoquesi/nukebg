@@ -20,7 +20,12 @@ import './components/ar-batch-item';
 import './components/ar-batch-grid';
 import './components/ar-app';
 import './components/ar-reactor';
-import './components/ar-post-cta';
+// ar-post-cta import is commented out alongside the matching <ar-post-cta>
+// element in index.html (#181 disabled the CTA until rotation/centering
+// logic lands). With no import, Vite tree-shakes the component out of
+// the bundle entirely — saves ~220 LOC of dead code on every page load.
+// To re-enable: uncomment this line + the element in index.html.
+// import './components/ar-post-cta';
 
 // Register Service Worker
 import './sw-register';
@@ -161,7 +166,7 @@ function createShortcutOverlay(): HTMLDivElement {
 function showConsoleLogo(): void {
   const logo = `
 %c    ☢ NUKEBG ☢
-    v2.10.0 | Terminal Edition
+    v2.10.1 | Terminal Edition
 
     Your images never leave this machine.
     Don't believe us? Read the source:
