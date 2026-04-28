@@ -57,3 +57,23 @@ jobs:
         uses: github/codeql-action/analyze@v4
         with:
           category: '/language:${{ matrix.language }}'
+
+  # OSV-Scanner cross-references multiple vuln databases (OSV.dev, GHSA,
+  # PyPA, Go vuln DB, etc.) and tends to surface advisories before they
+  # reach the GHSA feed npm-audit reads. Closes #192.
+  osv-scanner:
+    name: OSV-Scanner
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run OSV-Scanner
+        uses: google/osv-scanner-action/osv-scanner-action@v2.0.2
+        with:
+          scan-args: |-
+            --recursive
+            --skip-git
+            ./
