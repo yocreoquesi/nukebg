@@ -10,6 +10,148 @@ Unreleased entries accumulate on the `dev` branch. When we cut a release we copy
 
 ## [Unreleased]
 
+## [2.10.0] — 2026-04-28
+
+Internal architecture refactor + audit cleanup. No new features; user-
+visible polish on accessibility, validation, and load size.
+
+### Fixed
+
+- **Amber theme — tertiary text on black is readable again.** Previous
+  `#995300` measured 3.59:1 contrast, failing WCAG AA (needs 4.5:1).
+  Bumped to `#b06400` (≈ 4.67:1) while staying dimmer than amber
+  secondary so the primary > secondary > tertiary luminance ramp is
+  preserved. Audit had also flagged yellow tertiary and amber secondary
+  as failing — recomputation showed they actually pass; only amber
+  tertiary needed the fix
+  ([#197](https://github.com/yocreoquesi/nukebg/pull/197),
+  [#185](https://github.com/yocreoquesi/nukebg/issues/185)).
+- **Keyboard focus is visible inside the editor again.** Three
+  `tabindex="0"` elements (basic editor canvas, advanced editor canvas,
+  before/after slider handle in the viewer) live inside shadow roots
+  and the document-level `:focus-visible` rule didn't cross the
+  boundary, so tabbing to them produced no visible ring. Each component
+  now declares its own rule using `--color-accent-primary` so the ring
+  follows the active theme
+  ([#206](https://github.com/yocreoquesi/nukebg/pull/206),
+  [#186](https://github.com/yocreoquesi/nukebg/issues/186)).
+- **WebP magic-byte sniff also validates the RIFF size field.** Polyglot
+  files with valid magic at the corners but a truncated/inflated size
+  field at bytes 4-7 used to slip through and only fail at Canvas
+  decode. Now `declaredSize + 8 === file.size` is asserted at sniff
+  time. No legitimate WebP is rejected — the existing
+  `tests/fixtures/football.webp` matches strict equality
+  ([#208](https://github.com/yocreoquesi/nukebg/pull/208),
+  [#189](https://github.com/yocreoquesi/nukebg/issues/189)).
+- **Reactor page tolerates a malformed `donors.json`.** `ar-reactor.ts`
+  used to do `(await res.json()) as DonorsFile` without checking the
+  shape; a deploy mistake would NaN through `totalDonationsEur` and
+  break the page. New `isDonorsFile()` runtime guard validates the
+  schema (version, supporters array, per-supporter fields) and falls
+  back to `EMPTY_DONORS` with a console warning on mismatch
+  ([#205](https://github.com/yocreoquesi/nukebg/pull/205),
+  [#188](https://github.com/yocreoquesi/nukebg/issues/188)).
+- **Reactor methodology section drops the pre-emptive contact line.**
+  Removed `reactor.removalNotice` ("if you appear on this page and want
+  to be removed, email …") from all 6 locales. The `/reactor` page has
+  no public supporter names today, so inviting removal requests was
+  noise; we'll add a removal channel only when somebody actually
+  appears or complains
+  ([#184](https://github.com/yocreoquesi/nukebg/pull/184)).
+- **Capability detector reports a consistent tier across devices.** The
+  previous logic mixed UA-based shortcuts with memory-signal probes,
+  producing different tiers on the same hardware between Chrome and
+  Safari. Now purely memory-driven; Safari/iOS no longer gets force-
+  downgraded to `low` based on UA strings alone
+  ([709d254](https://github.com/yocreoquesi/nukebg/commit/709d254)).
+
+### Changed
+
+- **Pruned 19 dead i18n keys across all 6 locales — bundle index.js
+  shrinks 5.48 kB raw / 1.60 kB gzip.** Keys like `download.btn`,
+  `features.aiArtifacts.*`, `progress.cancel`, `progress.bgRemoval*`
+  (legacy CV variants), `dropzone.subtitle`, `lang.label`, etc., were
+  defined for code paths that no longer exist. New triage helper at
+  `scripts/find-unused-i18n.mjs` finds candidates; `status.model.cached`
+  is intentionally kept (pinned by an invariant test in the landing
+  redesign suite as a placeholder for a future state)
+  ([#211](https://github.com/yocreoquesi/nukebg/pull/211),
+  [#193](https://github.com/yocreoquesi/nukebg/issues/193)).
+- **Pipeline pixel writes are explicitly clamped.** New
+  `src/workers/cv/clamp.ts` exports `clamp255(v)` which rounds + clamps
+  to [0, 255] and traps NaN. Applied at the alpha-blend site in
+  `inpaint-blend.ts` and the bilinear interpolation in `lama-crop.ts`.
+  `Uint8ClampedArray` already auto-clamps on assign, so this is not a
+  correctness fix today — value is making intent explicit and trapping
+  a NaN before it silently coerces to 0 if upstream math ever drifts
+  ([#209](https://github.com/yocreoquesi/nukebg/pull/209),
+  [#194](https://github.com/yocreoquesi/nukebg/issues/194)).
+- **Internal architecture: monolith components split into pure
+  modules.** `ar-app.ts` shrank from 2178 → 1969 LOC across two phases:
+  - Batch queue → `src/controllers/batch-orchestrator.ts` (talks to
+    host through a `BatchHost` interface — no direct field reaches)
+    ([#198](https://github.com/yocreoquesi/nukebg/pull/198))
+  - PWA install button + guide → `src/controllers/app-install.ts`
+    (AbortSignal-based cleanup, drops the manual `removeEventListener`
+    in `disconnectedCallback`)
+    ([#199](https://github.com/yocreoquesi/nukebg/pull/199))
+
+  `ar-editor.ts`: pulled the brush stamp + undo/redo out into pure libs:
+  - `src/lib/brush-stroke.ts` (immutable stroke record + `apply()`)
+  - `src/lib/history-manager.ts` (generic `<T>` undo/redo with FIFO cap)
+    ([#200](https://github.com/yocreoquesi/nukebg/pull/200))
+
+  `ar-editor-advanced.ts`: three sub-extractions:
+  - Lasso geometry + state → `src/lib/lasso-model.ts`
+    ([#201](https://github.com/yocreoquesi/nukebg/pull/201))
+  - Working-canvas undo/redo reuses `HistoryManager<Uint8ClampedArray>`
+    instead of carrying its own copy
+    ([#202](https://github.com/yocreoquesi/nukebg/pull/202))
+  - SAM lifecycle (load/encode/decode/dispose) → `src/controllers/sam-refiner.ts`
+    ([#203](https://github.com/yocreoquesi/nukebg/pull/203))
+
+  Tracked under [#47](https://github.com/yocreoquesi/nukebg/issues/47).
+  No public-event-surface changes — all `ar:*` and `batch:*` events
+  fire identically.
+
+### Added
+
+- **Worker `e.origin` guard at every postMessage entry.** All five
+  workers (cv, ml, lama, sam, inpaint) reject cross-origin messages.
+  Closes 5 CodeQL `js/missing-origin-check` alerts. Real attack surface
+  was already minimal (CSP enforces same-origin worker spawning); this
+  is defense-in-depth + alert-noise reduction
+  ([#204](https://github.com/yocreoquesi/nukebg/pull/204),
+  [#187](https://github.com/yocreoquesi/nukebg/issues/187)).
+- **Dependabot patch + minor PRs auto-merge once CI is green.** New
+  workflow at `.github/workflows/dependabot-automerge.yml`. Major-
+  version bumps still require manual review (`update-type` filter
+  rejects them). Uses `pull_request_target` so a malicious patch can't
+  escalate by editing the workflow file in the PR
+  ([#207](https://github.com/yocreoquesi/nukebg/pull/207),
+  [#191](https://github.com/yocreoquesi/nukebg/issues/191)).
+- **OSV-Scanner job alongside `npm audit` + CodeQL.** Cross-references
+  multiple vuln databases (OSV.dev, GHSA, PyPA, Go vuln DB, RUSTSEC)
+  and tends to surface advisories before they reach the GHSA feed
+  ([#210](https://github.com/yocreoquesi/nukebg/pull/210),
+  [#192](https://github.com/yocreoquesi/nukebg/issues/192)).
+- **80 new tests across 6 new test files**, locking the contracts of
+  the extracted modules: brush-stroke (10 cases), history-manager (13
+  with set-max-entries), lasso-model (23), sam-refiner (12), clamp
+  (5), donors-file shape (19). Vitest count: 834 → 914.
+
+### Notes
+
+- Bundle `index.js` ended this stretch at 465.18 kB raw / 125.60 kB
+  gzip — slightly **below** the v2.9.5 baseline despite the larger
+  module surface, thanks to the i18n key prune in #193. Net:
+  refactor + cleanups paid for themselves.
+- Audit corrections worth flagging: yellow tertiary contrast was fine
+  (audit had bad math), the predicted "lazy snapshot for >4k images"
+  optimization in `ar-editor.ts` never existed (audit was speculative),
+  and the CSP-hash CI gate from #190 was already implemented as a
+  vitest test (`tests/csp-hashes.test.ts`) — closed as already-fixed.
+
 ## [2.9.5] — 2026-04-27
 
 ### Changed
@@ -31,7 +173,7 @@ Unreleased entries accumulate on the `dev` branch. When we cut a release we copy
   the funding status line (the top marquee already carries the same
   message rotating), and brought back the `☕ Ko-fi` tip link in the
   position GitHub used to occupy. Final order: `NukeBG vX.Y.Z | GitHub
-  | Ko-fi | # /sys/reactor | ☢ Clear cache | # theme`.
+| Ko-fi | # /sys/reactor | ☢ Clear cache | # theme`.
 
 ## [2.9.3] — 2026-04-27
 

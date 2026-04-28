@@ -9,6 +9,10 @@ import { estimateForeground } from './cv/foreground-estimation';
 import type { CvWorkerRequest } from '../types/worker-messages';
 
 self.onmessage = (e: MessageEvent<CvWorkerRequest>) => {
+  // Reject cross-origin postMessage (CodeQL js/missing-origin-check, #187).
+  // Empty-origin events are allowed: dedicated Workers receive '' in some
+  // browsers; same-origin spawning is enforced by the page's CSP.
+  if (e.origin && e.origin !== self.location.origin) return;
   const { id, type, payload } = e.data;
 
   try {

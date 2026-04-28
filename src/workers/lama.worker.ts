@@ -234,6 +234,10 @@ async function runInpaint(
 }
 
 self.onmessage = async (e: MessageEvent<LamaWorkerRequest>) => {
+  // Reject cross-origin postMessage (CodeQL js/missing-origin-check, #187).
+  // Empty-origin events are allowed: dedicated Workers receive '' in some
+  // browsers; same-origin spawning is enforced by the page's CSP.
+  if (e.origin && e.origin !== self.location.origin) return;
   const msg = e.data;
   try {
     switch (msg.type) {

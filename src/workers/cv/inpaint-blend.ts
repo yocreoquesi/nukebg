@@ -18,6 +18,7 @@
  * Kept as a pure, standalone function so the inpaint worker stays
  * testable and the orchestrator can wire it independently.
  */
+import { clamp255 } from './clamp';
 
 export interface FeatherOptions {
   /** Pixels of soft transition from inpainted to original. */
@@ -143,9 +144,13 @@ export function compositeWithFeather(
     }
 
     const inv = 255 - a;
-    out[p] = (ir * a + original[p] * inv) / 255;
-    out[p + 1] = (ig * a + original[p + 1] * inv) / 255;
-    out[p + 2] = (ib * a + original[p + 2] * inv) / 255;
+    // Explicit clamp + round (#194). Uint8ClampedArray would clamp anyway,
+    // but writing it out documents intent and traps a NaN before it
+    // becomes a silent 0 (would happen only if upstream math drifts —
+    // gauss() is currently NaN-safe via Math.max(u1, 1e-12)).
+    out[p] = clamp255((ir * a + original[p] * inv) / 255);
+    out[p + 1] = clamp255((ig * a + original[p + 1] * inv) / 255);
+    out[p + 2] = clamp255((ib * a + original[p + 2] * inv) / 255);
     // Alpha channel: always 255 (opaque). Inpaint output may have garbage
     // here; the original is guaranteed opaque for loaded images.
     out[p + 3] = 255;

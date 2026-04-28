@@ -2,15 +2,15 @@ import { PipelineOrchestrator, PipelineAbortError } from '../pipeline/orchestrat
 import type { PipelineStage, StageStatus } from '../types/pipeline';
 import type { ModelId } from '../types/worker-messages';
 import { t } from '../i18n';
-import { installApp, isAppInstalled } from '../sw-register';
+import { isAppInstalled } from '../sw-register';
+import { AppInstaller } from '../controllers/app-install';
 import type { ArViewer } from './ar-viewer';
 import type { ArProgress } from './ar-progress';
 import type { ArDownload } from './ar-download';
 import type { ArEditor } from './ar-editor';
 import type { ArDropzone } from './ar-dropzone';
 import type { ArBatchGrid } from './ar-batch-grid';
-import type { BatchItem, StageSnapshot } from '../types/batch';
-import { createZip, safeZipEntryName, downloadBlob } from '../utils/zip';
+import { BatchOrchestrator, type BatchStageCallback } from '../controllers/batch-orchestrator';
 import {
   refineEdges,
   dropOrphanBlobs,
@@ -43,16 +43,15 @@ export class ArApp extends HTMLElement {
   private preEditResult: ImageData | null = null;
   private cachedEditResult: ImageData | null = null;
   private boundLocaleHandler: (() => void) | null = null;
-  private boundPwaInstallableHandler: (() => void) | null = null;
   private abortController: AbortController | null = null;
+  /** Owns PWA install button + guide wiring. Initialized in
+   *  setupComponents() once the install-btn / install-guide nodes
+   *  exist. See #47/Phase-1b. */
+  private installer!: AppInstaller;
   private batchGrid: ArBatchGrid | null = null;
-  private batchItems: BatchItem[] = [];
-  private batchMode: 'off' | 'grid' | 'detail' = 'off';
-  private batchDetailId: string | null = null;
-  private batchAborted = false;
-  /** Item currently being processed by the batch queue. The pipeline stage
-   * callback reads this to append snapshots to the right item's history. */
-  private batchCurrentProcessingItem: BatchItem | null = null;
+  /** Owns batch queue state + per-item processing loop. Wired up in
+   *  setupComponents() once UI refs are resolved. See #47/Phase-1. */
+  private batch!: BatchOrchestrator;
 
   constructor() {
     super();
@@ -142,8 +141,6 @@ export class ArApp extends HTMLElement {
   disconnectedCallback(): void {
     if (this.boundLocaleHandler)
       document.removeEventListener('nukebg:locale-changed', this.boundLocaleHandler);
-    if (this.boundPwaInstallableHandler)
-      document.removeEventListener('nukebg:pwa-installable', this.boundPwaInstallableHandler);
     this.abortController?.abort();
     this.abortController = null;
   }
@@ -1049,6 +1046,43 @@ export class ArApp extends HTMLElement {
     this.editor = this.shadowRoot!.querySelector('ar-editor')!;
     this.dropzone = this.shadowRoot!.querySelector('ar-dropzone')! as ArDropzone;
     this.batchGrid = this.shadowRoot!.querySelector('#batch-grid') as ArBatchGrid;
+
+    // PWA install button + guide controller. Lifetime tied to ar-app
+    // via the AbortSignal handed to attach() in setupEvents().
+    const installBtn = this.shadowRoot!.querySelector('#install-btn') as HTMLButtonElement;
+    const installGuide = this.shadowRoot!.querySelector('#install-guide') as HTMLDivElement;
+    this.installer = new AppInstaller(installBtn, installGuide);
+
+    // Batch orchestrator owns queue state + per-item processing. Host
+    // (this component) keeps the pipeline + AbortController + thumbnail
+    // helper + UI swap, exposed through the BatchHost interface.
+    this.batch = new BatchOrchestrator(
+      {
+        viewer: this.viewer,
+        progress: this.progress,
+        download: this.download,
+        batchGrid: this.batchGrid,
+      },
+      {
+        installBatchStageCallback: (cb: BatchStageCallback) => {
+          if (!this.pipeline) {
+            this.pipeline = new PipelineOrchestrator(cb);
+          } else {
+            this.pipeline.setStageCallback(cb);
+          }
+          return this.pipeline;
+        },
+        setProcessingAbortController: (c) => {
+          this.processingAbortController = c;
+        },
+        makeThumbnail: (img, maxSide) => this.makeThumbnail(img, maxSide),
+        enterGridMode: () => this.setBatchUiMode('grid'),
+      },
+    );
+    // When an item finishes mid-processing AND the user is watching its
+    // detail view, re-render so they see the result/error without going
+    // back to the grid.
+    this.batch.setOnItemRefreshed((id) => this.openBatchDetail(id));
   }
 
   /** Actualiza textos sin re-renderizar todo el componente */
@@ -1092,11 +1126,7 @@ export class ArApp extends HTMLElement {
     if (statusLimBody) statusLimBody.innerHTML = t('features.limitations');
     const editBtn = root.querySelector('#edit-btn');
     if (editBtn) editBtn.textContent = this.preEditResult ? t('edit.discard') : t('edit.btn');
-    const installBtnEl = root.querySelector('#install-btn') as HTMLButtonElement;
-    if (installBtnEl) {
-      installBtnEl.textContent = isAppInstalled() ? t('pwa.installed') : t('pwa.install');
-      installBtnEl.setAttribute('aria-label', t('pwa.install'));
-    }
+    this.installer?.refreshText();
     const backBtnEl = root.querySelector('#back-to-grid-btn');
     if (backBtnEl) backBtnEl.textContent = t('batch.backToGrid');
     const retryBtnEl = root.querySelector('#batch-retry-btn');
@@ -1125,19 +1155,6 @@ export class ArApp extends HTMLElement {
     }
   }
 
-  private getInstallGuide(): string {
-    const ua = navigator.userAgent.toLowerCase();
-    let steps: string;
-    if (/firefox/i.test(ua)) {
-      steps = t('pwa.guideFirefox');
-    } else if (/iphone|ipad|ipod/i.test(ua)) {
-      steps = t('pwa.guideSafari');
-    } else {
-      steps = t('pwa.guideGeneric');
-    }
-    return `<div class="guide-motivation">${t('pwa.guideMotivation')}</div>${steps}<br><button class="install-guide-close">${t('pwa.guideDismiss')}</button>`;
-  }
-
   private setupEvents(): void {
     // Hoisted once so every addEventListener below can reuse it for
     // component-lifecycle cleanup via AbortSignal.
@@ -1164,8 +1181,8 @@ export class ArApp extends HTMLElement {
         if (this.processingAbortController && !this.processingAbortController.signal.aborted) {
           this.processingAbortController.abort('user cancelled');
         }
-        if (this.batchMode !== 'off') {
-          this.batchAborted = true;
+        if (this.batch.isInBatchMode()) {
+          this.batch.abort();
         }
       },
       { signal },
@@ -1217,68 +1234,9 @@ export class ArApp extends HTMLElement {
       }
     });
 
-    // PWA install button - mobile only
-    const installBtn = this.shadowRoot!.querySelector('#install-btn') as HTMLButtonElement;
-    const installGuide = this.shadowRoot!.querySelector('#install-guide') as HTMLDivElement;
-    let hasNativePrompt = false;
-
-    // If already installed, show the installed state
-    if (isAppInstalled()) {
-      installBtn.textContent = t('pwa.installed');
-      installBtn.classList.add('visible');
-      installBtn.disabled = true;
-    }
-
-    // Show install button when PWA native prompt is available (Chromium)
-    this.boundPwaInstallableHandler = () => {
-      hasNativePrompt = true;
-      if (!isAppInstalled()) {
-        installBtn.textContent = t('pwa.install');
-        installBtn.classList.add('visible');
-        installBtn.disabled = false;
-      }
-    };
-    document.addEventListener('nukebg:pwa-installable', this.boundPwaInstallableHandler);
-
-    // On mobile without native prompt, show install button after a delay
-    // (Firefox, Safari - they can install but need manual steps)
-    const isMobile = window.matchMedia('(hover: none), (pointer: coarse)').matches;
-    if (isMobile && !isAppInstalled()) {
-      setTimeout(() => {
-        if (!hasNativePrompt) {
-          installBtn.textContent = t('pwa.install');
-          installBtn.classList.add('visible');
-          installBtn.disabled = false;
-        }
-      }, 2000);
-    }
-
-    installBtn.addEventListener(
-      'click',
-      async () => {
-        // If native prompt available (Chromium), use it
-        if (hasNativePrompt) {
-          const accepted = await installApp();
-          if (accepted) {
-            installBtn.textContent = t('pwa.installed');
-            installBtn.disabled = true;
-            installGuide.classList.remove('visible');
-          }
-          return;
-        }
-        // Otherwise show browser-specific instructions
-        const guide = this.getInstallGuide();
-        installGuide.innerHTML = guide;
-        installGuide.classList.toggle('visible');
-        const closeBtn = installGuide.querySelector('.install-guide-close');
-        if (closeBtn) {
-          closeBtn.addEventListener('click', () => installGuide.classList.remove('visible'), {
-            signal,
-          });
-        }
-      },
-      { signal },
-    );
+    // PWA install button + guide — controller owns the wiring and uses
+    // the same AbortSignal so cleanup is automatic on disconnect.
+    this.installer.attach(signal);
 
     this.shadowRoot!.addEventListener(
       'ar:image-loaded',
@@ -1320,7 +1278,7 @@ export class ArApp extends HTMLElement {
           this.isProcessing = false;
           this.enableWorkspaceButtons();
         }
-        await this.startBatch(detail.images);
+        await this.batch.start(detail.images);
       },
       { signal },
     );
@@ -1337,7 +1295,7 @@ export class ArApp extends HTMLElement {
     this.shadowRoot!.addEventListener(
       'batch:download-zip',
       async () => {
-        await this.downloadBatchZip();
+        await this.batch.downloadZip();
       },
       { signal },
     );
@@ -1847,145 +1805,13 @@ export class ArApp extends HTMLElement {
       single.style.display = 'flex';
       detailBar.style.display = 'flex';
     }
-    this.batchMode = mode;
-  }
-
-  private async startBatch(
-    images: Array<{
-      file: File;
-      imageData: ImageData;
-      originalImageData: ImageData;
-      originalWidth: number;
-      originalHeight: number;
-      wasDownsampled: boolean;
-    }>,
-  ): Promise<void> {
-    this.batchAborted = false;
-    this.batchItems = images.map((img, i) => ({
-      id: `batch-${Date.now()}-${i}`,
-      originalName: img.file.name || `image-${i + 1}.png`,
-      file: img.file,
-      imageData: img.imageData,
-      originalImageData: img.originalImageData ?? img.imageData,
-      state: 'pending',
-      result: null,
-      finalImageData: null,
-      thumbnailUrl: this.makeThumbnail(img.originalImageData ?? img.imageData),
-      stageHistory: [],
-    }));
-
-    // setBatchUiMode handles hero/workspace/dropzone visibility for grid mode.
-    this.setBatchUiMode('grid');
-
-    if (this.batchGrid) {
-      this.batchGrid.setItems(this.batchItems);
-      this.batchGrid.setCurrentIndex(0);
-    }
-
-    // Stage callback: drives the live progress console AND records the
-    // event into the item being processed so we can replay the exact
-    // sequence (running → done / skipped / error) if the user reopens
-    // that item's detail later.
-    const batchStageCallback = (
-      stage: PipelineStage,
-      status: StageStatus,
-      message?: string,
-    ): void => {
-      this.progress.setStage(stage, status, message);
-      const current = this.batchCurrentProcessingItem;
-      if (current) current.stageHistory.push({ stage, status, message });
-    };
-
-    if (!this.pipeline) {
-      this.pipeline = new PipelineOrchestrator(batchStageCallback);
-    } else {
-      this.pipeline.setStageCallback(batchStageCallback);
-    }
-
-    await this.runBatchQueue();
-  }
-
-  private async runBatchQueue(): Promise<void> {
-    for (let i = 0; i < this.batchItems.length; i++) {
-      if (this.batchAborted) return;
-      const item = this.batchItems[i];
-      if (item.state === 'done' || item.state === 'discarded') continue;
-      if (this.batchGrid) this.batchGrid.setCurrentIndex(i);
-      item.state = 'processing';
-      // Fresh slate for this item: empty history, empty live console.
-      item.stageHistory = [];
-      this.progress.reset();
-      this.progress.setRunning(true);
-      this.batchCurrentProcessingItem = item;
-      if (this.batchGrid) this.batchGrid.updateItem(item.id, 'processing');
-      // One signal per batch item so cancelling the batch aborts the
-      // in-flight one promptly without waiting for the current stage.
-      this.processingAbortController = new AbortController();
-      try {
-        const result = await this.pipeline!.process(
-          item.imageData,
-          ArApp.MODEL_ID,
-          'high-power',
-          this.processingAbortController.signal,
-        );
-        if (this.batchAborted) return;
-        const composed = composeAtOriginal({
-          originalRgba: item.originalImageData.data,
-          originalWidth: item.originalImageData.width,
-          originalHeight: item.originalImageData.height,
-          workingRgba: result.workingPixels,
-          workingWidth: result.workingWidth,
-          workingHeight: result.workingHeight,
-          workingAlpha: result.workingAlpha,
-          inpaintMask: result.watermarkMask,
-        });
-        const finalImageData =
-          result.contentType === 'PHOTO' || result.contentType === 'ILLUSTRATION'
-            ? promoteSpeckleAlpha(fillSubjectHoles(dropOrphanBlobs(composed)))
-            : composed;
-        item.result = result;
-        item.finalImageData = finalImageData;
-        item.thumbnailUrl = this.makeThumbnail(finalImageData);
-        item.state = 'done';
-        if (this.batchGrid) this.batchGrid.updateItem(item.id, 'done', item.thumbnailUrl);
-        // If the user is currently watching this item's live detail view,
-        // swap it to the done view so they see the result without going back.
-        if (this.batchDetailId === item.id) {
-          await this.openBatchDetail(item.id);
-        }
-      } catch (err) {
-        // Abort during batch = user cancelled. Don't mark the item as
-        // failed; the outer batchAborted check will return on next tick.
-        if (err instanceof PipelineAbortError || this.batchAborted) {
-          this.progress.setRunning(false);
-          return;
-        }
-        item.errorMessage = err instanceof Error ? err.message : String(err);
-        item.state = 'failed';
-        if (this.batchGrid) this.batchGrid.updateItem(item.id, 'failed');
-        if (this.batchDetailId === item.id) {
-          await this.openBatchDetail(item.id);
-        }
-      }
-    }
-    this.progress.setRunning(false);
-    this.batchCurrentProcessingItem = null;
-  }
-
-  /** Replay a finished item's captured stage events into the shared
-   * progress console. Resets first so no stale state from the previous
-   * item leaks through, then reapplies each snapshot in order. */
-  private replayStageHistory(history: StageSnapshot[]): void {
-    this.progress.reset();
-    for (const snap of history) {
-      this.progress.setStage(snap.stage, snap.status, snap.message);
-    }
+    this.batch.setMode(mode);
   }
 
   private async openBatchDetail(id: string): Promise<void> {
-    const item = this.batchItems.find((i) => i.id === id);
+    const item = this.batch.findItem(id);
     if (!item) return;
-    this.batchDetailId = id;
+    this.batch.setDetailId(id);
 
     const failedBar = this.shadowRoot!.querySelector('#batch-failed-bar') as HTMLElement;
     const retryBtn = this.shadowRoot!.querySelector('#batch-retry-btn') as HTMLElement;
@@ -2031,7 +1857,7 @@ export class ArApp extends HTMLElement {
       // Fallback for edge cases where nothing was captured: synthesize a
       // single error stage so the user still sees what went wrong.
       if (item.stageHistory.length > 0) {
-        this.replayStageHistory(item.stageHistory);
+        this.batch.replayStageHistory(item.stageHistory);
       } else {
         this.progress.reset();
         this.progress.setStage(
@@ -2066,7 +1892,7 @@ export class ArApp extends HTMLElement {
       // Replay per-item stage history so each finished image shows its own
       // icons (done/skipped) and timings — previously we just reset(),
       // which left every stage 'pending' and blanked out every icon.
-      this.replayStageHistory(item.stageHistory);
+      this.batch.replayStageHistory(item.stageHistory);
       this.download.reset();
       const finalImageData = item.finalImageData ?? item.result.imageData;
       const blob = await exportPng(finalImageData);
@@ -2087,7 +1913,7 @@ export class ArApp extends HTMLElement {
   }
 
   private closeBatchDetail(): void {
-    this.batchDetailId = null;
+    this.batch.setDetailId(null);
     this.preEditResult = null;
     this.cachedEditResult = null;
     this.lastResultImageData = null;
@@ -2104,37 +1930,17 @@ export class ArApp extends HTMLElement {
   }
 
   private async retryBatchItem(): Promise<void> {
-    if (!this.batchDetailId) return;
-    const item = this.batchItems.find((i) => i.id === this.batchDetailId);
-    if (!item) return;
-    item.state = 'pending';
-    item.errorMessage = undefined;
-    item.stageHistory = [];
-    if (this.batchGrid) this.batchGrid.updateItem(item.id, 'pending');
+    const id = this.batch.getDetailId();
+    if (!id) return;
     this.closeBatchDetail();
-    await this.runBatchQueue();
+    await this.batch.retry(id);
   }
 
   private discardBatchItem(): void {
-    if (!this.batchDetailId) return;
-    const item = this.batchItems.find((i) => i.id === this.batchDetailId);
-    if (!item) return;
-    item.state = 'discarded';
-    if (this.batchGrid) this.batchGrid.updateItem(item.id, 'discarded');
+    const id = this.batch.getDetailId();
+    if (!id) return;
+    this.batch.markDiscarded(id);
     this.closeBatchDetail();
-  }
-
-  private async downloadBatchZip(): Promise<void> {
-    const done = this.batchItems.filter((i) => i.state === 'done' && i.result);
-    if (done.length === 0) return;
-    const files = await Promise.all(
-      done.map(async (item, idx) => ({
-        name: safeZipEntryName(idx + 1, done.length, item.originalName),
-        blob: await exportPng(item.finalImageData ?? item.result!.imageData),
-      })),
-    );
-    const zip = await createZip(files);
-    downloadBlob(zip, `nukebg-batch-${Date.now()}.zip`);
   }
 
   private resetToIdle(): void {
@@ -2162,14 +1968,12 @@ export class ArApp extends HTMLElement {
     this.currentImageData = null;
     this.currentOriginalImageData = null;
 
-    if (this.batchMode !== 'off') {
-      this.batchAborted = true;
+    if (this.batch.isInBatchMode()) {
+      this.batch.abort();
       // Stop the in-flight pipeline run too — otherwise workers keep
       // processing the current item until its natural stage boundary.
       this.processingAbortController?.abort('batch aborted');
-      this.batchItems = [];
-      this.batchDetailId = null;
-      this.batchMode = 'off';
+      this.batch.reset();
     }
     // Keep pipeline alive for next image (model stays loaded)
   }

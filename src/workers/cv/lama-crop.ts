@@ -1,4 +1,5 @@
 import { LAMA_PARAMS } from '../../pipeline/constants';
+import { clamp255 } from './clamp';
 
 export interface LamaCropRect {
   x: number;
@@ -174,7 +175,10 @@ export function spliceLamaOutput(
       for (let c = 0; c < 3; c++) {
         const top = lamaOutput[i00 + c] * (1 - fx) + lamaOutput[i01 + c] * fx;
         const bot = lamaOutput[i10 + c] * (1 - fx) + lamaOutput[i11 + c] * fx;
-        out[di + c] = top * (1 - fy) + bot * fy;
+        // Explicit clamp + round (#194). Uint8ClampedArray clamps and
+        // rounds on assign, but stating it makes the intent visible and
+        // traps NaN before it becomes a silent 0.
+        out[di + c] = clamp255(top * (1 - fy) + bot * fy);
       }
       // out[di + 3] left untouched — preserves the original alpha.
     }

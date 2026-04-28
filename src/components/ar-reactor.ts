@@ -17,6 +17,7 @@ import {
   computeRuntime,
   formatRuntime,
   donationToRuntimeDelta,
+  isDonorsFile,
   type DonorsFile,
 } from '../utils/reactor-economics';
 
@@ -47,7 +48,15 @@ class ArReactor extends HTMLElement {
     try {
       const res = await fetch(DONORS_URL, { cache: 'no-cache' });
       if (!res.ok) return;
-      this.donors = (await res.json()) as DonorsFile;
+      const payload: unknown = await res.json();
+      if (!isDonorsFile(payload)) {
+        // Malformed donors file — keep EMPTY_DONORS so renderSupporters()
+        // and totalDonationsEur() don't NaN out on missing fields. Logging
+        // helps the maintainer notice if a deploy ever ships a bad file.
+        console.warn('[ar-reactor] donors.json failed shape validation; using empty fallback');
+        return;
+      }
+      this.donors = payload;
     } catch {
       // Stay with EMPTY_DONORS — same shape, the page still renders
       // honestly with "0 months" + empty supporters table.
@@ -134,7 +143,6 @@ class ArReactor extends HTMLElement {
         <section class="block prose methodology" id="methodology">
           <h2 class="block-title">── ${t('reactor.methodology')} ──</h2>
           <p>${t('reactor.methodologyBody')}</p>
-          <p class="muted">${t('reactor.removalNotice')}</p>
         </section>
       </article>
     `;

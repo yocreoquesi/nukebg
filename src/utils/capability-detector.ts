@@ -1,17 +1,22 @@
 /**
  * Device capability detector for adaptive image processing.
  *
- * Combines multiple signals to decide the safe working resolution
- * for the pipeline on the current device:
- *   - navigator.deviceMemory (Chromium only, quantized to 0.25/0.5/1/2/4/8 GB)
- *   - performance.memory.jsHeapSizeLimit (Chromium only, tab-level cap)
- *   - navigator.hardwareConcurrency (all browsers, proxy for device tier)
- *   - userAgent (mobile detection)
- *   - Active probe: allocate OffscreenCanvas + ImageData at target size
+ * Policy: every device starts at the highest tier the available memory
+ * signals can justify, and the active probe downgrades when allocation
+ * fails. No User-Agent-based downgrades — mobile/desktop are NOT
+ * pre-classified — so output stays consistent across devices that share
+ * the same memory budget.
  *
- * The probe is the authoritative signal: if the browser can't allocate
- * the target buffer, we step down. Safari/Firefox have no deviceMemory
- * so the probe is their only defense.
+ * Signals consulted, in priority order:
+ *   - performance.memory.jsHeapSizeLimit (Chromium only, tab-level cap)
+ *   - navigator.deviceMemory (Chromium only, quantized to 0.25/0.5/1/2/4/8 GB)
+ *   - navigator.hardwareConcurrency (proxy for device class when memory APIs absent)
+ *   - Active probe: allocate an RGBA buffer at tier size; on failure, step down.
+ *
+ * When no memory API is exposed (notably iOS Safari and some Firefox builds)
+ * we start at `high` and let the probe decide. The probe is intentionally
+ * the only safety net for these cases — UA sniffing produced inconsistent
+ * results across devices that could otherwise handle the same workload.
  */
 
 export type CapabilityTier = 'low' | 'mid' | 'high' | 'ultra';
@@ -60,27 +65,11 @@ type PerformanceWithMemory = Performance & {
   };
 };
 
-function isMobileUA(): boolean {
-  if (typeof navigator === 'undefined') return false;
-  return /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
-}
-
 /**
- * Safari/WebKit detection. iOS devices (iPhone, iPad) always run WebKit
- * regardless of which browser label is shown. Desktop Safari on macOS
- * also routes through this path. Chromium on iOS reports as CriOS,
- * which we want to EXCLUDE — it behaves like Chromium, not Safari.
- */
-function isSafari(): boolean {
-  if (typeof navigator === 'undefined') return false;
-  const ua = navigator.userAgent;
-  if (/CriOS|FxiOS|EdgiOS/i.test(ua)) return false;
-  return /Safari/i.test(ua) && /AppleWebKit/i.test(ua) && !/Chrome|Chromium/i.test(ua);
-}
-
-/**
- * Pick an initial tier from passive signals, before any probe.
- * This is a best-guess starting point; the probe can downgrade it.
+ * Pick an initial tier from memory signals, before any probe.
+ * Memory APIs are authoritative when present; otherwise default to `high`
+ * and rely on the probe to downgrade. No UA sniffing — output consistency
+ * across devices is the explicit goal.
  */
 function guessTier(): { tier: CapabilityTier; reason: string } {
   const nav = (typeof navigator !== 'undefined' ? navigator : undefined) as
@@ -90,30 +79,13 @@ function guessTier(): { tier: CapabilityTier; reason: string } {
     | PerformanceWithMemory
     | undefined;
 
-  const mobile = isMobileUA();
-  const safari = isSafari();
   const memory = nav?.deviceMemory; // 0.25 | 0.5 | 1 | 2 | 4 | 8 | undefined
   const cores = nav?.hardwareConcurrency ?? 0;
   const heapLimit = perf?.memory?.jsHeapSizeLimit;
 
-  // iOS Safari: force low tier. iOS tabs have ~1 GB heap ceiling (lower
-  // on older devices) and Safari doesn't expose deviceMemory/heapLimit,
-  // so without this check we fall through to `mid` (16 MP, 64 MB per
-  // buffer) and hit OOM / canvas allocation failures mid-pipeline. Low
-  // (8 MP, 32 MB per buffer) is the only reliably-safe budget on iOS.
-  if (mobile && safari) {
-    return { tier: 'low', reason: 'iOS Safari (no memory API, ~1GB tab cap)' };
-  }
-
-  // Low tier: explicit low memory or clearly constrained mobile
-  if (memory !== undefined && memory <= 2) {
-    return { tier: 'low', reason: `deviceMemory=${memory}GB` };
-  }
-  if (mobile && cores > 0 && cores <= 4) {
-    return { tier: 'low', reason: `mobile, cores=${cores}` };
-  }
-
-  // Chromium-only: heap cap gives us an actual budget
+  // Chromium: heap cap is authoritative. Allocating beyond it throws
+  // synchronously and the probe cannot rescue us — start at the tier the
+  // budget actually fits.
   if (heapLimit !== undefined) {
     const heapGB = heapLimit / (1024 * 1024 * 1024);
     if (heapGB < 1) return { tier: 'low', reason: `heapLimit=${heapGB.toFixed(2)}GB` };
@@ -122,29 +94,22 @@ function guessTier(): { tier: CapabilityTier; reason: string } {
     return { tier: 'ultra', reason: `heapLimit=${heapGB.toFixed(2)}GB` };
   }
 
-  // No heap info (Safari / Firefox). Use deviceMemory + cores.
-  if (memory !== undefined && memory >= 8) {
-    return {
-      tier: cores >= 8 ? 'ultra' : 'high',
-      reason: `deviceMemory=${memory}GB, cores=${cores}`,
-    };
-  }
-  if (memory !== undefined && memory >= 4) {
+  // No heap (Safari / Firefox). Use deviceMemory if exposed; treat it as
+  // a memory budget hint, not a device-class label.
+  if (memory !== undefined) {
+    if (memory <= 2) return { tier: 'low', reason: `deviceMemory=${memory}GB` };
+    if (memory <= 4) return { tier: 'mid', reason: `deviceMemory=${memory}GB` };
+    if (memory >= 8 && cores >= 8) {
+      return { tier: 'ultra', reason: `deviceMemory=${memory}GB, cores=${cores}` };
+    }
     return { tier: 'high', reason: `deviceMemory=${memory}GB` };
   }
-  if (mobile) {
-    return { tier: 'mid', reason: `mobile (no memory API)` };
-  }
 
-  // Desktop Safari — no memory API, but typically runs on 8+ GB
-  // machines. Default to `mid` instead of the `high` a Chromium heap
-  // hint would produce. Probe may promote if the machine is capable.
-  if (safari) {
-    return { tier: 'mid', reason: 'desktop Safari (no memory API)' };
-  }
-
-  // Desktop, unknown memory. Assume mid — probe will confirm.
-  return { tier: 'mid', reason: 'desktop (no memory API)' };
+  // No memory API at all (notably iOS Safari, some Firefox builds). Start
+  // at `high` and let the probe step down if allocation fails. This is the
+  // deliberate trade for output consistency: a device that genuinely cannot
+  // hold the high-tier budget will downgrade through `mid` → `low` cleanly.
+  return { tier: 'high', reason: 'no memory API — probe-driven' };
 }
 
 /**
