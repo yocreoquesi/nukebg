@@ -1,0 +1,39 @@
+name: Dependabot auto-merge
+
+# Auto-merge Dependabot PRs that are patch + minor only and have CI green.
+# Closes #191. Major-version bumps still require manual review (the
+# `update-type` filter on the merge step rejects them).
+#
+# We use `pull_request_target` so the workflow runs with the perms of the
+# *base* branch's workflow file, not the PR's. That means a malicious
+# dependency update can't escalate by editing this workflow inside the PR
+# itself — the version of this file on `dev` is what runs.
+
+on:
+  pull_request_target:
+    types: [opened, reopened, synchronize]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  automerge:
+    name: Auto-merge patch+minor
+    runs-on: ubuntu-latest
+    if: github.actor == 'dependabot[bot]'
+    steps:
+      - name: Fetch Dependabot metadata
+        id: meta
+        uses: dependabot/fetch-metadata@v2
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Enable auto-merge for patch + minor updates
+        if: |
+          steps.meta.outputs.update-type == 'version-update:semver-patch' ||
+          steps.meta.outputs.update-type == 'version-update:semver-minor'
+        run: gh pr merge --auto --squash "$PR_URL"
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
