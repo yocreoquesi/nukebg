@@ -1,5 +1,5 @@
-// Service Worker v3 — PWA caching with stale-while-revalidate + cache-first
-const CACHE_VERSION = 'nukebg-v4';
+// Service Worker v4 — PWA caching with network-first (navigation) + cache-first (assets)
+const CACHE_VERSION = 'nukebg-v5';
 
 // URLs that must NEVER be cached (ML model + CDN assets)
 const EXCLUDED_PATTERNS = [
@@ -72,8 +72,10 @@ self.addEventListener('fetch', (event) => {
   if (request.method !== 'GET') return;
 
   if (isNavigationRequest(request)) {
-    // Stale-while-revalidate for navigation
-    event.respondWith(staleWhileRevalidate(request));
+    // Network-first for navigation so a new release shows up on the very next
+    // load instead of one navigation late. Hashed asset URLs in the fresh HTML
+    // never collide with cached ones, so cache-first below stays safe.
+    event.respondWith(networkFirst(request));
   } else if (isStaticAsset(url)) {
     // Cache-first for hashed assets, fonts, and static files
     event.respondWith(cacheFirst(request));
@@ -81,21 +83,19 @@ self.addEventListener('fetch', (event) => {
   // All other requests go to network (no caching)
 });
 
-// Strategy: stale-while-revalidate
-async function staleWhileRevalidate(request) {
+// Strategy: network-first (cache fallback for offline)
+async function networkFirst(request) {
   const cache = await caches.open(CACHE_VERSION);
-  const cachedResponse = await cache.match(request);
-
-  const networkFetch = fetch(request)
-    .then((response) => {
-      if (response.ok) {
-        cache.put(request, response.clone());
-      }
-      return response;
-    })
-    .catch(() => cachedResponse);
-
-  return cachedResponse || networkFetch;
+  try {
+    const response = await fetch(request);
+    if (response.ok) {
+      cache.put(request, response.clone());
+    }
+    return response;
+  } catch (_err) {
+    const cachedResponse = await cache.match(request);
+    return cachedResponse || new Response('Offline', { status: 503 });
+  }
 }
 
 // Strategy: cache-first

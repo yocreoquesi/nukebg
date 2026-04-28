@@ -111,9 +111,14 @@ export class ArEditorAdvanced extends HTMLElement {
   private lastPanClientX = 0;
   private lastPanClientY = 0;
 
-  // Touch pinch tracking. We avoid setPointerCapture during pinch so both
-  // fingers keep generating events.
+  // Two-finger gesture tracking. We avoid setPointerCapture during pinch so
+  // both fingers keep generating events. Tracking the midpoint alongside the
+  // distance lets us detect both pinch-zoom (Δdistance) and pan (Δmidpoint)
+  // in the same handler — they compose so users can drag-to-pan and
+  // pinch-to-zoom simultaneously.
   private lastPinchDist = 0;
+  private lastPinchMidX = 0;
+  private lastPinchMidY = 0;
   private pinching = false;
 
   // Lasso state (all coordinates in image-space — may be outside [0..w/h]
@@ -726,6 +731,12 @@ export class ArEditorAdvanced extends HTMLElement {
         }
 
         @media (pointer: coarse) {
+          /* Reserve space for the fixed bottom toolbar so .controls
+             (Apply / Cancel / Undo / Redo) can scroll into view above
+             it instead of being eaten by the fixed bar. */
+          :host {
+            padding-bottom: calc(160px + env(safe-area-inset-bottom, 0px));
+          }
           .toolbar {
             position: fixed;
             bottom: 0;
@@ -1378,12 +1389,23 @@ export class ArEditorAdvanced extends HTMLElement {
     return Math.sqrt(dx * dx + dy * dy);
   }
 
+  private getPinchMid(touches: TouchList): { x: number; y: number } {
+    return {
+      x: (touches[0].clientX + touches[1].clientX) / 2,
+      y: (touches[0].clientY + touches[1].clientY) / 2,
+    };
+  }
+
   private onTouchStart(e: TouchEvent): void {
     if (e.touches.length !== 2) return;
-    // Two fingers down: start pinch-to-zoom, suppress pointer draw path.
+    // Two fingers down: start pinch-zoom + two-finger pan, suppress
+    // the pointer draw path.
     e.preventDefault();
     this.pinching = true;
     this.lastPinchDist = this.getPinchDist(e.touches);
+    const mid = this.getPinchMid(e.touches);
+    this.lastPinchMidX = mid.x;
+    this.lastPinchMidY = mid.y;
     // Cancel any brush stroke that might have started on the first touch.
     this.drawing = false;
     this.lasso.endDragAnchor();
@@ -1393,11 +1415,22 @@ export class ArEditorAdvanced extends HTMLElement {
     if (e.touches.length !== 2 || !this.pinching) return;
     e.preventDefault();
     const dist = this.getPinchDist(e.touches);
+    const mid = this.getPinchMid(e.touches);
+    // Pan first so it composes with the zoom that follows. Order doesn't
+    // matter mathematically (translate + scale commute when applied to a
+    // delta), but we update the panX/panY before setZoom triggers a
+    // single applyTransform.
+    this.panX += mid.x - this.lastPinchMidX;
+    this.panY += mid.y - this.lastPinchMidY;
     if (this.lastPinchDist > 0) {
       const scale = dist / this.lastPinchDist;
       this.setZoom(this.zoom * scale);
+    } else {
+      this.applyTransform();
     }
     this.lastPinchDist = dist;
+    this.lastPinchMidX = mid.x;
+    this.lastPinchMidY = mid.y;
   }
 
   private onTouchEnd(): void {

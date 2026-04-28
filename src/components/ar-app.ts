@@ -1418,7 +1418,7 @@ export class ArApp extends HTMLElement {
         adv.setImage(current, original);
         adv.setAttribute('active', '');
         btn.setAttribute('data-active', 'true');
-        adv.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        adv.scrollIntoView({ behavior: 'smooth', block: 'start' });
       },
       { signal },
     );
