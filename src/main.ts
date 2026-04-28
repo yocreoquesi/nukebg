@@ -161,7 +161,7 @@ function createShortcutOverlay(): HTMLDivElement {
 function showConsoleLogo(): void {
   const logo = `
 %c    ☢ NUKEBG ☢
-    v2.9.5 | Terminal Edition
+    v2.10.0 | Terminal Edition
 
     Your images never leave this machine.
     Don't believe us? Read the source:
