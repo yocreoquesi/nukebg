@@ -129,10 +129,10 @@ const translations: Translations = {
     'advanced.keyPan': 'Pan',
     'advanced.keyDeleteAnchor': 'Delete anchor',
     'advanced.gestureOneFinger': 'One-finger drag',
-    'advanced.gesturePinch': 'Two-finger pinch',
+    'advanced.gesturePinch': 'Two-finger pinch / drag',
     'advanced.gestureDoubleTap': 'Double-tap',
     'advanced.gestureDraw': 'Draw / drag',
-    'advanced.gestureZoom': 'Zoom',
+    'advanced.gestureZoom': 'Zoom & pan',
 
     // Viewer
     'viewer.original': 'Before',
@@ -373,10 +373,10 @@ const translations: Translations = {
     'advanced.keyPan': 'Desplazar',
     'advanced.keyDeleteAnchor': 'Borrar punto',
     'advanced.gestureOneFinger': 'Arrastre con un dedo',
-    'advanced.gesturePinch': 'Pellizco con dos dedos',
+    'advanced.gesturePinch': 'Dos dedos: pellizcar / arrastrar',
     'advanced.gestureDoubleTap': 'Doble toque',
     'advanced.gestureDraw': 'Dibujar / arrastrar',
-    'advanced.gestureZoom': 'Zoom',
+    'advanced.gestureZoom': 'Zoom y desplazar',
 
     // Viewer
     'viewer.original': 'Antes',
@@ -617,10 +617,10 @@ const translations: Translations = {
     'advanced.keyPan': 'D\u00E9placer',
     'advanced.keyDeleteAnchor': 'Supprimer la poign\u00E9e',
     'advanced.gestureOneFinger': 'Glisser \u00E0 un doigt',
-    'advanced.gesturePinch': 'Pincer \u00E0 deux doigts',
+    'advanced.gesturePinch': 'Deux doigts : pincer / glisser',
     'advanced.gestureDoubleTap': 'Double tap',
     'advanced.gestureDraw': 'Dessiner / glisser',
-    'advanced.gestureZoom': 'Zoom',
+    'advanced.gestureZoom': 'Zoom et déplacement',
 
     // Viewer
     'viewer.original': 'Avant',
@@ -861,10 +861,10 @@ const translations: Translations = {
     'advanced.keyPan': 'Verschieben',
     'advanced.keyDeleteAnchor': 'Griff l\u00F6schen',
     'advanced.gestureOneFinger': 'Mit einem Finger ziehen',
-    'advanced.gesturePinch': 'Mit zwei Fingern zoomen',
+    'advanced.gesturePinch': 'Zwei Finger: zoomen / ziehen',
     'advanced.gestureDoubleTap': 'Doppeltippen',
     'advanced.gestureDraw': 'Zeichnen / ziehen',
-    'advanced.gestureZoom': 'Zoom',
+    'advanced.gestureZoom': 'Zoom & Verschieben',
 
     // Viewer
     'viewer.original': 'Vorher',
@@ -1105,10 +1105,10 @@ const translations: Translations = {
     'advanced.keyPan': 'Mover',
     'advanced.keyDeleteAnchor': 'Apagar al\u00E7a',
     'advanced.gestureOneFinger': 'Arrastar com um dedo',
-    'advanced.gesturePinch': 'Pin\u00E7a com dois dedos',
+    'advanced.gesturePinch': 'Dois dedos: pin\u00E7a / arrastar',
     'advanced.gestureDoubleTap': 'Duplo toque',
     'advanced.gestureDraw': 'Desenhar / arrastar',
-    'advanced.gestureZoom': 'Zoom',
+    'advanced.gestureZoom': 'Zoom e deslocar',
 
     // Viewer
     'viewer.original': 'Antes',
@@ -1349,10 +1349,10 @@ const translations: Translations = {
     'advanced.keyPan': '\u5E73\u79FB',
     'advanced.keyDeleteAnchor': '\u5220\u9664\u624B\u67C4',
     'advanced.gestureOneFinger': '\u5355\u6307\u62D6\u52A8',
-    'advanced.gesturePinch': '\u53CC\u6307\u6346\u6346',
+    'advanced.gesturePinch': '\u53CC\u6307\u6346\u5408 / \u62D6\u52A8',
     'advanced.gestureDoubleTap': '\u53CC\u51FB',
     'advanced.gestureDraw': '\u7ED8\u5236 / \u62D6\u52A8',
-    'advanced.gestureZoom': '\u7F29\u653E',
+    'advanced.gestureZoom': '\u7F29\u653E\u4E0E\u5E73\u79FB',
 
     // Viewer
     'viewer.original': '\u539F\u56FE',
