@@ -31,7 +31,7 @@ Unreleased entries accumulate on the `dev` branch. When we cut a release we copy
   the funding status line (the top marquee already carries the same
   message rotating), and brought back the `☕ Ko-fi` tip link in the
   position GitHub used to occupy. Final order: `NukeBG vX.Y.Z | GitHub
-  | Ko-fi | # /sys/reactor | ☢ Clear cache | # theme`.
+| Ko-fi | # /sys/reactor | ☢ Clear cache | # theme`.
 
 ## [2.9.3] — 2026-04-27
 
