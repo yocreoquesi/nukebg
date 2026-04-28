@@ -9,8 +9,10 @@ const PNG_MAGIC = new Uint8Array([
 const JPEG_MAGIC = new Uint8Array([
   0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46, 0x49, 0x46, 0x00, 0x01,
 ]);
+// Size field (bytes 4-7, LE uint32) must equal file.size - 8 — for the
+// 12-byte stub below that's 4 (#189).
 const WEBP_MAGIC = new Uint8Array([
-  0x52, 0x49, 0x46, 0x46, 0x00, 0x00, 0x00, 0x00, 0x57, 0x45, 0x42, 0x50,
+  0x52, 0x49, 0x46, 0x46, 0x04, 0x00, 0x00, 0x00, 0x57, 0x45, 0x42, 0x50,
 ]);
 
 function fileFrom(bytes: Uint8Array, name: string, type: string): File {
@@ -52,5 +54,36 @@ describe('loadImage magic-byte sniffing', () => {
   it('passes the magic-byte gate for a valid WebP header', async () => {
     const webpStub = fileFrom(WEBP_MAGIC, 'img.webp', 'image/webp');
     await expect(loadImage(webpStub)).rejects.not.toThrow(/does not match|not a valid/i);
+  });
+
+  describe('WebP RIFF size validation (#189)', () => {
+    it('rejects a WebP whose declared RIFF size does not match file length', async () => {
+      // Magic bytes valid, but declaredSize=999 + 8 ≠ 12. Sniff should fail.
+      const bogus = new Uint8Array([
+        0x52,
+        0x49,
+        0x46,
+        0x46,
+        0xe7,
+        0x03,
+        0x00,
+        0x00, // 999 little-endian
+        0x57,
+        0x45,
+        0x42,
+        0x50,
+      ]);
+      const file = fileFrom(bogus, 'polyglot.webp', 'image/webp');
+      await expect(loadImage(file)).rejects.toThrow(/not a valid PNG, JPG, or WebP/i);
+    });
+
+    it('rejects a WebP whose declared RIFF size is zero', async () => {
+      // Common malformed pattern: encoder writes 0 instead of file.size - 8.
+      const bogus = new Uint8Array([
+        0x52, 0x49, 0x46, 0x46, 0x00, 0x00, 0x00, 0x00, 0x57, 0x45, 0x42, 0x50,
+      ]);
+      const file = fileFrom(bogus, 'zerosize.webp', 'image/webp');
+      await expect(loadImage(file)).rejects.toThrow(/not a valid PNG, JPG, or WebP/i);
+    });
   });
 });
