@@ -119,6 +119,14 @@ export class ArViewer extends HTMLElement {
           color: var(--color-bg-primary, #000);
           box-shadow: 0 0 10px rgba(var(--color-accent-rgb, 0, 255, 65), 0.4);
         }
+        /* Keyboard focus ring (#186). Slider handle is the before/after
+           split control — focusable for accessibility. Without an
+           explicit rule, shadow-DOM scope hides the document-level
+           :focus-visible style. */
+        .slider-handle:focus-visible {
+          outline: 2px solid var(--color-accent-primary, #00ff41);
+          outline-offset: 2px;
+        }
         /* Viewer chips per design #71 — solid black fill + status dot
            + accent border on the active (result) side.
            Pre-existing UX had rgba(0,0,0,0.85) which washed out over the
