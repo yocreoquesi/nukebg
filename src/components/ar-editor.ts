@@ -488,6 +488,13 @@ export class ArEditor extends HTMLElement {
         canvas {
           image-rendering: pixelated;
         }
+        /* Keyboard focus ring (#186). Canvas is focusable via
+           tabindex="0"; without an explicit rule, shadow-DOM scope
+           hides the document-level :focus-visible style. */
+        canvas:focus-visible {
+          outline: 2px solid var(--color-accent-primary, #00ff41);
+          outline-offset: 2px;
+        }
         .editor-footer {
           display: flex;
           justify-content: flex-end;
