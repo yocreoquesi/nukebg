@@ -2,7 +2,8 @@ import { PipelineOrchestrator, PipelineAbortError } from '../pipeline/orchestrat
 import type { PipelineStage, StageStatus } from '../types/pipeline';
 import type { ModelId } from '../types/worker-messages';
 import { t } from '../i18n';
-import { installApp, isAppInstalled } from '../sw-register';
+import { isAppInstalled } from '../sw-register';
+import { AppInstaller } from '../controllers/app-install';
 import type { ArViewer } from './ar-viewer';
 import type { ArProgress } from './ar-progress';
 import type { ArDownload } from './ar-download';
@@ -42,8 +43,11 @@ export class ArApp extends HTMLElement {
   private preEditResult: ImageData | null = null;
   private cachedEditResult: ImageData | null = null;
   private boundLocaleHandler: (() => void) | null = null;
-  private boundPwaInstallableHandler: (() => void) | null = null;
   private abortController: AbortController | null = null;
+  /** Owns PWA install button + guide wiring. Initialized in
+   *  setupComponents() once the install-btn / install-guide nodes
+   *  exist. See #47/Phase-1b. */
+  private installer!: AppInstaller;
   private batchGrid: ArBatchGrid | null = null;
   /** Owns batch queue state + per-item processing loop. Wired up in
    *  setupComponents() once UI refs are resolved. See #47/Phase-1. */
@@ -137,8 +141,6 @@ export class ArApp extends HTMLElement {
   disconnectedCallback(): void {
     if (this.boundLocaleHandler)
       document.removeEventListener('nukebg:locale-changed', this.boundLocaleHandler);
-    if (this.boundPwaInstallableHandler)
-      document.removeEventListener('nukebg:pwa-installable', this.boundPwaInstallableHandler);
     this.abortController?.abort();
     this.abortController = null;
   }
@@ -1045,6 +1047,12 @@ export class ArApp extends HTMLElement {
     this.dropzone = this.shadowRoot!.querySelector('ar-dropzone')! as ArDropzone;
     this.batchGrid = this.shadowRoot!.querySelector('#batch-grid') as ArBatchGrid;
 
+    // PWA install button + guide controller. Lifetime tied to ar-app
+    // via the AbortSignal handed to attach() in setupEvents().
+    const installBtn = this.shadowRoot!.querySelector('#install-btn') as HTMLButtonElement;
+    const installGuide = this.shadowRoot!.querySelector('#install-guide') as HTMLDivElement;
+    this.installer = new AppInstaller(installBtn, installGuide);
+
     // Batch orchestrator owns queue state + per-item processing. Host
     // (this component) keeps the pipeline + AbortController + thumbnail
     // helper + UI swap, exposed through the BatchHost interface.
@@ -1118,11 +1126,7 @@ export class ArApp extends HTMLElement {
     if (statusLimBody) statusLimBody.innerHTML = t('features.limitations');
     const editBtn = root.querySelector('#edit-btn');
     if (editBtn) editBtn.textContent = this.preEditResult ? t('edit.discard') : t('edit.btn');
-    const installBtnEl = root.querySelector('#install-btn') as HTMLButtonElement;
-    if (installBtnEl) {
-      installBtnEl.textContent = isAppInstalled() ? t('pwa.installed') : t('pwa.install');
-      installBtnEl.setAttribute('aria-label', t('pwa.install'));
-    }
+    this.installer?.refreshText();
     const backBtnEl = root.querySelector('#back-to-grid-btn');
     if (backBtnEl) backBtnEl.textContent = t('batch.backToGrid');
     const retryBtnEl = root.querySelector('#batch-retry-btn');
@@ -1149,19 +1153,6 @@ export class ArApp extends HTMLElement {
             : 'cmdbar.failed';
       cmdStateLabel.textContent = t(key);
     }
-  }
-
-  private getInstallGuide(): string {
-    const ua = navigator.userAgent.toLowerCase();
-    let steps: string;
-    if (/firefox/i.test(ua)) {
-      steps = t('pwa.guideFirefox');
-    } else if (/iphone|ipad|ipod/i.test(ua)) {
-      steps = t('pwa.guideSafari');
-    } else {
-      steps = t('pwa.guideGeneric');
-    }
-    return `<div class="guide-motivation">${t('pwa.guideMotivation')}</div>${steps}<br><button class="install-guide-close">${t('pwa.guideDismiss')}</button>`;
   }
 
   private setupEvents(): void {
@@ -1243,68 +1234,9 @@ export class ArApp extends HTMLElement {
       }
     });
 
-    // PWA install button - mobile only
-    const installBtn = this.shadowRoot!.querySelector('#install-btn') as HTMLButtonElement;
-    const installGuide = this.shadowRoot!.querySelector('#install-guide') as HTMLDivElement;
-    let hasNativePrompt = false;
-
-    // If already installed, show the installed state
-    if (isAppInstalled()) {
-      installBtn.textContent = t('pwa.installed');
-      installBtn.classList.add('visible');
-      installBtn.disabled = true;
-    }
-
-    // Show install button when PWA native prompt is available (Chromium)
-    this.boundPwaInstallableHandler = () => {
-      hasNativePrompt = true;
-      if (!isAppInstalled()) {
-        installBtn.textContent = t('pwa.install');
-        installBtn.classList.add('visible');
-        installBtn.disabled = false;
-      }
-    };
-    document.addEventListener('nukebg:pwa-installable', this.boundPwaInstallableHandler);
-
-    // On mobile without native prompt, show install button after a delay
-    // (Firefox, Safari - they can install but need manual steps)
-    const isMobile = window.matchMedia('(hover: none), (pointer: coarse)').matches;
-    if (isMobile && !isAppInstalled()) {
-      setTimeout(() => {
-        if (!hasNativePrompt) {
-          installBtn.textContent = t('pwa.install');
-          installBtn.classList.add('visible');
-          installBtn.disabled = false;
-        }
-      }, 2000);
-    }
-
-    installBtn.addEventListener(
-      'click',
-      async () => {
-        // If native prompt available (Chromium), use it
-        if (hasNativePrompt) {
-          const accepted = await installApp();
-          if (accepted) {
-            installBtn.textContent = t('pwa.installed');
-            installBtn.disabled = true;
-            installGuide.classList.remove('visible');
-          }
-          return;
-        }
-        // Otherwise show browser-specific instructions
-        const guide = this.getInstallGuide();
-        installGuide.innerHTML = guide;
-        installGuide.classList.toggle('visible');
-        const closeBtn = installGuide.querySelector('.install-guide-close');
-        if (closeBtn) {
-          closeBtn.addEventListener('click', () => installGuide.classList.remove('visible'), {
-            signal,
-          });
-        }
-      },
-      { signal },
-    );
+    // PWA install button + guide — controller owns the wiring and uses
+    // the same AbortSignal so cleanup is automatic on disconnect.
+    this.installer.attach(signal);
 
     this.shadowRoot!.addEventListener(
       'ar:image-loaded',
