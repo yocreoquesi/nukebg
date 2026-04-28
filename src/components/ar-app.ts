@@ -9,8 +9,10 @@ import type { ArDownload } from './ar-download';
 import type { ArEditor } from './ar-editor';
 import type { ArDropzone } from './ar-dropzone';
 import type { ArBatchGrid } from './ar-batch-grid';
-import type { BatchItem, StageSnapshot } from '../types/batch';
-import { createZip, safeZipEntryName, downloadBlob } from '../utils/zip';
+import {
+  BatchOrchestrator,
+  type BatchStageCallback,
+} from '../controllers/batch-orchestrator';
 import {
   refineEdges,
   dropOrphanBlobs,
@@ -46,13 +48,9 @@ export class ArApp extends HTMLElement {
   private boundPwaInstallableHandler: (() => void) | null = null;
   private abortController: AbortController | null = null;
   private batchGrid: ArBatchGrid | null = null;
-  private batchItems: BatchItem[] = [];
-  private batchMode: 'off' | 'grid' | 'detail' = 'off';
-  private batchDetailId: string | null = null;
-  private batchAborted = false;
-  /** Item currently being processed by the batch queue. The pipeline stage
-   * callback reads this to append snapshots to the right item's history. */
-  private batchCurrentProcessingItem: BatchItem | null = null;
+  /** Owns batch queue state + per-item processing loop. Wired up in
+   *  setupComponents() once UI refs are resolved. See #47/Phase-1. */
+  private batch!: BatchOrchestrator;
 
   constructor() {
     super();
@@ -1049,6 +1047,37 @@ export class ArApp extends HTMLElement {
     this.editor = this.shadowRoot!.querySelector('ar-editor')!;
     this.dropzone = this.shadowRoot!.querySelector('ar-dropzone')! as ArDropzone;
     this.batchGrid = this.shadowRoot!.querySelector('#batch-grid') as ArBatchGrid;
+
+    // Batch orchestrator owns queue state + per-item processing. Host
+    // (this component) keeps the pipeline + AbortController + thumbnail
+    // helper + UI swap, exposed through the BatchHost interface.
+    this.batch = new BatchOrchestrator(
+      {
+        viewer: this.viewer,
+        progress: this.progress,
+        download: this.download,
+        batchGrid: this.batchGrid,
+      },
+      {
+        installBatchStageCallback: (cb: BatchStageCallback) => {
+          if (!this.pipeline) {
+            this.pipeline = new PipelineOrchestrator(cb);
+          } else {
+            this.pipeline.setStageCallback(cb);
+          }
+          return this.pipeline;
+        },
+        setProcessingAbortController: (c) => {
+          this.processingAbortController = c;
+        },
+        makeThumbnail: (img, maxSide) => this.makeThumbnail(img, maxSide),
+        enterGridMode: () => this.setBatchUiMode('grid'),
+      },
+    );
+    // When an item finishes mid-processing AND the user is watching its
+    // detail view, re-render so they see the result/error without going
+    // back to the grid.
+    this.batch.setOnItemRefreshed((id) => this.openBatchDetail(id));
   }
 
   /** Actualiza textos sin re-renderizar todo el componente */
@@ -1164,8 +1193,8 @@ export class ArApp extends HTMLElement {
         if (this.processingAbortController && !this.processingAbortController.signal.aborted) {
           this.processingAbortController.abort('user cancelled');
         }
-        if (this.batchMode !== 'off') {
-          this.batchAborted = true;
+        if (this.batch.isInBatchMode()) {
+          this.batch.abort();
         }
       },
       { signal },
@@ -1320,7 +1349,7 @@ export class ArApp extends HTMLElement {
           this.isProcessing = false;
           this.enableWorkspaceButtons();
         }
-        await this.startBatch(detail.images);
+        await this.batch.start(detail.images);
       },
       { signal },
     );
@@ -1337,7 +1366,7 @@ export class ArApp extends HTMLElement {
     this.shadowRoot!.addEventListener(
       'batch:download-zip',
       async () => {
-        await this.downloadBatchZip();
+        await this.batch.downloadZip();
       },
       { signal },
     );
@@ -1847,145 +1876,13 @@ export class ArApp extends HTMLElement {
       single.style.display = 'flex';
       detailBar.style.display = 'flex';
     }
-    this.batchMode = mode;
-  }
-
-  private async startBatch(
-    images: Array<{
-      file: File;
-      imageData: ImageData;
-      originalImageData: ImageData;
-      originalWidth: number;
-      originalHeight: number;
-      wasDownsampled: boolean;
-    }>,
-  ): Promise<void> {
-    this.batchAborted = false;
-    this.batchItems = images.map((img, i) => ({
-      id: `batch-${Date.now()}-${i}`,
-      originalName: img.file.name || `image-${i + 1}.png`,
-      file: img.file,
-      imageData: img.imageData,
-      originalImageData: img.originalImageData ?? img.imageData,
-      state: 'pending',
-      result: null,
-      finalImageData: null,
-      thumbnailUrl: this.makeThumbnail(img.originalImageData ?? img.imageData),
-      stageHistory: [],
-    }));
-
-    // setBatchUiMode handles hero/workspace/dropzone visibility for grid mode.
-    this.setBatchUiMode('grid');
-
-    if (this.batchGrid) {
-      this.batchGrid.setItems(this.batchItems);
-      this.batchGrid.setCurrentIndex(0);
-    }
-
-    // Stage callback: drives the live progress console AND records the
-    // event into the item being processed so we can replay the exact
-    // sequence (running → done / skipped / error) if the user reopens
-    // that item's detail later.
-    const batchStageCallback = (
-      stage: PipelineStage,
-      status: StageStatus,
-      message?: string,
-    ): void => {
-      this.progress.setStage(stage, status, message);
-      const current = this.batchCurrentProcessingItem;
-      if (current) current.stageHistory.push({ stage, status, message });
-    };
-
-    if (!this.pipeline) {
-      this.pipeline = new PipelineOrchestrator(batchStageCallback);
-    } else {
-      this.pipeline.setStageCallback(batchStageCallback);
-    }
-
-    await this.runBatchQueue();
-  }
-
-  private async runBatchQueue(): Promise<void> {
-    for (let i = 0; i < this.batchItems.length; i++) {
-      if (this.batchAborted) return;
-      const item = this.batchItems[i];
-      if (item.state === 'done' || item.state === 'discarded') continue;
-      if (this.batchGrid) this.batchGrid.setCurrentIndex(i);
-      item.state = 'processing';
-      // Fresh slate for this item: empty history, empty live console.
-      item.stageHistory = [];
-      this.progress.reset();
-      this.progress.setRunning(true);
-      this.batchCurrentProcessingItem = item;
-      if (this.batchGrid) this.batchGrid.updateItem(item.id, 'processing');
-      // One signal per batch item so cancelling the batch aborts the
-      // in-flight one promptly without waiting for the current stage.
-      this.processingAbortController = new AbortController();
-      try {
-        const result = await this.pipeline!.process(
-          item.imageData,
-          ArApp.MODEL_ID,
-          'high-power',
-          this.processingAbortController.signal,
-        );
-        if (this.batchAborted) return;
-        const composed = composeAtOriginal({
-          originalRgba: item.originalImageData.data,
-          originalWidth: item.originalImageData.width,
-          originalHeight: item.originalImageData.height,
-          workingRgba: result.workingPixels,
-          workingWidth: result.workingWidth,
-          workingHeight: result.workingHeight,
-          workingAlpha: result.workingAlpha,
-          inpaintMask: result.watermarkMask,
-        });
-        const finalImageData =
-          result.contentType === 'PHOTO' || result.contentType === 'ILLUSTRATION'
-            ? promoteSpeckleAlpha(fillSubjectHoles(dropOrphanBlobs(composed)))
-            : composed;
-        item.result = result;
-        item.finalImageData = finalImageData;
-        item.thumbnailUrl = this.makeThumbnail(finalImageData);
-        item.state = 'done';
-        if (this.batchGrid) this.batchGrid.updateItem(item.id, 'done', item.thumbnailUrl);
-        // If the user is currently watching this item's live detail view,
-        // swap it to the done view so they see the result without going back.
-        if (this.batchDetailId === item.id) {
-          await this.openBatchDetail(item.id);
-        }
-      } catch (err) {
-        // Abort during batch = user cancelled. Don't mark the item as
-        // failed; the outer batchAborted check will return on next tick.
-        if (err instanceof PipelineAbortError || this.batchAborted) {
-          this.progress.setRunning(false);
-          return;
-        }
-        item.errorMessage = err instanceof Error ? err.message : String(err);
-        item.state = 'failed';
-        if (this.batchGrid) this.batchGrid.updateItem(item.id, 'failed');
-        if (this.batchDetailId === item.id) {
-          await this.openBatchDetail(item.id);
-        }
-      }
-    }
-    this.progress.setRunning(false);
-    this.batchCurrentProcessingItem = null;
-  }
-
-  /** Replay a finished item's captured stage events into the shared
-   * progress console. Resets first so no stale state from the previous
-   * item leaks through, then reapplies each snapshot in order. */
-  private replayStageHistory(history: StageSnapshot[]): void {
-    this.progress.reset();
-    for (const snap of history) {
-      this.progress.setStage(snap.stage, snap.status, snap.message);
-    }
+    this.batch.setMode(mode);
   }
 
   private async openBatchDetail(id: string): Promise<void> {
-    const item = this.batchItems.find((i) => i.id === id);
+    const item = this.batch.findItem(id);
     if (!item) return;
-    this.batchDetailId = id;
+    this.batch.setDetailId(id);
 
     const failedBar = this.shadowRoot!.querySelector('#batch-failed-bar') as HTMLElement;
     const retryBtn = this.shadowRoot!.querySelector('#batch-retry-btn') as HTMLElement;
@@ -2031,7 +1928,7 @@ export class ArApp extends HTMLElement {
       // Fallback for edge cases where nothing was captured: synthesize a
       // single error stage so the user still sees what went wrong.
       if (item.stageHistory.length > 0) {
-        this.replayStageHistory(item.stageHistory);
+        this.batch.replayStageHistory(item.stageHistory);
       } else {
         this.progress.reset();
         this.progress.setStage(
@@ -2066,7 +1963,7 @@ export class ArApp extends HTMLElement {
       // Replay per-item stage history so each finished image shows its own
       // icons (done/skipped) and timings — previously we just reset(),
       // which left every stage 'pending' and blanked out every icon.
-      this.replayStageHistory(item.stageHistory);
+      this.batch.replayStageHistory(item.stageHistory);
       this.download.reset();
       const finalImageData = item.finalImageData ?? item.result.imageData;
       const blob = await exportPng(finalImageData);
@@ -2087,7 +1984,7 @@ export class ArApp extends HTMLElement {
   }
 
   private closeBatchDetail(): void {
-    this.batchDetailId = null;
+    this.batch.setDetailId(null);
     this.preEditResult = null;
     this.cachedEditResult = null;
     this.lastResultImageData = null;
@@ -2104,37 +2001,17 @@ export class ArApp extends HTMLElement {
   }
 
   private async retryBatchItem(): Promise<void> {
-    if (!this.batchDetailId) return;
-    const item = this.batchItems.find((i) => i.id === this.batchDetailId);
-    if (!item) return;
-    item.state = 'pending';
-    item.errorMessage = undefined;
-    item.stageHistory = [];
-    if (this.batchGrid) this.batchGrid.updateItem(item.id, 'pending');
+    const id = this.batch.getDetailId();
+    if (!id) return;
     this.closeBatchDetail();
-    await this.runBatchQueue();
+    await this.batch.retry(id);
   }
 
   private discardBatchItem(): void {
-    if (!this.batchDetailId) return;
-    const item = this.batchItems.find((i) => i.id === this.batchDetailId);
-    if (!item) return;
-    item.state = 'discarded';
-    if (this.batchGrid) this.batchGrid.updateItem(item.id, 'discarded');
+    const id = this.batch.getDetailId();
+    if (!id) return;
+    this.batch.markDiscarded(id);
     this.closeBatchDetail();
-  }
-
-  private async downloadBatchZip(): Promise<void> {
-    const done = this.batchItems.filter((i) => i.state === 'done' && i.result);
-    if (done.length === 0) return;
-    const files = await Promise.all(
-      done.map(async (item, idx) => ({
-        name: safeZipEntryName(idx + 1, done.length, item.originalName),
-        blob: await exportPng(item.finalImageData ?? item.result!.imageData),
-      })),
-    );
-    const zip = await createZip(files);
-    downloadBlob(zip, `nukebg-batch-${Date.now()}.zip`);
   }
 
   private resetToIdle(): void {
@@ -2162,14 +2039,12 @@ export class ArApp extends HTMLElement {
     this.currentImageData = null;
     this.currentOriginalImageData = null;
 
-    if (this.batchMode !== 'off') {
-      this.batchAborted = true;
+    if (this.batch.isInBatchMode()) {
+      this.batch.abort();
       // Stop the in-flight pipeline run too — otherwise workers keep
       // processing the current item until its natural stage boundary.
       this.processingAbortController?.abort('batch aborted');
-      this.batchItems = [];
-      this.batchDetailId = null;
-      this.batchMode = 'off';
+      this.batch.reset();
     }
     // Keep pipeline alive for next image (model stays loaded)
   }
