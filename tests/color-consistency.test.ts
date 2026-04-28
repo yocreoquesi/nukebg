@@ -46,6 +46,7 @@ const FORBIDDEN_HEX = [
   '#008830', // previous tertiary — keep blocked so it can't regress
   '#1a3a1a', // --color-surface-border
   '#ffd700', // old --color-accent (no longer exists)
+  '#995300', // amber tertiary previous (3.59:1 fail) — keep blocked
 ];
 
 // Allowed contexts where these hex values appear as CSS variable FALLBACKS
