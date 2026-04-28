@@ -7,6 +7,7 @@
 import { t } from '../i18n';
 import { BrushStroke, type BrushShape, type BrushTool } from '../lib/brush-stroke';
 import { HistoryManager } from '../lib/history-manager';
+import { emit, on } from '../lib/event-bus';
 
 /** Generate a CSS cursor data URL that matches the brush shape, size and tool */
 function makeBrushCursor(
@@ -90,7 +91,6 @@ export class ArEditor extends HTMLElement {
   // just alpha); alpha-only snapshots can't undo color changes. Cap = 12
   // so large images (up to 4096² ≈ 67 MB per entry) don't blow RAM.
   private history = new HistoryManager<Uint8ClampedArray>(12);
-  private boundLocaleHandler: (() => void) | null = null;
   private abortController: AbortController | null = null;
 
   constructor() {
@@ -103,15 +103,12 @@ export class ArEditor extends HTMLElement {
     this.render();
     this.setupCanvas();
     this.setupEvents();
-    this.boundLocaleHandler = () => {
-      this.updateTexts();
-    };
-    document.addEventListener('nukebg:locale-changed', this.boundLocaleHandler);
+    on(document, 'nukebg:locale-changed', () => this.updateTexts(), {
+      signal: this.abortController.signal,
+    });
   }
 
   disconnectedCallback(): void {
-    if (this.boundLocaleHandler)
-      document.removeEventListener('nukebg:locale-changed', this.boundLocaleHandler);
     this.abortController?.abort();
     this.abortController = null;
   }
@@ -895,12 +892,7 @@ export class ArEditor extends HTMLElement {
     this.shadowRoot!.querySelector('#cancel-btn')!.addEventListener(
       'click',
       () => {
-        this.dispatchEvent(
-          new CustomEvent('ar:editor-cancel', {
-            bubbles: true,
-            composed: true,
-          }),
-        );
+        emit(this, 'ar:editor-cancel', undefined, { bubbles: true, composed: true });
       },
       { signal },
     );
@@ -909,12 +901,11 @@ export class ArEditor extends HTMLElement {
     this.shadowRoot!.querySelector('#done-btn')!.addEventListener(
       'click',
       () => {
-        this.dispatchEvent(
-          new CustomEvent('ar:editor-done', {
-            bubbles: true,
-            composed: true,
-            detail: { imageData: this.getResultImageData() },
-          }),
+        emit(
+          this,
+          'ar:editor-done',
+          { imageData: this.getResultImageData() },
+          { bubbles: true, composed: true },
         );
       },
       { signal },

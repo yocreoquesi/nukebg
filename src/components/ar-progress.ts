@@ -1,5 +1,6 @@
 import type { PipelineStage, StageStatus } from '../types/pipeline';
 import { t } from '../i18n';
+import { emit, on } from '../lib/event-bus';
 
 interface StageInfo {
   stage: PipelineStage;
@@ -13,7 +14,7 @@ export class ArProgress extends HTMLElement {
   private stages: StageInfo[] = [];
   private startTimes = new Map<PipelineStage, number>();
   private detectedContentType: string | null = null;
-  private boundLocaleHandler: (() => void) | null = null;
+  private abortController: AbortController | null = null;
 
   constructor() {
     super();
@@ -22,19 +23,24 @@ export class ArProgress extends HTMLElement {
 
   connectedCallback(): void {
     this.render();
-    this.boundLocaleHandler = () => {
-      // Re-translate labels for active stages
-      this.stages.forEach((s) => {
-        if (s.stage === 'detect-background') s.label = t('progress.detectBg');
-        else if (s.stage === 'watermark-scan') s.label = t('progress.watermarkScan');
-        else if (s.stage === 'inpaint') s.label = t('progress.inpaint');
-        else if (s.stage === 'ml-segmentation') s.label = t('progress.bgRemovalML');
-      });
-      // Cancel button lives in the ar-app command bar now (#71);
-      // its locale update is handled there.
-      this.update();
-    };
-    document.addEventListener('nukebg:locale-changed', this.boundLocaleHandler);
+    this.abortController = new AbortController();
+    on(
+      document,
+      'nukebg:locale-changed',
+      () => {
+        // Re-translate labels for active stages
+        this.stages.forEach((s) => {
+          if (s.stage === 'detect-background') s.label = t('progress.detectBg');
+          else if (s.stage === 'watermark-scan') s.label = t('progress.watermarkScan');
+          else if (s.stage === 'inpaint') s.label = t('progress.inpaint');
+          else if (s.stage === 'ml-segmentation') s.label = t('progress.bgRemovalML');
+        });
+        // Cancel button lives in the ar-app command bar now (#71);
+        // its locale update is handled there.
+        this.update();
+      },
+      { signal: this.abortController.signal },
+    );
 
     // #78 — inline error action delegation. Buttons rendered per-stage
     // when status === 'error'; dispatch a composed CustomEvent so the
@@ -45,13 +51,9 @@ export class ArProgress extends HTMLElement {
       if (!target) return;
       const stage = target.getAttribute('data-stage') ?? '';
       if (target.classList.contains('stage-action-retry')) {
-        this.dispatchEvent(
-          new CustomEvent('ar:stage-retry', { bubbles: true, composed: true, detail: { stage } }),
-        );
+        emit(this, 'ar:stage-retry', { stage }, { bubbles: true, composed: true });
       } else if (target.classList.contains('stage-action-report')) {
-        this.dispatchEvent(
-          new CustomEvent('ar:stage-report', { bubbles: true, composed: true, detail: { stage } }),
-        );
+        emit(this, 'ar:stage-report', { stage }, { bubbles: true, composed: true });
       } else if (target.classList.contains('stage-action-reload')) {
         location.reload();
       }
@@ -59,8 +61,8 @@ export class ArProgress extends HTMLElement {
   }
 
   disconnectedCallback(): void {
-    if (this.boundLocaleHandler)
-      document.removeEventListener('nukebg:locale-changed', this.boundLocaleHandler);
+    this.abortController?.abort();
+    this.abortController = null;
   }
 
   reset(): void {

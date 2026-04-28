@@ -1,6 +1,7 @@
 import { exportPng, exportWebp, generateOutputFilename } from '../utils/image-io';
 import { t, getLocale } from '../i18n';
 import type { ExportFormat } from '../types/image';
+import { emit, on } from '../lib/event-bus';
 
 export class ArDownload extends HTMLElement {
   private pngBlobUrl: string | null = null;
@@ -11,7 +12,7 @@ export class ArDownload extends HTMLElement {
   private selectedFormat: ExportFormat = 'png';
   private pngFilename = 'image.png';
   private webpFilename = 'image.webp';
-  private boundLocaleHandler: (() => void) | null = null;
+  private abortController: AbortController | null = null;
 
   constructor() {
     super();
@@ -20,10 +21,10 @@ export class ArDownload extends HTMLElement {
 
   connectedCallback(): void {
     this.render();
-    this.boundLocaleHandler = () => {
-      this.updateTexts();
-    };
-    document.addEventListener('nukebg:locale-changed', this.boundLocaleHandler);
+    this.abortController = new AbortController();
+    on(document, 'nukebg:locale-changed', () => this.updateTexts(), {
+      signal: this.abortController.signal,
+    });
   }
 
   private updateTexts(): void {
@@ -47,8 +48,8 @@ export class ArDownload extends HTMLElement {
   disconnectedCallback(): void {
     if (this.pngBlobUrl) URL.revokeObjectURL(this.pngBlobUrl);
     if (this.webpBlobUrl) URL.revokeObjectURL(this.webpBlobUrl);
-    if (this.boundLocaleHandler)
-      document.removeEventListener('nukebg:locale-changed', this.boundLocaleHandler);
+    this.abortController?.abort();
+    this.abortController = null;
   }
 
   async setResult(
@@ -313,7 +314,7 @@ export class ArDownload extends HTMLElement {
     `;
 
     this.shadowRoot!.querySelector('#another-btn')!.addEventListener('click', () => {
-      this.dispatchEvent(new CustomEvent('ar:process-another', { bubbles: true, composed: true }));
+      emit(this, 'ar:process-another', undefined, { bubbles: true, composed: true });
     });
 
     // Web Share API (#74) removed in #150 — the user wanted it gone

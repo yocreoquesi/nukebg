@@ -39,6 +39,7 @@ import { t } from '../i18n';
 import { type Point } from './lasso-simplify';
 import { LassoModel } from '../lib/lasso-model';
 import { HistoryManager } from '../lib/history-manager';
+import { emit } from '../lib/event-bus';
 
 const PAD_RATIO = 0.25;
 const DEFAULT_BRUSH = 24;
@@ -2152,7 +2153,7 @@ export class ArEditorAdvanced extends HTMLElement {
 
   private cancel(): void {
     this.removeAttribute('active');
-    this.dispatchEvent(new CustomEvent('ar:advanced-cancel', { bubbles: true, composed: true }));
+    emit(this, 'ar:advanced-cancel', undefined, { bubbles: true, composed: true });
   }
 
   private commit(): void {
@@ -2161,13 +2162,7 @@ export class ArEditorAdvanced extends HTMLElement {
       .getContext('2d')!
       .getImageData(0, 0, this.current.width, this.current.height);
     this.removeAttribute('active');
-    this.dispatchEvent(
-      new CustomEvent('ar:advanced-done', {
-        detail: { imageData: out },
-        bubbles: true,
-        composed: true,
-      }),
-    );
+    emit(this, 'ar:advanced-done', { imageData: out }, { bubbles: true, composed: true });
   }
 }
 

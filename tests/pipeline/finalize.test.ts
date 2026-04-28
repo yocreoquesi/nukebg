@@ -361,6 +361,62 @@ describe('dropOrphanBlobs', () => {
     dropOrphanBlobs(new ImageData(data, w, h));
     expect(Array.from(data)).toEqual(snapshot);
   });
+
+  it('preserves a substantial second blob (regression: coche right-side cropping)', () => {
+    // Reproduces the bug pattern: a real subject split by RMBG into two
+    // disconnected blobs. The smaller half must survive when it's a real
+    // chunk of the subject (not a tiny speck). Earlier the function
+    // dropped EVERY non-largest blob — even ones that were ~30% of main.
+    //
+    // 100x100 canvas. Left half body (50x100=5000 px) + right half body
+    // (40x100=4000 px) separated by a 10-px-wide α=0 stripe. Expected:
+    // both blobs survive (4000 ≥ max(2, 5000*0.01)=50).
+    const w = 100,
+      h = 100;
+    const data = new Uint8ClampedArray(w * h * 4);
+    for (let y = 0; y < h; y++) {
+      for (let x = 0; x < w; x++) {
+        const i = (y * w + x) * 4;
+        data[i] = 200;
+        data[i + 1] = 100;
+        data[i + 2] = 50;
+        // Body covers all rows; gap from x=45..54 is α=0.
+        data[i + 3] = x >= 45 && x <= 54 ? 0 : 255;
+      }
+    }
+
+    const out = dropOrphanBlobs(new ImageData(data, w, h));
+
+    // Left blob (largest) survives
+    expect(out.data[(50 * w + 10) * 4 + 3]).toBe(255);
+    // Right blob (smaller but substantial) ALSO survives — the regression
+    expect(out.data[(50 * w + 80) * 4 + 3]).toBe(255);
+  });
+
+  it('still drops tiny orphan specks under the relative threshold', () => {
+    // 100x100 canvas. Big body 50x50 (2500 px) + a 5-pixel speck. Speck
+    // size 5 < threshold max(2, 2500*0.01)=25 → dropped.
+    const w = 100,
+      h = 100;
+    const data = new Uint8ClampedArray(w * h * 4);
+    for (let y = 10; y < 60; y++) {
+      for (let x = 10; x < 60; x++) {
+        data[(y * w + x) * 4 + 3] = 255;
+      }
+    }
+    // 5-pixel horizontal speck at bottom-right corner.
+    for (let x = 90; x < 95; x++) {
+      data[(95 * w + x) * 4 + 3] = 255;
+    }
+
+    const out = dropOrphanBlobs(new ImageData(data, w, h));
+    // Body intact
+    expect(out.data[(30 * w + 30) * 4 + 3]).toBe(255);
+    // Speck dropped
+    for (let x = 90; x < 95; x++) {
+      expect(out.data[(95 * w + x) * 4 + 3]).toBe(0);
+    }
+  });
 });
 
 describe('fillSubjectHoles', () => {

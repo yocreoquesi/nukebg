@@ -1,5 +1,6 @@
 import { t } from '../i18n';
 import type { BatchItemState } from '../types/batch';
+import { emit, on } from '../lib/event-bus';
 
 /**
  * A single slot in the batch grid. Renders a thumbnail plus a state badge
@@ -11,7 +12,7 @@ export class ArBatchItem extends HTMLElement {
   private itemState: BatchItemState = 'pending';
   private thumbnailUrl: string | null = null;
   private originalName = '';
-  private boundLocaleHandler: (() => void) | null = null;
+  private abortController: AbortController | null = null;
 
   constructor() {
     super();
@@ -25,12 +26,11 @@ export class ArBatchItem extends HTMLElement {
       // Pending slots are non-interactive. Processing IS clickable so the
       // user can open the live progress console for the current item.
       if (this.itemState === 'pending') return;
-      this.dispatchEvent(
-        new CustomEvent('batch:item-click', {
-          bubbles: true,
-          composed: true,
-          detail: { id: this.itemId, state: this.itemState },
-        }),
+      emit(
+        this,
+        'batch:item-click',
+        { id: this.itemId, state: this.itemState },
+        { bubbles: true, composed: true },
       );
     });
     this.shadowRoot!.addEventListener('keydown', (e) => {
@@ -38,23 +38,22 @@ export class ArBatchItem extends HTMLElement {
       if (ke.key !== 'Enter' && ke.key !== ' ') return;
       if (this.itemState === 'pending') return;
       ke.preventDefault();
-      this.dispatchEvent(
-        new CustomEvent('batch:item-click', {
-          bubbles: true,
-          composed: true,
-          detail: { id: this.itemId, state: this.itemState },
-        }),
+      emit(
+        this,
+        'batch:item-click',
+        { id: this.itemId, state: this.itemState },
+        { bubbles: true, composed: true },
       );
     });
-    this.boundLocaleHandler = () => this.updateView();
-    document.addEventListener('nukebg:locale-changed', this.boundLocaleHandler);
+    this.abortController = new AbortController();
+    on(document, 'nukebg:locale-changed', () => this.updateView(), {
+      signal: this.abortController.signal,
+    });
   }
 
   disconnectedCallback(): void {
-    if (this.boundLocaleHandler) {
-      document.removeEventListener('nukebg:locale-changed', this.boundLocaleHandler);
-      this.boundLocaleHandler = null;
-    }
+    this.abortController?.abort();
+    this.abortController = null;
   }
 
   setItem(
