@@ -9,13 +9,13 @@ const OUT_DIR = resolve(__dirname, '../.halo-check');
 
 test.describe.configure({ mode: 'serial' });
 
+// File renamed `z-coche-capture` so Playwright's alphabetical scheduling
+// puts it LAST in the pipeline e2e suite (#160). The smaller-fixture
+// specs (football 11 KB, motostest 565 KB) now absorb the cold-start ML
+// warmup; coche runs warm in well under a minute. 240s budget = 4x slack
+// vs typical warm runs.
 test('capture coche output + mirror console/network', async ({ page }, testInfo) => {
-  // First spec in serial mode → pays full cold-start ML warmup
-  // (model download + WASM init + first inference). On CI runners this
-  // routinely takes 4–5 minutes; the previous 200s/240s budget timed
-  // out consistently. The follow-up specs (football, motostest) reuse
-  // the warm pipeline and finish well under their own budgets.
-  test.setTimeout(360_000);
+  test.setTimeout(240_000);
   mkdirSync(OUT_DIR, { recursive: true });
 
   const logs: string[] = [];
@@ -28,7 +28,7 @@ test('capture coche output + mirror console/network', async ({ page }, testInfo)
   await fileInput.setInputFiles(FIXTURE);
 
   const downloadBtn = page.locator('ar-download').locator('#dl-png');
-  await expect(downloadBtn).toHaveAttribute('href', /^blob:/, { timeout: 300_000 });
+  await expect(downloadBtn).toHaveAttribute('href', /^blob:/, { timeout: 180_000 });
 
   const outPath = resolve(OUT_DIR, `coche.png`);
   const downloadPromise = page.waitForEvent('download');
