@@ -42,7 +42,8 @@ import { rasterizePolygon } from '../refine/roi-process';
 import { patchMatchInpaint } from '../workers/cv/patchmatch-inpaint';
 import { PATCHMATCH_PARAMS } from '../pipeline/constants';
 import { t } from '../i18n';
-import { simplifyClosed, type Point } from './lasso-simplify';
+import { type Point } from './lasso-simplify';
+import { LassoModel } from '../lib/lasso-model';
 
 const PAD_RATIO = 0.25;
 const DEFAULT_BRUSH = 24;
@@ -121,9 +122,9 @@ export class ArEditorAdvanced extends HTMLElement {
 
   // Lasso state (all coordinates in image-space — may be outside [0..w/h]
   // because the canvas is padded and loops can cross the image edge).
-  private lassoRaw: Point[] | null = null;
-  private lassoAnchors: Point[] | null = null;
-  private dragAnchorIndex: number | null = null;
+  /** Lasso state machine (raw path → simplified polygon → anchor drags).
+   *  Pure data, no DOM. See `src/lib/lasso-model.ts` (#47/Phase-3a). */
+  private lasso = new LassoModel();
 
   // Shared RMBG-1.4 loader, warmed on first refine and reused afterwards.
   private loader: ModelLoader | null = null;
@@ -1059,7 +1060,7 @@ export class ArEditorAdvanced extends HTMLElement {
             this.cancelAction();
             return;
           }
-          if (this.lassoAnchors || this.lassoRaw) {
+          if (this.lasso.getAnchors() || this.lasso.getRawPath()) {
             this.clearLasso();
             this.redrawDisplay();
           }
@@ -1120,10 +1121,10 @@ export class ArEditorAdvanced extends HTMLElement {
     if (this.tool === 'lasso') {
       if (this.pendingPreview) this.cancelPreview();
 
-      if (this.lassoAnchors) {
+      if (this.lasso.isClosed()) {
         const idx = this.hitAnchor(ix, iy);
         if (idx !== null) {
-          this.dragAnchorIndex = idx;
+          this.lasso.beginDragAnchor(idx);
           try {
             this.canvas.setPointerCapture(e.pointerId);
           } catch {
@@ -1142,7 +1143,7 @@ export class ArEditorAdvanced extends HTMLElement {
         /* noop */
       }
       this.drawing = true;
-      this.lassoRaw = [{ x: ix, y: iy }];
+      this.lasso.startAt({ x: ix, y: iy });
       this.redrawDisplay();
       return;
     }
@@ -1179,15 +1180,16 @@ export class ArEditorAdvanced extends HTMLElement {
     const [ix, iy] = this.eventToImageCoords(e);
 
     if (this.tool === 'lasso') {
-      if (this.dragAnchorIndex !== null && this.lassoAnchors) {
-        this.lassoAnchors[this.dragAnchorIndex] = { x: ix, y: iy };
+      const dragIdx = this.lasso.getDragAnchorIndex();
+      if (dragIdx !== null) {
+        this.lasso.moveAnchor(dragIdx, { x: ix, y: iy });
         this.redrawDisplay();
         return;
       }
-      if (this.drawing && this.lassoRaw) {
-        const last = this.lassoRaw[this.lassoRaw.length - 1];
-        if (Math.hypot(ix - last.x, iy - last.y) >= MIN_LASSO_POINT_DIST) {
-          this.lassoRaw.push({ x: ix, y: iy });
+      if (this.drawing && this.lasso.getRawPath()) {
+        const before = this.lasso.getRawPath()!.length;
+        this.lasso.addRawPoint({ x: ix, y: iy }, MIN_LASSO_POINT_DIST);
+        if (this.lasso.getRawPath()!.length !== before) {
           this.redrawDisplay();
           return;
         }
@@ -1222,24 +1224,21 @@ export class ArEditorAdvanced extends HTMLElement {
     }
 
     if (this.tool === 'lasso') {
-      if (this.dragAnchorIndex !== null) {
-        this.dragAnchorIndex = null;
+      if (this.lasso.getDragAnchorIndex() !== null) {
+        this.lasso.endDragAnchor();
         return;
       }
-      if (this.drawing && this.lassoRaw) {
-        if (this.lassoRaw.length >= MIN_ANCHORS) {
-          const w = this.current?.width ?? 0;
-          const h = this.current?.height ?? 0;
-          const eps = Math.max(1.5, Math.min(w, h) * LASSO_EPS_RATIO);
-          this.lassoAnchors = simplifyClosed(this.lassoRaw, eps);
-          if (this.lassoAnchors.length < MIN_ANCHORS) this.lassoAnchors = null;
-        }
-        this.lassoRaw = null;
+      if (this.drawing && this.lasso.getRawPath()) {
+        const w = this.current?.width ?? 0;
+        const h = this.current?.height ?? 0;
+        const eps = Math.max(1.5, Math.min(w, h) * LASSO_EPS_RATIO);
+        this.lasso.setSimplifyEpsilon(eps);
+        this.lasso.close();
       }
       this.drawing = false;
       this.syncLassoActionsUI();
       this.redrawDisplay();
-      if (this.lassoAnchors) {
+      if (this.lasso.isClosed()) {
         this.rmbgDecodeFromLasso();
       }
       return;
@@ -1249,12 +1248,11 @@ export class ArEditorAdvanced extends HTMLElement {
   }
 
   private onDblClick(e: MouseEvent): void {
-    if (this.tool !== 'lasso' || !this.lassoAnchors) return;
+    if (this.tool !== 'lasso' || !this.lasso.isClosed()) return;
     const [ix, iy] = this.eventToImageCoordsFromMouse(e);
     const idx = this.hitAnchor(ix, iy);
     if (idx === null) return;
-    if (this.lassoAnchors.length <= MIN_ANCHORS) return;
-    this.lassoAnchors.splice(idx, 1);
+    if (!this.lasso.removeAnchor(idx)) return;
     this.syncLassoActionsUI();
     this.redrawDisplay();
   }
@@ -1296,16 +1294,7 @@ export class ArEditorAdvanced extends HTMLElement {
   }
 
   private hitAnchor(ix: number, iy: number): number | null {
-    if (!this.lassoAnchors) return null;
-    const tol = this.anchorRadius() + 4;
-    const tolSq = tol * tol;
-    for (let i = 0; i < this.lassoAnchors.length; i++) {
-      const a = this.lassoAnchors[i];
-      const dx = a.x - ix;
-      const dy = a.y - iy;
-      if (dx * dx + dy * dy <= tolSq) return i;
-    }
-    return null;
+    return this.lasso.hitAnchor(ix, iy, this.anchorRadius() + 4);
   }
 
   private applyStrokeSegment(fromX: number, fromY: number, toX: number, toY: number): void {
@@ -1394,7 +1383,7 @@ export class ArEditorAdvanced extends HTMLElement {
     this.lastPinchDist = this.getPinchDist(e.touches);
     // Cancel any brush stroke that might have started on the first touch.
     this.drawing = false;
-    this.dragAnchorIndex = null;
+    this.lasso.endDragAnchor();
   }
 
   private onTouchMove(e: TouchEvent): void {
@@ -1539,10 +1528,7 @@ export class ArEditorAdvanced extends HTMLElement {
     const busy = this.shadowRoot?.getElementById('busy');
     const hint = this.shadowRoot?.getElementById('hint');
     if (!row || !previewRow) return;
-    const hasAnchors =
-      this.tool === 'lasso' &&
-      this.lassoAnchors !== null &&
-      this.lassoAnchors.length >= MIN_ANCHORS;
+    const hasAnchors = this.tool === 'lasso' && this.lasso.isClosed();
     const hasSelection = this.tool === 'lasso' && this.selectionMask !== null;
     const isPreviewing = this.pendingPreview !== null;
     row.classList.toggle('visible', (hasAnchors || hasSelection) && !isPreviewing);
@@ -1561,9 +1547,7 @@ export class ArEditorAdvanced extends HTMLElement {
   }
 
   private clearLasso(): void {
-    this.lassoRaw = null;
-    this.lassoAnchors = null;
-    this.dragAnchorIndex = null;
+    this.lasso.clear();
     this.pendingPreview = null;
     this.syncLassoActionsUI();
   }
@@ -1602,7 +1586,8 @@ export class ArEditorAdvanced extends HTMLElement {
     if (!this.ctx) return;
 
     // Raw in-progress path — open polyline. Always visible, even over Quick Mask.
-    if (this.lassoRaw && this.lassoRaw.length > 1) {
+    const rawPath = this.lasso.getRawPath();
+    if (rawPath && rawPath.length > 1) {
       this.ctx.save();
       const accentRgb =
         getComputedStyle(document.documentElement).getPropertyValue('--color-accent-rgb').trim() ||
@@ -1613,10 +1598,10 @@ export class ArEditorAdvanced extends HTMLElement {
       this.ctx.shadowBlur = 3;
       this.ctx.setLineDash([]);
       this.ctx.beginPath();
-      const p0 = this.lassoRaw[0];
+      const p0 = rawPath[0];
       this.ctx.moveTo(p0.x + this.padX, p0.y + this.padY);
-      for (let i = 1; i < this.lassoRaw.length; i++) {
-        this.ctx.lineTo(this.lassoRaw[i].x + this.padX, this.lassoRaw[i].y + this.padY);
+      for (let i = 1; i < rawPath.length; i++) {
+        this.ctx.lineTo(rawPath[i].x + this.padX, rawPath[i].y + this.padY);
       }
       this.ctx.stroke();
       this.ctx.restore();
@@ -1627,8 +1612,9 @@ export class ArEditorAdvanced extends HTMLElement {
     // handles intentionally omitted: anchors are not draggable, so showing
     // them just adds visual noise. Match cursor-preview line width (2) for
     // stroke consistency across tools.
-    if (!this.selectionMask && this.lassoAnchors && this.lassoAnchors.length >= MIN_ANCHORS) {
-      const pts = this.lassoAnchors;
+    const anchors = this.lasso.getAnchors();
+    if (!this.selectionMask && anchors && anchors.length >= MIN_ANCHORS) {
+      const pts = anchors;
       this.ctx.save();
       const accentRgb2 =
         getComputedStyle(document.documentElement).getPropertyValue('--color-accent-rgb').trim() ||
@@ -1680,7 +1666,8 @@ export class ArEditorAdvanced extends HTMLElement {
     // skips the preview/confirm pattern — inpainting is non-destructive
     // and any mistake is one Ctrl+Z away.
     if (this.busy) return;
-    const hasLasso = this.lassoAnchors !== null && this.lassoAnchors.length >= MIN_ANCHORS;
+    const hasLasso = this.lasso.isClosed();
+    const lassoAnchors = this.lasso.getAnchors();
     const hasMask = this.selectionMask !== null;
     if (!hasLasso && !hasMask) return;
     if (!this.working || !this.original || !this.current) return;
@@ -1712,7 +1699,7 @@ export class ArEditorAdvanced extends HTMLElement {
       let newAlpha: Uint8Array;
 
       if (kind === 'refine') {
-        const poly = this.lassoAnchors ?? this.selectionMaskToPolygon(w, h);
+        const poly = lassoAnchors ? [...lassoAnchors] : this.selectionMaskToPolygon(w, h);
         if (!poly || poly.length < MIN_ANCHORS) throw new Error('No region for refine');
         newAlpha = await this.refineWithSam(poly, prevAlpha, w, h, ac.signal);
       } else if (hasMask) {
@@ -1730,7 +1717,7 @@ export class ArEditorAdvanced extends HTMLElement {
       } else {
         const result = await processRoi({
           original: workingData,
-          polygon: this.lassoAnchors!,
+          polygon: [...lassoAnchors!],
           previousAlpha: prevAlpha,
           mode: kind,
           segment,
@@ -1848,11 +1835,12 @@ export class ArEditorAdvanced extends HTMLElement {
   private async removeWatermarkInLasso(): Promise<void> {
     if (this.busy) return;
     if (!this.working || !this.current) return;
-    if (!this.lassoAnchors || this.lassoAnchors.length < MIN_ANCHORS) return;
+    const lassoAnchors = this.lasso.getAnchors();
+    if (!lassoAnchors || lassoAnchors.length < MIN_ANCHORS) return;
 
     const w = this.current.width;
     const h = this.current.height;
-    const mask = rasterizePolygon(this.lassoAnchors, w, h);
+    const mask = rasterizePolygon([...lassoAnchors], w, h);
 
     this.busy = true;
     this.syncBusyUI();
@@ -2030,8 +2018,9 @@ export class ArEditorAdvanced extends HTMLElement {
   // ────────────────────── RMBG lasso selection ──────────────────────────
 
   private async rmbgDecodeFromLasso(): Promise<void> {
-    if (!this.current || !this.original || !this.lassoAnchors) return;
-    if (this.lassoAnchors.length < MIN_ANCHORS) return;
+    if (!this.current || !this.original) return;
+    const lassoAnchors = this.lasso.getAnchors();
+    if (!lassoAnchors || lassoAnchors.length < MIN_ANCHORS) return;
 
     const w = this.current.width;
     const h = this.current.height;
@@ -2055,7 +2044,7 @@ export class ArEditorAdvanced extends HTMLElement {
 
       const result = await processRoi({
         original: workingData,
-        polygon: this.lassoAnchors,
+        polygon: [...lassoAnchors],
         previousAlpha: null,
         mode: 'crop',
         segment,
@@ -2074,8 +2063,7 @@ export class ArEditorAdvanced extends HTMLElement {
           if (segMask[i] === 1) this.selectionMask[i] = 1;
         }
       }
-      this.lassoAnchors = null;
-      this.lassoRaw = null;
+      this.lasso.clear();
       this.rebuildSelectionOverlay();
       this.redrawDisplay();
     } catch (err) {
