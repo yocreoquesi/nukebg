@@ -262,16 +262,75 @@ export function fillSubjectHoles(
  * Caveat: inappropriate for classes where legitimate subject lives in
  * multiple disconnected components (signatures with accent dots, icon sets).
  * Callers must gate by content type.
+ *
+ * Threshold policy: a blob survives if its size is ≥ max(2, largest *
+ * KEEP_RATIO). The earlier "keep only the single largest" rule was too
+ * aggressive — RMBG occasionally splits a real subject into two
+ * disconnected blobs (e.g. a car body separated by a sun-glare chrome
+ * stripe down the middle), and the smaller half got mis-killed as an
+ * "orphan". 1% of largest preserves real disconnected subject parts
+ * while still dropping the small false-positive specks the function
+ * was added to clean. The hard floor of 2 px is just a sanity gate
+ * for tiny canvases (test fixtures); on real-world inputs the relative
+ * threshold dominates.
  */
+const ORPHAN_KEEP_RATIO = 0.01; // ≥1% of the largest blob
+
 export function dropOrphanBlobs(img: ImageData): ImageData {
   const { data, width, height } = img;
   const n = width * height;
   const bin = new Uint8Array(n);
   for (let i = 0; i < n; i++) bin[i] = data[i * 4 + 3] > 0 ? 1 : 0;
-  keepLargestComponent(bin, width, height);
+
+  // Label connected components (8-connectivity, BFS) and record sizes.
+  const labels = new Int32Array(n);
+  const queue = new Int32Array(n);
+  const sizes: number[] = [0]; // id 0 = background
+  let nextId = 0;
+
+  for (let i = 0; i < n; i++) {
+    if (bin[i] === 0 || labels[i] !== 0) continue;
+    nextId++;
+    labels[i] = nextId;
+    let head = 0;
+    let tail = 0;
+    queue[tail++] = i;
+    let size = 0;
+    while (head < tail) {
+      const idx = queue[head++];
+      size++;
+      const x = idx % width;
+      const y = (idx - x) / width;
+      for (let dy = -1; dy <= 1; dy++) {
+        for (let dx = -1; dx <= 1; dx++) {
+          if (dx === 0 && dy === 0) continue;
+          const nx = x + dx;
+          const ny = y + dy;
+          if (nx < 0 || nx >= width || ny < 0 || ny >= height) continue;
+          const ni = ny * width + nx;
+          if (bin[ni] && labels[ni] === 0) {
+            labels[ni] = nextId;
+            queue[tail++] = ni;
+          }
+        }
+      }
+    }
+    sizes.push(size);
+  }
+
+  if (nextId < 2) return img; // 0 or 1 blob → nothing to drop
+
+  let maxSize = 0;
+  for (let id = 1; id <= nextId; id++) {
+    if (sizes[id] > maxSize) maxSize = sizes[id];
+  }
+  const threshold = Math.max(2, Math.floor(maxSize * ORPHAN_KEEP_RATIO));
+
   const out = new Uint8ClampedArray(data);
   for (let i = 0; i < n; i++) {
-    if (!bin[i]) out[i * 4 + 3] = 0;
+    if (bin[i] && sizes[labels[i]] < threshold) {
+      out[i * 4 + 3] = 0;
+    }
   }
   return new ImageData(out, width, height);
 }
