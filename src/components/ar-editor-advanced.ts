@@ -30,13 +30,7 @@
 
 import { createLoader, type ModelLoader } from '../refine/loaders';
 import { refineEdges } from '../pipeline/finalize';
-import {
-  loadSam,
-  encodeSam,
-  decodeSam,
-  disposeSam,
-  onSamProgress,
-} from '../refine/loaders/mobile-sam';
+import { SamRefiner } from '../controllers/sam-refiner';
 import { processRoi } from '../refine/roi-process';
 import { rasterizePolygon } from '../refine/roi-process';
 import { patchMatchInpaint } from '../workers/cv/patchmatch-inpaint';
@@ -133,7 +127,12 @@ export class ArEditorAdvanced extends HTMLElement {
   private actionAbort: AbortController | null = null;
 
   // SAM state — lazy-loaded on first Refine, encoder runs once per image.
-  private samEncoded = false;
+  /** MobileSAM lifecycle wrapper (load/encode/decode/dispose + the
+   *  encoded flag). See `src/controllers/sam-refiner.ts` (#47/Phase-3c).
+   *  Progress callback is wired in setupSamRefiner() once shadowRoot
+   *  has rendered so we can find the #hint element. */
+  private samRefiner = new SamRefiner();
+  private samProgressWired = false;
 
   private bgColor = 'transparent';
 
@@ -163,14 +162,13 @@ export class ArEditorAdvanced extends HTMLElement {
   disconnectedCallback(): void {
     this.abort?.abort();
     this.abort = null;
-    disposeSam();
-    this.samEncoded = false;
+    this.samRefiner.dispose();
   }
 
   setImage(current: ImageData, original: ImageData): void {
     this.current = current;
     this.original = original;
-    this.samEncoded = false;
+    this.samRefiner.invalidate();
     this.clearLasso();
     this.clearSelection();
     this.rebuildBackingBuffers();
@@ -1942,25 +1940,15 @@ export class ArEditorAdvanced extends HTMLElement {
     ];
   }
 
-  private async ensureSamEncoded(signal: AbortSignal): Promise<void> {
-    if (this.samEncoded) return;
-    if (!this.original) throw new Error('No image loaded');
-
-    const hint = this.shadowRoot?.getElementById('hint');
-
-    onSamProgress((pct, stage) => {
+  /** Lazy progress wiring: the #hint element doesn't exist until render
+   *  has run, so we defer the callback until the first SAM action. */
+  private wireSamProgressOnce(): void {
+    if (this.samProgressWired) return;
+    this.samRefiner.setProgressCallback((pct, stage) => {
+      const hint = this.shadowRoot?.getElementById('hint');
       if (hint) hint.textContent = t('advanced.samLoading', { pct: String(pct), stage });
     });
-
-    if (signal.aborted) throw new DOMException('Aborted', 'AbortError');
-    await loadSam();
-
-    if (signal.aborted) throw new DOMException('Aborted', 'AbortError');
-    if (hint) hint.textContent = t('advanced.samEncoding');
-    await encodeSam(this.original.data, this.original.width, this.original.height);
-
-    onSamProgress(null);
-    this.samEncoded = true;
+    this.samProgressWired = true;
   }
 
   private async refineWithSam(
@@ -1970,10 +1958,19 @@ export class ArEditorAdvanced extends HTMLElement {
     h: number,
     signal: AbortSignal,
   ): Promise<Uint8Array> {
-    await this.ensureSamEncoded(signal);
-    if (signal.aborted) throw new DOMException('Aborted', 'AbortError');
+    if (!this.original) throw new Error('No image loaded');
+    this.wireSamProgressOnce();
 
     const hint = this.shadowRoot?.getElementById('hint');
+    if (hint) hint.textContent = t('advanced.samEncoding');
+    await this.samRefiner.ensureEncoded(
+      this.original.data,
+      this.original.width,
+      this.original.height,
+      signal,
+    );
+    if (signal.aborted) throw new DOMException('Aborted', 'AbortError');
+
     if (hint) hint.textContent = t('advanced.working');
 
     let minX = w,
@@ -1991,7 +1988,7 @@ export class ArEditorAdvanced extends HTMLElement {
     maxX = Math.min(w - 1, Math.ceil(maxX));
     maxY = Math.min(h - 1, Math.ceil(maxY));
 
-    const samResult = await decodeSam(
+    const samResult = await this.samRefiner.decode(
       [
         { x: minX, y: minY },
         { x: maxX, y: maxY },
