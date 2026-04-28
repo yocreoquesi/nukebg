@@ -39,7 +39,12 @@ async function sniffImageFormat(file: File): Promise<SupportedFormat | null> {
   if (head[0] === 0xff && head[1] === 0xd8 && head[2] === 0xff) {
     return 'image/jpeg';
   }
-  // WebP: "RIFF" <size> "WEBP"
+  // WebP: "RIFF" <size: LE uint32> "WEBP"
+  // The size field at bytes 4-7 (little-endian uint32) declares the byte
+  // count of everything after the size itself, so it must equal
+  // file.size - 8. Validating this guards against polyglot files that
+  // pass the magic-byte check but carry trailing/truncated content
+  // (#189).
   if (
     head[0] === 0x52 &&
     head[1] === 0x49 &&
@@ -50,6 +55,8 @@ async function sniffImageFormat(file: File): Promise<SupportedFormat | null> {
     head[10] === 0x42 &&
     head[11] === 0x50
   ) {
+    const declaredSize = (head[4] | (head[5] << 8) | (head[6] << 16) | (head[7] << 24)) >>> 0;
+    if (declaredSize + 8 !== file.size) return null;
     return 'image/webp';
   }
   return null;
