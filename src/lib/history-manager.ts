@@ -18,8 +18,21 @@
 export class HistoryManager<T> {
   private undoStack: T[] = [];
   private redoStack: T[] = [];
+  private maxEntries: number;
 
-  constructor(private readonly maxEntries: number = 12) {}
+  constructor(maxEntries: number = 12) {
+    this.maxEntries = maxEntries;
+  }
+
+  /** Adjust the cap. Useful when the underlying state changes size and
+   *  the memory budget needs re-tuning (e.g. ar-editor-advanced computes
+   *  cap from image dimensions). Trims existing stacks to fit so we
+   *  don't carry stale entries beyond the new budget. */
+  setMaxEntries(n: number): void {
+    this.maxEntries = n;
+    while (this.undoStack.length > this.maxEntries) this.undoStack.shift();
+    while (this.redoStack.length > this.maxEntries) this.redoStack.shift();
+  }
 
   /** Push a new state. Drops the oldest entry once we exceed the cap.
    *  Pushing always wipes the redo stack — once the user starts a fresh
