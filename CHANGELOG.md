@@ -10,6 +10,42 @@ Unreleased entries accumulate on the `dev` branch. When we cut a release we copy
 
 ## [Unreleased]
 
+## [2.11.0] — 2026-04-29
+
+Minor release. Mobile UX overhaul for the advanced editor plus a
+service-worker fix so new releases stop being one navigation late on
+returning visitors.
+
+### Added
+
+- **Two-finger pan + pinch-zoom in the advanced editor.** Touch users
+  can now zoom (pinch) and pan (two fingers together, no pinch) on the
+  canvas. Both gestures compose in the same handler — drag to reframe
+  while pinching to zoom. Tracked with a centroid alongside the existing
+  pinch-distance so panX/Y and zoom update in a single \`applyTransform\`.
+  i18n labels updated across all 6 locales.
+
+### Fixed
+
+- **Apply / Cancel / Undo / Redo are no longer hidden behind the fixed
+  bottom toolbar on mobile.** Added \`padding-bottom: calc(160px +
+  env(safe-area-inset-bottom))\` on \`:host\` under
+  \`@media (pointer: coarse)\` so the editor's \`.controls\` row scrolls
+  into view above the fixed Pincel/Borrador/Lazo toolbar instead of
+  being eaten by it.
+- **Restaurar Original / Reprocesar visible on editor toggle (mobile).**
+  Switched the post-toggle \`scrollIntoView\` from \`block: 'center'\` to
+  \`block: 'start'\` so the editor's header lands at the top of viewport
+  with its action buttons fully rendered, instead of scrolled above
+  the fold.
+- **Service worker now serves the latest release on the very next
+  page load.** Replaced stale-while-revalidate on navigation with
+  network-first (cache fallback for offline). Returning visitors were
+  getting last-deploy's HTML once before the fresh version showed up
+  — \`v2.5.0\` shipping next to a deployed \`v2.10.2\` was a real
+  symptom on a Galaxy S23. Bumped \`CACHE_VERSION\` to \`nukebg-v5\`
+  so the activate handler purges the previous cache on first load.
+
 ## [2.10.2] — 2026-04-28
 
 Patch release. Six PRs landed since v2.10.1 — typed event-bus migration,
