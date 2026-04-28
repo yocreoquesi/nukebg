@@ -1,7 +1,8 @@
 import { t } from '../i18n';
+import { on } from '../lib/event-bus';
 
 export class ArPrivacy extends HTMLElement {
-  private boundLocaleHandler: (() => void) | null = null;
+  private abortController: AbortController | null = null;
 
   constructor() {
     super();
@@ -10,15 +11,15 @@ export class ArPrivacy extends HTMLElement {
 
   connectedCallback(): void {
     this.renderContent();
-    this.boundLocaleHandler = () => {
-      this.updateTexts();
-    };
-    document.addEventListener('nukebg:locale-changed', this.boundLocaleHandler);
+    this.abortController = new AbortController();
+    on(document, 'nukebg:locale-changed', () => this.updateTexts(), {
+      signal: this.abortController.signal,
+    });
   }
 
   disconnectedCallback(): void {
-    if (this.boundLocaleHandler)
-      document.removeEventListener('nukebg:locale-changed', this.boundLocaleHandler);
+    this.abortController?.abort();
+    this.abortController = null;
   }
 
   private updateTexts(): void {
