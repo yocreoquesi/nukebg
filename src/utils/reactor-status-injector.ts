@@ -17,6 +17,7 @@ import {
   formatRuntime,
   totalDonationsEur,
   MONTHLY_BURN_EUR,
+  isDonorsFile,
   type DonorsFile,
 } from './reactor-economics';
 
@@ -45,7 +46,9 @@ async function fetchAndComputeRuntime(): Promise<string> {
   try {
     const res = await fetch(DONORS_URL, { cache: 'no-cache' });
     if (!res.ok) return formatRuntime(0);
-    const donors = (await res.json()) as DonorsFile;
+    const payload: unknown = await res.json();
+    if (!isDonorsFile(payload)) return formatRuntime(0);
+    const donors: DonorsFile = payload;
     const totalEur = totalDonationsEur(donors);
     const { months, days } = computeRuntime(totalEur);
     const monthsFloat = months + days / 30;
