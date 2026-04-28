@@ -1,5 +1,6 @@
 import { t } from '../i18n';
 import type { BatchItemState } from '../types/batch';
+import { on } from '../lib/event-bus';
 
 /**
  * A single slot in the batch grid. Renders a thumbnail plus a state badge
@@ -11,7 +12,7 @@ export class ArBatchItem extends HTMLElement {
   private itemState: BatchItemState = 'pending';
   private thumbnailUrl: string | null = null;
   private originalName = '';
-  private boundLocaleHandler: (() => void) | null = null;
+  private abortController: AbortController | null = null;
 
   constructor() {
     super();
@@ -46,15 +47,15 @@ export class ArBatchItem extends HTMLElement {
         }),
       );
     });
-    this.boundLocaleHandler = () => this.updateView();
-    document.addEventListener('nukebg:locale-changed', this.boundLocaleHandler);
+    this.abortController = new AbortController();
+    on(document, 'nukebg:locale-changed', () => this.updateView(), {
+      signal: this.abortController.signal,
+    });
   }
 
   disconnectedCallback(): void {
-    if (this.boundLocaleHandler) {
-      document.removeEventListener('nukebg:locale-changed', this.boundLocaleHandler);
-      this.boundLocaleHandler = null;
-    }
+    this.abortController?.abort();
+    this.abortController = null;
   }
 
   setItem(

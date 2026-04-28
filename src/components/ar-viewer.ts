@@ -4,6 +4,7 @@
  * + replace background with custom color.
  */
 import { t } from '../i18n';
+import { on } from '../lib/event-bus';
 
 export class ArViewer extends HTMLElement {
   private container!: HTMLDivElement;
@@ -18,7 +19,7 @@ export class ArViewer extends HTMLElement {
   private boundMouseUp: (() => void) | null = null;
   private boundTouchMove: ((e: TouchEvent) => void) | null = null;
   private boundTouchEnd: (() => void) | null = null;
-  private boundLocaleHandler: (() => void) | null = null;
+  private abortController: AbortController | null = null;
 
   constructor() {
     super();
@@ -27,16 +28,21 @@ export class ArViewer extends HTMLElement {
 
   connectedCallback(): void {
     this.render();
-    this.boundLocaleHandler = () => {
-      const root = this.shadowRoot!;
-      const origLabel = root.querySelector('#lbl-original');
-      if (origLabel) origLabel.textContent = t('viewer.original');
-      const resultLabel = root.querySelector('#lbl-result');
-      if (resultLabel) resultLabel.textContent = t('viewer.result');
-      const bgLabel = root.querySelector('#viewer-bg-label');
-      if (bgLabel) bgLabel.textContent = t('viewer.bg');
-    };
-    document.addEventListener('nukebg:locale-changed', this.boundLocaleHandler);
+    this.abortController = new AbortController();
+    on(
+      document,
+      'nukebg:locale-changed',
+      () => {
+        const root = this.shadowRoot!;
+        const origLabel = root.querySelector('#lbl-original');
+        if (origLabel) origLabel.textContent = t('viewer.original');
+        const resultLabel = root.querySelector('#lbl-result');
+        if (resultLabel) resultLabel.textContent = t('viewer.result');
+        const bgLabel = root.querySelector('#viewer-bg-label');
+        if (bgLabel) bgLabel.textContent = t('viewer.bg');
+      },
+      { signal: this.abortController.signal },
+    );
   }
 
   disconnectedCallback(): void {
@@ -44,8 +50,8 @@ export class ArViewer extends HTMLElement {
     if (this.boundMouseUp) document.removeEventListener('mouseup', this.boundMouseUp);
     if (this.boundTouchMove) document.removeEventListener('touchmove', this.boundTouchMove);
     if (this.boundTouchEnd) document.removeEventListener('touchend', this.boundTouchEnd);
-    if (this.boundLocaleHandler)
-      document.removeEventListener('nukebg:locale-changed', this.boundLocaleHandler);
+    this.abortController?.abort();
+    this.abortController = null;
   }
 
   private render(): void {

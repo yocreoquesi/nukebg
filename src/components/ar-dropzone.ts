@@ -1,12 +1,12 @@
 import { loadImage, isSupportedFormat } from '../utils/image-io';
 import { t } from '../i18n';
 import { getBatchLimit } from '../types/batch';
+import { on } from '../lib/event-bus';
 
 export class ArDropzone extends HTMLElement {
   private fileInput!: HTMLInputElement;
   private dropArea!: HTMLDivElement;
-  private boundLocaleHandler: (() => void) | null = null;
-  private boundPasteHandler: ((e: ClipboardEvent) => void) | null = null;
+  private abortController: AbortController | null = null;
 
   constructor() {
     super();
@@ -316,11 +316,10 @@ export class ArDropzone extends HTMLElement {
   }
 
   private setupEvents(): void {
-    // Listen for locale changes
-    this.boundLocaleHandler = () => {
-      this.updateTexts();
-    };
-    document.addEventListener('nukebg:locale-changed', this.boundLocaleHandler);
+    this.abortController = new AbortController();
+    const signal = this.abortController.signal;
+
+    on(document, 'nukebg:locale-changed', () => this.updateTexts(), { signal });
 
     // Click to open file picker. The OS picker exposes the camera as
     // one of the source options on mobile, so a dedicated camera CTA
@@ -360,25 +359,27 @@ export class ArDropzone extends HTMLElement {
     });
 
     // Paste from clipboard
-    this.boundPasteHandler = (e: ClipboardEvent) => {
-      if (this.dropArea.classList.contains('dropzone-disabled')) return;
-      const items = e.clipboardData?.items;
-      if (!items) return;
-      for (const item of items) {
-        if (item.type.startsWith('image/')) {
-          const file = item.getAsFile();
-          if (file) this.handleFile(file);
-          break;
+    document.addEventListener(
+      'paste',
+      (e: ClipboardEvent) => {
+        if (this.dropArea.classList.contains('dropzone-disabled')) return;
+        const items = e.clipboardData?.items;
+        if (!items) return;
+        for (const item of items) {
+          if (item.type.startsWith('image/')) {
+            const file = item.getAsFile();
+            if (file) this.handleFile(file);
+            break;
+          }
         }
-      }
-    };
-    document.addEventListener('paste', this.boundPasteHandler);
+      },
+      { signal },
+    );
   }
 
   disconnectedCallback(): void {
-    if (this.boundLocaleHandler)
-      document.removeEventListener('nukebg:locale-changed', this.boundLocaleHandler);
-    if (this.boundPasteHandler) document.removeEventListener('paste', this.boundPasteHandler);
+    this.abortController?.abort();
+    this.abortController = null;
   }
 
   /** Enable or disable the dropzone (used to block interaction until model is ready) */

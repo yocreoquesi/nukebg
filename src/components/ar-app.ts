@@ -11,6 +11,7 @@ import type { ArEditor } from './ar-editor';
 import type { ArDropzone } from './ar-dropzone';
 import type { ArBatchGrid } from './ar-batch-grid';
 import { BatchOrchestrator, type BatchStageCallback } from '../controllers/batch-orchestrator';
+import { on } from '../lib/event-bus';
 import {
   refineEdges,
   dropOrphanBlobs,
@@ -42,7 +43,6 @@ export class ArApp extends HTMLElement {
   private processingAbortController: AbortController | null = null;
   private preEditResult: ImageData | null = null;
   private cachedEditResult: ImageData | null = null;
-  private boundLocaleHandler: (() => void) | null = null;
   private abortController: AbortController | null = null;
   /** Owns PWA install button + guide wiring. Initialized in
    *  setupComponents() once the install-btn / install-guide nodes
@@ -139,8 +139,6 @@ export class ArApp extends HTMLElement {
   }
 
   disconnectedCallback(): void {
-    if (this.boundLocaleHandler)
-      document.removeEventListener('nukebg:locale-changed', this.boundLocaleHandler);
     this.abortController?.abort();
     this.abortController = null;
   }
@@ -1160,11 +1158,7 @@ export class ArApp extends HTMLElement {
     // component-lifecycle cleanup via AbortSignal.
     const signal = this.abortController!.signal;
 
-    // Listen for locale changes
-    this.boundLocaleHandler = () => {
-      this.updateTexts();
-    };
-    document.addEventListener('nukebg:locale-changed', this.boundLocaleHandler);
+    on(document, 'nukebg:locale-changed', () => this.updateTexts(), { signal });
 
     // Cancel button lives in the command bar (#71). The same
     // ar:cancel-processing event is dispatched from there and caught at

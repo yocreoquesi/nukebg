@@ -7,6 +7,7 @@
 import { t } from '../i18n';
 import { BrushStroke, type BrushShape, type BrushTool } from '../lib/brush-stroke';
 import { HistoryManager } from '../lib/history-manager';
+import { on } from '../lib/event-bus';
 
 /** Generate a CSS cursor data URL that matches the brush shape, size and tool */
 function makeBrushCursor(
@@ -90,7 +91,6 @@ export class ArEditor extends HTMLElement {
   // just alpha); alpha-only snapshots can't undo color changes. Cap = 12
   // so large images (up to 4096² ≈ 67 MB per entry) don't blow RAM.
   private history = new HistoryManager<Uint8ClampedArray>(12);
-  private boundLocaleHandler: (() => void) | null = null;
   private abortController: AbortController | null = null;
 
   constructor() {
@@ -103,15 +103,12 @@ export class ArEditor extends HTMLElement {
     this.render();
     this.setupCanvas();
     this.setupEvents();
-    this.boundLocaleHandler = () => {
-      this.updateTexts();
-    };
-    document.addEventListener('nukebg:locale-changed', this.boundLocaleHandler);
+    on(document, 'nukebg:locale-changed', () => this.updateTexts(), {
+      signal: this.abortController.signal,
+    });
   }
 
   disconnectedCallback(): void {
-    if (this.boundLocaleHandler)
-      document.removeEventListener('nukebg:locale-changed', this.boundLocaleHandler);
     this.abortController?.abort();
     this.abortController = null;
   }

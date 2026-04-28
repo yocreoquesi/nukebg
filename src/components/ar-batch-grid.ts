@@ -1,6 +1,7 @@
 import { t } from '../i18n';
 import type { BatchItem, BatchItemState } from '../types/batch';
 import { ArBatchItem } from './ar-batch-item';
+import { on } from '../lib/event-bus';
 
 /**
  * Presentational container for the batch workflow. Holds BatchItem
@@ -10,7 +11,7 @@ import { ArBatchItem } from './ar-batch-item';
 export class ArBatchGrid extends HTMLElement {
   private items: BatchItem[] = [];
   private itemEls = new Map<string, ArBatchItem>();
-  private boundLocaleHandler: (() => void) | null = null;
+  private abortController: AbortController | null = null;
   private currentIndex = 0;
 
   constructor() {
@@ -20,15 +21,15 @@ export class ArBatchGrid extends HTMLElement {
 
   connectedCallback(): void {
     this.render();
-    this.boundLocaleHandler = () => this.updateHeader();
-    document.addEventListener('nukebg:locale-changed', this.boundLocaleHandler);
+    this.abortController = new AbortController();
+    on(document, 'nukebg:locale-changed', () => this.updateHeader(), {
+      signal: this.abortController.signal,
+    });
   }
 
   disconnectedCallback(): void {
-    if (this.boundLocaleHandler) {
-      document.removeEventListener('nukebg:locale-changed', this.boundLocaleHandler);
-      this.boundLocaleHandler = null;
-    }
+    this.abortController?.abort();
+    this.abortController = null;
   }
 
   setItems(items: BatchItem[]): void {
