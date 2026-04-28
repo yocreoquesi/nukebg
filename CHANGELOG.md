@@ -10,6 +10,52 @@ Unreleased entries accumulate on the `dev` branch. When we cut a release we copy
 
 ## [Unreleased]
 
+## [2.10.1] — 2026-04-28
+
+Patch release. Two follow-ups to v2.10.0 — bundle drops another 5 kB
+because a dead component is no longer in the tree-shake graph, and
+two CV modules that were untested at the unit level now have isolated
+coverage.
+
+### Changed
+
+- **`ar-post-cta` module no longer ships in the bundle.** The element
+  was visually disabled in v2.9.5 but its 220 LOC + CSS template were
+  still imported in `main.ts`. Commenting out the import lets Vite
+  drop the module entirely. Re-enable is a 2-line revert (this import
+  - the matching element in `index.html`); both sites carry inline
+    pointers to [#181](https://github.com/yocreoquesi/nukebg/issues/181)
+    ([#216](https://github.com/yocreoquesi/nukebg/pull/216),
+    [#196](https://github.com/yocreoquesi/nukebg/issues/196)).
+  * `index.js` raw: 465.19 kB → 460.15 kB (−5.04 kB / −1.08%)
+  * `index.js` gzip: 125.60 kB → 124.57 kB (−1.03 kB / −0.82%)
+
+### Added
+
+- **Unit coverage for `watermark-dalle` and `inpaint-telea`.** Both CV
+  modules were exercised only through `ml-pipeline.integration.test.ts`
+  end-to-end. A regression that produced visually plausible-but-wrong
+  output could have shipped without breaking any test. New behavioural
+  invariants (mask-only mutation, value envelope, alpha contract,
+  termination time) lock the contracts without trying to hand-compute
+  Telea's propagation-order-dependent output
+  ([#215](https://github.com/yocreoquesi/nukebg/pull/215),
+  [#195](https://github.com/yocreoquesi/nukebg/issues/195)).
+  - `watermark-dalle.test.ts` — 6 tests (detected/not-detected paths,
+    mask geometry, narrow-image clamping)
+  - `inpaint-telea.test.ts` — 8 tests (basic invariants, reconstruction
+    bounds, custom radius, > 50 % mask termination guard)
+
+### Notes
+
+- Cumulative bundle delta vs the v2.9.5 baseline that started this
+  cycle: `index.js` raw −6.76 kB / −1.45 %, gzip −1.09 kB / −0.87 %.
+  The 18 PRs that landed across v2.10.0 + v2.10.1 produced **net-
+  smaller** output despite adding 7 new modules + 94 new tests.
+- All audit-driven backlog from the 2026-04-28 cycle is now closed
+  (#185-#190, #191-#196). The umbrella refactor issue #47 is closed
+  with Phase 4 (typed EventBus) spun out into [#217](https://github.com/yocreoquesi/nukebg/issues/217).
+
 ## [2.10.0] — 2026-04-28
 
 Internal architecture refactor + audit cleanup. No new features; user-
