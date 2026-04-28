@@ -77,6 +77,35 @@ export interface DonorsFile {
 }
 
 /**
+ * Runtime shape guard for `/donors.json` payloads (#188). Cheap manual
+ * check — no Zod dependency for one schema. Validates the version
+ * sentinel, the four expected fields and (shallowly) the supporters
+ * array entries so consumers can trust `donors.supporters[i].amount_eur`
+ * without runtime surprises.
+ *
+ * Returns false (rather than throwing) so callers can fall back to an
+ * empty donors object and keep the page rendering honestly.
+ */
+export function isDonorsFile(x: unknown): x is DonorsFile {
+  if (typeof x !== 'object' || x === null) return false;
+  const o = x as Record<string, unknown>;
+  if (o.version !== 1) return false;
+  if (typeof o.updated_at !== 'string') return false;
+  if (typeof o.anonymous_count !== 'number') return false;
+  if (typeof o.anonymous_total_eur !== 'number') return false;
+  if (!Array.isArray(o.supporters)) return false;
+  for (const s of o.supporters) {
+    if (typeof s !== 'object' || s === null) return false;
+    const e = s as Record<string, unknown>;
+    if (typeof e.name !== 'string') return false;
+    if (typeof e.amount_eur !== 'number') return false;
+    if (typeof e.date !== 'string') return false;
+    if (e.consent !== 'explicit') return false;
+  }
+  return true;
+}
+
+/**
  * Total sunk investment in EUR (time at fair-rate + cash spent).
  */
 export function totalSunkEur(): number {

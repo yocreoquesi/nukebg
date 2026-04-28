@@ -8,8 +8,53 @@ import {
   computeRuntime,
   formatRuntime,
   donationToRuntimeDelta,
+  isDonorsFile,
   type DonorsFile,
 } from '../../src/utils/reactor-economics';
+
+describe('reactor-economics — isDonorsFile (#188)', () => {
+  const valid: DonorsFile = {
+    version: 1,
+    updated_at: '2026-04-28',
+    supporters: [{ name: 'Alice', amount_eur: 25, date: '2026-04-01', consent: 'explicit' }],
+    anonymous_count: 3,
+    anonymous_total_eur: 9,
+  };
+
+  it('accepts a fully-formed file', () => {
+    expect(isDonorsFile(valid)).toBe(true);
+  });
+
+  it('accepts an empty supporters array', () => {
+    expect(isDonorsFile({ ...valid, supporters: [] })).toBe(true);
+  });
+
+  it.each([null, undefined, 42, 'string', []])('rejects non-object payload (%p)', (v) => {
+    expect(isDonorsFile(v)).toBe(false);
+  });
+
+  it.each([
+    ['missing version', { ...valid, version: undefined }],
+    ['wrong version sentinel', { ...valid, version: 2 }],
+    ['missing updated_at', { ...valid, updated_at: undefined }],
+    ['updated_at not a string', { ...valid, updated_at: 12345 }],
+    ['anonymous_count not a number', { ...valid, anonymous_count: '3' }],
+    ['anonymous_total_eur not a number', { ...valid, anonymous_total_eur: null }],
+    ['supporters not an array', { ...valid, supporters: 'oops' }],
+  ])('rejects payload with %s', (_label, payload) => {
+    expect(isDonorsFile(payload)).toBe(false);
+  });
+
+  it.each([
+    ['missing name', [{ amount_eur: 1, date: 'x', consent: 'explicit' }]],
+    ['amount_eur not a number', [{ name: 'A', amount_eur: '1', date: 'x', consent: 'explicit' }]],
+    ['date not a string', [{ name: 'A', amount_eur: 1, date: 0, consent: 'explicit' }]],
+    ['consent not "explicit"', [{ name: 'A', amount_eur: 1, date: 'x', consent: 'maybe' }]],
+    ['supporter is not an object', [42]],
+  ])('rejects malformed supporter entry (%s)', (_label, supporters) => {
+    expect(isDonorsFile({ ...valid, supporters })).toBe(false);
+  });
+});
 
 describe('reactor-economics — constants', () => {
   it('TIME_BREAKDOWN percents sum to 100', () => {
