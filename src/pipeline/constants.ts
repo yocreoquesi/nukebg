@@ -59,33 +59,9 @@ export const SPARKLE_PARAMS = {
    *  neighbors. Real Gemini sparkle arms are narrow lines — perpendicular
    *  samples land in dark gap territory. */
   MAX_PERP_ARM_RATIO: 0.8,
-  /** Minimum `max(R,G,B)` for a pixel to count as a Gemini-sparkle
-   *  palette match. The legacy 200 floor was too strict for dim/aliased
-   *  ✦ glyphs in JPEG-compressed photos (peaks land around 180-195).
-   *  150 catches them while still excluding mid-luminance saturated
-   *  regions (skin, grass, bezels) via the saturation half of the
-   *  gate in `isGeminiSparkleColor`. */
-  PALETTE_MIN_MAX: 150,
-  /** Search radius (multiplier of `bestR`) used to relocate the mask
-   *  centre from the detector's score-landscape `(bestY, bestX)` to
-   *  the brightest palette-matching pixel — the visual centre of the
-   *  rendered glyph. Effective radius = max(bestR × this, MIN). */
-  PEAK_SEARCH_RADIUS_MULTIPLIER: 2.0,
-  /** Absolute floor for peak-relocation search radius. Guards against
-   *  small `bestR` (10-14) producing a search box too tight to reach
-   *  the real peak from a 30-50 px score-landscape offset. */
-  PEAK_SEARCH_RADIUS_MIN: 80,
-  /** Anti-aliasing buffer (pixels) added to `bestR` for the final mask
-   *  radius. The detector's `bestR` is its best-fit scale for the ✦
-   *  pattern, which closely matches the rendered glyph's outer extent.
-   *  A small buffer catches dim anti-aliased halo pixels at the tips. */
-  MASK_BUFFER_PX: 5,
-  /** Absolute pixel cap on the final mask radius, regardless of
-   *  `bestR`. Defends against pathological cases where the detector
-   *  picks the largest scale on a partial-match. 80 covers typical
-   *  Gemini ✦ rendering at 4-5 MP without engulfing adjacent subjects
-   *  beyond the glyph footprint. */
-  MASK_RADIUS_ABS_CAP: 80,
+  /** Mask radius multiplier (applied to detected sparkle radius). Tight fit
+   *  minimises the area Telea has to reconstruct — less "flat patch" look. */
+  MASK_RADIUS_MULTIPLIER: 1.15,
 } as const;
 
 export const DALLE_WATERMARK_PARAMS = {

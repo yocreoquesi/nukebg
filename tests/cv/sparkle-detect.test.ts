@@ -67,18 +67,13 @@ describe('sparkleDetect', () => {
 
     expect(result.detected).toBe(true);
     expect(result.mask).not.toBeNull();
-    // Sparkle sits in the bottom-right quadrant of the downscaled selfie.
-    // (centerX/Y now report the cluster centroid, which is the visual
-    // centre of the rendered glyph rather than the detector's
-    // score-landscape best-fit point.)
-    expect(result.centerX).toBeGreaterThan(width * 0.5);
-    expect(result.centerY).toBeGreaterThan(height * 0.5);
-    // Mask radius derives from the palette cluster bbox, capped by
-    // CLUSTER_MAX_RADIUS_ABS_CAP=80. Just sanity-check it's positive
-    // and within the cap — the precise value depends on the fixture's
-    // bright-pixel layout.
-    expect(result.radius).toBeGreaterThan(0);
-    expect(result.radius).toBeLessThanOrEqual(80);
+    // Sparkle sits in the bottom-right quadrant of the downscaled selfie
+    expect(result.centerX).toBeGreaterThan(width * 0.75);
+    expect(result.centerY).toBeGreaterThan(height * 0.7);
+    // Radius should be within the relative band (1.5%-5.5% of min dim)
+    const minDim = Math.min(width, height);
+    expect(result.radius).toBeGreaterThanOrEqual(Math.floor(minDim * 0.015));
+    expect(result.radius).toBeLessThanOrEqual(Math.ceil(minDim * 0.055));
   });
 
   it('does not detect a sparkle in a clean photo region (no watermark)', async () => {
@@ -142,52 +137,6 @@ describe('sparkleDetect', () => {
     expect(count).toBeGreaterThan(0);
     // Mask should not cover more than 2% of the image
     expect(count).toBeLessThan(w * h * 0.02);
-  });
-
-  it('mask is shape-based: covers the glyph footprint regardless of underlying pixel color', () => {
-    // Regression for the on-skin half-glyph case: when a sparkle straddles
-    // a subject boundary (e.g. half on dark sky, half on a hand), the
-    // legacy flood-fill mask only caught the bright/palette-matching half
-    // and left the on-skin half visible. The shape rasterizer must cover
-    // the full glyph footprint regardless of what's underneath, so the
-    // downstream LaMa/PatchMatch inpaint can reconstruct it.
-    const w = 500,
-      h = 500;
-    const cx = 430,
-      cy = 430,
-      radius = 20;
-    const pixels = solidImage(w, h, 60, 60, 60);
-    paintSparkle(pixels, w, cx, cy, radius, [240, 240, 240]);
-
-    // Overpaint a 3×3 block on the east arm with a saturated skin-tone —
-    // fails the sparkle palette but lies inside the glyph footprint. A
-    // flood-fill mask refuses these pixels (they break the palette gate);
-    // a shape mask covers them. Keep the patch tight enough that detector
-    // gates (cardinal/perp sample positions) are unaffected.
-    const px = cx + 6,
-      py = cy;
-    for (let y = py - 1; y <= py + 1; y++) {
-      for (let x = px - 1; x <= px + 1; x++) {
-        const i = (y * w + x) * 4;
-        pixels[i] = 200;
-        pixels[i + 1] = 130;
-        pixels[i + 2] = 110;
-        pixels[i + 3] = 255;
-      }
-    }
-
-    const result = sparkleDetect(pixels, w, h);
-    expect(result.detected).toBe(true);
-
-    let overpaintMasked = 0;
-    for (let y = py - 1; y <= py + 1; y++) {
-      for (let x = px - 1; x <= px + 1; x++) {
-        if (result.mask![y * w + x]) overpaintMasked++;
-      }
-    }
-    // All 9 non-palette pixels inside the east-arm footprint must be in
-    // the mask — proves the rasterizer ignores per-pixel colour.
-    expect(overpaintMasked).toBe(9);
   });
 
   it('handles small images without crashing', () => {

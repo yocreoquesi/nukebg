@@ -1,22 +1,6 @@
 import { SPARKLE_PARAMS } from '../../pipeline/constants';
 import type { WatermarkResult } from '../../types/pipeline';
 
-/** Returns true when the pixel matches the Gemini sparkle palette: a
- *  bright low-saturation (or slight-cyan-tint) pixel. The `max` floor is
- *  configurable (`SPARKLE_PARAMS.PALETTE_MIN_MAX`) so dim/aliased ✦ glyphs
- *  on JPEG-compressed photos still match. Saturation cap rejects skin
- *  tones, grass, and other colored objects so the flood-fill doesn't walk
- *  out of the sparkle into the subject. */
-function isGeminiSparkleColor(r: number, g: number, b: number): boolean {
-  const max = Math.max(r, g, b);
-  if (max < SPARKLE_PARAMS.PALETTE_MIN_MAX) return false;
-  const min = Math.min(r, g, b);
-  const saturation = max - min;
-  if (saturation <= 35) return true;
-  if (b >= r && b >= g && r >= 180 && g >= 180) return true;
-  return false;
-}
-
 /**
  * Shape-based Gemini sparkle detector.
  *
@@ -224,111 +208,31 @@ export function sparkleDetect(
     return { detected: false, mask: null };
   }
 
-  // Relocate the mask centre from the detector's score-landscape
-  // `(bestY, bestX)` to the brightest palette-matching pixel within
-  // a generous search box. The detector's 4-arm score peak can sit
-  // 30-50 px off the visual centroid of the rendered glyph (one arm
-  // hits the sparkle, others land on bright sky → score peaks
-  // off-glyph). Brightest palette pixel IS the visual centre.
-  //
-  // Why we drop the cluster-centroid + bbox approach we had in
-  // v=cluster-1: the centroid of palette pixels in a window centred
-  // on `bestY/bestX` collapsed back to `bestY/bestX` (symmetric
-  // window + roughly symmetric pixels), giving us nothing the
-  // detector didn't already have. The bbox absorbed scattered
-  // skin-specular highlights and inflated to ~95×95 → mask centred
-  // on the wrong point AND 50% bigger than the real glyph. Anchoring
-  // on the relocated peak with a `bestR`-derived radius gives a
-  // tight, correctly-placed mask without requiring any extra heuristics.
-  let peakY = bestY;
-  let peakX = bestX;
-  let peakLum = lum[bestY * width + bestX];
-  const searchR = Math.max(
-    Math.ceil(bestR * SPARKLE_PARAMS.PEAK_SEARCH_RADIUS_MULTIPLIER),
-    SPARKLE_PARAMS.PEAK_SEARCH_RADIUS_MIN,
-  );
-  const sy0 = Math.max(0, bestY - searchR);
-  const sy1 = Math.min(height, bestY + searchR + 1);
-  const sx0 = Math.max(0, bestX - searchR);
-  const sx1 = Math.min(width, bestX + searchR + 1);
-  for (let y = sy0; y < sy1; y++) {
-    const dy = y - bestY;
-    for (let x = sx0; x < sx1; x++) {
-      const dx = x - bestX;
-      if (dx * dx + dy * dy > searchR * searchR) continue;
-      const pi = (y * width + x) * 4;
-      if (!isGeminiSparkleColor(pixels[pi], pixels[pi + 1], pixels[pi + 2])) continue;
-      const l = lum[y * width + x];
-      if (l > peakLum) {
-        peakLum = l;
-        peakY = y;
-        peakX = x;
-      }
-    }
-  }
-
-  // Build the mask as a tight circle around the relocated peak. Radius
-  // = `bestR + MASK_BUFFER_PX`, capped by `MASK_RADIUS_ABS_CAP`.
-  //
-  // `bestR` is the detector's best-fit scale, derived from the 4-arm
-  // pattern that matched at this point — it directly corresponds to
-  // the glyph's outer extent. Adding ~5 px catches anti-aliased halo
-  // pixels at the arm tips. The cap defends against the edge case
-  // where the detector picks the largest scale on a partial match.
-  //
-  // We deliberately do NOT extend the mask to cover the on-skin half
-  // of the glyph beyond the relocated peak ± bestR. The on-skin tail
-  // is anti-aliased into skin tone (palette gate would refuse it
-  // anyway) and reaches into the subject — engulfing it forces LaMa
-  // to fill subject pixels with sky-tone, which RMBG then strips,
-  // producing transparency holes between fingers. This mirrors the
-  // 984b578b behaviour: the visible on-bg portion is fully removed,
-  // any anti-aliased on-skin remnant is left alone (acceptable
-  // tradeoff over a transparency hole on the subject).
+  // Build circular mask
   const mask = new Uint8Array(width * height);
-  const maskRadius = Math.min(
-    bestR + SPARKLE_PARAMS.MASK_BUFFER_PX,
-    SPARKLE_PARAMS.MASK_RADIUS_ABS_CAP,
-  );
-  const maskRadius2 = maskRadius * maskRadius;
-  const y0 = Math.max(0, peakY - maskRadius);
-  const y1 = Math.min(height - 1, peakY + maskRadius);
-  const x0 = Math.max(0, peakX - maskRadius);
-  const x1 = Math.min(width - 1, peakX + maskRadius);
-  let maskCount = 0;
-  for (let y = y0; y <= y1; y++) {
-    const dy = y - peakY;
+  const maskR = Math.ceil(bestR * SPARKLE_PARAMS.MASK_RADIUS_MULTIPLIER);
+  const maskR2 = maskR * maskR;
+  const y0 = Math.max(0, bestY - maskR);
+  const y1 = Math.min(height, bestY + maskR + 1);
+  const x0 = Math.max(0, bestX - maskR);
+  const x1 = Math.min(width, bestX + maskR + 1);
+  for (let y = y0; y < y1; y++) {
+    const dy = y - bestY;
     const dy2 = dy * dy;
     const row = y * width;
-    for (let x = x0; x <= x1; x++) {
-      const dx = x - peakX;
-      if (dx * dx + dy2 <= maskRadius2) {
+    for (let x = x0; x < x1; x++) {
+      const dx = x - bestX;
+      if (dx * dx + dy2 <= maskR2) {
         mask[row + x] = 1;
-        maskCount++;
       }
     }
   }
-
-  // Diagnostic log — peak-anchored circular mask. Tagged `v=peak-1`
-  // so a stale Service Worker bundle is identifiable by the missing
-  // prefix. Logged unconditionally (visible in preview/production
-  // builds) while we stabilize on real photos. One line per image,
-  // no PII. peakDelta surfaces how far peak relocation moved the
-  // centre from the detector's reported point.
-  const peakDeltaY = peakY - bestY;
-  const peakDeltaX = peakX - bestX;
-  // eslint-disable-next-line no-console
-  console.warn(
-    `[NukeBG sparkle v=peak-1] bestR=${bestR} det=(${bestY},${bestX}) ` +
-      `peak=(${peakY},${peakX}) peakDelta=(${peakDeltaY},${peakDeltaX}) ` +
-      `peakLum=${peakLum.toFixed(0)} maskRadius=${maskRadius} maskPx=${maskCount}`,
-  );
 
   return {
     detected: true,
     mask,
-    centerX: peakX,
-    centerY: peakY,
-    radius: maskRadius,
+    centerX: bestX,
+    centerY: bestY,
+    radius: bestR,
   };
 }
