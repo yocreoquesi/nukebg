@@ -332,16 +332,20 @@ export function sparkleDetect(
 
   // Diagnostic log — surfaces detector vs. relocated peak vs. probed
   // extents so a mis-anchored polygon can be identified from a single
-  // console line in dev. Quiet in production builds (Vite defines
-  // `import.meta.env.DEV` based on mode).
-  if (typeof import.meta.env !== 'undefined' && import.meta.env.DEV) {
-    // eslint-disable-next-line no-console
-    console.log(
-      `[NukeBG sparkle] bestR=${bestR} det=(${bestY},${bestX}) ` +
-        `peak=(${peakY},${peakX}) peakLum=${peakLum.toFixed(0)} ` +
-        `extents=N${extN}/S${extS}/E${extE}/W${extW} armLen=${armLen}`,
-    );
-  }
+  // console line. Logged unconditionally (including production preview
+  // builds) while we stabilize the mask strategy on real photos. Tagged
+  // with `v=shape-2` so a stale Service Worker bundle is identifiable
+  // by the absence of this prefix. The log is one line per processed
+  // image and carries no PII.
+  let maskCount = 0;
+  for (let i = 0; i < mask.length; i++) if (mask[i]) maskCount++;
+  // eslint-disable-next-line no-console
+  console.warn(
+    `[NukeBG sparkle v=shape-2] bestR=${bestR} det=(${bestY},${bestX}) ` +
+      `peak=(${peakY},${peakX}) peakLum=${peakLum.toFixed(0)} ` +
+      `extents=N${extN}/S${extS}/E${extE}/W${extW} armLen=${armLen} ` +
+      `maskPx=${maskCount}`,
+  );
 
   return {
     detected: true,
