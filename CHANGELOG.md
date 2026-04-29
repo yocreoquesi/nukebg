@@ -10,6 +10,34 @@ Unreleased entries accumulate on the `dev` branch. When we cut a release we copy
 
 ## [Unreleased]
 
+## [2.11.3] — 2026-04-29
+
+Patch release. Removes the cmdbar Cancel button — it kept not matching
+user expectations even after the v2.11.2 hard-reset fix, so the
+button is gone. The advanced editor and simple editor cancel paths
+stay; the orchestrator's AbortController plumbing also stays alive
+for the "drop a new image mid-process" and batch teardown flows.
+
+### Changed
+
+- **Cmdbar Cancel button removed (#245).** Drops `<button id="cmd-cancel">`
+  from the cmdbar, the `bubbleCancel()` helper + `ar:cancel-processing`
+  shadow-root listener, the `processImage()` catch branch on
+  `err.message === 'user cancelled'`, the locale-update line, the
+  `cancelBtn.hidden` toggle in `updateCommandBarState()`, and the
+  `cmdbar.cancel` i18n key in all six locales. The orchestrator's
+  abort plumbing is untouched — only the user-facing button is gone.
+
+### Tooling / CI
+
+- CSP inline-script hash refreshed in `public/_headers` and
+  `infra/nginx.conf` (the version bump invalidated the previous
+  v2.11.2 hash on the JSON-LD block).
+
+### PRs
+
+- #245 — remove cmdbar Cancel button.
+
 ## [2.11.2] — 2026-04-29
 
 Patch release. Fixes the cancel button to actually behave like a cancel
@@ -874,6 +902,7 @@ section, keep only the relevant subsections, and empty `[Unreleased]`:
 ### Documentation
 ```
 
-[Unreleased]: https://github.com/yocreoquesi/nukebg/compare/v2.11.2...dev
+[Unreleased]: https://github.com/yocreoquesi/nukebg/compare/v2.11.3...dev
+[2.11.3]: https://github.com/yocreoquesi/nukebg/compare/v2.11.2...v2.11.3
 [2.11.2]: https://github.com/yocreoquesi/nukebg/compare/v2.11.1...v2.11.2
 [2.11.1]: https://github.com/yocreoquesi/nukebg/compare/v2.11.0...v2.11.1
