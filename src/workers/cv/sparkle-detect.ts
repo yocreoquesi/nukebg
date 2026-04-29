@@ -1,6 +1,22 @@
 import { SPARKLE_PARAMS } from '../../pipeline/constants';
 import type { WatermarkResult } from '../../types/pipeline';
 
+/** Returns true when the pixel matches the Gemini sparkle palette: a
+ *  near-white or slightly cyan-tinted bright pixel. The original ✦ glyph
+ *  is pure white (#FFFFFF) with a light blue halo (~#A0D8E0) that JPEG
+ *  rounds into a tight high-luminance / low-saturation region. Used to
+ *  gate halo expansion so we mask the natural halo without painting over
+ *  unrelated bright neighbors (skin highlights, chrome, sun glare). */
+function isGeminiSparkleColor(r: number, g: number, b: number): boolean {
+  const max = Math.max(r, g, b);
+  if (max < 200) return false;
+  const min = Math.min(r, g, b);
+  const saturation = max - min;
+  if (saturation <= 35) return true;
+  if (b >= r && b >= g && r >= 180 && g >= 180) return true;
+  return false;
+}
+
 /**
  * Shape-based Gemini sparkle detector.
  *
@@ -208,22 +224,33 @@ export function sparkleDetect(
     return { detected: false, mask: null };
   }
 
-  // Build circular mask
+  // Build mask: tight circular core + palette-gated halo ring.
+  // Core covers the ✦ shape; the halo ring catches near-white halo pixels
+  // (the soft glow Gemini renders around the glyph) so RMBG doesn't later
+  // classify them as background and leave transparent dots after inpaint.
   const mask = new Uint8Array(width * height);
-  const maskR = Math.ceil(bestR * SPARKLE_PARAMS.MASK_RADIUS_MULTIPLIER);
-  const maskR2 = maskR * maskR;
-  const y0 = Math.max(0, bestY - maskR);
-  const y1 = Math.min(height, bestY + maskR + 1);
-  const x0 = Math.max(0, bestX - maskR);
-  const x1 = Math.min(width, bestX + maskR + 1);
+  const coreR = Math.ceil(bestR * SPARKLE_PARAMS.MASK_RADIUS_MULTIPLIER);
+  const haloR = Math.ceil(bestR * SPARKLE_PARAMS.HALO_RADIUS_MULTIPLIER);
+  const coreR2 = coreR * coreR;
+  const haloR2 = haloR * haloR;
+  const y0 = Math.max(0, bestY - haloR);
+  const y1 = Math.min(height, bestY + haloR + 1);
+  const x0 = Math.max(0, bestX - haloR);
+  const x1 = Math.min(width, bestX + haloR + 1);
   for (let y = y0; y < y1; y++) {
     const dy = y - bestY;
     const dy2 = dy * dy;
     const row = y * width;
     for (let x = x0; x < x1; x++) {
       const dx = x - bestX;
-      if (dx * dx + dy2 <= maskR2) {
+      const d2 = dx * dx + dy2;
+      if (d2 <= coreR2) {
         mask[row + x] = 1;
+      } else if (d2 <= haloR2) {
+        const i = (row + x) * 4;
+        if (isGeminiSparkleColor(pixels[i], pixels[i + 1], pixels[i + 2])) {
+          mask[row + x] = 1;
+        }
       }
     }
   }

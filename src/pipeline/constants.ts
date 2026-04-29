@@ -59,17 +59,20 @@ export const SPARKLE_PARAMS = {
    *  neighbors. Real Gemini sparkle arms are narrow lines — perpendicular
    *  samples land in dark gap territory. */
   MAX_PERP_ARM_RATIO: 0.8,
-  /** Mask radius multiplier (applied to detected sparkle radius).
-   *
-   *  Bumped 1.15 → 1.5 (#223 follow-up) after the legacy color-deviation
-   *  watermarkDetect was retired — that detector contributed a wider halo
-   *  mask (up to 2.0× radius gated by sparkle palette). At 1.15× the new
-   *  combined mask was too tight: residual near-white halo pixels just
-   *  outside the shape were left untouched by Telea, then RMBG correctly
-   *  classified them as background — visible as transparent dots around
-   *  the inpainted sparkle. 1.5× covers the natural halo without the
-   *  "flat patch" look becoming distracting. */
-  MASK_RADIUS_MULTIPLIER: 1.5,
+  /** Core mask radius multiplier (applied to detected sparkle radius).
+   *  Tight by design — the actual ✦ shape is fully covered well within
+   *  this radius. The natural near-white halo is masked separately by
+   *  the palette-gated outer ring (HALO_RADIUS_MULTIPLIER) so this can
+   *  stay snug and avoid the "flat patch" artifact on uniform regions. */
+  MASK_RADIUS_MULTIPLIER: 1.2,
+  /** Outer halo radius multiplier. Pixels between MASK_RADIUS_MULTIPLIER
+   *  and this radius are added to the mask ONLY if they match the Gemini
+   *  sparkle palette (near-white / slight cyan tint). Ports the legacy
+   *  watermark-detect halo-expansion behavior into the shape detector
+   *  without reintroducing its false-positive surface (#223). Fixes the
+   *  transparent-dot regression on selfies where the natural halo bled
+   *  into RMBG's background classification. */
+  HALO_RADIUS_MULTIPLIER: 2.0,
 } as const;
 
 export const DALLE_WATERMARK_PARAMS = {
