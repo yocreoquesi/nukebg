@@ -159,6 +159,13 @@ export class ArApp extends HTMLElement {
         .hero.hidden {
           display: none;
         }
+        /* Always-visible panel that carries the [STATUS] line, the
+           limitations <details>, the honesty disclaimer and the Ko-fi
+           pitch. Sits between the hero and the workspace so it persists
+           through every state of the flow (dropzone, processing, result). */
+        .status-panel {
+          padding: var(--space-3, 0.75rem) var(--space-6, 1.5rem) var(--space-4, 1rem);
+        }
         h1 {
           font-size: var(--text-2xl, 1.5rem);
           font-weight: var(--font-bold, 700);
@@ -629,6 +636,17 @@ export class ArApp extends HTMLElement {
           cursor: pointer;
           transition: color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
         }
+        /* Prompt that sits above the Editor button and tells the user
+           why they might want it. Lives in the action column rather
+           than as part of the button label so the button itself stays
+           tight and the prompt can wrap on narrow viewports. */
+        .advanced-prompt {
+          margin: 0 0 4px;
+          font-family: 'JetBrains Mono', monospace;
+          font-size: 12px;
+          line-height: 1.4;
+          color: var(--color-text-tertiary, #00b34a);
+        }
         .advanced-cta {
           width: 100%;
           background: transparent;
@@ -942,8 +960,18 @@ export class ArApp extends HTMLElement {
         <ar-dropzone></ar-dropzone>
         <ar-batch-grid id="batch-grid" style="display:none"></ar-batch-grid>
 
-        <!-- Consolidated status line replaces model-status + reactor-support
-             + features-disclaimer; the honesty copy lives in <details>. -->
+        <button class="install-btn" id="install-btn" aria-label="${t('pwa.install')}">${isAppInstalled() ? t('pwa.installed') : t('pwa.install')}</button>
+        <div class="install-guide" id="install-guide"></div>
+      </section>
+
+      <!-- Status panel: lifted out of <section.hero> so it stays visible
+           during processing AND on the result screen — users wanted the
+           [STATUS] line, the limitations details, the honesty disclaimer
+           and the Ko-fi pitch present at every stage of the flow, not
+           only on the dropzone. Class names kept (.status-line,
+           .hero-disclaimer, .hero-support) so existing CSS selectors and
+           regex-based component tests still match. -->
+      <aside class="status-panel" id="status-panel">
         <p class="status-line" id="status-line">
           <span class="status-tag">[STATUS]</span>
           <span class="status-dot">●</span>
@@ -956,17 +984,9 @@ export class ArApp extends HTMLElement {
             <div class="status-limits-body" id="status-limits-body">${t('features.limitations')}</div>
           </details>
         </p>
-
-        <!-- Honesty + support pitch — used to live next to the Reactor
-             segmented control. Brought back so the hero still tells the
-             user we're not perfect and points at Ko-fi without the
-             power-mode machinery. -->
         <p class="hero-disclaimer" id="hero-disclaimer">${t('features.disclaimer')}</p>
         <p class="hero-support" id="hero-support">${t('support.kofi')}</p>
-
-        <button class="install-btn" id="install-btn" aria-label="${t('pwa.install')}">${isAppInstalled() ? t('pwa.installed') : t('pwa.install')}</button>
-        <div class="install-guide" id="install-guide"></div>
-      </section>
+      </aside>
 
       <section class="workspace" id="workspace" aria-label="Image processing workspace">
         <div class="workspace-inner">
@@ -1006,7 +1026,8 @@ export class ArApp extends HTMLElement {
             <div class="ws-action-col" id="ws-action-col">
               <ar-download></ar-download>
               <button class="edit-btn" id="edit-btn" style="display:none">${t('edit.btn')}</button>
-              <button class="advanced-cta" id="advanced-cta" style="display:none">${t('advanced.cta')}</button>
+              <p class="advanced-prompt" id="advanced-prompt" style="display:none">${t('advanced.cta')}</p>
+              <button class="advanced-cta" id="advanced-cta" style="display:none">${t('advanced.btn')}</button>
             </div>
           </div>
           <ar-editor style="display:none" id="editor-section"></ar-editor>
@@ -1124,6 +1145,10 @@ export class ArApp extends HTMLElement {
     if (statusLimBody) statusLimBody.innerHTML = t('features.limitations');
     const editBtn = root.querySelector('#edit-btn');
     if (editBtn) editBtn.textContent = this.preEditResult ? t('edit.discard') : t('edit.btn');
+    const advancedPrompt = root.querySelector('#advanced-prompt');
+    if (advancedPrompt) advancedPrompt.textContent = t('advanced.cta');
+    const advancedBtn = root.querySelector('#advanced-cta');
+    if (advancedBtn) advancedBtn.textContent = t('advanced.btn');
     this.installer?.refreshText();
     const backBtnEl = root.querySelector('#back-to-grid-btn');
     if (backBtnEl) backBtnEl.textContent = t('batch.backToGrid');
@@ -1456,12 +1481,17 @@ export class ArApp extends HTMLElement {
     );
   }
 
-  // Advanced CTA replaces the edit-btn when visible.
+  // Advanced CTA replaces the edit-btn when visible. The Editor button
+  // and its #advanced-prompt sentence ("Not satisfied with the
+  // result?" / equivalent locale) appear together — the prompt lives
+  // outside the button so the button label stays tight.
   private setAdvancedBtnVisible(show: boolean): void {
     const cta = this.shadowRoot?.querySelector('#advanced-cta') as HTMLElement | null;
+    const prompt = this.shadowRoot?.querySelector('#advanced-prompt') as HTMLElement | null;
     const editBtn = this.shadowRoot?.querySelector('#edit-btn') as HTMLElement | null;
     if (!cta) return;
     cta.style.display = show ? 'block' : 'none';
+    if (prompt) prompt.style.display = show ? 'block' : 'none';
     if (editBtn) editBtn.style.display = 'none';
   }
 
