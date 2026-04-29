@@ -2,6 +2,7 @@ import type {
   PipelineStage,
   StageStatus,
   PipelineResult,
+  BgColorResult,
   WatermarkResult,
   ImageContentType,
 } from '../types/pipeline';
@@ -578,14 +579,19 @@ export class PipelineOrchestrator {
     let t = performance.now();
     this.emit('detect-background', 'running', 'Analyzing image...');
 
-    // bg-color detection retired alongside watermarkDetect (its only
-    // consumer) — see watermark-scan stage below for context. Classifier
-    // still runs.
-    const classifyResult = await this.cvCall<ClassifyImageResult>('classify-image', {
-      pixels: new Uint8ClampedArray(imageData.data),
-      width,
-      height,
-    });
+    // Run bg detection and content classification in parallel
+    const [bgInfo, classifyResult] = await Promise.all([
+      this.cvCall<BgColorResult>('detect-bg-colors', {
+        pixels: new Uint8ClampedArray(imageData.data),
+        width,
+        height,
+      }),
+      this.cvCall<ClassifyImageResult>('classify-image', {
+        pixels: new Uint8ClampedArray(imageData.data),
+        width,
+        height,
+      }),
+    ]);
 
     const contentType: ImageContentType = classifyResult.type;
     stageTiming['detect-background'] = performance.now() - t;
@@ -629,14 +635,14 @@ export class PipelineOrchestrator {
       t = performance.now();
       this.emit('watermark-scan', 'running', 'Checking for watermarks...');
 
-      // Color-deviation watermarkDetect retired: it had no shape gate so it
-      // false-positived on real photos with bright clustered features in
-      // the bottom-right (motorbike chrome, skin highlights in portraits,
-      // etc.). The shape-based sparkleDetect handles Gemini sparkles
-      // robustly; watermarkDetectDalle handles the multicolor bar.
-      // Reference: motostest + selfie-clean-corner regression triage,
-      // 2026-04-28.
-      const [wmDalle, wmSparkle] = await Promise.all([
+      const [wmGemini, wmDalle, wmSparkle] = await Promise.all([
+        this.cvCall<WatermarkResult>('watermark-detect', {
+          pixels: new Uint8ClampedArray(imageData.data),
+          width,
+          height,
+          colorA: bgInfo.colorA,
+          colorB: bgInfo.colorB,
+        }),
         this.cvCall<WatermarkResult>('watermark-detect-dalle', {
           pixels: new Uint8ClampedArray(imageData.data),
           width,
@@ -649,14 +655,31 @@ export class PipelineOrchestrator {
         }),
       ]);
 
-      const anyWatermark = wmDalle.detected || wmSparkle.detected;
+      // The legacy color-deviation `watermarkDetect` produces a high-quality
+      // cluster-centroid mask but has NO shape gate, so it false-positives on
+      // real photos with bright clustered features in the bottom-right
+      // (motorbike chrome, skin highlights, etc. — see issue triage that
+      // motivated the original PR #223 retirement). The shape-based
+      // `sparkleDetect` adds 6 strict gates (4-arm symmetry, narrow-arm
+      // isolation, center peak vs outer ring, etc.) that reliably reject
+      // those false-positives but its own mask is just a simple circle at
+      // the score-landscape best-fit point.
+      //
+      // Combine their strengths: only trust the legacy mask when the shape
+      // detector ALSO confirms a real Gemini ✦. Together they kill the false
+      // positives without sacrificing the cluster-centroid mask quality that
+      // produced the clean 984b578b deploy on user's selfie.
+      const geminiConfirmed = wmGemini.detected && wmSparkle.detected;
+      const geminiMaskGated = geminiConfirmed ? wmGemini.mask : null;
+      const anyWatermark = geminiConfirmed || wmDalle.detected || wmSparkle.detected;
       const combinedMask = PipelineOrchestrator.combineMasks(
-        [wmDalle.mask, wmSparkle.mask],
+        [geminiMaskGated, wmDalle.mask, wmSparkle.mask],
         width * height,
       );
 
       if (anyWatermark && combinedMask) {
         const sources: string[] = [];
+        if (geminiConfirmed) sources.push('Gemini');
         if (wmDalle.detected) sources.push('DALL-E');
         if (wmSparkle.detected) sources.push('Gemini-shape');
         this.emit('watermark-scan', 'done', `Watermark detected [${sources.join(', ')}]`);

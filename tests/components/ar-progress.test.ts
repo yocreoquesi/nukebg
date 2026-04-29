@@ -45,14 +45,15 @@ describe('ar-progress — replay after reset', () => {
     document.body.innerHTML = '';
   });
 
-  it('after reset() alone, every icon slot is empty (this is the bug we fix)', () => {
+  it('after reset() alone, no stages are rendered (pending stages are hidden)', () => {
     const el = mount();
     el.reset();
     const stages = stageEls(el);
-    expect(stages.length).toBeGreaterThan(0);
-    for (const s of stages) {
-      expect(iconHtml(s)).toBe('');
-    }
+    // Pending stages are filtered out of the render entirely; the
+    // log row stays empty until pipeline emits its first running event.
+    // This replaces the previous regression test that asserted empty
+    // icon slots — that surface was confusing users mid-pipeline.
+    expect(stages.length).toBe(0);
   });
 
   it('replays a full success history — every visible stage has a done icon', () => {
