@@ -978,21 +978,6 @@ export class ArApp extends HTMLElement {
             <button class="batch-discard-btn" id="batch-discard-btn">${t('batch.discard')}</button>
           </div>
           <div class="single-file-workspace" id="single-file-workspace">
-          <div class="command-bar" id="command-bar" role="status" aria-live="polite">
-            <div class="cmd-left">
-              <span class="cmd-prompt">$</span>
-              <span class="cmd-action">nukea</span>
-              <span class="cmd-filename" id="cmd-filename">image.png</span>
-              <span class="cmd-meta" id="cmd-meta"></span>
-              <span class="cmd-state" id="cmd-state" hidden>
-                <span class="cmd-state-dot">●</span>
-                <span class="cmd-state-label" id="cmd-state-label">${t('cmdbar.running')}</span>
-              </span>
-            </div>
-            <div class="cmd-right">
-              <button type="button" class="cmd-btn cmd-btn-danger" id="cmd-cancel" hidden>${t('cmdbar.cancel')}</button>
-            </div>
-          </div>
           <!-- Two-column workspace at ≥ 900 px: viewer on the left,
                action column (download, edit, advanced) on the right
                so the result gets immediate presence next to the
@@ -1008,6 +993,27 @@ export class ArApp extends HTMLElement {
               <button class="edit-btn" id="edit-btn" style="display:none">${t('edit.btn')}</button>
               <p class="advanced-prompt" id="advanced-prompt" style="display:none">${t('advanced.cta')}</p>
               <button class="advanced-cta" id="advanced-cta" style="display:none">${t('advanced.btn')}</button>
+            </div>
+          </div>
+          <!-- Command bar moved BELOW the viewer / action grid: the
+               user did not want "$ nukea file.png · ... · ready"
+               appearing ABOVE the image when processing finished or
+               was cancelled. The bar still owns the same status
+               role / aria-live region; only the DOM position
+               changed. -->
+          <div class="command-bar" id="command-bar" role="status" aria-live="polite">
+            <div class="cmd-left">
+              <span class="cmd-prompt">$</span>
+              <span class="cmd-action">nukea</span>
+              <span class="cmd-filename" id="cmd-filename">image.png</span>
+              <span class="cmd-meta" id="cmd-meta"></span>
+              <span class="cmd-state" id="cmd-state" hidden>
+                <span class="cmd-state-dot">●</span>
+                <span class="cmd-state-label" id="cmd-state-label">${t('cmdbar.running')}</span>
+              </span>
+            </div>
+            <div class="cmd-right">
+              <button type="button" class="cmd-btn cmd-btn-danger" id="cmd-cancel" hidden>${t('cmdbar.cancel')}</button>
             </div>
           </div>
           <ar-editor style="display:none" id="editor-section"></ar-editor>
@@ -1692,10 +1698,26 @@ export class ArApp extends HTMLElement {
       if (editorSection) editorSection.style.display = 'none';
     } catch (err) {
       if (this.processingAborted) return;
-      // Abort is an expected outcome when the user drops a new image
-      // mid-process or cancels a batch. Swallow it silently; the new
-      // run (if any) will clear the progress UI on its own.
-      if (err instanceof PipelineAbortError) return;
+      // Abort is an expected outcome and comes from three places, each
+      // with its own AbortController reason:
+      //   - 'user cancelled'      → user clicked Cancel in the cmdbar
+      //   - 'new image dropped'   → another file landed; new run is
+      //                             about to take over, leave its
+      //                             progress.reset() in charge
+      //   - 'batch aborted' / etc → batch flow tearing down
+      // For 'user cancelled' we hard-reset back to the landing/dropzone
+      // and purge the in-flight image data so the tab returns to the
+      // idle state the user expects ("nothing in flight, no image
+      // sitting in memory"). The pipeline itself stays alive so the
+      // already-cached RMBG model survives — next drop is fast.
+      // Other abort reasons fall through to a silent return; the new
+      // run (if any) owns the UI from there.
+      if (err instanceof PipelineAbortError) {
+        if (err.message === 'user cancelled') {
+          this.resetToIdle();
+        }
+        return;
+      }
       console.error('Pipeline error:', err);
       const msg = err instanceof Error ? err.message : String(err);
       this.progress.setStage('ml-segmentation', 'error', t('pipeline.error', { msg }));
