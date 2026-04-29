@@ -2,14 +2,14 @@ import { SPARKLE_PARAMS } from '../../pipeline/constants';
 import type { WatermarkResult } from '../../types/pipeline';
 
 /** Returns true when the pixel matches the Gemini sparkle palette: a
- *  near-white or slightly cyan-tinted bright pixel. The original ✦ glyph
- *  is pure white (#FFFFFF) with a light blue halo (~#A0D8E0) that JPEG
- *  rounds into a tight high-luminance / low-saturation region. Used to
- *  gate halo expansion so we mask the natural halo without painting over
- *  unrelated bright neighbors (skin highlights, chrome, sun glare). */
+ *  bright low-saturation (or slight-cyan-tint) pixel. The `max` floor is
+ *  configurable (`SPARKLE_PARAMS.PALETTE_MIN_MAX`) so dim/aliased ✦ glyphs
+ *  on JPEG-compressed photos still match. Saturation cap rejects skin
+ *  tones, grass, and other colored objects so the flood-fill doesn't walk
+ *  out of the sparkle into the subject. */
 function isGeminiSparkleColor(r: number, g: number, b: number): boolean {
   const max = Math.max(r, g, b);
-  if (max < 200) return false;
+  if (max < SPARKLE_PARAMS.PALETTE_MIN_MAX) return false;
   const min = Math.min(r, g, b);
   const saturation = max - min;
   if (saturation <= 35) return true;
@@ -224,34 +224,89 @@ export function sparkleDetect(
     return { detected: false, mask: null };
   }
 
-  // Build mask: tight circular core + palette-gated halo ring.
-  // Core covers the ✦ shape; the halo ring catches near-white halo pixels
-  // (the soft glow Gemini renders around the glyph) so RMBG doesn't later
-  // classify them as background and leave transparent dots after inpaint.
-  const mask = new Uint8Array(width * height);
-  const coreR = Math.ceil(bestR * SPARKLE_PARAMS.MASK_RADIUS_MULTIPLIER);
-  const haloR = Math.ceil(bestR * SPARKLE_PARAMS.HALO_RADIUS_MULTIPLIER);
-  const coreR2 = coreR * coreR;
-  const haloR2 = haloR * haloR;
-  const y0 = Math.max(0, bestY - haloR);
-  const y1 = Math.min(height, bestY + haloR + 1);
-  const x0 = Math.max(0, bestX - haloR);
-  const x1 = Math.min(width, bestX + haloR + 1);
-  for (let y = y0; y < y1; y++) {
+  // Relocate the mask center from the detector's reported (bestY, bestX)
+  // to the brightest palette-matching pixel within `bestR`. The detector's
+  // 4-arm score landscape can place the center 30-40 px off the actual ✦
+  // peak when one cardinal hits the sparkle and the others land in nearby
+  // bright sky — building the mask around the true peak keeps it confined
+  // to the visible glyph instead of spreading toward whatever the detector
+  // accidentally sampled.
+  let peakY = bestY;
+  let peakX = bestX;
+  let peakLum = lum[bestY * width + bestX];
+  const searchR = Math.ceil(bestR * SPARKLE_PARAMS.PEAK_SEARCH_RADIUS_MULTIPLIER);
+  const sy0 = Math.max(0, bestY - searchR);
+  const sy1 = Math.min(height, bestY + searchR + 1);
+  const sx0 = Math.max(0, bestX - searchR);
+  const sx1 = Math.min(width, bestX + searchR + 1);
+  for (let y = sy0; y < sy1; y++) {
     const dy = y - bestY;
-    const dy2 = dy * dy;
-    const row = y * width;
-    for (let x = x0; x < x1; x++) {
+    for (let x = sx0; x < sx1; x++) {
       const dx = x - bestX;
-      const d2 = dx * dx + dy2;
-      if (d2 <= coreR2) {
-        mask[row + x] = 1;
-      } else if (d2 <= haloR2) {
-        const i = (row + x) * 4;
-        if (isGeminiSparkleColor(pixels[i], pixels[i + 1], pixels[i + 2])) {
-          mask[row + x] = 1;
-        }
+      if (dx * dx + dy * dy > searchR * searchR) continue;
+      const pi = (y * width + x) * 4;
+      if (!isGeminiSparkleColor(pixels[pi], pixels[pi + 1], pixels[pi + 2])) continue;
+      const l = lum[y * width + x];
+      if (l > peakLum) {
+        peakLum = l;
+        peakY = y;
+        peakX = x;
       }
+    }
+  }
+
+  // Build mask via brightness-and-palette flood-fill from the relocated
+  // peak. Spatial bound = min(haloR-multiplier × bestR, absolute cap) so
+  // an inflated bestR can't drag the mask into adjacent subjects.
+  const mask = new Uint8Array(width * height);
+  const haloR = Math.min(
+    Math.ceil(bestR * SPARKLE_PARAMS.HALO_RADIUS_MULTIPLIER),
+    SPARKLE_PARAMS.HALO_RADIUS_ABS_CAP,
+  );
+  const haloR2 = haloR * haloR;
+  const minLum = peakLum * SPARKLE_PARAMS.HALO_BRIGHTNESS_RATIO;
+
+  // Tiny seed disk around the relocated peak so anti-aliased peak pixels
+  // are always masked before the flood expands.
+  const queue: number[] = [];
+  const seedR = SPARKLE_PARAMS.SEED_RADIUS;
+  const seedR2 = seedR * seedR;
+  for (let dy = -seedR; dy <= seedR; dy++) {
+    for (let dx = -seedR; dx <= seedR; dx++) {
+      if (dx * dx + dy * dy > seedR2) continue;
+      const sy = peakY + dy;
+      const sx = peakX + dx;
+      if (sy < 0 || sy >= height || sx < 0 || sx >= width) continue;
+      const sIdx = sy * width + sx;
+      if (!mask[sIdx]) {
+        mask[sIdx] = 1;
+        queue.push(sIdx);
+      }
+    }
+  }
+
+  // 4-neighbor BFS — gates: within haloR distance from the relocated peak,
+  // luminance ≥ minLum, palette match (low-sat or slight cyan tint, dim
+  // floor PALETTE_MIN_MAX). Together these reject skin, dark bezels,
+  // grass, etc. while still walking through dim near-white halo pixels.
+  while (queue.length > 0) {
+    const idx = queue.pop()!;
+    const y = (idx / width) | 0;
+    const x = idx - y * width;
+    for (let nb = 0; nb < 4; nb++) {
+      const ny = y + (nb === 0 ? -1 : nb === 1 ? 1 : 0);
+      const nx = x + (nb === 2 ? -1 : nb === 3 ? 1 : 0);
+      if (ny < 0 || ny >= height || nx < 0 || nx >= width) continue;
+      const nIdx = ny * width + nx;
+      if (mask[nIdx]) continue;
+      const dly = ny - peakY;
+      const dlx = nx - peakX;
+      if (dly * dly + dlx * dlx > haloR2) continue;
+      if (lum[nIdx] < minLum) continue;
+      const pi = nIdx * 4;
+      if (!isGeminiSparkleColor(pixels[pi], pixels[pi + 1], pixels[pi + 2])) continue;
+      mask[nIdx] = 1;
+      queue.push(nIdx);
     }
   }
 

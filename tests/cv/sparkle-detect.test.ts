@@ -196,14 +196,18 @@ describe('sparkleDetect', () => {
     paintSparkle(pixels, w, cx, cy, radius, [240, 240, 240]);
     // Wide near-white annulus surrounding the shape — deliberately oversized
     // so it covers any haloR the detector ends up using.
-    paintHaloAnnulus(pixels, w, cx, cy, radius + 2, 50, [230, 230, 235]);
+    // Mid-bright near-white halo: bright enough for flood-fill brightness
+    // floor (lum ≈ 180 vs centerLum*0.65 ≈ 156), low enough that detector
+    // gates (G4 outer-ring contrast) still pass.
+    paintHaloAnnulus(pixels, w, cx, cy, radius, 50, [210, 210, 210]);
 
     const result = sparkleDetect(pixels, w, h);
     expect(result.detected).toBe(true);
 
     // A meaningful number of the near-white halo pixels MUST be masked —
-    // proves halo expansion picked them up via the palette gate.
-    const masked = countMaskedWithColor(result.mask!, pixels, [230, 230, 235]);
+    // proves the brightness+palette flood-fill walked into the halo
+    // through the connected near-white region.
+    const masked = countMaskedWithColor(result.mask!, pixels, [210, 210, 210]);
     expect(masked).toBeGreaterThan(20);
   });
 

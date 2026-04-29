@@ -59,20 +59,36 @@ export const SPARKLE_PARAMS = {
    *  neighbors. Real Gemini sparkle arms are narrow lines — perpendicular
    *  samples land in dark gap territory. */
   MAX_PERP_ARM_RATIO: 0.8,
-  /** Core mask radius multiplier (applied to detected sparkle radius).
-   *  Tight by design — the actual ✦ shape is fully covered well within
-   *  this radius. The natural near-white halo is masked separately by
-   *  the palette-gated outer ring (HALO_RADIUS_MULTIPLIER) so this can
-   *  stay snug and avoid the "flat patch" artifact on uniform regions. */
-  MASK_RADIUS_MULTIPLIER: 1.2,
-  /** Outer halo radius multiplier. Pixels between MASK_RADIUS_MULTIPLIER
-   *  and this radius are added to the mask ONLY if they match the Gemini
-   *  sparkle palette (near-white / slight cyan tint). Ports the legacy
-   *  watermark-detect halo-expansion behavior into the shape detector
-   *  without reintroducing its false-positive surface (#223). Fixes the
-   *  transparent-dot regression on selfies where the natural halo bled
-   *  into RMBG's background classification. */
+  /** Maximum mask spread from the (relocated) sparkle peak (multiplier of
+   *  `bestR`). Bounds the brightness-and-palette flood-fill so it can't
+   *  walk across the whole sky into adjacent subjects. */
   HALO_RADIUS_MULTIPLIER: 2.0,
+  /** Absolute pixel cap on mask radius, regardless of `bestR`. The detector
+   *  may pick the largest scale (55) when the sparkle's fixed-shape pattern
+   *  partially aligns with bright corner pixels, producing an inflated
+   *  bestR. This cap keeps the mask physically bounded to the typical
+   *  Gemini sparkle size, even when bestR over-estimates. */
+  HALO_RADIUS_ABS_CAP: 40,
+  /** Brightness floor for flood-fill expansion, expressed as a fraction of
+   *  the relocated peak pixel's luminance. A neighbor must satisfy
+   *  `lum(n) ≥ peakLum × this` to be added to the mask. */
+  HALO_BRIGHTNESS_RATIO: 0.65,
+  /** Minimum `max(R,G,B)` for a pixel to count as palette-match in the
+   *  flood-fill. The legacy 200 floor was too strict for dim/aliased ✦
+   *  glyphs in JPEG-compressed photos (peaks land around 180-195). 150
+   *  catches them while still excluding mid-luminance saturated regions
+   *  (skin, grass, bezels) via the saturation half of the gate. */
+  PALETTE_MIN_MAX: 150,
+  /** Tiny anti-aliasing seed radius around the (relocated) peak, ensuring
+   *  the very peak is masked even if its single-pixel sample dipped due
+   *  to sub-pixel placement of the ✦. */
+  SEED_RADIUS: 2,
+  /** Search radius (multiplier of `bestR`) used to relocate the mask center
+   *  from the detector's reported `(bestY, bestX)` to the brightest local
+   *  pixel. The detector's score landscape can place the center 30-40 px
+   *  off the actual peak when one cardinal arm lands on the sparkle and
+   *  the others hit nearby bright sky. */
+  PEAK_SEARCH_RADIUS_MULTIPLIER: 1.0,
 } as const;
 
 export const DALLE_WATERMARK_PARAMS = {
