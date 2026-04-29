@@ -225,16 +225,18 @@ export function sparkleDetect(
   }
 
   // Relocate the mask center from the detector's reported (bestY, bestX)
-  // to the brightest palette-matching pixel within `bestR`. The detector's
-  // 4-arm score landscape can place the center 30-40 px off the actual ✦
-  // peak when one cardinal hits the sparkle and the others land in nearby
-  // bright sky — building the mask around the true peak keeps it confined
-  // to the visible glyph instead of spreading toward whatever the detector
-  // accidentally sampled.
+  // to the brightest palette-matching pixel within the search box. The
+  // detector's 4-arm score landscape can place the center 30-40 px off
+  // the actual ✦ peak when one cardinal hits the sparkle and the others
+  // land in nearby bright sky. Effective radius = max(bestR × mult, MIN)
+  // so even a small bestR (14) reaches far enough to find the real peak.
   let peakY = bestY;
   let peakX = bestX;
   let peakLum = lum[bestY * width + bestX];
-  const searchR = Math.ceil(bestR * SPARKLE_PARAMS.PEAK_SEARCH_RADIUS_MULTIPLIER);
+  const searchR = Math.max(
+    Math.ceil(bestR * SPARKLE_PARAMS.PEAK_SEARCH_RADIUS_MULTIPLIER),
+    SPARKLE_PARAMS.PEAK_SEARCH_RADIUS_MIN,
+  );
   const sy0 = Math.max(0, bestY - searchR);
   const sy1 = Math.min(height, bestY + searchR + 1);
   const sx0 = Math.max(0, bestX - searchR);
@@ -255,6 +257,31 @@ export function sparkleDetect(
     }
   }
 
+  // Probe the actual glyph extent in the 4 cardinal directions. Walking
+  // outward from the relocated peak, count consecutive pixels with
+  // `lum >= peakLum × ratio`. The MAX of the four extents becomes the
+  // polygon arm length — so the mask adapts to the rendered glyph
+  // regardless of which `bestR` the detector picked. Taking the MAX
+  // (not the average) is intentional: an asymmetric glyph (half on
+  // bright sky, half on darker skin) shortens the on-skin probe but
+  // not the on-sky one; using the max ensures both arms are covered.
+  const minExtentLum = peakLum * SPARKLE_PARAMS.EXTENT_PROBE_BRIGHTNESS_RATIO;
+  const probeCap = SPARKLE_PARAMS.HALO_RADIUS_ABS_CAP;
+  const probe = (dy: number, dx: number): number => {
+    for (let i = 1; i <= probeCap; i++) {
+      const y = peakY + dy * i;
+      const x = peakX + dx * i;
+      if (y < 0 || y >= height || x < 0 || x >= width) return i - 1;
+      if (lum[y * width + x] < minExtentLum) return i - 1;
+    }
+    return probeCap;
+  };
+  const extN = probe(-1, 0);
+  const extS = probe(1, 0);
+  const extW = probe(0, -1);
+  const extE = probe(0, 1);
+  const probedExtent = Math.max(extN, extS, extE, extW);
+
   // Build mask by rasterizing the ✦ glyph footprint at the relocated peak.
   // Shape-based instead of brightness/palette flood-fill so the mask
   // covers the entire visible glyph regardless of what's underneath —
@@ -264,15 +291,13 @@ export function sparkleDetect(
   // content-aware fill; if the mask doesn't cover the on-skin half, no
   // inpaint quality can rescue it.
   //
-  // Geometry mirrors the rendered Gemini glyph and the test fixture's
-  // `paintSparkle`: 4 cardinal arms tapering from a base half-width
-  // (CORE_RADIUS_MULTIPLIER × bestR scaled) to 1 px at the tip, plus a
-  // central disk. Arm length is bounded by both ARM_LENGTH_MULTIPLIER ×
-  // bestR and the absolute cap HALO_RADIUS_ABS_CAP — so an over-estimated
-  // bestR cannot drag the mask into adjacent subjects.
+  // armLen = max(probedExtent, ARM_LENGTH_MULTIPLIER × bestR), bounded by
+  // HALO_RADIUS_ABS_CAP. The bestR-derived floor guards against degenerate
+  // probes (peak in a dim region); the absolute cap stops an over-bright
+  // sky probe from stretching into adjacent subjects.
   const mask = new Uint8Array(width * height);
   const armLen = Math.min(
-    Math.round(bestR * SPARKLE_PARAMS.ARM_LENGTH_MULTIPLIER),
+    Math.max(probedExtent, Math.round(bestR * SPARKLE_PARAMS.ARM_LENGTH_MULTIPLIER)),
     SPARKLE_PARAMS.HALO_RADIUS_ABS_CAP,
   );
   const coreR = Math.max(2, Math.round(bestR * SPARKLE_PARAMS.CORE_RADIUS_MULTIPLIER));
@@ -303,6 +328,19 @@ export function sparkleDetect(
       const inCore = dx * dx + dy * dy <= coreR2;
       if (inHArm || inVArm || inCore) mask[row + x] = 1;
     }
+  }
+
+  // Diagnostic log — surfaces detector vs. relocated peak vs. probed
+  // extents so a mis-anchored polygon can be identified from a single
+  // console line in dev. Quiet in production builds (Vite defines
+  // `import.meta.env.DEV` based on mode).
+  if (typeof import.meta.env !== 'undefined' && import.meta.env.DEV) {
+    // eslint-disable-next-line no-console
+    console.log(
+      `[NukeBG sparkle] bestR=${bestR} det=(${bestY},${bestX}) ` +
+        `peak=(${peakY},${peakX}) peakLum=${peakLum.toFixed(0)} ` +
+        `extents=N${extN}/S${extS}/E${extE}/W${extW} armLen=${armLen}`,
+    );
   }
 
   return {

@@ -89,8 +89,27 @@ export const SPARKLE_PARAMS = {
    *  from the detector's reported `(bestY, bestX)` to the brightest local
    *  pixel. The detector's score landscape can place the center 30-40 px
    *  off the actual peak when one cardinal arm lands on the sparkle and
-   *  the others hit nearby bright sky. */
-  PEAK_SEARCH_RADIUS_MULTIPLIER: 1.0,
+   *  the others hit nearby bright sky. Effective search radius is
+   *  `max(bestR × this, PEAK_SEARCH_RADIUS_MIN)` — the absolute floor
+   *  guards against small `bestR` (e.g. 14) where a 1× multiplier
+   *  doesn't reach the actual peak. */
+  PEAK_SEARCH_RADIUS_MULTIPLIER: 2.0,
+  /** Absolute pixel floor for peak-relocation search radius, regardless
+   *  of `bestR`. With `bestR=14` and a 1× multiplier the previous
+   *  search box was only 14 px wide — when the detector's centre
+   *  landed at a glyph tip, that wasn't enough to reach the real
+   *  centre and the polygon got anchored at the tip. 50 px guarantees
+   *  the actual ✦ centre is in scope at all sane glyph sizes. */
+  PEAK_SEARCH_RADIUS_MIN: 50,
+  /** Brightness ratio (vs. relocated peak luminance) used by the 1D
+   *  cardinal probe that measures the actual glyph extent. Walking
+   *  outward from the peak along N/S/E/W, a pixel "still belongs to
+   *  the glyph" while `lum >= peakLum × this`. The MAX of the four
+   *  measured extents becomes the polygon's arm length, so the mask
+   *  adapts to the rendered glyph regardless of which `bestR` the
+   *  detector picked. 0.5 catches dim arm tips on JPEG-compressed
+   *  inputs without bleeding into background highlights. */
+  EXTENT_PROBE_BRIGHTNESS_RATIO: 0.5,
 } as const;
 
 export const DALLE_WATERMARK_PARAMS = {
