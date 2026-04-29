@@ -224,134 +224,123 @@ export function sparkleDetect(
     return { detected: false, mask: null };
   }
 
-  // Relocate the mask center from the detector's reported (bestY, bestX)
-  // to the brightest palette-matching pixel within the search box. The
-  // detector's 4-arm score landscape can place the center 30-40 px off
-  // the actual ✦ peak when one cardinal hits the sparkle and the others
-  // land in nearby bright sky. Effective radius = max(bestR × mult, MIN)
-  // so even a small bestR (14) reaches far enough to find the real peak.
-  let peakY = bestY;
-  let peakX = bestX;
-  let peakLum = lum[bestY * width + bestX];
-  const searchR = Math.max(
-    Math.ceil(bestR * SPARKLE_PARAMS.PEAK_SEARCH_RADIUS_MULTIPLIER),
-    SPARKLE_PARAMS.PEAK_SEARCH_RADIUS_MIN,
+  // Build the mask via palette-cluster centroid + bbox-derived radius.
+  // Port of the proven legacy `watermarkDetect` mask-building from the
+  // 984b578b deploy: scan the bottom-right corner, collect every
+  // palette-matching pixel, anchor a circular mask on their centroid
+  // with radius derived from their bounding box.
+  //
+  // Why this is the right strategy after shape detection passes:
+  //   - Shape detector's `(bestY, bestX)` comes from the score landscape
+  //     of the 4-arm pattern — it can be 30-50 px off the visual centroid
+  //     of the rendered glyph (the on-axis cardinal arm + bright sky
+  //     interference can produce a high score off the real peak).
+  //   - The cluster centroid IS, by construction, the visual centroid of
+  //     the bright palette pixels. The bbox tells us how far the glyph
+  //     extends, regardless of which `bestR` the detector picked.
+  //   - The CORE of the mask (`radius * MASK_RADIUS_MULTIPLIER`) is solid
+  //     and unconditional — covers the entire glyph, including the
+  //     anti-aliased on-skin half whose pixels don't pass the palette
+  //     gate themselves. This is what makes the legacy approach work
+  //     where the shape-polygon failed.
+  //
+  // False-positive risk that originally retired the legacy detector
+  // (motorcycle chrome, skin highlights) is neutralized here because
+  // the 4-arm shape gates G1-G6 above already qualified the input as
+  // a real Gemini ✦ before this code runs.
+  // Scan a generous window around the shape detector's `(bestY, bestX)`
+  // — NOT the whole corner. The shape gates G1-G6 already qualified
+  // the input as a real Gemini ✦, so we only need to focus on pixels
+  // near it. A whole-corner sweep is contaminated by unrelated bright
+  // clusters (clothing highlights, sun-lit foliage) which drag the
+  // centroid 80-100 px off the true sparkle.
+  const scanR = Math.max(
+    bestR * SPARKLE_PARAMS.CLUSTER_SCAN_RADIUS_MULTIPLIER,
+    SPARKLE_PARAMS.CLUSTER_SCAN_RADIUS_MIN,
   );
-  const sy0 = Math.max(0, bestY - searchR);
-  const sy1 = Math.min(height, bestY + searchR + 1);
-  const sx0 = Math.max(0, bestX - searchR);
-  const sx1 = Math.min(width, bestX + searchR + 1);
-  for (let y = sy0; y < sy1; y++) {
-    const dy = y - bestY;
-    for (let x = sx0; x < sx1; x++) {
-      const dx = x - bestX;
-      if (dx * dx + dy * dy > searchR * searchR) continue;
-      const pi = (y * width + x) * 4;
+  const scanY0 = Math.max(0, bestY - scanR);
+  const scanY1 = Math.min(height, bestY + scanR + 1);
+  const scanX0 = Math.max(0, bestX - scanR);
+  const scanX1 = Math.min(width, bestX + scanR + 1);
+  let sumY = 0;
+  let sumX = 0;
+  let cMinY = Infinity;
+  let cMaxY = -Infinity;
+  let cMinX = Infinity;
+  let cMaxX = -Infinity;
+  let clusterCount = 0;
+  for (let y = scanY0; y < scanY1; y++) {
+    const row = y * width;
+    for (let x = scanX0; x < scanX1; x++) {
+      const pi = (row + x) * 4;
       if (!isGeminiSparkleColor(pixels[pi], pixels[pi + 1], pixels[pi + 2])) continue;
-      const l = lum[y * width + x];
-      if (l > peakLum) {
-        peakLum = l;
-        peakY = y;
-        peakX = x;
+      sumY += y;
+      sumX += x;
+      if (y < cMinY) cMinY = y;
+      if (y > cMaxY) cMaxY = y;
+      if (x < cMinX) cMinX = x;
+      if (x > cMaxX) cMaxX = x;
+      clusterCount++;
+    }
+  }
+
+  const mask = new Uint8Array(width * height);
+  if (clusterCount < SPARKLE_PARAMS.CLUSTER_MIN_PALETTE_PIXELS) {
+    // Shape-detect passed but the palette cluster is degenerate. Refuse
+    // to build a mask rather than guess — the inpaint stage will see
+    // an empty mask and skip cleanly.
+    // eslint-disable-next-line no-console
+    console.warn(
+      `[NukeBG sparkle v=cluster-1] bestR=${bestR} det=(${bestY},${bestX}) ` +
+        `cluster=${clusterCount} (below MIN_PALETTE_PIXELS) — no mask built`,
+    );
+    return { detected: true, mask, centerX: bestX, centerY: bestY, radius: bestR };
+  }
+
+  const cyAbs = Math.round(sumY / clusterCount);
+  const cxAbs = Math.round(sumX / clusterCount);
+  const bboxHalfExtent = Math.floor(Math.max(cMaxY - cMinY, cMaxX - cMinX) / 2);
+  const rawRadius = bboxHalfExtent + SPARKLE_PARAMS.CLUSTER_BBOX_BUFFER_PX;
+  const maskRadius = Math.min(
+    Math.round(rawRadius * SPARKLE_PARAMS.MASK_RADIUS_MULTIPLIER),
+    SPARKLE_PARAMS.CLUSTER_MAX_RADIUS_ABS_CAP,
+  );
+  const maskRadius2 = maskRadius * maskRadius;
+
+  const y0 = Math.max(0, cyAbs - maskRadius);
+  const y1 = Math.min(height - 1, cyAbs + maskRadius);
+  const x0 = Math.max(0, cxAbs - maskRadius);
+  const x1 = Math.min(width - 1, cxAbs + maskRadius);
+  let maskCount = 0;
+  for (let y = y0; y <= y1; y++) {
+    const dy = y - cyAbs;
+    const dy2 = dy * dy;
+    const row = y * width;
+    for (let x = x0; x <= x1; x++) {
+      const dx = x - cxAbs;
+      if (dx * dx + dy2 <= maskRadius2) {
+        mask[row + x] = 1;
+        maskCount++;
       }
     }
   }
 
-  // Probe the actual glyph extent in the 4 cardinal directions. Walking
-  // outward from the relocated peak, count consecutive pixels with
-  // `lum >= peakLum × ratio`. The MAX of the four extents becomes the
-  // polygon arm length — so the mask adapts to the rendered glyph
-  // regardless of which `bestR` the detector picked. Taking the MAX
-  // (not the average) is intentional: an asymmetric glyph (half on
-  // bright sky, half on darker skin) shortens the on-skin probe but
-  // not the on-sky one; using the max ensures both arms are covered.
-  const minExtentLum = peakLum * SPARKLE_PARAMS.EXTENT_PROBE_BRIGHTNESS_RATIO;
-  const probeCap = SPARKLE_PARAMS.HALO_RADIUS_ABS_CAP;
-  const probe = (dy: number, dx: number): number => {
-    for (let i = 1; i <= probeCap; i++) {
-      const y = peakY + dy * i;
-      const x = peakX + dx * i;
-      if (y < 0 || y >= height || x < 0 || x >= width) return i - 1;
-      if (lum[y * width + x] < minExtentLum) return i - 1;
-    }
-    return probeCap;
-  };
-  const extN = probe(-1, 0);
-  const extS = probe(1, 0);
-  const extW = probe(0, -1);
-  const extE = probe(0, 1);
-  const probedExtent = Math.max(extN, extS, extE, extW);
-
-  // Build mask by rasterizing the ✦ glyph footprint at the relocated peak.
-  // Shape-based instead of brightness/palette flood-fill so the mask
-  // covers the entire visible glyph regardless of what's underneath —
-  // critical when the sparkle straddles a subject boundary (e.g. half on
-  // sky / half on the user's hand). The inpaint downstream (LaMa or
-  // PatchMatch via lama-router) reconstructs the masked pixels with
-  // content-aware fill; if the mask doesn't cover the on-skin half, no
-  // inpaint quality can rescue it.
-  //
-  // armLen = max(probedExtent, ARM_LENGTH_MULTIPLIER × bestR), bounded by
-  // HALO_RADIUS_ABS_CAP. The bestR-derived floor guards against degenerate
-  // probes (peak in a dim region); the absolute cap stops an over-bright
-  // sky probe from stretching into adjacent subjects.
-  const mask = new Uint8Array(width * height);
-  const armLen = Math.min(
-    Math.max(probedExtent, Math.round(bestR * SPARKLE_PARAMS.ARM_LENGTH_MULTIPLIER)),
-    SPARKLE_PARAMS.HALO_RADIUS_ABS_CAP,
-  );
-  const coreR = Math.max(2, Math.round(bestR * SPARKLE_PARAMS.CORE_RADIUS_MULTIPLIER));
-  const coreR2 = coreR * coreR;
-  const baseThickness = Math.max(
-    1,
-    Math.round(bestR * SPARKLE_PARAMS.ARM_BASE_THICKNESS_MULTIPLIER),
-  );
-
-  const y0 = Math.max(0, peakY - armLen);
-  const y1 = Math.min(height - 1, peakY + armLen);
-  const x0 = Math.max(0, peakX - armLen);
-  const x1 = Math.min(width - 1, peakX + armLen);
-  for (let y = y0; y <= y1; y++) {
-    const dy = y - peakY;
-    const ay = Math.abs(dy);
-    const row = y * width;
-    for (let x = x0; x <= x1; x++) {
-      const dx = x - peakX;
-      const ax = Math.abs(dx);
-      // L∞ distance from centre — drives the linear arm taper.
-      const dist = ax > ay ? ax : ay;
-      if (dist > armLen) continue;
-      // Tapering thickness: full at base, 1 px at tip.
-      const thickness = Math.max(1, Math.round(baseThickness * (1 - dist / armLen)));
-      const inHArm = ay <= thickness; // horizontal arm
-      const inVArm = ax <= thickness; // vertical arm
-      const inCore = dx * dx + dy * dy <= coreR2;
-      if (inHArm || inVArm || inCore) mask[row + x] = 1;
-    }
-  }
-
-  // Diagnostic log — surfaces detector vs. relocated peak vs. probed
-  // extents so a mis-anchored polygon can be identified from a single
-  // console line. Logged unconditionally (including production preview
-  // builds) while we stabilize the mask strategy on real photos. Tagged
-  // with `v=shape-2` so a stale Service Worker bundle is identifiable
-  // by the absence of this prefix. The log is one line per processed
-  // image and carries no PII.
-  let maskCount = 0;
-  for (let i = 0; i < mask.length; i++) if (mask[i]) maskCount++;
+  // Diagnostic log — palette-cluster strategy. Tagged `v=cluster-1` so
+  // a stale Service Worker bundle is identifiable by the missing prefix.
+  // Logged unconditionally (visible in preview/production builds) while
+  // we stabilize this on real photos. One line per image, no PII.
   // eslint-disable-next-line no-console
   console.warn(
-    `[NukeBG sparkle v=shape-2] bestR=${bestR} det=(${bestY},${bestX}) ` +
-      `peak=(${peakY},${peakX}) peakLum=${peakLum.toFixed(0)} ` +
-      `extents=N${extN}/S${extS}/E${extE}/W${extW} armLen=${armLen} ` +
-      `maskPx=${maskCount}`,
+    `[NukeBG sparkle v=cluster-1] bestR=${bestR} det=(${bestY},${bestX}) ` +
+      `centroid=(${cyAbs},${cxAbs}) cluster=${clusterCount} ` +
+      `bbox=${cMaxY - cMinY}x${cMaxX - cMinX} maskRadius=${maskRadius} maskPx=${maskCount}`,
   );
 
   return {
     detected: true,
     mask,
-    centerX: bestX,
-    centerY: bestY,
-    radius: bestR,
+    centerX: cxAbs,
+    centerY: cyAbs,
+    radius: maskRadius,
   };
 }

@@ -59,57 +59,45 @@ export const SPARKLE_PARAMS = {
    *  neighbors. Real Gemini sparkle arms are narrow lines — perpendicular
    *  samples land in dark gap territory. */
   MAX_PERP_ARM_RATIO: 0.8,
-  /** Cardinal-arm length of the rasterized ✦ mask, expressed as a fraction
-   *  of `bestR`. The detector's arm-sample lives at `bestR * 0.6`; we
-   *  extend slightly past it to catch tip anti-aliasing. Length is also
-   *  hard-bounded by `HALO_RADIUS_ABS_CAP`. */
-  ARM_LENGTH_MULTIPLIER: 0.7,
-  /** Central disk radius of the rasterized ✦ mask, fraction of `bestR`. */
-  CORE_RADIUS_MULTIPLIER: 0.25,
-  /** Half-width of an arm at its base (next to the central disk), fraction
-   *  of `bestR`. Arms taper linearly from this thickness to 1 px at the
-   *  tip — matches the rendered Gemini glyph and keeps the footprint
-   *  small (~150-300 px total at typical bestR). */
-  ARM_BASE_THICKNESS_MULTIPLIER: 0.2,
-  /** Absolute pixel cap on arm length, regardless of `bestR`. The detector
-   *  may pick the largest scale (55) when the sparkle's fixed-shape pattern
-   *  partially aligns with bright corner pixels, producing an inflated
-   *  bestR. This cap keeps the mask physically bounded to the typical
-   *  Gemini sparkle size, even when bestR over-estimates. */
-  HALO_RADIUS_ABS_CAP: 40,
-  /** Minimum `max(R,G,B)` for a pixel to count as palette-match. Used by
-   *  peak relocation to anchor the mask on the actual ✦ centre rather
-   *  than the detector's off-by-N score-landscape coordinate. The legacy
-   *  200 floor was too strict for dim/aliased ✦ glyphs in JPEG-compressed
-   *  photos (peaks land around 180-195). 150 catches them while still
-   *  excluding mid-luminance saturated regions (skin, grass, bezels)
-   *  via the saturation half of the gate. */
+  /** Minimum `max(R,G,B)` for a pixel to count as a Gemini-sparkle
+   *  palette match. The legacy 200 floor was too strict for dim/aliased
+   *  ✦ glyphs in JPEG-compressed photos (peaks land around 180-195).
+   *  150 catches them while still excluding mid-luminance saturated
+   *  regions (skin, grass, bezels) via the saturation half of the
+   *  gate in `isGeminiSparkleColor`. */
   PALETTE_MIN_MAX: 150,
-  /** Search radius (multiplier of `bestR`) used to relocate the mask center
-   *  from the detector's reported `(bestY, bestX)` to the brightest local
-   *  pixel. The detector's score landscape can place the center 30-40 px
-   *  off the actual peak when one cardinal arm lands on the sparkle and
-   *  the others hit nearby bright sky. Effective search radius is
-   *  `max(bestR × this, PEAK_SEARCH_RADIUS_MIN)` — the absolute floor
-   *  guards against small `bestR` (e.g. 14) where a 1× multiplier
-   *  doesn't reach the actual peak. */
-  PEAK_SEARCH_RADIUS_MULTIPLIER: 2.0,
-  /** Absolute pixel floor for peak-relocation search radius, regardless
-   *  of `bestR`. With `bestR=14` and a 1× multiplier the previous
-   *  search box was only 14 px wide — when the detector's centre
-   *  landed at a glyph tip, that wasn't enough to reach the real
-   *  centre and the polygon got anchored at the tip. 50 px guarantees
-   *  the actual ✦ centre is in scope at all sane glyph sizes. */
-  PEAK_SEARCH_RADIUS_MIN: 50,
-  /** Brightness ratio (vs. relocated peak luminance) used by the 1D
-   *  cardinal probe that measures the actual glyph extent. Walking
-   *  outward from the peak along N/S/E/W, a pixel "still belongs to
-   *  the glyph" while `lum >= peakLum × this`. The MAX of the four
-   *  measured extents becomes the polygon's arm length, so the mask
-   *  adapts to the rendered glyph regardless of which `bestR` the
-   *  detector picked. 0.5 catches dim arm tips on JPEG-compressed
-   *  inputs without bleeding into background highlights. */
-  EXTENT_PROBE_BRIGHTNESS_RATIO: 0.5,
+  /** Cluster scan window radius (multiplier of `bestR`) centered on the
+   *  shape detector's `(bestY, bestX)`. Generous enough to capture the
+   *  entire rendered glyph plus halo, focused enough to keep distant
+   *  bright clusters (e.g. clothing highlights, sun-lit foliage) out
+   *  of the centroid. Replaces the legacy whole-corner sweep, which
+   *  was contaminated on photos with bright content in the bottom-right
+   *  beyond the sparkle itself. */
+  CLUSTER_SCAN_RADIUS_MULTIPLIER: 3,
+  /** Absolute floor for the cluster scan radius (pixels). Guards against
+   *  small `bestR` (10-14) producing a window too tight to capture
+   *  anti-aliased halo pixels. */
+  CLUSTER_SCAN_RADIUS_MIN: 80,
+  /** Minimum number of palette-matching pixels required to build a
+   *  cluster mask after the shape detector triggers. Defends against
+   *  pathological cases where shape detect passes but the cluster is
+   *  too sparse to derive a stable centroid (e.g. JPEG noise). Falls
+   *  through to no-mask when below. */
+  CLUSTER_MIN_PALETTE_PIXELS: 20,
+  /** Buffer (px) added to the cluster bbox half-extent before the
+   *  MASK_RADIUS_MULTIPLIER scaling, to catch dim anti-aliasing pixels
+   *  that didn't pass the palette gate. Port of the legacy `+ 10`. */
+  CLUSTER_BBOX_BUFFER_PX: 10,
+  /** Multiplier on cluster radius for the solid mask core. Port of
+   *  legacy `WATERMARK_PARAMS.MASK_RADIUS_MULTIPLIER=1.3` — the value
+   *  that produced the clean 984b578b removal. */
+  MASK_RADIUS_MULTIPLIER: 1.3,
+  /** Absolute pixel cap on the final mask radius, regardless of cluster
+   *  spread. Defends against pathological clusters (e.g. detector
+   *  passes on a glyph adjacent to a bright reflection that drags the
+   *  bbox). 80 covers typical Gemini ✦ rendering at 4-5 MP without
+   *  engulfing adjacent subjects. */
+  CLUSTER_MAX_RADIUS_ABS_CAP: 80,
 } as const;
 
 export const DALLE_WATERMARK_PARAMS = {
