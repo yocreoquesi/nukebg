@@ -1012,9 +1012,6 @@ export class ArApp extends HTMLElement {
                 <span class="cmd-state-label" id="cmd-state-label">${t('cmdbar.running')}</span>
               </span>
             </div>
-            <div class="cmd-right">
-              <button type="button" class="cmd-btn cmd-btn-danger" id="cmd-cancel" hidden>${t('cmdbar.cancel')}</button>
-            </div>
           </div>
           <ar-editor style="display:none" id="editor-section"></ar-editor>
           <ar-editor-advanced id="editor-advanced"></ar-editor-advanced>
@@ -1178,8 +1175,6 @@ export class ArApp extends HTMLElement {
     if (errRetry) errRetry.textContent = t('error.retry');
     const errDismiss = root.querySelector('#error-modal-dismiss');
     if (errDismiss) errDismiss.textContent = t('error.dismiss');
-    const cmdCancel = root.querySelector('#cmd-cancel');
-    if (cmdCancel) cmdCancel.textContent = t('cmdbar.cancel');
     const cmdStateLabel = root.querySelector('#cmd-state-label') as HTMLElement | null;
     const cmdStateHost = root.querySelector('#cmd-state') as HTMLElement | null;
     if (cmdStateLabel && cmdStateHost) {
@@ -1201,29 +1196,13 @@ export class ArApp extends HTMLElement {
 
     on(document, 'nukebg:locale-changed', () => this.updateTexts(), { signal });
 
-    // Cancel button lives in the command bar (#71). The same
-    // ar:cancel-processing event is dispatched from there and caught at
-    // the shadow-root level so legacy listeners (progress component,
-    // tests) still work.
-    const bubbleCancel = (): void => {
-      emit(this, 'ar:cancel-processing', undefined, { bubbles: true, composed: true });
-    };
-    on(
-      this.shadowRoot!,
-      'ar:cancel-processing',
-      () => {
-        if (this.processingAbortController && !this.processingAbortController.signal.aborted) {
-          this.processingAbortController.abort('user cancelled');
-        }
-        if (this.batch.isInBatchMode()) {
-          this.batch.abort();
-        }
-      },
-      { signal },
-    );
-
-    const cmdCancel = this.shadowRoot!.querySelector('#cmd-cancel') as HTMLButtonElement | null;
-    cmdCancel?.addEventListener('click', bubbleCancel, { signal });
+    // The cmdbar Cancel button was removed (the abort path it triggered
+    // was confusing in practice — workers stopped but state surfaces did
+    // not always settle predictably). The underlying
+    // processingAbortController is still alive and used by the
+    // "drop a new image mid-process" and batch-cancel paths, so the
+    // pipeline can still be torn down by other code; only the user-
+    // facing button is gone.
 
     // #78 — inline error-stage actions in ar-progress. Retry reuses
     // the existing retryFromError() path; report opens a pre-filled
@@ -1698,26 +1677,11 @@ export class ArApp extends HTMLElement {
       if (editorSection) editorSection.style.display = 'none';
     } catch (err) {
       if (this.processingAborted) return;
-      // Abort is an expected outcome and comes from three places, each
-      // with its own AbortController reason:
-      //   - 'user cancelled'      → user clicked Cancel in the cmdbar
-      //   - 'new image dropped'   → another file landed; new run is
-      //                             about to take over, leave its
-      //                             progress.reset() in charge
-      //   - 'batch aborted' / etc → batch flow tearing down
-      // For 'user cancelled' we hard-reset back to the landing/dropzone
-      // and purge the in-flight image data so the tab returns to the
-      // idle state the user expects ("nothing in flight, no image
-      // sitting in memory"). The pipeline itself stays alive so the
-      // already-cached RMBG model survives — next drop is fast.
-      // Other abort reasons fall through to a silent return; the new
-      // run (if any) owns the UI from there.
-      if (err instanceof PipelineAbortError) {
-        if (err.message === 'user cancelled') {
-          this.resetToIdle();
-        }
-        return;
-      }
+      // Abort is an expected outcome from "new image dropped" or
+      // "batch aborted" — the new run that follows owns the UI from
+      // there. Silent return. (The previous cmdbar Cancel button was
+      // removed; user-initiated cancel is no longer a path here.)
+      if (err instanceof PipelineAbortError) return;
       console.error('Pipeline error:', err);
       const msg = err instanceof Error ? err.message : String(err);
       this.progress.setStage('ml-segmentation', 'error', t('pipeline.error', { msg }));
@@ -1764,14 +1728,12 @@ export class ArApp extends HTMLElement {
     const root = this.shadowRoot!;
     const stateEl = root.querySelector('#cmd-state') as HTMLElement | null;
     const label = root.querySelector('#cmd-state-label');
-    const cancelBtn = root.querySelector('#cmd-cancel') as HTMLButtonElement | null;
-    if (!stateEl || !label || !cancelBtn) return;
+    if (!stateEl || !label) return;
     stateEl.hidden = false;
     stateEl.setAttribute('data-state', state);
     const key =
       state === 'running' ? 'cmdbar.running' : state === 'ready' ? 'cmdbar.ready' : 'cmdbar.failed';
     label.textContent = t(key);
-    cancelBtn.hidden = state !== 'running';
   }
 
   private formatBytes(bytes: number): string {

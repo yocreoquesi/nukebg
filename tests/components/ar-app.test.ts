@@ -180,15 +180,17 @@ describe('ArApp orchestrator (#131)', () => {
     expect(root.querySelector('ar-download')).not.toBeNull();
   });
 
-  it('renders the command bar with state, filename, meta, and a hidden cancel button', () => {
+  it('renders the command bar with state, filename, meta — no in-bar cancel button', () => {
     const root = app.shadowRoot!;
     expect(root.querySelector('#command-bar')).not.toBeNull();
     expect(root.querySelector('#cmd-filename')).not.toBeNull();
     expect(root.querySelector('#cmd-meta')).not.toBeNull();
     expect(root.querySelector('#cmd-state')).not.toBeNull();
-    const cancel = root.querySelector('#cmd-cancel') as HTMLButtonElement;
-    expect(cancel).not.toBeNull();
-    expect(cancel.hidden).toBe(true);
+    // The cmdbar Cancel button was removed — its abort path was confusing
+    // in practice (workers stopped but state surfaces did not always
+    // settle predictably). The orchestrator's AbortController is still
+    // alive for "drop a new image mid-process" / batch teardown flows.
+    expect(root.querySelector('#cmd-cancel')).toBeNull();
   });
 
   it('does NOT render the legacy #cmd-new-image button (#151 removed it)', () => {
@@ -294,28 +296,6 @@ describe('ArApp orchestrator (#131)', () => {
       expect(reactor.dataset.state).toBe('offline');
       expect(model.dataset.state).toBe('lazy');
       fresh.remove();
-    });
-  });
-
-  // ─── Cancel processing event ─────────────────────────────────────────────
-
-  describe('command-bar cancel button', () => {
-    it('clicking #cmd-cancel bubbles ar:cancel-processing up the tree', () => {
-      const cancel = app.shadowRoot!.querySelector('#cmd-cancel') as HTMLButtonElement;
-      const captured = vi.fn();
-      app.addEventListener('ar:cancel-processing', captured);
-      cancel.click();
-      expect(captured).toHaveBeenCalledTimes(1);
-    });
-
-    it('the bubbled event has bubbles:true + composed:true so it crosses shadow boundaries', () => {
-      const cancel = app.shadowRoot!.querySelector('#cmd-cancel') as HTMLButtonElement;
-      let captured: Event | undefined;
-      app.addEventListener('ar:cancel-processing', (e) => (captured = e));
-      cancel.click();
-      expect(captured).toBeDefined();
-      expect(captured!.bubbles).toBe(true);
-      expect(captured!.composed).toBe(true);
     });
   });
 
