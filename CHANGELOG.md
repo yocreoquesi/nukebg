@@ -10,6 +10,47 @@ Unreleased entries accumulate on the `dev` branch. When we cut a release we copy
 
 ## [Unreleased]
 
+## [2.11.2] — 2026-04-29
+
+Patch release. Fixes the cancel button to actually behave like a cancel
+(hard reset back to the dropzone, image purged from memory, model kept
+cached) and moves the cmdbar below the image so it stops covering the
+result on completion / cancel.
+
+### Fixed
+
+- **Cancel now hard-resets to landing (#243).** Clicking Cancel during
+  a run terminates every worker (`cv`, `ml`, `inpaint`, `lama`) and
+  returns the UI to the dropzone with `currentImageData` /
+  `lastResultImageData` / `preEditResult` / `cachedEditResult` nulled
+  and the download component reset. The pipeline orchestrator stays
+  alive so the cached RMBG model survives — the next image drop
+  doesn't pay the model load again. Implemented by branching on the
+  `AbortController` reason inside `processImage()`'s catch: only
+  `'user cancelled'` triggers `resetToIdle()`; `'new image dropped'`
+  / `'batch aborted'` / timeout aborts fall through to the silent
+  return so the new run that follows can take over the UI.
+
+### Changed
+
+- **Cmdbar moved below the viewer (#243).** The
+  `$ nukea file.png · WxH · KB · ready` strip used to render above
+  the image and overlapped the result on completion / cancel. Now it
+  sits below `.ws-result-grid`, same `role="status"` /
+  `aria-live="polite"` region, only DOM order changed. The
+  test that asserted the bar sits BEFORE `<ar-viewer>` flipped to
+  assert AFTER, with a comment recording why.
+
+### Tooling / CI
+
+- CSP inline-script hash refreshed in `public/_headers` and
+  `infra/nginx.conf` (the version bump invalidated the previous
+  v2.11.1 hash on the JSON-LD block).
+
+### PRs
+
+- #243 — cancel hard-resets to landing + cmdbar below viewer.
+
 ## [2.11.1] — 2026-04-29
 
 Patch release. Restores the watermark/sparkle removal pipeline to the
@@ -833,5 +874,6 @@ section, keep only the relevant subsections, and empty `[Unreleased]`:
 ### Documentation
 ```
 
-[Unreleased]: https://github.com/yocreoquesi/nukebg/compare/v2.11.1...dev
+[Unreleased]: https://github.com/yocreoquesi/nukebg/compare/v2.11.2...dev
+[2.11.2]: https://github.com/yocreoquesi/nukebg/compare/v2.11.1...v2.11.2
 [2.11.1]: https://github.com/yocreoquesi/nukebg/compare/v2.11.0...v2.11.1
