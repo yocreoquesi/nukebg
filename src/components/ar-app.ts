@@ -161,10 +161,14 @@ export class ArApp extends HTMLElement {
         }
         /* Always-visible panel that carries the [STATUS] line, the
            limitations <details>, the honesty disclaimer and the Ko-fi
-           pitch. Sits between the hero and the workspace so it persists
-           through every state of the flow (dropzone, processing, result). */
+           pitch. Sits below the workspace so it follows the current
+           image (dropzone, processing, result) on screen. Hidden only
+           while the advanced editor is open — see .editor-open below. */
         .status-panel {
           padding: var(--space-3, 0.75rem) var(--space-6, 1.5rem) var(--space-4, 1rem);
+        }
+        .status-panel.editor-open {
+          display: none;
         }
         h1 {
           font-size: var(--text-2xl, 1.5rem);
@@ -964,30 +968,6 @@ export class ArApp extends HTMLElement {
         <div class="install-guide" id="install-guide"></div>
       </section>
 
-      <!-- Status panel: lifted out of <section.hero> so it stays visible
-           during processing AND on the result screen — users wanted the
-           [STATUS] line, the limitations details, the honesty disclaimer
-           and the Ko-fi pitch present at every stage of the flow, not
-           only on the dropzone. Class names kept (.status-line,
-           .hero-disclaimer, .hero-support) so existing CSS selectors and
-           regex-based component tests still match. -->
-      <aside class="status-panel" id="status-panel">
-        <p class="status-line" id="status-line">
-          <span class="status-tag">[STATUS]</span>
-          <span class="status-dot">●</span>
-          <span class="status-reactor" id="status-reactor" data-state="offline">${t('status.reactor.offline')}</span>
-          <span class="status-sep">|</span>
-          <span class="status-model" id="status-model" data-state="loading">${t('status.model.loading')}</span>
-          <span class="status-sep">|</span>
-          <details class="status-details">
-            <summary id="status-limits-summary"># ${t('status.limitations')}</summary>
-            <div class="status-limits-body" id="status-limits-body">${t('features.limitations')}</div>
-          </details>
-        </p>
-        <p class="hero-disclaimer" id="hero-disclaimer">${t('features.disclaimer')}</p>
-        <p class="hero-support" id="hero-support">${t('support.kofi')}</p>
-      </aside>
-
       <section class="workspace" id="workspace" aria-label="Image processing workspace">
         <div class="workspace-inner">
           <div class="batch-detail-bar" id="batch-detail-bar" style="display:none">
@@ -1035,6 +1015,36 @@ export class ArApp extends HTMLElement {
           </div>
         </div>
       </section>
+
+      <!-- Status panel: placed BELOW the workspace so it always reads
+           "in context" of the current image (or sits below the dropzone
+           on the landing screen, since .workspace is display:none until
+           a file is dropped). Lifted out of section.hero on purpose —
+           that section gets a .hidden class toggled when the workspace
+           takes over, which used to make the [STATUS] line and the
+           honesty copy disappear during processing. The
+           .status-panel.editor-open rule hides this block while the
+           advanced editor is open (the only state where the user
+           actively does NOT want the [STATUS] / Ko-fi noise on screen).
+           Class names and IDs kept (.status-line, .hero-disclaimer,
+           .hero-support) so existing CSS selectors and the regex-based
+           component tests still match. -->
+      <aside class="status-panel" id="status-panel">
+        <p class="status-line" id="status-line">
+          <span class="status-tag">[STATUS]</span>
+          <span class="status-dot">●</span>
+          <span class="status-reactor" id="status-reactor" data-state="offline">${t('status.reactor.offline')}</span>
+          <span class="status-sep">|</span>
+          <span class="status-model" id="status-model" data-state="loading">${t('status.model.loading')}</span>
+          <span class="status-sep">|</span>
+          <details class="status-details">
+            <summary id="status-limits-summary"># ${t('status.limitations')}</summary>
+            <div class="status-limits-body" id="status-limits-body">${t('features.limitations')}</div>
+          </details>
+        </p>
+        <p class="hero-disclaimer" id="hero-disclaimer">${t('features.disclaimer')}</p>
+        <p class="hero-support" id="hero-support">${t('support.kofi')}</p>
+      </aside>
 
       <div
         class="error-modal"
@@ -1435,6 +1445,7 @@ export class ArApp extends HTMLElement {
         if (isOpen) {
           adv.removeAttribute('active');
           btn.removeAttribute('data-active');
+          this.setEditorOpen(false);
           return;
         }
         const current = this.lastResultImageData ?? this.currentImageData;
@@ -1443,6 +1454,7 @@ export class ArApp extends HTMLElement {
         adv.setImage(current, original);
         adv.setAttribute('active', '');
         btn.setAttribute('data-active', 'true');
+        this.setEditorOpen(true);
         adv.scrollIntoView({ behavior: 'smooth', block: 'start' });
       },
       { signal },
@@ -1455,6 +1467,7 @@ export class ArApp extends HTMLElement {
       () => {
         const btn = this.shadowRoot!.querySelector('#advanced-cta') as HTMLElement | null;
         btn?.removeAttribute('data-active');
+        this.setEditorOpen(false);
       },
       { signal },
     );
@@ -1466,6 +1479,7 @@ export class ArApp extends HTMLElement {
       async ({ imageData }) => {
         const btn = this.shadowRoot!.querySelector('#advanced-cta') as HTMLElement | null;
         btn?.removeAttribute('data-active');
+        this.setEditorOpen(false);
 
         // Same reasoning as the basic editor: skip topology cleanup so the
         // user's lasso crops / restores survive the refinement pass.
@@ -1493,6 +1507,17 @@ export class ArApp extends HTMLElement {
     cta.style.display = show ? 'block' : 'none';
     if (prompt) prompt.style.display = show ? 'block' : 'none';
     if (editBtn) editBtn.style.display = 'none';
+  }
+
+  /** Toggle the .editor-open class on the persistent status panel.
+   *  When the advanced editor is open, the user does not want the
+   *  [STATUS] line / limitations / Ko-fi pitch competing for attention
+   *  with the editing surface. Every code path that mutates the
+   *  advanced editor's `active` attribute also calls this helper. */
+  private setEditorOpen(open: boolean): void {
+    const panel = this.shadowRoot?.querySelector('#status-panel') as HTMLElement | null;
+    if (!panel) return;
+    panel.classList.toggle('editor-open', open);
   }
 
   /** Disable all workspace action buttons during processing */
@@ -1945,6 +1970,7 @@ export class ArApp extends HTMLElement {
     this.setAdvancedBtnVisible(false);
     const adv = this.shadowRoot!.querySelector('#editor-advanced') as HTMLElement | null;
     adv?.removeAttribute('active');
+    this.setEditorOpen(false);
     this.setBatchUiMode('grid');
   }
 
