@@ -164,10 +164,6 @@ export class ArProgress extends HTMLElement {
           font-size: 14px;
           line-height: 1;
         }
-        .stage.pending .stage-icon {
-          border: 1.5px solid var(--color-surface-border, #1a3a1a);
-          border-radius: 0;
-        }
         .stage.running .stage-icon {
           color: var(--color-accent-primary, #00ff41);
           animation: spin 2s linear infinite;
@@ -193,30 +189,8 @@ export class ArProgress extends HTMLElement {
           font-size: var(--text-xs, 0.75rem);
           color: var(--color-text-tertiary, #00b34a);
         }
-        .progress-bar {
-          width: 100%;
-          height: 3px;
-          background: var(--color-bg-secondary, #0d0d0d);
-          border-radius: 0;
-          margin-top: 4px;
-          overflow: hidden;
-        }
-        .progress-fill {
-          height: 100%;
-          background: var(--color-accent-primary, #00ff41);
-          border-radius: 0;
-          box-shadow: 0 0 4px rgba(var(--color-accent-rgb, 0, 255, 65), 0.4);
-          transition: width 0.3s ease;
-        }
         @keyframes spin {
           to { transform: rotate(360deg); }
-        }
-        .progress-fill.parsing {
-          animation: pulse 1.5s ease-in-out infinite;
-        }
-        @keyframes pulse {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.5; }
         }
         /* === Mobile (max-width: 480px) === */
         @media (max-width: 480px) {
@@ -251,7 +225,6 @@ export class ArProgress extends HTMLElement {
 
         @media (prefers-reduced-motion: reduce) {
           .stage.running .stage-icon { animation: none !important; }
-          .progress-fill.parsing { animation: none !important; }
         }
 
         /* Inline error-stage actions (#78). Mirrors the error modal
@@ -314,9 +287,13 @@ export class ArProgress extends HTMLElement {
     const container = this.shadowRoot!.querySelector('.stages');
     if (!container) return;
 
-    // Filter out stages that shouldn't be shown
+    // Render only stages that have started or settled. Pending stages
+    // (initial state from reset()) are queued internally but not shown
+    // — surfacing them with an empty bordered icon mid-pipeline confused
+    // users into thinking the next stage was already running. Skipped
+    // inpaint is also hidden (no watermark to remove → no row needed).
     const visibleStages = this.stages.filter((s) => {
-      // Hide inpaint if skipped (no watermark)
+      if (s.status === 'pending') return false;
       if (s.stage === 'inpaint' && s.status === 'skipped') return false;
       return true;
     });
@@ -327,31 +304,6 @@ export class ArProgress extends HTMLElement {
         const timeStr = s.timeMs !== undefined ? `${(s.timeMs / 1000).toFixed(1)}s` : '';
         const safeMessage = s.message ? this.escapeHtml(s.message) : '';
         const msgStr = safeMessage ? `<span class="stage-message">${safeMessage}</span>` : '';
-
-        // Extract percentage from message like "Loading AI model... 45%"
-        const pctMatch = safeMessage.match(/(\d+)%/);
-        let progressBar = '';
-        if (s.status === 'running' && pctMatch) {
-          const pct = parseInt(pctMatch[1]);
-          // At 85% the model is being initialized (WASM compilation) - show pulsing bar
-          const isParsing = pct >= 80 && pct < 100;
-          const barClass = isParsing ? 'progress-fill parsing' : 'progress-fill';
-          const label = isParsing ? t('progress.initAI') : safeMessage;
-          progressBar = `<div class="progress-bar"><div class="${barClass}" style="width: ${pct}%"></div></div>`;
-          // Override message during parsing phase
-          if (isParsing) {
-            const msgEl = `<span class="stage-message">${label}</span>`;
-            return `
-            <div class="stage ${this.escapeHtml(s.status)}">
-              <span class="stage-icon">${icon}</span>
-              <span class="stage-label">${this.escapeHtml(s.label)}</span>
-              ${msgEl}
-              <span class="stage-time">${timeStr}</span>
-            </div>
-            ${progressBar}
-          `;
-          }
-        }
 
         // #78 — when a stage errors, render retry / report / reload
         // actions inline so the user can recover without hunting the
@@ -372,7 +324,6 @@ export class ArProgress extends HTMLElement {
           ${msgStr}
           <span class="stage-time">${timeStr}</span>
         </div>
-        ${progressBar}
         ${errorActions}
       `;
       })

@@ -67,7 +67,8 @@ const translations: Translations = {
     // Edit button (ar-app)
     'edit.btn': 'Not clean enough? Edit manually',
     'edit.discard': '\u21A9 Discard edits',
-    'advanced.cta': 'Not satisfied with the result? Try our advanced editor',
+    'advanced.cta': 'Not satisfied with the result?',
+    'advanced.btn': 'Editor',
     'advanced.title': 'Advanced editor',
     'advanced.restore': 'Restore original',
     'advanced.restoreHint': 'Replace the current state with the original image. You can still undo (Ctrl+Z).',
@@ -311,7 +312,8 @@ const translations: Translations = {
     // Edit button (ar-app)
     'edit.btn': '\u00BFNo qued\u00F3 limpio? Edita manualmente',
     'edit.discard': '\u21A9 Descartar edici\u00F3n',
-    'advanced.cta': '\u00BFNo te convence el resultado? Abre el editor avanzado',
+    'advanced.cta': '\u00BFNo te convence el resultado?',
+    'advanced.btn': 'Editor',
     'advanced.title': 'Editor avanzado',
     'advanced.restore': 'Restaurar original',
     'advanced.restoreHint': 'Reemplaza el estado actual por la imagen original. Puedes deshacer con Ctrl+Z.',
@@ -555,7 +557,8 @@ const translations: Translations = {
     // Edit button (ar-app)
     'edit.btn': 'Pas assez propre ? \u00C9dite \u00E0 la main',
     'edit.discard': '\u21A9 Annuler les modifications',
-    'advanced.cta': 'R\u00E9sultat pas convaincant ? Essaie notre \u00E9diteur avanc\u00E9',
+    'advanced.cta': 'R\u00E9sultat pas convaincant ?',
+    'advanced.btn': '\u00C9diteur',
     'advanced.title': '\u00C9diteur avanc\u00E9',
     'advanced.restore': 'Restaurer l\u2019original',
     'advanced.restoreHint': 'Remplace l\u2019\u00E9tat actuel par l\u2019image originale. Tu peux annuler avec Ctrl+Z.',
@@ -799,7 +802,8 @@ const translations: Translations = {
     // Edit button (ar-app)
     'edit.btn': 'Nicht sauber genug? Manuell nachbessern',
     'edit.discard': '\u21A9 \u00C4nderungen verwerfen',
-    'advanced.cta': 'Nicht zufrieden mit dem Ergebnis? Probier unseren erweiterten Editor',
+    'advanced.cta': 'Nicht zufrieden mit dem Ergebnis?',
+    'advanced.btn': 'Editor',
     'advanced.title': 'Erweiterter Editor',
     'advanced.restore': 'Original wiederherstellen',
     'advanced.restoreHint': 'Ersetzt den aktuellen Zustand durch das Original. R\u00FCckg\u00E4ngig mit Ctrl+Z m\u00F6glich.',
@@ -1043,7 +1047,8 @@ const translations: Translations = {
     // Edit button (ar-app)
     'edit.btn': 'N\u00E3o ficou limpo? Edita na m\u00E3o',
     'edit.discard': '\u21A9 Descartar edi\u00E7\u00E3o',
-    'advanced.cta': 'N\u00E3o satisfeito com o resultado? Usa o nosso editor avan\u00E7ado',
+    'advanced.cta': 'N\u00E3o satisfeito com o resultado?',
+    'advanced.btn': 'Editor',
     'advanced.title': 'Editor avan\u00E7ado',
     'advanced.restore': 'Restaurar original',
     'advanced.restoreHint': 'Substitui o estado atual pela imagem original. Podes desfazer com Ctrl+Z.',
@@ -1287,7 +1292,8 @@ const translations: Translations = {
     // Edit button (ar-app)
     'edit.btn': '\u4E0D\u591F\u5E72\u51C0\uFF1F\u624B\u52A8\u7F16\u8F91',
     'edit.discard': '\u21A9 \u4E22\u5F03\u7F16\u8F91',
-    'advanced.cta': '\u5BF9\u7ED3\u679C\u4E0D\u6EE1\u610F\uFF1F\u8BD5\u8BD5\u6211\u4EEC\u7684\u9AD8\u7EA7\u7F16\u8F91\u5668',
+    'advanced.cta': '\u5BF9\u7ED3\u679C\u4E0D\u6EE1\u610F\uFF1F',
+    'advanced.btn': '\u7F16\u8F91\u5668',
     'advanced.title': '\u9AD8\u7EA7\u7F16\u8F91\u5668',
     'advanced.restore': '\u6062\u590D\u539F\u56FE',
     'advanced.restoreHint': '\u5C06\u5F53\u524D\u72B6\u6001\u66FF\u6362\u4E3A\u539F\u59CB\u56FE\u50CF\u3002\u4ECD\u53EF\u4EE5\u7528 Ctrl+Z \u64A4\u9500\u3002',
