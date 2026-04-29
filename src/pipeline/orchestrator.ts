@@ -655,15 +655,31 @@ export class PipelineOrchestrator {
         }),
       ]);
 
-      const anyWatermark = wmGemini.detected || wmDalle.detected || wmSparkle.detected;
+      // The legacy color-deviation `watermarkDetect` produces a high-quality
+      // cluster-centroid mask but has NO shape gate, so it false-positives on
+      // real photos with bright clustered features in the bottom-right
+      // (motorbike chrome, skin highlights, etc. — see issue triage that
+      // motivated the original PR #223 retirement). The shape-based
+      // `sparkleDetect` adds 6 strict gates (4-arm symmetry, narrow-arm
+      // isolation, center peak vs outer ring, etc.) that reliably reject
+      // those false-positives but its own mask is just a simple circle at
+      // the score-landscape best-fit point.
+      //
+      // Combine their strengths: only trust the legacy mask when the shape
+      // detector ALSO confirms a real Gemini ✦. Together they kill the false
+      // positives without sacrificing the cluster-centroid mask quality that
+      // produced the clean 984b578b deploy on user's selfie.
+      const geminiConfirmed = wmGemini.detected && wmSparkle.detected;
+      const geminiMaskGated = geminiConfirmed ? wmGemini.mask : null;
+      const anyWatermark = geminiConfirmed || wmDalle.detected || wmSparkle.detected;
       const combinedMask = PipelineOrchestrator.combineMasks(
-        [wmGemini.mask, wmDalle.mask, wmSparkle.mask],
+        [geminiMaskGated, wmDalle.mask, wmSparkle.mask],
         width * height,
       );
 
       if (anyWatermark && combinedMask) {
         const sources: string[] = [];
-        if (wmGemini.detected) sources.push('Gemini');
+        if (geminiConfirmed) sources.push('Gemini');
         if (wmDalle.detected) sources.push('DALL-E');
         if (wmSparkle.detected) sources.push('Gemini-shape');
         this.emit('watermark-scan', 'done', `Watermark detected [${sources.join(', ')}]`);
