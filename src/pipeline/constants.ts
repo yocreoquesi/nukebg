@@ -59,30 +59,32 @@ export const SPARKLE_PARAMS = {
    *  neighbors. Real Gemini sparkle arms are narrow lines — perpendicular
    *  samples land in dark gap territory. */
   MAX_PERP_ARM_RATIO: 0.8,
-  /** Maximum mask spread from the (relocated) sparkle peak (multiplier of
-   *  `bestR`). Bounds the brightness-and-palette flood-fill so it can't
-   *  walk across the whole sky into adjacent subjects. */
-  HALO_RADIUS_MULTIPLIER: 2.0,
-  /** Absolute pixel cap on mask radius, regardless of `bestR`. The detector
+  /** Cardinal-arm length of the rasterized ✦ mask, expressed as a fraction
+   *  of `bestR`. The detector's arm-sample lives at `bestR * 0.6`; we
+   *  extend slightly past it to catch tip anti-aliasing. Length is also
+   *  hard-bounded by `HALO_RADIUS_ABS_CAP`. */
+  ARM_LENGTH_MULTIPLIER: 0.7,
+  /** Central disk radius of the rasterized ✦ mask, fraction of `bestR`. */
+  CORE_RADIUS_MULTIPLIER: 0.25,
+  /** Half-width of an arm at its base (next to the central disk), fraction
+   *  of `bestR`. Arms taper linearly from this thickness to 1 px at the
+   *  tip — matches the rendered Gemini glyph and keeps the footprint
+   *  small (~150-300 px total at typical bestR). */
+  ARM_BASE_THICKNESS_MULTIPLIER: 0.2,
+  /** Absolute pixel cap on arm length, regardless of `bestR`. The detector
    *  may pick the largest scale (55) when the sparkle's fixed-shape pattern
    *  partially aligns with bright corner pixels, producing an inflated
    *  bestR. This cap keeps the mask physically bounded to the typical
    *  Gemini sparkle size, even when bestR over-estimates. */
   HALO_RADIUS_ABS_CAP: 40,
-  /** Brightness floor for flood-fill expansion, expressed as a fraction of
-   *  the relocated peak pixel's luminance. A neighbor must satisfy
-   *  `lum(n) ≥ peakLum × this` to be added to the mask. */
-  HALO_BRIGHTNESS_RATIO: 0.65,
-  /** Minimum `max(R,G,B)` for a pixel to count as palette-match in the
-   *  flood-fill. The legacy 200 floor was too strict for dim/aliased ✦
-   *  glyphs in JPEG-compressed photos (peaks land around 180-195). 150
-   *  catches them while still excluding mid-luminance saturated regions
-   *  (skin, grass, bezels) via the saturation half of the gate. */
+  /** Minimum `max(R,G,B)` for a pixel to count as palette-match. Used by
+   *  peak relocation to anchor the mask on the actual ✦ centre rather
+   *  than the detector's off-by-N score-landscape coordinate. The legacy
+   *  200 floor was too strict for dim/aliased ✦ glyphs in JPEG-compressed
+   *  photos (peaks land around 180-195). 150 catches them while still
+   *  excluding mid-luminance saturated regions (skin, grass, bezels)
+   *  via the saturation half of the gate. */
   PALETTE_MIN_MAX: 150,
-  /** Tiny anti-aliasing seed radius around the (relocated) peak, ensuring
-   *  the very peak is masked even if its single-pixel sample dipped due
-   *  to sub-pixel placement of the ✦. */
-  SEED_RADIUS: 2,
   /** Search radius (multiplier of `bestR`) used to relocate the mask center
    *  from the detector's reported `(bestY, bestX)` to the brightest local
    *  pixel. The detector's score landscape can place the center 30-40 px

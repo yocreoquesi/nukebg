@@ -255,58 +255,53 @@ export function sparkleDetect(
     }
   }
 
-  // Build mask via brightness-and-palette flood-fill from the relocated
-  // peak. Spatial bound = min(haloR-multiplier × bestR, absolute cap) so
-  // an inflated bestR can't drag the mask into adjacent subjects.
+  // Build mask by rasterizing the ✦ glyph footprint at the relocated peak.
+  // Shape-based instead of brightness/palette flood-fill so the mask
+  // covers the entire visible glyph regardless of what's underneath —
+  // critical when the sparkle straddles a subject boundary (e.g. half on
+  // sky / half on the user's hand). The inpaint downstream (LaMa or
+  // PatchMatch via lama-router) reconstructs the masked pixels with
+  // content-aware fill; if the mask doesn't cover the on-skin half, no
+  // inpaint quality can rescue it.
+  //
+  // Geometry mirrors the rendered Gemini glyph and the test fixture's
+  // `paintSparkle`: 4 cardinal arms tapering from a base half-width
+  // (CORE_RADIUS_MULTIPLIER × bestR scaled) to 1 px at the tip, plus a
+  // central disk. Arm length is bounded by both ARM_LENGTH_MULTIPLIER ×
+  // bestR and the absolute cap HALO_RADIUS_ABS_CAP — so an over-estimated
+  // bestR cannot drag the mask into adjacent subjects.
   const mask = new Uint8Array(width * height);
-  const haloR = Math.min(
-    Math.ceil(bestR * SPARKLE_PARAMS.HALO_RADIUS_MULTIPLIER),
+  const armLen = Math.min(
+    Math.round(bestR * SPARKLE_PARAMS.ARM_LENGTH_MULTIPLIER),
     SPARKLE_PARAMS.HALO_RADIUS_ABS_CAP,
   );
-  const haloR2 = haloR * haloR;
-  const minLum = peakLum * SPARKLE_PARAMS.HALO_BRIGHTNESS_RATIO;
+  const coreR = Math.max(2, Math.round(bestR * SPARKLE_PARAMS.CORE_RADIUS_MULTIPLIER));
+  const coreR2 = coreR * coreR;
+  const baseThickness = Math.max(
+    1,
+    Math.round(bestR * SPARKLE_PARAMS.ARM_BASE_THICKNESS_MULTIPLIER),
+  );
 
-  // Tiny seed disk around the relocated peak so anti-aliased peak pixels
-  // are always masked before the flood expands.
-  const queue: number[] = [];
-  const seedR = SPARKLE_PARAMS.SEED_RADIUS;
-  const seedR2 = seedR * seedR;
-  for (let dy = -seedR; dy <= seedR; dy++) {
-    for (let dx = -seedR; dx <= seedR; dx++) {
-      if (dx * dx + dy * dy > seedR2) continue;
-      const sy = peakY + dy;
-      const sx = peakX + dx;
-      if (sy < 0 || sy >= height || sx < 0 || sx >= width) continue;
-      const sIdx = sy * width + sx;
-      if (!mask[sIdx]) {
-        mask[sIdx] = 1;
-        queue.push(sIdx);
-      }
-    }
-  }
-
-  // 4-neighbor BFS — gates: within haloR distance from the relocated peak,
-  // luminance ≥ minLum, palette match (low-sat or slight cyan tint, dim
-  // floor PALETTE_MIN_MAX). Together these reject skin, dark bezels,
-  // grass, etc. while still walking through dim near-white halo pixels.
-  while (queue.length > 0) {
-    const idx = queue.pop()!;
-    const y = (idx / width) | 0;
-    const x = idx - y * width;
-    for (let nb = 0; nb < 4; nb++) {
-      const ny = y + (nb === 0 ? -1 : nb === 1 ? 1 : 0);
-      const nx = x + (nb === 2 ? -1 : nb === 3 ? 1 : 0);
-      if (ny < 0 || ny >= height || nx < 0 || nx >= width) continue;
-      const nIdx = ny * width + nx;
-      if (mask[nIdx]) continue;
-      const dly = ny - peakY;
-      const dlx = nx - peakX;
-      if (dly * dly + dlx * dlx > haloR2) continue;
-      if (lum[nIdx] < minLum) continue;
-      const pi = nIdx * 4;
-      if (!isGeminiSparkleColor(pixels[pi], pixels[pi + 1], pixels[pi + 2])) continue;
-      mask[nIdx] = 1;
-      queue.push(nIdx);
+  const y0 = Math.max(0, peakY - armLen);
+  const y1 = Math.min(height - 1, peakY + armLen);
+  const x0 = Math.max(0, peakX - armLen);
+  const x1 = Math.min(width - 1, peakX + armLen);
+  for (let y = y0; y <= y1; y++) {
+    const dy = y - peakY;
+    const ay = Math.abs(dy);
+    const row = y * width;
+    for (let x = x0; x <= x1; x++) {
+      const dx = x - peakX;
+      const ax = Math.abs(dx);
+      // L∞ distance from centre — drives the linear arm taper.
+      const dist = ax > ay ? ax : ay;
+      if (dist > armLen) continue;
+      // Tapering thickness: full at base, 1 px at tip.
+      const thickness = Math.max(1, Math.round(baseThickness * (1 - dist / armLen)));
+      const inHArm = ay <= thickness; // horizontal arm
+      const inVArm = ax <= thickness; // vertical arm
+      const inCore = dx * dx + dy * dy <= coreR2;
+      if (inHArm || inVArm || inCore) mask[row + x] = 1;
     }
   }
 

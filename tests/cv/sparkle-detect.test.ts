@@ -139,54 +139,13 @@ describe('sparkleDetect', () => {
     expect(count).toBeLessThan(w * h * 0.02);
   });
 
-  // Helper: paints a wide near-white halo annulus around a center, covering
-  // everything from just past the sparkle shape outward to a comfortable
-  // outer radius. Bigger than any bestR the detector might pick so the
-  // assertion is robust to the multi-scale search.
-  function paintHaloAnnulus(
-    pixels: Uint8ClampedArray,
-    w: number,
-    cx: number,
-    cy: number,
-    inner: number,
-    outer: number,
-    rgb: [number, number, number],
-  ): void {
-    for (let y = cy - outer; y <= cy + outer; y++) {
-      for (let x = cx - outer; x <= cx + outer; x++) {
-        const d2 = (x - cx) ** 2 + (y - cy) ** 2;
-        if (d2 >= inner * inner && d2 <= outer * outer) {
-          const i = (y * w + x) * 4;
-          pixels[i] = rgb[0];
-          pixels[i + 1] = rgb[1];
-          pixels[i + 2] = rgb[2];
-          pixels[i + 3] = 255;
-        }
-      }
-    }
-  }
-
-  // Counts how many masked pixels carry a specific RGB color. Decouples the
-  // assertion from whatever bestR/bestX the detector picked — we only care
-  // that pixels of the annulus color end up masked (palette match) or not
-  // (palette miss). RGB tolerance is exact since the test paints solid.
-  function countMaskedWithColor(
-    mask: Uint8Array,
-    pixels: Uint8ClampedArray,
-    rgb: [number, number, number],
-  ): number {
-    let count = 0;
-    for (let p = 0; p < mask.length; p++) {
-      if (!mask[p]) continue;
-      const i = p * 4;
-      if (pixels[i] === rgb[0] && pixels[i + 1] === rgb[1] && pixels[i + 2] === rgb[2]) {
-        count++;
-      }
-    }
-    return count;
-  }
-
-  it('extends mask into near-white halo around the sparkle (palette-gated)', () => {
+  it('mask is shape-based: covers the glyph footprint regardless of underlying pixel color', () => {
+    // Regression for the on-skin half-glyph case: when a sparkle straddles
+    // a subject boundary (e.g. half on dark sky, half on a hand), the
+    // legacy flood-fill mask only caught the bright/palette-matching half
+    // and left the on-skin half visible. The shape rasterizer must cover
+    // the full glyph footprint regardless of what's underneath, so the
+    // downstream LaMa/PatchMatch inpaint can reconstruct it.
     const w = 500,
       h = 500;
     const cx = 430,
@@ -194,42 +153,36 @@ describe('sparkleDetect', () => {
       radius = 20;
     const pixels = solidImage(w, h, 60, 60, 60);
     paintSparkle(pixels, w, cx, cy, radius, [240, 240, 240]);
-    // Wide near-white annulus surrounding the shape — deliberately oversized
-    // so it covers any haloR the detector ends up using.
-    // Mid-bright near-white halo: bright enough for flood-fill brightness
-    // floor (lum ≈ 180 vs centerLum*0.65 ≈ 156), low enough that detector
-    // gates (G4 outer-ring contrast) still pass.
-    paintHaloAnnulus(pixels, w, cx, cy, radius, 50, [210, 210, 210]);
+
+    // Overpaint a 3×3 block on the east arm with a saturated skin-tone —
+    // fails the sparkle palette but lies inside the glyph footprint. A
+    // flood-fill mask refuses these pixels (they break the palette gate);
+    // a shape mask covers them. Keep the patch tight enough that detector
+    // gates (cardinal/perp sample positions) are unaffected.
+    const px = cx + 6,
+      py = cy;
+    for (let y = py - 1; y <= py + 1; y++) {
+      for (let x = px - 1; x <= px + 1; x++) {
+        const i = (y * w + x) * 4;
+        pixels[i] = 200;
+        pixels[i + 1] = 130;
+        pixels[i + 2] = 110;
+        pixels[i + 3] = 255;
+      }
+    }
 
     const result = sparkleDetect(pixels, w, h);
     expect(result.detected).toBe(true);
 
-    // A meaningful number of the near-white halo pixels MUST be masked —
-    // proves the brightness+palette flood-fill walked into the halo
-    // through the connected near-white region.
-    const masked = countMaskedWithColor(result.mask!, pixels, [210, 210, 210]);
-    expect(masked).toBeGreaterThan(20);
-  });
-
-  it('does NOT extend mask into non-palette neighbors (saturated red)', () => {
-    const w = 500,
-      h = 500;
-    const cx = 430,
-      cy = 430,
-      radius = 20;
-    const pixels = solidImage(w, h, 60, 60, 60);
-    paintSparkle(pixels, w, cx, cy, radius, [240, 240, 240]);
-    // Saturated red annulus — fails the palette gate, so halo expansion
-    // must NOT reach into it even though it's inside haloR.
-    paintHaloAnnulus(pixels, w, cx, cy, radius + 2, 50, [220, 30, 30]);
-
-    const result = sparkleDetect(pixels, w, h);
-    expect(result.detected).toBe(true);
-
-    // Zero red pixels should end up in the mask: the palette gate refuses
-    // the saturated red even though it lies inside the haloR ring.
-    const masked = countMaskedWithColor(result.mask!, pixels, [220, 30, 30]);
-    expect(masked).toBe(0);
+    let overpaintMasked = 0;
+    for (let y = py - 1; y <= py + 1; y++) {
+      for (let x = px - 1; x <= px + 1; x++) {
+        if (result.mask![y * w + x]) overpaintMasked++;
+      }
+    }
+    // All 9 non-palette pixels inside the east-arm footprint must be in
+    // the mask — proves the rasterizer ignores per-pixel colour.
+    expect(overpaintMasked).toBe(9);
   });
 
   it('handles small images without crashing', () => {
