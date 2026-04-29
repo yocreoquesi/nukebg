@@ -1693,9 +1693,20 @@ export class ArApp extends HTMLElement {
     } catch (err) {
       if (this.processingAborted) return;
       // Abort is an expected outcome when the user drops a new image
-      // mid-process or cancels a batch. Swallow it silently; the new
-      // run (if any) will clear the progress UI on its own.
-      if (err instanceof PipelineAbortError) return;
+      // mid-process or cancels a batch / clicks the in-cmdbar Cancel
+      // button. Settle the still-running and still-pending stages as
+      // skipped so the spinner stops and the user sees clearly which
+      // stages did not complete — without this the running stage's
+      // icon kept spinning even though every worker had been
+      // terminated, which read as "cancel did nothing". The new run
+      // (if any) clears the progress UI on its own via reset().
+      if (err instanceof PipelineAbortError) {
+        this.progress.markCancelled();
+        this.updateCommandBarState('ready');
+        this.isProcessing = false;
+        this.enableWorkspaceButtons();
+        return;
+      }
       console.error('Pipeline error:', err);
       const msg = err instanceof Error ? err.message : String(err);
       this.progress.setStage('ml-segmentation', 'error', t('pipeline.error', { msg }));
