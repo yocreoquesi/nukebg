@@ -91,23 +91,6 @@ export class ArProgress extends HTMLElement {
     // command bar's data-state attribute instead.
   }
 
-  /**
-   * Settle every still-running or still-pending stage as `skipped` so
-   * the spinner stops and the user sees clearly which stages did not
-   * complete. Called when the host catches a `PipelineAbortError`
-   * (user cancel, new image dropped mid-process). Done stages are
-   * left intact — those finished before the cancel and their check
-   * mark is honest.
-   */
-  markCancelled(): void {
-    for (const s of this.stages) {
-      if (s.status === 'running' || s.status === 'pending') {
-        s.status = 'skipped';
-      }
-    }
-    this.update();
-  }
-
   setStage(stage: PipelineStage, status: StageStatus, message?: string): void {
     // Extract content type from detect-background done message (e.g. "solid detected [signature]")
     if (stage === 'detect-background' && status === 'done' && message) {

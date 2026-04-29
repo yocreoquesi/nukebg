@@ -196,13 +196,18 @@ describe('ArApp orchestrator (#131)', () => {
     expect(app.shadowRoot!.querySelector('#cmd-new-image')).toBeNull();
   });
 
-  it('the command bar sits inside the workspace and BEFORE <ar-viewer> in the DOM order', () => {
-    // Migrated from tests/components/ar-command-bar.test.ts (#135).
+  it('the command bar sits inside the workspace and AFTER <ar-viewer> in the DOM order', () => {
+    // Originally migrated from ar-command-bar.test.ts (#135) asserting
+    // BEFORE; flipped to AFTER as part of the cancel-feedback work —
+    // user did not want "$ nukea file.png · ... · ready" appearing
+    // ABOVE the image when processing finished or was cancelled. The
+    // bar still owns the same status role / aria-live region; only
+    // the DOM position changed.
     const ws = app.shadowRoot!.querySelector('#single-file-workspace')!;
     const cmdBar = ws.querySelector('#command-bar')!;
     const viewer = ws.querySelector('ar-viewer')!;
-    // compareDocumentPosition: 4 = following → cmdBar comes BEFORE viewer
-    expect(cmdBar.compareDocumentPosition(viewer) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    // compareDocumentPosition: 2 = preceding → cmdBar comes AFTER viewer
+    expect(cmdBar.compareDocumentPosition(viewer) & Node.DOCUMENT_POSITION_PRECEDING).toBeTruthy();
   });
 
   it('renders the status line with reactor + model state slots', () => {
