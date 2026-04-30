@@ -18,21 +18,9 @@ import { IMAGE_CLASSIFY_PARAMS, INPAINT_PARAMS, PRECISION_PROFILES } from './con
 import type { PrecisionMode } from './constants';
 import { compositeWithFeather, dilateMask } from '../workers/cv/inpaint-blend';
 import { shouldUseLama } from '../workers/cv/lama-router';
+import { WorkerChannel } from './worker-channel';
 
 type StageCallback = (stage: PipelineStage, status: StageStatus, message?: string) => void;
-
-/** Fallback UUID generator for browsers that don't support crypto.randomUUID (Safari <15.4) */
-function generateUUID(): string {
-  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
-    return crypto.randomUUID();
-  }
-  // Fallback: RFC4122-compliant v4 UUID
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
-    const r = (Math.random() * 16) | 0;
-    const v = c === 'x' ? r : (r & 0x3) | 0x8;
-    return v.toString(16);
-  });
-}
 
 /** Worker call timeout in ms */
 const CV_TIMEOUT_MS = 60_000;
@@ -62,174 +50,126 @@ export class PipelineAbortError extends Error {
 }
 
 export class PipelineOrchestrator {
-  private cvWorker: Worker;
-  private mlWorker: Worker;
-  private inpaintWorker: Worker | null = null;
-  private lamaWorker: Worker | null = null;
-  private pendingRequests = new Map<
-    string,
-    {
-      resolve: (val: unknown) => void;
-      reject: (err: Error) => void;
-      expectedType: string;
-      /** Timeout handle associated with this request, so response handlers
-       *  can clear it promptly instead of waiting for the timer to fire
-       *  empty-handed. */
-      timer?: ReturnType<typeof setTimeout>;
-    }
-  >();
-  private pendingTimers = new Set<ReturnType<typeof setTimeout>>();
+  private cv: WorkerChannel<CvWorkerResponse>;
+  private ml: WorkerChannel<MlWorkerResponse>;
+  private inpaint: WorkerChannel<InpaintWorkerResponse>;
+  private lama: WorkerChannel<LamaWorkerResponse>;
   private onStageChange: StageCallback;
   private activeSignalCleanup: (() => void) | null = null;
-
-  constructor(onStageChange: StageCallback) {
-    this.onStageChange = onStageChange;
-    this.cvWorker = this.createCvWorker();
-    this.mlWorker = this.createMlWorker();
-    this.setupMlWorkerHandler();
-  }
-
-  private createCvWorker(): Worker {
-    const w = new Worker(new URL('../workers/cv.worker.ts', import.meta.url), { type: 'module' });
-    w.onerror = (e) => {
-      this.rejectAllPending(`CV Worker error: ${e.message}`);
-      w.terminate();
-    };
-    w.onmessage = (e: MessageEvent<CvWorkerResponse>) => {
-      const msg = e.data;
-      const pending = this.pendingRequests.get(msg.id);
-      if (pending) {
-        this.settlePending(msg.id);
-        if (msg.type === 'error') {
-          pending.reject(new Error(msg.error));
-        } else {
-          pending.resolve(msg.result);
-        }
-      }
-    };
-    return w;
-  }
-
-  private createMlWorker(): Worker {
-    const w = new Worker(new URL('../workers/ml.worker.ts', import.meta.url), { type: 'module' });
-    w.onerror = (e) => {
-      this.rejectAllPending(`ML Worker error: ${e.message}`);
-      w.terminate();
-    };
-    return w;
-  }
-
   /** Whether to suppress ML progress updates (during background preload) */
   private suppressMlProgress = false;
 
-  /** Attach onmessage handler to the current mlWorker */
-  private setupMlWorkerHandler(): void {
-    this.mlWorker.onmessage = (e: MessageEvent<MlWorkerResponse>) => {
-      const msg = e.data;
-      // model-progress events: forward to UI, don't resolve the pending request
-      if (msg.type === 'model-progress') {
-        if (this.suppressMlProgress) return; // background preload, don't update UI
-        const pct = msg.progress ?? 0;
-        const label =
-          pct >= 96 && pct < 100
-            ? 'Warming up the reactor... [96%]'
-            : `Loading AI model... ${pct}% [${pct}%]`;
-        this.emit('ml-segmentation', 'running', label);
-        return;
-      }
-
-      // warmup-diagnostic: surface iOS Safari hang info to console for remote debugging
-      if (msg.type === 'warmup-diagnostic') {
-        const d = msg.diagnostic;
-        const tag = '[NukeBG/warmup]';
-        if (d.status === 'ok') {
-          console.info(`${tag} ok ${d.elapsedMs}ms (device=${d.device})`);
-        } else {
-          console.warn(`${tag} ${d.status} after ${d.elapsedMs}ms`, {
-            device: d.device,
-            errorName: d.errorName,
-            errorMessage: d.errorMessage,
-            errorStack: d.errorStack,
-            userAgent: d.userAgent,
-            hardwareConcurrency: d.hardwareConcurrency,
-          });
+  constructor(onStageChange: StageCallback) {
+    this.onStageChange = onStageChange;
+    this.cv = new WorkerChannel<CvWorkerResponse>({
+      name: 'CV',
+      timeoutMs: CV_TIMEOUT_MS,
+      factory: () =>
+        new Worker(new URL('../workers/cv.worker.ts', import.meta.url), { type: 'module' }),
+      isProgress: () => false,
+      resolveResponse: (msg) =>
+        msg.type === 'error'
+          ? { kind: 'reject', error: msg.error }
+          : { kind: 'resolve', value: msg.result },
+    });
+    this.ml = new WorkerChannel<MlWorkerResponse>({
+      name: 'ML',
+      timeoutMs: ML_TIMEOUT_MS,
+      factory: () =>
+        new Worker(new URL('../workers/ml.worker.ts', import.meta.url), { type: 'module' }),
+      isProgress: (msg) => msg.type === 'model-progress' || msg.type === 'warmup-diagnostic',
+      onProgress: (msg) => this.onMlProgress(msg),
+      resolveResponse: (msg, expectedType) => {
+        if (msg.type === 'error') return { kind: 'reject', error: msg.error };
+        if (msg.type === 'segment-result') {
+          if (expectedType !== 'segment') return { kind: 'ignore' };
+          return { kind: 'resolve', value: msg.result };
         }
-        return;
-      }
-
-      const pending = this.pendingRequests.get(msg.id);
-      if (pending) {
-        if (msg.type === 'error') {
-          this.settlePending(msg.id);
-          pending.reject(new Error(msg.error));
-        } else if (msg.type === 'segment-result') {
-          // Only resolve if the request was actually for a segment call
-          if (pending.expectedType !== 'segment') {
-            console.warn(
-              `[NukeBG] segment-result arrived for a '${pending.expectedType}' request - ignoring`,
-            );
-            return;
-          }
-          this.settlePending(msg.id);
-          pending.resolve(msg.result);
-        } else if (msg.type === 'model-ready') {
-          // Only resolve if the request was for load-model, NOT segment.
-          // This prevents a model-ready message from prematurely resolving
-          // a segment request when the worker auto-loads the model.
-          if (pending.expectedType !== 'load-model') {
-            console.warn(
-              `[NukeBG] model-ready arrived for a '${pending.expectedType}' request - ignoring`,
-            );
-            return;
-          }
-          this.settlePending(msg.id);
-          pending.resolve(msg);
+        if (msg.type === 'model-ready') {
+          // Prevent a model-ready message from prematurely resolving a
+          // segment request when the worker auto-loads the model.
+          if (expectedType !== 'load-model') return { kind: 'ignore' };
+          return { kind: 'resolve', value: msg };
         }
+        return { kind: 'ignore' };
+      },
+    });
+    this.inpaint = new WorkerChannel<InpaintWorkerResponse>({
+      name: 'Inpaint',
+      timeoutMs: INPAINT_TIMEOUT_MS,
+      factory: () =>
+        new Worker(new URL('../workers/inpaint.worker.ts', import.meta.url), { type: 'module' }),
+      isProgress: (msg) => msg.type === 'inpaint-progress',
+      onProgress: () => this.emit('inpaint', 'running', 'Reconstructing watermark area...'),
+      resolveResponse: (msg) => {
+        if (msg.type === 'error') return { kind: 'reject', error: msg.error };
+        if (msg.type === 'inpaint-result') return { kind: 'resolve', value: msg.result };
+        if (msg.type === 'disposed') return { kind: 'resolve', value: undefined };
+        return { kind: 'ignore' };
+      },
+    });
+    this.lama = new WorkerChannel<LamaWorkerResponse>({
+      name: 'LaMa',
+      timeoutMs: LAMA_TIMEOUT_MS,
+      factory: () =>
+        new Worker(new URL('../workers/lama.worker.ts', import.meta.url), { type: 'module' }),
+      isProgress: (msg) =>
+        msg.type === 'lama-model-progress' ||
+        msg.type === 'lama-model-ready' ||
+        msg.type === 'lama-inpaint-progress',
+      onProgress: (msg) => this.onLamaProgress(msg),
+      resolveResponse: (msg) => {
+        if (msg.type === 'error') return { kind: 'reject', error: msg.error };
+        if (msg.type === 'lama-inpaint-result') return { kind: 'resolve', value: msg.result };
+        if (msg.type === 'lama-disposed') return { kind: 'resolve', value: undefined };
+        return { kind: 'ignore' };
+      },
+    });
+
+    // CV + ML are eager (always needed for any image). Inpaint + LaMa
+    // stay lazy so we don't pay for a worker the router may not pick.
+    this.cv.start();
+    this.ml.start();
+  }
+
+  private onMlProgress(msg: MlWorkerResponse): void {
+    if (msg.type === 'model-progress') {
+      if (this.suppressMlProgress) return; // background preload, don't update UI
+      const pct = msg.progress ?? 0;
+      const label =
+        pct >= 96 && pct < 100
+          ? 'Warming up the reactor... [96%]'
+          : `Loading AI model... ${pct}% [${pct}%]`;
+      this.emit('ml-segmentation', 'running', label);
+      return;
+    }
+    if (msg.type === 'warmup-diagnostic') {
+      // surface iOS Safari hang info to console for remote debugging
+      const d = msg.diagnostic;
+      const tag = '[NukeBG/warmup]';
+      if (d.status === 'ok') {
+        console.info(`${tag} ok ${d.elapsedMs}ms (device=${d.device})`);
+      } else {
+        console.warn(`${tag} ${d.status} after ${d.elapsedMs}ms`, {
+          device: d.device,
+          errorName: d.errorName,
+          errorMessage: d.errorMessage,
+          errorStack: d.errorStack,
+          userAgent: d.userAgent,
+          hardwareConcurrency: d.hardwareConcurrency,
+        });
       }
-    };
+    }
   }
 
-  /** Extract Transferable buffers from a payload object */
-  private static extractTransferables(
-    payload: Record<string, unknown> | undefined,
-  ): Transferable[] {
-    if (!payload) return [];
-    const transferables: Transferable[] = [];
-    for (const val of Object.values(payload)) {
-      if (val instanceof ArrayBuffer) {
-        transferables.push(val);
-      } else if (ArrayBuffer.isView(val) && val.buffer instanceof ArrayBuffer) {
-        transferables.push(val.buffer);
-      }
+  private onLamaProgress(msg: LamaWorkerResponse): void {
+    if (msg.type === 'lama-model-progress') {
+      const pct = msg.progress;
+      this.emit('inpaint', 'running', `Loading AI inpainting model... ${pct}% [${pct}%]`);
+      return;
     }
-    return transferables;
-  }
-
-  /** Reject all pending requests (used when a worker crashes) */
-  private rejectAllPending(message: string): void {
-    for (const timer of this.pendingTimers) clearTimeout(timer);
-    this.pendingTimers.clear();
-    for (const [, pending] of this.pendingRequests) {
-      pending.reject(new Error(message));
-    }
-    this.pendingRequests.clear();
-  }
-
-  /**
-   * Settle a pending request (resolve or reject): clear its watchdog
-   * timer, drop the timer from pendingTimers, and remove the entry from
-   * pendingRequests. Call this from every response handler so the
-   * pendingTimers set stays tight — without it, timers linger until
-   * they fire empty-handed (#44 leak).
-   */
-  private settlePending(id: string): void {
-    const pending = this.pendingRequests.get(id);
-    if (!pending) return;
-    if (pending.timer !== undefined) {
-      clearTimeout(pending.timer);
-      this.pendingTimers.delete(pending.timer);
-    }
-    this.pendingRequests.delete(id);
+    // model-ready and inpaint-progress: keep UI label stable.
+    this.emit('inpaint', 'running', 'Reconstructing zone [AI]...');
   }
 
   /**
@@ -248,215 +188,16 @@ export class PipelineOrchestrator {
    * 45s spatial pass.
    */
   abort(reason = 'aborted'): void {
-    for (const timer of this.pendingTimers) clearTimeout(timer);
-    this.pendingTimers.clear();
     const err = new PipelineAbortError(reason);
-    for (const [, pending] of this.pendingRequests) {
-      pending.reject(err);
-    }
-    this.pendingRequests.clear();
+    this.cv.rejectAllPending(err);
+    this.ml.rejectAllPending(err);
+    this.inpaint.rejectAllPending(err);
+    this.lama.rejectAllPending(err);
 
-    this.cvWorker.terminate();
-    this.mlWorker.terminate();
-    this.disposeInpaintWorker();
-    this.disposeLamaWorker();
-
-    this.cvWorker = this.createCvWorker();
-    this.mlWorker = this.createMlWorker();
-    this.setupMlWorkerHandler();
-  }
-
-  private cvCall<T>(type: string, payload: Record<string, unknown>): Promise<T> {
-    return new Promise((resolve, reject) => {
-      const id = generateUUID();
-      const transferables = PipelineOrchestrator.extractTransferables(payload);
-      this.cvWorker.postMessage({ id, type, payload }, transferables);
-
-      const timer = setTimeout(() => {
-        this.pendingTimers.delete(timer);
-        if (this.pendingRequests.has(id)) {
-          this.pendingRequests.delete(id);
-          reject(new Error(`CV Worker timeout after ${CV_TIMEOUT_MS}ms: ${type}`));
-        }
-      }, CV_TIMEOUT_MS);
-      this.pendingTimers.add(timer);
-      this.pendingRequests.set(id, {
-        resolve: resolve as (val: unknown) => void,
-        reject,
-        expectedType: type,
-        timer,
-      });
-    });
-  }
-
-  private mlCall<T>(
-    type: string,
-    payload?: Record<string, unknown>,
-    extra?: Record<string, unknown>,
-  ): Promise<T> {
-    return new Promise((resolve, reject) => {
-      const id = generateUUID();
-      const transferables = PipelineOrchestrator.extractTransferables(payload);
-      this.mlWorker.postMessage({ id, type, payload, ...extra }, transferables);
-
-      const timer = setTimeout(() => {
-        this.pendingTimers.delete(timer);
-        if (this.pendingRequests.has(id)) {
-          this.pendingRequests.delete(id);
-          reject(
-            new Error(
-              `ML Worker timeout after ${ML_TIMEOUT_MS}ms: ${type}. Check browser console for errors.`,
-            ),
-          );
-        }
-      }, ML_TIMEOUT_MS);
-      this.pendingTimers.add(timer);
-      this.pendingRequests.set(id, {
-        resolve: resolve as (val: unknown) => void,
-        reject,
-        expectedType: type,
-        timer,
-      });
-    });
-  }
-
-  /** Create the inpaint worker lazily (only when needed) */
-  private createInpaintWorker(): void {
-    if (this.inpaintWorker) return;
-    this.inpaintWorker = new Worker(new URL('../workers/inpaint.worker.ts', import.meta.url), {
-      type: 'module',
-    });
-    this.inpaintWorker.onerror = (e) => this.rejectAllPending(`Inpaint Worker error: ${e.message}`);
-    this.inpaintWorker.onmessage = (e: MessageEvent<InpaintWorkerResponse>) => {
-      const msg = e.data;
-
-      // Progress events: forward to UI
-      if (msg.type === 'inpaint-progress') {
-        const label = 'Reconstructing watermark area...';
-        this.emit('inpaint', 'running', label);
-        return;
-      }
-
-      const pending = this.pendingRequests.get(msg.id);
-      if (pending) {
-        if (msg.type === 'error') {
-          this.settlePending(msg.id);
-          pending.reject(new Error(msg.error));
-        } else if (msg.type === 'inpaint-result') {
-          this.settlePending(msg.id);
-          pending.resolve(msg.result);
-        } else if (msg.type === 'disposed') {
-          this.settlePending(msg.id);
-          pending.resolve(undefined);
-        }
-      }
-    };
-  }
-
-  private inpaintCall<T>(type: string, payload?: Record<string, unknown>): Promise<T> {
-    if (!this.inpaintWorker) throw new Error('Inpaint worker not created');
-    return new Promise((resolve, reject) => {
-      const id = generateUUID();
-      const transferables = PipelineOrchestrator.extractTransferables(payload);
-      this.inpaintWorker!.postMessage({ id, type, payload }, transferables);
-
-      const timer = setTimeout(() => {
-        this.pendingTimers.delete(timer);
-        if (this.pendingRequests.has(id)) {
-          this.pendingRequests.delete(id);
-          reject(new Error(`Inpaint Worker timeout after ${INPAINT_TIMEOUT_MS}ms: ${type}`));
-        }
-      }, INPAINT_TIMEOUT_MS);
-      this.pendingTimers.add(timer);
-      this.pendingRequests.set(id, {
-        resolve: resolve as (val: unknown) => void,
-        reject,
-        expectedType: type,
-        timer,
-      });
-    });
-  }
-
-  /** Dispose inpaint worker and free memory */
-  private disposeInpaintWorker(): void {
-    if (this.inpaintWorker) {
-      this.inpaintWorker.terminate();
-      this.inpaintWorker = null;
-    }
-  }
-
-  /** Create the LaMa worker lazily (only when the router picks it). */
-  private createLamaWorker(): void {
-    if (this.lamaWorker) return;
-    this.lamaWorker = new Worker(new URL('../workers/lama.worker.ts', import.meta.url), {
-      type: 'module',
-    });
-    this.lamaWorker.onerror = (e) => this.rejectAllPending(`LaMa Worker error: ${e.message}`);
-    this.lamaWorker.onmessage = (e: MessageEvent<LamaWorkerResponse>) => {
-      const msg = e.data;
-
-      // Model download progress: forward to UI, don't resolve the pending request.
-      if (msg.type === 'lama-model-progress') {
-        const pct = msg.progress;
-        this.emit('inpaint', 'running', `Loading AI inpainting model... ${pct}% [${pct}%]`);
-        return;
-      }
-      if (msg.type === 'lama-model-ready') {
-        this.emit('inpaint', 'running', 'Reconstructing zone [AI]...');
-        return;
-      }
-      if (msg.type === 'lama-inpaint-progress') {
-        // Stage strings are diagnostic only; keep the UI label stable.
-        this.emit('inpaint', 'running', 'Reconstructing zone [AI]...');
-        return;
-      }
-
-      const pending = this.pendingRequests.get(msg.id);
-      if (pending) {
-        if (msg.type === 'error') {
-          this.settlePending(msg.id);
-          pending.reject(new Error(msg.error));
-        } else if (msg.type === 'lama-inpaint-result') {
-          this.settlePending(msg.id);
-          pending.resolve(msg.result);
-        } else if (msg.type === 'lama-disposed') {
-          this.settlePending(msg.id);
-          pending.resolve(undefined);
-        }
-      }
-    };
-  }
-
-  private lamaCall<T>(type: string, payload?: Record<string, unknown>): Promise<T> {
-    if (!this.lamaWorker) throw new Error('LaMa worker not created');
-    return new Promise((resolve, reject) => {
-      const id = generateUUID();
-      const transferables = PipelineOrchestrator.extractTransferables(payload);
-      this.lamaWorker!.postMessage({ id, type, payload }, transferables);
-
-      const timer = setTimeout(() => {
-        this.pendingTimers.delete(timer);
-        if (this.pendingRequests.has(id)) {
-          this.pendingRequests.delete(id);
-          reject(new Error(`LaMa Worker timeout after ${LAMA_TIMEOUT_MS}ms: ${type}`));
-        }
-      }, LAMA_TIMEOUT_MS);
-      this.pendingTimers.add(timer);
-      this.pendingRequests.set(id, {
-        resolve: resolve as (val: unknown) => void,
-        reject,
-        expectedType: type,
-        timer,
-      });
-    });
-  }
-
-  /** Dispose LaMa worker (terminating the worker also frees the ONNX session). */
-  private disposeLamaWorker(): void {
-    if (this.lamaWorker) {
-      this.lamaWorker.terminate();
-      this.lamaWorker = null;
-    }
+    this.cv.recreate();
+    this.ml.recreate();
+    this.inpaint.dispose();
+    this.lama.dispose();
   }
 
   private emit(stage: PipelineStage, status: StageStatus, message?: string): void {
@@ -470,7 +211,7 @@ export class PipelineOrchestrator {
 
   /** Pre-load the ML model so it's ready when the user drops an image */
   async preloadModel(modelId?: ModelId): Promise<void> {
-    await this.mlCall('load-model', undefined, modelId ? { modelId } : undefined);
+    await this.ml.call('load-model', undefined, modelId ? { modelId } : undefined);
   }
 
   /**
@@ -489,7 +230,7 @@ export class PipelineOrchestrator {
     width: number,
     height: number,
   ): Promise<Uint8ClampedArray> {
-    return this.cvCall<Uint8ClampedArray>('foreground-estimate', {
+    return this.cv.call<Uint8ClampedArray>('foreground-estimate', {
       pixels,
       alpha,
       width,
@@ -581,12 +322,12 @@ export class PipelineOrchestrator {
 
     // Run bg detection and content classification in parallel
     const [bgInfo, classifyResult] = await Promise.all([
-      this.cvCall<BgColorResult>('detect-bg-colors', {
+      this.cv.call<BgColorResult>('detect-bg-colors', {
         pixels: new Uint8ClampedArray(imageData.data),
         width,
         height,
       }),
-      this.cvCall<ClassifyImageResult>('classify-image', {
+      this.cv.call<ClassifyImageResult>('classify-image', {
         pixels: new Uint8ClampedArray(imageData.data),
         width,
         height,
@@ -605,7 +346,7 @@ export class PipelineOrchestrator {
       this.emit('inpaint', 'skipped');
       this.emit('ml-segmentation', 'running', 'Extracting signature...');
 
-      const sigAlpha = await this.cvCall<Uint8Array>('signature-threshold', {
+      const sigAlpha = await this.cv.call<Uint8Array>('signature-threshold', {
         pixels: new Uint8ClampedArray(originalPixels),
         width,
         height,
@@ -636,19 +377,19 @@ export class PipelineOrchestrator {
       this.emit('watermark-scan', 'running', 'Checking for watermarks...');
 
       const [wmGemini, wmDalle, wmSparkle] = await Promise.all([
-        this.cvCall<WatermarkResult>('watermark-detect', {
+        this.cv.call<WatermarkResult>('watermark-detect', {
           pixels: new Uint8ClampedArray(imageData.data),
           width,
           height,
           colorA: bgInfo.colorA,
           colorB: bgInfo.colorB,
         }),
-        this.cvCall<WatermarkResult>('watermark-detect-dalle', {
+        this.cv.call<WatermarkResult>('watermark-detect-dalle', {
           pixels: new Uint8ClampedArray(imageData.data),
           width,
           height,
         }),
-        this.cvCall<WatermarkResult>('sparkle-detect', {
+        this.cv.call<WatermarkResult>('sparkle-detect', {
           pixels: new Uint8ClampedArray(imageData.data),
           width,
           height,
@@ -704,9 +445,8 @@ export class PipelineOrchestrator {
 
         if (routerDecision.useLama) {
           this.emit('inpaint', 'running', 'Reconstructing zone [AI]...');
-          this.createLamaWorker();
           try {
-            inpaintedPixels = await this.lamaCall<Uint8ClampedArray>('lama-inpaint', {
+            inpaintedPixels = await this.lama.call<Uint8ClampedArray>('lama-inpaint', {
               pixels: new Uint8ClampedArray(originalPixels),
               width,
               height,
@@ -714,20 +454,19 @@ export class PipelineOrchestrator {
             });
           } finally {
             // Free ONNX session memory before RMBG loads next.
-            this.disposeLamaWorker();
+            this.lama.dispose();
           }
         } else {
           this.emit('inpaint', 'running', 'Reconstructing watermark area...');
-          this.createInpaintWorker();
           try {
-            inpaintedPixels = await this.inpaintCall<Uint8ClampedArray>('inpaint', {
+            inpaintedPixels = await this.inpaint.call<Uint8ClampedArray>('inpaint', {
               pixels: new Uint8ClampedArray(originalPixels),
               width,
               height,
               mask: new Uint8Array(dilated),
             });
           } finally {
-            this.disposeInpaintWorker();
+            this.inpaint.dispose();
           }
         }
 
@@ -785,7 +524,7 @@ export class PipelineOrchestrator {
       minClusterSize: profile.minClusterSize,
     };
 
-    const mlAlpha = await this.mlCall<Uint8Array>(
+    const mlAlpha = await this.ml.call<Uint8Array>(
       'segment',
       {
         pixels: new Uint8ClampedArray(originalPixels),
@@ -872,22 +611,33 @@ export class PipelineOrchestrator {
   destroy(): void {
     this.activeSignalCleanup?.();
     this.activeSignalCleanup = null;
-    for (const timer of this.pendingTimers) clearTimeout(timer);
-    this.pendingTimers.clear();
-    this.pendingRequests.clear();
-    this.cvWorker.terminate();
-    this.mlWorker.terminate();
-    this.disposeInpaintWorker();
-    this.disposeLamaWorker();
+    const err = new Error('orchestrator destroyed');
+    this.cv.rejectAllPending(err);
+    this.ml.rejectAllPending(err);
+    this.inpaint.rejectAllPending(err);
+    this.lama.rejectAllPending(err);
+    this.cv.dispose();
+    this.ml.dispose();
+    this.inpaint.dispose();
+    this.lama.dispose();
   }
 
   /** Test-only accessors so unit tests can assert the #44 leak is fixed
-   *  without touching private state. Cheap in production — the getters
-   *  forward straight to the existing collections. */
+   *  without touching private state. Sums across all four channels. */
   get _pendingTimersSize(): number {
-    return this.pendingTimers.size;
+    return (
+      this.cv.pendingTimersSize +
+      this.ml.pendingTimersSize +
+      this.inpaint.pendingTimersSize +
+      this.lama.pendingTimersSize
+    );
   }
   get _pendingRequestsSize(): number {
-    return this.pendingRequests.size;
+    return (
+      this.cv.pendingRequestsSize +
+      this.ml.pendingRequestsSize +
+      this.inpaint.pendingRequestsSize +
+      this.lama.pendingRequestsSize
+    );
   }
 }
