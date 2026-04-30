@@ -12,13 +12,8 @@ import type { ArDropzone } from './ar-dropzone';
 import type { ArBatchGrid } from './ar-batch-grid';
 import { BatchOrchestrator, type BatchStageCallback } from '../controllers/batch-orchestrator';
 import { emit, on } from '../lib/event-bus';
-import {
-  refineEdges,
-  dropOrphanBlobs,
-  fillSubjectHoles,
-  promoteSpeckleAlpha,
-} from '../pipeline/finalize';
-import { composeAtOriginal } from '../utils/final-composite';
+import { refineEdges } from '../pipeline/finalize';
+import { finalizePipelineResult } from '../pipeline/finalize-result';
 import { exportPng } from '../utils/image-io';
 import type { ArEditorAdvanced } from './ar-editor-advanced';
 
@@ -1628,27 +1623,7 @@ export class ArApp extends HTMLElement {
       );
       if (this.processingAborted) return;
 
-      const composed = composeAtOriginal({
-        originalRgba: originalImageData.data,
-        originalWidth: originalImageData.width,
-        originalHeight: originalImageData.height,
-        workingRgba: result.workingPixels,
-        workingWidth: result.workingWidth,
-        workingHeight: result.workingHeight,
-        workingAlpha: result.workingAlpha,
-        inpaintMask: result.watermarkMask,
-      });
-      // Drop RMBG's disconnected false-positive blobs (e.g. horizon bands,
-      // misfired watermark fragments) for classes where the subject is one
-      // body. Signatures and icons may legitimately have multiple components.
-      // fillSubjectHoles then patches α=0 holes enclosed by the body (RMBG
-      // false negatives on specular highlights). promoteSpeckleAlpha
-      // additionally promotes semi-transparent specks surrounded by dense
-      // opaque neighbors — same artefact class but partial-α instead of zero.
-      const finalImageData =
-        result.contentType === 'PHOTO' || result.contentType === 'ILLUSTRATION'
-          ? promoteSpeckleAlpha(fillSubjectHoles(dropOrphanBlobs(composed)))
-          : composed;
+      const finalImageData = finalizePipelineResult(result, originalImageData);
       const nukedPct = result.nukedPct;
       const totalTimeMs = result.totalTimeMs;
 

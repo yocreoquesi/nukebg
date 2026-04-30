@@ -23,8 +23,7 @@ import type { ArDownload } from '../components/ar-download';
 import type { ArBatchGrid } from '../components/ar-batch-grid';
 import type { BatchItem, StageSnapshot } from '../types/batch';
 import { createZip, safeZipEntryName, downloadBlob } from '../utils/zip';
-import { dropOrphanBlobs, fillSubjectHoles, promoteSpeckleAlpha } from '../pipeline/finalize';
-import { composeAtOriginal } from '../utils/final-composite';
+import { finalizePipelineResult } from '../pipeline/finalize-result';
 import { exportPng } from '../utils/image-io';
 
 export type BatchMode = 'off' | 'grid' | 'detail';
@@ -193,20 +192,7 @@ export class BatchOrchestrator {
           ac.signal,
         );
         if (this.aborted) return;
-        const composed = composeAtOriginal({
-          originalRgba: item.originalImageData.data,
-          originalWidth: item.originalImageData.width,
-          originalHeight: item.originalImageData.height,
-          workingRgba: result.workingPixels,
-          workingWidth: result.workingWidth,
-          workingHeight: result.workingHeight,
-          workingAlpha: result.workingAlpha,
-          inpaintMask: result.watermarkMask,
-        });
-        const finalImageData =
-          result.contentType === 'PHOTO' || result.contentType === 'ILLUSTRATION'
-            ? promoteSpeckleAlpha(fillSubjectHoles(dropOrphanBlobs(composed)))
-            : composed;
+        const finalImageData = finalizePipelineResult(result, item.originalImageData);
         item.result = result;
         item.finalImageData = finalImageData;
         item.thumbnailUrl = this.host.makeThumbnail(finalImageData);
