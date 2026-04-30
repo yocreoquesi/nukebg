@@ -25,6 +25,7 @@ import type { BatchItem, StageSnapshot } from '../types/batch';
 import { createZip, safeZipEntryName, downloadBlob } from '../utils/zip';
 import { finalizePipelineResult } from '../pipeline/finalize-result';
 import { exportPng } from '../utils/image-io';
+import { getRecommendedPrecision } from '../utils/device-adaptation';
 
 export type BatchMode = 'off' | 'grid' | 'detail';
 
@@ -188,7 +189,7 @@ export class BatchOrchestrator {
         const result = await pipeline.process(
           item.imageData,
           BatchOrchestrator.MODEL_ID,
-          'high-power',
+          getRecommendedPrecision(),
           ac.signal,
         );
         if (this.aborted) return;
