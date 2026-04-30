@@ -1350,11 +1350,18 @@ export class ArApp extends HTMLElement {
           this.lastResultImageData = this.preEditResult;
           this.preEditResult = null;
 
-          const blob = await exportPng(this.lastResultImageData);
+          // Same split as the main flow: slider keeps the full-size
+          // canvas (alignment with original); export + info label use
+          // the cropped subject bbox.
+          const exportImageData = autoCropToSubject(this.lastResultImageData);
+          const blob = await exportPng(exportImageData);
           const originalForViewer = this.currentOriginalImageData ?? this.currentImageData;
           if (originalForViewer) this.viewer.setOriginal(originalForViewer, this.currentFileSize);
-          this.viewer.setResult(this.lastResultImageData, blob);
-          await this.download.setResult(this.lastResultImageData, this.currentFileName, 0, blob);
+          this.viewer.setResult(this.lastResultImageData, blob, {
+            width: exportImageData.width,
+            height: exportImageData.height,
+          });
+          await this.download.setResult(exportImageData, this.currentFileName, 0, blob);
 
           // Switch button back to "Edit manually"
           const editBtn = this.shadowRoot!.querySelector('#edit-btn') as HTMLElement;
@@ -1397,7 +1404,10 @@ export class ArApp extends HTMLElement {
         const editedData = await refineEdges(this.pipeline, rawEdited, {
           skipTopologyCleanup: true,
         });
-        const blob = await exportPng(editedData);
+        // Crop for export; slider canvas keeps the full-size frame so
+        // the manual brush strokes still align with the original.
+        const exportImageData = autoCropToSubject(editedData);
+        const blob = await exportPng(exportImageData);
 
         // Save pre-edit for discard functionality
         this.preEditResult = this.lastResultImageData;
@@ -1405,8 +1415,11 @@ export class ArApp extends HTMLElement {
         this.lastResultImageData = editedData;
 
         // "Before" stays as the original input image; only "after" updates
-        this.viewer.setResult(editedData, blob);
-        await this.download.setResult(editedData, this.currentFileName, 0, blob);
+        this.viewer.setResult(editedData, blob, {
+          width: exportImageData.width,
+          height: exportImageData.height,
+        });
+        await this.download.setResult(exportImageData, this.currentFileName, 0, blob);
 
         // Hide editor, show discard button
         (this.shadowRoot!.querySelector('#editor-section') as HTMLElement).style.display = 'none';
@@ -1469,9 +1482,15 @@ export class ArApp extends HTMLElement {
         const refined = await refineEdges(this.pipeline, imageData, {
           skipTopologyCleanup: true,
         });
-        const blob = await exportPng(refined);
-        this.viewer.setResult(refined, blob);
-        await this.download.setResult(refined, this.currentFileName, 0, blob);
+        // Same split as elsewhere: slider stays full-size for alignment;
+        // export + info label use the cropped subject bbox.
+        const exportImageData = autoCropToSubject(refined);
+        const blob = await exportPng(exportImageData);
+        this.viewer.setResult(refined, blob, {
+          width: exportImageData.width,
+          height: exportImageData.height,
+        });
+        await this.download.setResult(exportImageData, this.currentFileName, 0, blob);
         this.lastResultImageData = refined;
       },
       { signal },
