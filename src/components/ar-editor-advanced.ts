@@ -28,7 +28,7 @@
  *     ar:advanced-cancel
  */
 
-import { createLoader, type ModelLoader } from '../refine/loaders';
+import { createRmbg14Loader, type Rmbg14Loader } from '../refine/loaders/rmbg14';
 import { refineEdges } from '../pipeline/finalize';
 import { SamRefiner } from '../controllers/sam-refiner';
 import { processRoi } from '../refine/roi-process';
@@ -128,7 +128,7 @@ export class ArEditorAdvanced extends HTMLElement {
   private lasso = new LassoModel();
 
   // Shared RMBG-1.4 loader, warmed on first refine and reused afterwards.
-  private loader: ModelLoader | null = null;
+  private loader: Rmbg14Loader | null = null;
   private busy = false;
   private actionAbort: AbortController | null = null;
 
@@ -1948,9 +1948,9 @@ export class ArEditorAdvanced extends HTMLElement {
     this.syncPreviewBannerDiff();
   }
 
-  private async getLoader(): Promise<ModelLoader> {
+  private async getLoader(): Promise<Rmbg14Loader> {
     if (this.loader) return this.loader;
-    const loader = createLoader('rmbg-1.4');
+    const loader = createRmbg14Loader();
     await loader.warmup();
     this.loader = loader;
     return loader;
