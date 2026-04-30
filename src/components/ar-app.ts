@@ -14,6 +14,7 @@ import { BatchOrchestrator, type BatchStageCallback } from '../controllers/batch
 import { emit, on } from '../lib/event-bus';
 import { refineEdges } from '../pipeline/finalize';
 import { finalizePipelineResult } from '../pipeline/finalize-result';
+import { getRecommendedPrecision } from '../utils/device-adaptation';
 import { exportPng } from '../utils/image-io';
 import type { ArEditorAdvanced } from './ar-editor-advanced';
 
@@ -1618,7 +1619,7 @@ export class ArApp extends HTMLElement {
       const result = await this.pipeline.process(
         imageData,
         ArApp.MODEL_ID,
-        'high-power',
+        getRecommendedPrecision(),
         this.processingAbortController?.signal,
       );
       if (this.processingAborted) return;
