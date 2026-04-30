@@ -19,8 +19,11 @@ import type { PrecisionMode } from './constants';
 import { compositeWithFeather, dilateMask } from '../workers/cv/inpaint-blend';
 import { shouldUseLama } from '../workers/cv/lama-router';
 import { WorkerChannel } from './worker-channel';
+import type { ImageProcessor, StageCallback } from './image-processor';
 
-type StageCallback = (stage: PipelineStage, status: StageStatus, message?: string) => void;
+// Re-export so existing callers that imported from the orchestrator
+// don't have to chase a new path.
+export type { ImageProcessor, StageCallback } from './image-processor';
 
 /** Worker call timeout in ms */
 const CV_TIMEOUT_MS = 60_000;
@@ -49,7 +52,7 @@ export class PipelineAbortError extends Error {
   readonly name = 'PipelineAbortError';
 }
 
-export class PipelineOrchestrator {
+export class PipelineOrchestrator implements ImageProcessor {
   private cv: WorkerChannel<CvWorkerResponse>;
   private ml: WorkerChannel<MlWorkerResponse>;
   private inpaint: WorkerChannel<InpaintWorkerResponse>;

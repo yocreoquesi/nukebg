@@ -1,4 +1,5 @@
 import { PipelineOrchestrator, PipelineAbortError } from '../pipeline/orchestrator';
+import type { ImageProcessor } from '../pipeline/image-processor';
 import type { PipelineStage, StageStatus } from '../types/pipeline';
 import type { ModelId } from '../types/worker-messages';
 import { t } from '../i18n';
@@ -20,7 +21,7 @@ import type { ArEditorAdvanced } from './ar-editor-advanced';
 
 export class ArApp extends HTMLElement {
   private static readonly MODEL_ID: ModelId = 'briaai/RMBG-1.4';
-  private pipeline: PipelineOrchestrator | null = null;
+  private pipeline: ImageProcessor | null = null;
   private viewer!: ArViewer;
   private progress!: ArProgress;
   private download!: ArDownload;

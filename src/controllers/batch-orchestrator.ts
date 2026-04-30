@@ -5,7 +5,7 @@
  * so the host component shrinks toward pure orchestration + render.
  *
  * The host (ar-app) keeps:
- *   - The PipelineOrchestrator instance (single-image flow shares it)
+ *   - The ImageProcessor instance (single-image flow shares it)
  *   - The in-flight AbortController (cancel-processing handler must reach it
  *     on either path)
  *   - The detail-view rendering (it touches single-image fields + DOM
@@ -14,7 +14,8 @@
  * The orchestrator never reaches into the host directly — it talks through
  * the BatchHost interface. The host passes itself in at construction.
  */
-import { PipelineAbortError, type PipelineOrchestrator } from '../pipeline/orchestrator';
+import { PipelineAbortError } from '../pipeline/orchestrator';
+import type { ImageProcessor } from '../pipeline/image-processor';
 import type { PipelineStage, StageStatus } from '../types/pipeline';
 import type { ModelId } from '../types/worker-messages';
 import type { ArViewer } from '../components/ar-viewer';
@@ -49,7 +50,7 @@ export interface BatchHost {
   /** Install the per-batch stage callback onto the (lazy) pipeline and
    *  return the armed pipeline for `process()` calls. The host owns the
    *  lazy-creation logic so single-image flow can share the same instance. */
-  installBatchStageCallback(cb: BatchStageCallback): PipelineOrchestrator;
+  installBatchStageCallback(cb: BatchStageCallback): ImageProcessor;
 
   /** Set the AbortController for the in-flight item. Host stores it so the
    *  global `ar:cancel-processing` handler can abort either single-image
