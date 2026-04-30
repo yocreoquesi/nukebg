@@ -13,11 +13,13 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
 // ─── Module mocks (must precede component import) ─────────────────────────
 
-vi.mock('../../src/refine/loaders', () => ({
-  createLoader: vi.fn(() => ({
-    load: vi.fn(() => Promise.resolve({})),
-    segment: vi.fn(() => Promise.resolve(new Uint8Array(16))),
-    dispose: vi.fn(),
+vi.mock('../../src/refine/loaders/rmbg14', () => ({
+  createRmbg14Loader: vi.fn(() => ({
+    label: 'mock',
+    approxDownloadMb: 0,
+    warmup: vi.fn(() => Promise.resolve()),
+    segment: vi.fn(() => Promise.resolve({ alpha: new Uint8Array(16), width: 4, height: 4, latencyMs: 1, backend: 'wasm' })),
+    dispose: vi.fn(() => Promise.resolve()),
   })),
 }));
 

@@ -9,10 +9,45 @@
  * staging-only exploration.
  */
 
-import type { ModelLoader, SegmentInput, SegmentOutput } from './types';
-
 const MODEL_ID = 'briaai/RMBG-1.4';
 const MODEL_REVISION = '2ceba5a5efaec153162aedea169f76caf9b46cf8';
+
+export interface SegmentInput {
+  /** Packed RGBA pixels at arbitrary resolution. */
+  pixels: Uint8ClampedArray;
+  width: number;
+  height: number;
+}
+
+export interface SegmentOutput {
+  /** Alpha mask 0..255 at the input resolution (loader handles resampling). */
+  alpha: Uint8Array;
+  width: number;
+  height: number;
+  /** Inference latency including pre/post-processing. */
+  latencyMs: number;
+  /** Which execution provider actually ran (webgpu | wasm). */
+  backend: 'webgpu' | 'wasm';
+}
+
+/**
+ * Surface the lab UI + advanced editor depend on. The factory used to
+ * dispatch over a `ModelId` union, but RMBG-1.4 has been the only entry
+ * for the lifetime of this code path; the union earned no leverage.
+ * Callers import `createRmbg14Loader()` directly now.
+ */
+export interface Rmbg14Loader {
+  /** Human-readable label for the selector dropdown. */
+  label: string;
+  /** Approximate download size to warn the user before first load. */
+  approxDownloadMb: number;
+  /** Warm the model weights. Idempotent — safe to call multiple times. */
+  warmup(): Promise<void>;
+  /** Run one inference. */
+  segment(input: SegmentInput): Promise<SegmentOutput>;
+  /** Release WebGPU resources and free the ONNX session. */
+  dispose(): Promise<void>;
+}
 
 interface MaskOut {
   mask?: { data: Uint8Array; width: number; height: number };
@@ -29,7 +64,7 @@ type RawImageCtor = new (
   channels: number,
 ) => unknown;
 
-export function createRmbg14Loader(): ModelLoader {
+export function createRmbg14Loader(): Rmbg14Loader {
   let segPipeline: SegPipeline | null = null;
   let RawImage: RawImageCtor | null = null;
 
@@ -49,10 +84,8 @@ export function createRmbg14Loader(): ModelLoader {
   }
 
   return {
-    id: 'rmbg-1.4',
     label: 'RMBG-1.4 (baseline, INT8)',
     approxDownloadMb: 45,
-    requiresWebGpu: false,
 
     async warmup() {
       await ensurePipeline();
