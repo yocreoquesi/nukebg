@@ -5,7 +5,7 @@
  * so the host component shrinks toward pure orchestration + render.
  *
  * The host (ar-app) keeps:
- *   - The PipelineOrchestrator instance (single-image flow shares it)
+ *   - The ImageProcessor instance (single-image flow shares it)
  *   - The in-flight AbortController (cancel-processing handler must reach it
  *     on either path)
  *   - The detail-view rendering (it touches single-image fields + DOM
@@ -14,7 +14,8 @@
  * The orchestrator never reaches into the host directly — it talks through
  * the BatchHost interface. The host passes itself in at construction.
  */
-import { PipelineAbortError, type PipelineOrchestrator } from '../pipeline/orchestrator';
+import { PipelineAbortError } from '../pipeline/orchestrator';
+import type { ImageProcessor } from '../pipeline/image-processor';
 import type { PipelineStage, StageStatus } from '../types/pipeline';
 import type { ModelId } from '../types/worker-messages';
 import type { ArViewer } from '../components/ar-viewer';
@@ -23,9 +24,10 @@ import type { ArDownload } from '../components/ar-download';
 import type { ArBatchGrid } from '../components/ar-batch-grid';
 import type { BatchItem, StageSnapshot } from '../types/batch';
 import { createZip, safeZipEntryName, downloadBlob } from '../utils/zip';
-import { dropOrphanBlobs, fillSubjectHoles, promoteSpeckleAlpha } from '../pipeline/finalize';
-import { composeAtOriginal } from '../utils/final-composite';
+import { finalizePipelineResult } from '../pipeline/finalize-result';
 import { exportPng } from '../utils/image-io';
+import { getRecommendedPrecision } from '../utils/device-adaptation';
+import { autoCropToSubject } from '../utils/auto-crop';
 
 export type BatchMode = 'off' | 'grid' | 'detail';
 
@@ -49,7 +51,7 @@ export interface BatchHost {
   /** Install the per-batch stage callback onto the (lazy) pipeline and
    *  return the armed pipeline for `process()` calls. The host owns the
    *  lazy-creation logic so single-image flow can share the same instance. */
-  installBatchStageCallback(cb: BatchStageCallback): PipelineOrchestrator;
+  installBatchStageCallback(cb: BatchStageCallback): ImageProcessor;
 
   /** Set the AbortController for the in-flight item. Host stores it so the
    *  global `ar:cancel-processing` handler can abort either single-image
@@ -189,27 +191,22 @@ export class BatchOrchestrator {
         const result = await pipeline.process(
           item.imageData,
           BatchOrchestrator.MODEL_ID,
-          'high-power',
+          getRecommendedPrecision(),
           ac.signal,
         );
         if (this.aborted) return;
-        const composed = composeAtOriginal({
-          originalRgba: item.originalImageData.data,
-          originalWidth: item.originalImageData.width,
-          originalHeight: item.originalImageData.height,
-          workingRgba: result.workingPixels,
-          workingWidth: result.workingWidth,
-          workingHeight: result.workingHeight,
-          workingAlpha: result.workingAlpha,
-          inpaintMask: result.watermarkMask,
-        });
-        const finalImageData =
-          result.contentType === 'PHOTO' || result.contentType === 'ILLUSTRATION'
-            ? promoteSpeckleAlpha(fillSubjectHoles(dropOrphanBlobs(composed)))
-            : composed;
+        const finalImageData = finalizePipelineResult(result, item.originalImageData);
+        // Tight bbox for export — see autoCropToSubject. finalImageData
+        // stays full-size so the detail-view slider aligns with the
+        // original; exportImageData feeds the per-item download CTA and
+        // the ZIP. Thumbnails come from the cropped version because the
+        // grid card is dominated by transparency on a wide-canvas
+        // result, which makes the subject hard to recognise.
+        const exportImageData = autoCropToSubject(finalImageData);
         item.result = result;
         item.finalImageData = finalImageData;
-        item.thumbnailUrl = this.host.makeThumbnail(finalImageData);
+        item.exportImageData = exportImageData;
+        item.thumbnailUrl = this.host.makeThumbnail(exportImageData);
         item.state = 'done';
         if (this.ui.batchGrid) this.ui.batchGrid.updateItem(item.id, 'done', item.thumbnailUrl);
         // Auto-refresh detail view if the user is currently watching this item.
@@ -273,7 +270,9 @@ export class BatchOrchestrator {
     const files = await Promise.all(
       done.map(async (item, idx) => ({
         name: safeZipEntryName(idx + 1, done.length, item.originalName),
-        blob: await exportPng(item.finalImageData ?? item.result!.imageData),
+        blob: await exportPng(
+          item.exportImageData ?? item.finalImageData ?? item.result!.imageData,
+        ),
       })),
     );
     const zip = await createZip(files);

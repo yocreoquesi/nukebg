@@ -1,4 +1,5 @@
 import { PipelineOrchestrator, PipelineAbortError } from '../pipeline/orchestrator';
+import type { ImageProcessor } from '../pipeline/image-processor';
 import type { PipelineStage, StageStatus } from '../types/pipeline';
 import type { ModelId } from '../types/worker-messages';
 import { t } from '../i18n';
@@ -12,19 +13,16 @@ import type { ArDropzone } from './ar-dropzone';
 import type { ArBatchGrid } from './ar-batch-grid';
 import { BatchOrchestrator, type BatchStageCallback } from '../controllers/batch-orchestrator';
 import { emit, on } from '../lib/event-bus';
-import {
-  refineEdges,
-  dropOrphanBlobs,
-  fillSubjectHoles,
-  promoteSpeckleAlpha,
-} from '../pipeline/finalize';
-import { composeAtOriginal } from '../utils/final-composite';
+import { refineEdges } from '../pipeline/finalize';
+import { finalizePipelineResult } from '../pipeline/finalize-result';
+import { getRecommendedPrecision } from '../utils/device-adaptation';
+import { autoCropToSubject } from '../utils/auto-crop';
 import { exportPng } from '../utils/image-io';
 import type { ArEditorAdvanced } from './ar-editor-advanced';
 
 export class ArApp extends HTMLElement {
   private static readonly MODEL_ID: ModelId = 'briaai/RMBG-1.4';
-  private pipeline: PipelineOrchestrator | null = null;
+  private pipeline: ImageProcessor | null = null;
   private viewer!: ArViewer;
   private progress!: ArProgress;
   private download!: ArDownload;
@@ -1012,9 +1010,6 @@ export class ArApp extends HTMLElement {
                 <span class="cmd-state-label" id="cmd-state-label">${t('cmdbar.running')}</span>
               </span>
             </div>
-            <div class="cmd-right">
-              <button type="button" class="cmd-btn cmd-btn-danger" id="cmd-cancel" hidden>${t('cmdbar.cancel')}</button>
-            </div>
           </div>
           <ar-editor style="display:none" id="editor-section"></ar-editor>
           <ar-editor-advanced id="editor-advanced"></ar-editor-advanced>
@@ -1178,8 +1173,6 @@ export class ArApp extends HTMLElement {
     if (errRetry) errRetry.textContent = t('error.retry');
     const errDismiss = root.querySelector('#error-modal-dismiss');
     if (errDismiss) errDismiss.textContent = t('error.dismiss');
-    const cmdCancel = root.querySelector('#cmd-cancel');
-    if (cmdCancel) cmdCancel.textContent = t('cmdbar.cancel');
     const cmdStateLabel = root.querySelector('#cmd-state-label') as HTMLElement | null;
     const cmdStateHost = root.querySelector('#cmd-state') as HTMLElement | null;
     if (cmdStateLabel && cmdStateHost) {
@@ -1201,29 +1194,13 @@ export class ArApp extends HTMLElement {
 
     on(document, 'nukebg:locale-changed', () => this.updateTexts(), { signal });
 
-    // Cancel button lives in the command bar (#71). The same
-    // ar:cancel-processing event is dispatched from there and caught at
-    // the shadow-root level so legacy listeners (progress component,
-    // tests) still work.
-    const bubbleCancel = (): void => {
-      emit(this, 'ar:cancel-processing', undefined, { bubbles: true, composed: true });
-    };
-    on(
-      this.shadowRoot!,
-      'ar:cancel-processing',
-      () => {
-        if (this.processingAbortController && !this.processingAbortController.signal.aborted) {
-          this.processingAbortController.abort('user cancelled');
-        }
-        if (this.batch.isInBatchMode()) {
-          this.batch.abort();
-        }
-      },
-      { signal },
-    );
-
-    const cmdCancel = this.shadowRoot!.querySelector('#cmd-cancel') as HTMLButtonElement | null;
-    cmdCancel?.addEventListener('click', bubbleCancel, { signal });
+    // The cmdbar Cancel button was removed (the abort path it triggered
+    // was confusing in practice — workers stopped but state surfaces did
+    // not always settle predictably). The underlying
+    // processingAbortController is still alive and used by the
+    // "drop a new image mid-process" and batch-cancel paths, so the
+    // pipeline can still be torn down by other code; only the user-
+    // facing button is gone.
 
     // #78 — inline error-stage actions in ar-progress. Retry reuses
     // the existing retryFromError() path; report opens a pre-filled
@@ -1373,11 +1350,18 @@ export class ArApp extends HTMLElement {
           this.lastResultImageData = this.preEditResult;
           this.preEditResult = null;
 
-          const blob = await exportPng(this.lastResultImageData);
+          // Same split as the main flow: slider keeps the full-size
+          // canvas (alignment with original); export + info label use
+          // the cropped subject bbox.
+          const exportImageData = autoCropToSubject(this.lastResultImageData);
+          const blob = await exportPng(exportImageData);
           const originalForViewer = this.currentOriginalImageData ?? this.currentImageData;
           if (originalForViewer) this.viewer.setOriginal(originalForViewer, this.currentFileSize);
-          this.viewer.setResult(this.lastResultImageData, blob);
-          await this.download.setResult(this.lastResultImageData, this.currentFileName, 0, blob);
+          this.viewer.setResult(this.lastResultImageData, blob, {
+            width: exportImageData.width,
+            height: exportImageData.height,
+          });
+          await this.download.setResult(exportImageData, this.currentFileName, 0, blob);
 
           // Switch button back to "Edit manually"
           const editBtn = this.shadowRoot!.querySelector('#edit-btn') as HTMLElement;
@@ -1420,7 +1404,10 @@ export class ArApp extends HTMLElement {
         const editedData = await refineEdges(this.pipeline, rawEdited, {
           skipTopologyCleanup: true,
         });
-        const blob = await exportPng(editedData);
+        // Crop for export; slider canvas keeps the full-size frame so
+        // the manual brush strokes still align with the original.
+        const exportImageData = autoCropToSubject(editedData);
+        const blob = await exportPng(exportImageData);
 
         // Save pre-edit for discard functionality
         this.preEditResult = this.lastResultImageData;
@@ -1428,8 +1415,11 @@ export class ArApp extends HTMLElement {
         this.lastResultImageData = editedData;
 
         // "Before" stays as the original input image; only "after" updates
-        this.viewer.setResult(editedData, blob);
-        await this.download.setResult(editedData, this.currentFileName, 0, blob);
+        this.viewer.setResult(editedData, blob, {
+          width: exportImageData.width,
+          height: exportImageData.height,
+        });
+        await this.download.setResult(exportImageData, this.currentFileName, 0, blob);
 
         // Hide editor, show discard button
         (this.shadowRoot!.querySelector('#editor-section') as HTMLElement).style.display = 'none';
@@ -1492,9 +1482,15 @@ export class ArApp extends HTMLElement {
         const refined = await refineEdges(this.pipeline, imageData, {
           skipTopologyCleanup: true,
         });
-        const blob = await exportPng(refined);
-        this.viewer.setResult(refined, blob);
-        await this.download.setResult(refined, this.currentFileName, 0, blob);
+        // Same split as elsewhere: slider stays full-size for alignment;
+        // export + info label use the cropped subject bbox.
+        const exportImageData = autoCropToSubject(refined);
+        const blob = await exportPng(exportImageData);
+        this.viewer.setResult(refined, blob, {
+          width: exportImageData.width,
+          height: exportImageData.height,
+        });
+        await this.download.setResult(exportImageData, this.currentFileName, 0, blob);
         this.lastResultImageData = refined;
       },
       { signal },
@@ -1644,42 +1640,30 @@ export class ArApp extends HTMLElement {
       const result = await this.pipeline.process(
         imageData,
         ArApp.MODEL_ID,
-        'high-power',
+        getRecommendedPrecision(),
         this.processingAbortController?.signal,
       );
       if (this.processingAborted) return;
 
-      const composed = composeAtOriginal({
-        originalRgba: originalImageData.data,
-        originalWidth: originalImageData.width,
-        originalHeight: originalImageData.height,
-        workingRgba: result.workingPixels,
-        workingWidth: result.workingWidth,
-        workingHeight: result.workingHeight,
-        workingAlpha: result.workingAlpha,
-        inpaintMask: result.watermarkMask,
-      });
-      // Drop RMBG's disconnected false-positive blobs (e.g. horizon bands,
-      // misfired watermark fragments) for classes where the subject is one
-      // body. Signatures and icons may legitimately have multiple components.
-      // fillSubjectHoles then patches α=0 holes enclosed by the body (RMBG
-      // false negatives on specular highlights). promoteSpeckleAlpha
-      // additionally promotes semi-transparent specks surrounded by dense
-      // opaque neighbors — same artefact class but partial-α instead of zero.
-      const finalImageData =
-        result.contentType === 'PHOTO' || result.contentType === 'ILLUSTRATION'
-          ? promoteSpeckleAlpha(fillSubjectHoles(dropOrphanBlobs(composed)))
-          : composed;
+      const finalImageData = finalizePipelineResult(result, originalImageData);
+      // Tight bbox around the subject for export. Slider keeps full-size
+      // (alignment with original) but the downloaded PNG and the info
+      // label show the cropped resolution — the user gets a Slack-emote-
+      // sized file, not a 4K canvas with a 200×200 dot.
+      const exportImageData = autoCropToSubject(finalImageData);
       const nukedPct = result.nukedPct;
       const totalTimeMs = result.totalTimeMs;
 
       if (this.processingAborted) return;
 
-      const blob = await exportPng(finalImageData);
+      const blob = await exportPng(exportImageData);
       if (this.processingAborted) return;
 
-      this.viewer.setResult(finalImageData, blob);
-      await this.download.setResult(finalImageData, this.currentFileName, totalTimeMs, blob);
+      this.viewer.setResult(finalImageData, blob, {
+        width: exportImageData.width,
+        height: exportImageData.height,
+      });
+      await this.download.setResult(exportImageData, this.currentFileName, totalTimeMs, blob);
       if (this.processingAborted) return;
 
       // Show nuke percentage if background was removed
@@ -1698,26 +1682,11 @@ export class ArApp extends HTMLElement {
       if (editorSection) editorSection.style.display = 'none';
     } catch (err) {
       if (this.processingAborted) return;
-      // Abort is an expected outcome and comes from three places, each
-      // with its own AbortController reason:
-      //   - 'user cancelled'      → user clicked Cancel in the cmdbar
-      //   - 'new image dropped'   → another file landed; new run is
-      //                             about to take over, leave its
-      //                             progress.reset() in charge
-      //   - 'batch aborted' / etc → batch flow tearing down
-      // For 'user cancelled' we hard-reset back to the landing/dropzone
-      // and purge the in-flight image data so the tab returns to the
-      // idle state the user expects ("nothing in flight, no image
-      // sitting in memory"). The pipeline itself stays alive so the
-      // already-cached RMBG model survives — next drop is fast.
-      // Other abort reasons fall through to a silent return; the new
-      // run (if any) owns the UI from there.
-      if (err instanceof PipelineAbortError) {
-        if (err.message === 'user cancelled') {
-          this.resetToIdle();
-        }
-        return;
-      }
+      // Abort is an expected outcome from "new image dropped" or
+      // "batch aborted" — the new run that follows owns the UI from
+      // there. Silent return. (The previous cmdbar Cancel button was
+      // removed; user-initiated cancel is no longer a path here.)
+      if (err instanceof PipelineAbortError) return;
       console.error('Pipeline error:', err);
       const msg = err instanceof Error ? err.message : String(err);
       this.progress.setStage('ml-segmentation', 'error', t('pipeline.error', { msg }));
@@ -1764,14 +1733,12 @@ export class ArApp extends HTMLElement {
     const root = this.shadowRoot!;
     const stateEl = root.querySelector('#cmd-state') as HTMLElement | null;
     const label = root.querySelector('#cmd-state-label');
-    const cancelBtn = root.querySelector('#cmd-cancel') as HTMLButtonElement | null;
-    if (!stateEl || !label || !cancelBtn) return;
+    if (!stateEl || !label) return;
     stateEl.hidden = false;
     stateEl.setAttribute('data-state', state);
     const key =
       state === 'running' ? 'cmdbar.running' : state === 'ready' ? 'cmdbar.ready' : 'cmdbar.failed';
     label.textContent = t(key);
-    cancelBtn.hidden = state !== 'running';
   }
 
   private formatBytes(bytes: number): string {
@@ -1961,10 +1928,16 @@ export class ArApp extends HTMLElement {
       this.batch.replayStageHistory(item.stageHistory);
       this.download.reset();
       const finalImageData = item.finalImageData ?? item.result.imageData;
-      const blob = await exportPng(finalImageData);
-      this.viewer.setResult(finalImageData, blob);
+      // Mirror the single-image flow: slider gets full-size; download
+      // and the resolution label get the cropped subject bbox.
+      const exportImageData = item.exportImageData ?? autoCropToSubject(finalImageData);
+      const blob = await exportPng(exportImageData);
+      this.viewer.setResult(finalImageData, blob, {
+        width: exportImageData.width,
+        height: exportImageData.height,
+      });
       await this.download.setResult(
-        finalImageData,
+        exportImageData,
         item.originalName,
         item.result.totalTimeMs,
         blob,

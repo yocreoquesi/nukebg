@@ -10,6 +10,54 @@ Unreleased entries accumulate on the `dev` branch. When we cut a release we copy
 
 ## [Unreleased]
 
+## [2.12.0] — 2026-04-30
+
+Minor release. Headline feature is **autocrop on export** — the
+downloaded PNG / WebP is now sized to the subject bbox instead of
+the full original canvas. Also lands the cmdbar Cancel button
+removal that was queued for v2.11.3, plus a stack of pipeline
+refactors that don't change output but make the working→export
+chain easier to reason about.
+
+### Added
+
+- **Autocrop on export.** After background removal the result no
+  longer ships with the full original canvas size. The downloaded
+  file is tightly cropped to the non-transparent bbox of the
+  subject — Slack-emote sized instead of the input's 4K canvas.
+  The before/after slider still aligns with the original (canvases
+  share dimensions) but the resolution label and downloaded file
+  reflect the cropped size. Edge cases handled: all-transparent
+  results pass through unchanged; subjects that touch the canvas
+  edges produce a no-op crop. Closes #247.
+
+### Changed
+
+- **`finalizePipelineResult` collapses the working→export chain.**
+  The single function now owns upscale + alpha-snap + topology
+  cleanup, replacing the inline chain that used to live in two
+  different callers. Output bit-for-bit identical.
+- **`ImageProcessor` seam between components and orchestrator.**
+  The old direct-orchestrator-import pattern from `ar-app` and
+  `ar-batch` collapses into a single seam. Easier to mock in
+  tests, easier to swap implementations later.
+- **Tier-aware precision via `getRecommendedPrecision()`.** The
+  pipeline picks fp16 / fp32 based on device tier instead of the
+  hardcoded fp32 fallback. Faster on capable mobiles without
+  regressing low-end devices.
+- **`WorkerChannel` extracted for worker request lifecycle.**
+  Decouples request/response correlation from the orchestrator;
+  cancel + timeout semantics centralised.
+- **`refine` single-product loader factory collapsed.** One factory
+  function instead of two near-duplicate ones.
+
+### Removed
+
+- **`cmdbar` Cancel button.** Kept failing user expectations —
+  the cancel-on-drop semantics in the orchestrator + the editor
+  Cancel buttons cover every flow that mattered. Was queued for
+  v2.11.3 (PR #246, superseded by this release).
+
 ## [2.11.2] — 2026-04-29
 
 Patch release. Fixes the cancel button to actually behave like a cancel
