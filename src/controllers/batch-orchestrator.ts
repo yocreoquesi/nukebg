@@ -27,6 +27,7 @@ import { createZip, safeZipEntryName, downloadBlob } from '../utils/zip';
 import { finalizePipelineResult } from '../pipeline/finalize-result';
 import { exportPng } from '../utils/image-io';
 import { getRecommendedPrecision } from '../utils/device-adaptation';
+import { autoCropToSubject } from '../utils/auto-crop';
 
 export type BatchMode = 'off' | 'grid' | 'detail';
 
@@ -195,9 +196,17 @@ export class BatchOrchestrator {
         );
         if (this.aborted) return;
         const finalImageData = finalizePipelineResult(result, item.originalImageData);
+        // Tight bbox for export — see autoCropToSubject. finalImageData
+        // stays full-size so the detail-view slider aligns with the
+        // original; exportImageData feeds the per-item download CTA and
+        // the ZIP. Thumbnails come from the cropped version because the
+        // grid card is dominated by transparency on a wide-canvas
+        // result, which makes the subject hard to recognise.
+        const exportImageData = autoCropToSubject(finalImageData);
         item.result = result;
         item.finalImageData = finalImageData;
-        item.thumbnailUrl = this.host.makeThumbnail(finalImageData);
+        item.exportImageData = exportImageData;
+        item.thumbnailUrl = this.host.makeThumbnail(exportImageData);
         item.state = 'done';
         if (this.ui.batchGrid) this.ui.batchGrid.updateItem(item.id, 'done', item.thumbnailUrl);
         // Auto-refresh detail view if the user is currently watching this item.
@@ -261,7 +270,9 @@ export class BatchOrchestrator {
     const files = await Promise.all(
       done.map(async (item, idx) => ({
         name: safeZipEntryName(idx + 1, done.length, item.originalName),
-        blob: await exportPng(item.finalImageData ?? item.result!.imageData),
+        blob: await exportPng(
+          item.exportImageData ?? item.finalImageData ?? item.result!.imageData,
+        ),
       })),
     );
     const zip = await createZip(files);

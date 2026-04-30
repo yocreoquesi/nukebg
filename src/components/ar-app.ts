@@ -16,6 +16,7 @@ import { emit, on } from '../lib/event-bus';
 import { refineEdges } from '../pipeline/finalize';
 import { finalizePipelineResult } from '../pipeline/finalize-result';
 import { getRecommendedPrecision } from '../utils/device-adaptation';
+import { autoCropToSubject } from '../utils/auto-crop';
 import { exportPng } from '../utils/image-io';
 import type { ArEditorAdvanced } from './ar-editor-advanced';
 
@@ -1626,16 +1627,24 @@ export class ArApp extends HTMLElement {
       if (this.processingAborted) return;
 
       const finalImageData = finalizePipelineResult(result, originalImageData);
+      // Tight bbox around the subject for export. Slider keeps full-size
+      // (alignment with original) but the downloaded PNG and the info
+      // label show the cropped resolution — the user gets a Slack-emote-
+      // sized file, not a 4K canvas with a 200×200 dot.
+      const exportImageData = autoCropToSubject(finalImageData);
       const nukedPct = result.nukedPct;
       const totalTimeMs = result.totalTimeMs;
 
       if (this.processingAborted) return;
 
-      const blob = await exportPng(finalImageData);
+      const blob = await exportPng(exportImageData);
       if (this.processingAborted) return;
 
-      this.viewer.setResult(finalImageData, blob);
-      await this.download.setResult(finalImageData, this.currentFileName, totalTimeMs, blob);
+      this.viewer.setResult(finalImageData, blob, {
+        width: exportImageData.width,
+        height: exportImageData.height,
+      });
+      await this.download.setResult(exportImageData, this.currentFileName, totalTimeMs, blob);
       if (this.processingAborted) return;
 
       // Show nuke percentage if background was removed
@@ -1900,10 +1909,16 @@ export class ArApp extends HTMLElement {
       this.batch.replayStageHistory(item.stageHistory);
       this.download.reset();
       const finalImageData = item.finalImageData ?? item.result.imageData;
-      const blob = await exportPng(finalImageData);
-      this.viewer.setResult(finalImageData, blob);
+      // Mirror the single-image flow: slider gets full-size; download
+      // and the resolution label get the cropped subject bbox.
+      const exportImageData = item.exportImageData ?? autoCropToSubject(finalImageData);
+      const blob = await exportPng(exportImageData);
+      this.viewer.setResult(finalImageData, blob, {
+        width: exportImageData.width,
+        height: exportImageData.height,
+      });
       await this.download.setResult(
-        finalImageData,
+        exportImageData,
         item.originalName,
         item.result.totalTimeMs,
         blob,

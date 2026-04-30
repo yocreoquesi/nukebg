@@ -28,8 +28,14 @@ export interface BatchItem {
   /** Full-resolution pixels used for the final composite. */
   originalImageData: ImageData;
   state: BatchItemState;
-  /** Final ImageData at original resolution (after composite upscale). */
+  /** Final ImageData at original resolution (after composite upscale).
+   *  Used for the before/after slider in detail view — keeps original
+   *  alignment with `originalImageData`. */
   finalImageData: ImageData | null;
+  /** Cropped to the subject bbox (autocrop). Used for export (download
+   *  button + ZIP). Null until the item finishes; when null, callers
+   *  fall back to `finalImageData`. */
+  exportImageData?: ImageData | null;
   result: PipelineResult | null;
   thumbnailUrl: string | null;
   errorMessage?: string;

@@ -453,7 +453,20 @@ export class ArViewer extends HTMLElement {
     this.updateSlider();
   }
 
-  setResult(imageData: ImageData, blob?: Blob): void {
+  /**
+   * Render the result into the slider canvas.
+   *
+   * `imageData` keeps the original full-size frame so the before/after
+   * slider stays aligned with the input. `displaySize`, when provided,
+   * overrides the dimensions reported in the info label — used by the
+   * autocrop flow so the user sees the resolution they're actually
+   * exporting (the cropped subject bbox), not the underlying canvas.
+   */
+  setResult(
+    imageData: ImageData,
+    blob?: Blob,
+    displaySize?: { width: number; height: number },
+  ): void {
     const ctx = this.resultCanvas.getContext('2d')!;
     this.resultCanvas.width = imageData.width;
     this.resultCanvas.height = imageData.height;
@@ -485,7 +498,9 @@ export class ArViewer extends HTMLElement {
 
     const info = this.shadowRoot!.querySelector('#info-text')!;
     const sizeStr = blob ? ` | ${Math.round(blob.size / 1024)} KB` : '';
-    info.textContent = `${imageData.width}x${imageData.height}${sizeStr}`;
+    const dispW = displaySize?.width ?? imageData.width;
+    const dispH = displaySize?.height ?? imageData.height;
+    info.textContent = `${dispW}x${dispH}${sizeStr}`;
   }
 }
 
