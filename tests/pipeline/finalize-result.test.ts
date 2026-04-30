@@ -100,10 +100,7 @@ function makeOriginal(): ImageData {
 
 describe('finalizePipelineResult — content-type gating', () => {
   it('PHOTO drops detached orphan blobs', () => {
-    const out = finalizePipelineResult(
-      makeResult('PHOTO', { detached: true }),
-      makeOriginal(),
-    );
+    const out = finalizePipelineResult(makeResult('PHOTO', { detached: true }), makeOriginal());
     expect(out.data[0 * 4 + 3]).toBe(0); // orphan pixel zeroed
     expect(out.data[(8 * W + 8) * 4 + 3]).toBeGreaterThan(0); // body kept
   });
@@ -117,34 +114,22 @@ describe('finalizePipelineResult — content-type gating', () => {
   });
 
   it('SIGNATURE keeps detached components (legitimate accent dots, separated strokes)', () => {
-    const out = finalizePipelineResult(
-      makeResult('SIGNATURE', { detached: true }),
-      makeOriginal(),
-    );
+    const out = finalizePipelineResult(makeResult('SIGNATURE', { detached: true }), makeOriginal());
     expect(out.data[0 * 4 + 3]).toBe(255); // orphan survives
   });
 
   it('ICON keeps detached components (icon sets, multi-glyph)', () => {
-    const out = finalizePipelineResult(
-      makeResult('ICON', { detached: true }),
-      makeOriginal(),
-    );
+    const out = finalizePipelineResult(makeResult('ICON', { detached: true }), makeOriginal());
     expect(out.data[0 * 4 + 3]).toBe(255);
   });
 
   it('PHOTO fills small interior holes (specular-highlight false negatives)', () => {
-    const out = finalizePipelineResult(
-      makeResult('PHOTO', { hole: true }),
-      makeOriginal(),
-    );
+    const out = finalizePipelineResult(makeResult('PHOTO', { hole: true }), makeOriginal());
     expect(out.data[(7 * W + 7) * 4 + 3]).toBe(255);
   });
 
   it('SIGNATURE preserves interior holes (legitimate counter shapes)', () => {
-    const out = finalizePipelineResult(
-      makeResult('SIGNATURE', { hole: true }),
-      makeOriginal(),
-    );
+    const out = finalizePipelineResult(makeResult('SIGNATURE', { hole: true }), makeOriginal());
     expect(out.data[(7 * W + 7) * 4 + 3]).toBe(0);
   });
 });

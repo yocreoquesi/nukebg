@@ -18,7 +18,15 @@ vi.mock('../../src/refine/loaders/rmbg14', () => ({
     label: 'mock',
     approxDownloadMb: 0,
     warmup: vi.fn(() => Promise.resolve()),
-    segment: vi.fn(() => Promise.resolve({ alpha: new Uint8Array(16), width: 4, height: 4, latencyMs: 1, backend: 'wasm' })),
+    segment: vi.fn(() =>
+      Promise.resolve({
+        alpha: new Uint8Array(16),
+        width: 4,
+        height: 4,
+        latencyMs: 1,
+        backend: 'wasm',
+      }),
+    ),
     dispose: vi.fn(() => Promise.resolve()),
   })),
 }));

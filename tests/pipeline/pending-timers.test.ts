@@ -29,7 +29,9 @@ describe('worker-channel — pending-timer bookkeeping (#44)', () => {
   });
 
   it('the central onMessage handler settles via settlePending instead of touching pendingRequests directly', () => {
-    const onMessageMatch = CHANNEL.match(/private onMessage\(msg: TMsg\): void \{[\s\S]*?^ {2}\}$/m);
+    const onMessageMatch = CHANNEL.match(
+      /private onMessage\(msg: TMsg\): void \{[\s\S]*?^ {2}\}$/m,
+    );
     expect(onMessageMatch, 'onMessage body not matched').not.toBeNull();
     const body = onMessageMatch![0];
     // The only pendingRequests access in onMessage should be the lookup,

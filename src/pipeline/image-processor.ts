@@ -8,11 +8,7 @@ import type { PrecisionMode } from './constants';
  * so callers depending on `ImageProcessor` don't transitively pick up
  * the orchestrator.
  */
-export type StageCallback = (
-  stage: PipelineStage,
-  status: StageStatus,
-  message?: string,
-) => void;
+export type StageCallback = (stage: PipelineStage, status: StageStatus, message?: string) => void;
 
 /**
  * Public surface every image-processing engine in the app honours.
