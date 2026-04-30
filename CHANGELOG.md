@@ -30,9 +30,6 @@ chain easier to reason about.
   reflect the cropped size. Edge cases handled: all-transparent
   results pass through unchanged; subjects that touch the canvas
   edges produce a no-op crop. Closes #247.
-- **Persistent status panel + Editor button rename.** Status panel
-  now stays mounted across processing transitions instead of
-  swapping in/out, and the Editor entry button copy was tightened.
 
 ### Changed
 
@@ -60,6 +57,112 @@ chain easier to reason about.
   the cancel-on-drop semantics in the orchestrator + the editor
   Cancel buttons cover every flow that mattered. Was queued for
   v2.11.3 (PR #246, superseded by this release).
+
+## [2.11.2] — 2026-04-29
+
+Patch release. Fixes the cancel button to actually behave like a cancel
+(hard reset back to the dropzone, image purged from memory, model kept
+cached) and moves the cmdbar below the image so it stops covering the
+result on completion / cancel.
+
+### Fixed
+
+- **Cancel now hard-resets to landing (#243).** Clicking Cancel during
+  a run terminates every worker (`cv`, `ml`, `inpaint`, `lama`) and
+  returns the UI to the dropzone with `currentImageData` /
+  `lastResultImageData` / `preEditResult` / `cachedEditResult` nulled
+  and the download component reset. The pipeline orchestrator stays
+  alive so the cached RMBG model survives — the next image drop
+  doesn't pay the model load again. Implemented by branching on the
+  `AbortController` reason inside `processImage()`'s catch: only
+  `'user cancelled'` triggers `resetToIdle()`; `'new image dropped'`
+  / `'batch aborted'` / timeout aborts fall through to the silent
+  return so the new run that follows can take over the UI.
+
+### Changed
+
+- **Cmdbar moved below the viewer (#243).** The
+  `$ nukea file.png · WxH · KB · ready` strip used to render above
+  the image and overlapped the result on completion / cancel. Now it
+  sits below `.ws-result-grid`, same `role="status"` /
+  `aria-live="polite"` region, only DOM order changed. The
+  test that asserted the bar sits BEFORE `<ar-viewer>` flipped to
+  assert AFTER, with a comment recording why.
+
+### Tooling / CI
+
+- CSP inline-script hash refreshed in `public/_headers` and
+  `infra/nginx.conf` (the version bump invalidated the previous
+  v2.11.1 hash on the JSON-LD block).
+
+### PRs
+
+- #243 — cancel hard-resets to landing + cmdbar below viewer.
+
+## [2.11.1] — 2026-04-29
+
+Patch release. Restores the watermark/sparkle removal pipeline to the
+proven 984b578b deploy quality (visible Gemini ✦ glyph cleanly removed,
+no transparency holes between fingers when the glyph straddles a hand)
+and adds three small UI papercuts that surfaced during the same testing
+pass.
+
+### Pipeline
+
+- **Sparkle/watermark removal restored to 984b578b quality (#240).**
+  PR #223 retired the legacy color-deviation `watermarkDetect` to fix
+  motostest false positives; that retirement also lost the cluster-
+  centroid mask that produced the clean removal on real Gemini ✦
+  glyphs. PR #225 / PR #238 were band-aids over the post-#223 hole and
+  never matched the legacy quality. The legacy detector is back, gated
+  by the shape detector's strict G1-G6 (4-arm symmetry, narrow-arm
+  isolation, etc.) so the false-positive immunity that motivated #223
+  is preserved without sacrificing mask quality. Closes #239.
+
+### Changed
+
+- **Status panel always visible (#241).** The `[STATUS]` line, the
+  limitations `<details>`, the honesty disclaimer and the Ko-fi pitch
+  used to live inside `<section.hero>` and disappear the moment a file
+  was dropped. Lifted into a sibling `<aside class="status-panel">`
+  placed below the workspace so it follows the current image at every
+  stage (landing, processing, result). Hidden only while the advanced
+  editor is open (the user explicitly does not want it competing with
+  the editing surface).
+- **Advanced editor button label tightened to "Editor" (#241).** The
+  button used to carry the full sentence "¿No te convence el resultado?
+  Abre el editor avanzado". Split: prompt becomes a plain `<p>` above
+  the button, the button itself is the tight word "Editor". New i18n
+  key `advanced.btn` shipped across all six locales (en/es/fr/de/pt/zh).
+
+### Fixed
+
+- **`Eliminando fondo [ML]` no longer surfaces before its stage runs
+  (#240).** `ar-progress.reset()` initialised every stage with
+  `status='pending'` and the render filter only hid the inpaint row
+  when skipped — so the queued ML-segmentation label appeared with an
+  empty bordered icon mid-pipeline. Pending rows are now filtered out
+  of the render entirely; stages only appear once they are running,
+  done, skipped, or errored.
+- **Per-stage 3px progress bar removed (#240).** The bar duplicated the
+  textual percentage already shown in the stage message
+  ("Loading AI model... 45%") and read as visual noise. Drop the
+  `.progress-bar` / `.progress-fill` / `@keyframes pulse` /
+  `isParsing` branch.
+
+### Tooling / CI
+
+- Refreshed the iphone landing visual baseline to reflect the status
+  panel relocation (chromium / webkit baselines unchanged — the moved
+  content sits below their fold).
+
+### PRs
+
+- #238 — peak-relocated flood-fill mask (subsequently superseded by
+  the rollback in #240, which restores the legacy approach).
+- #240 — restore 984b578b watermark/sparkle pipeline + shape-gated
+  legacy + ar-progress UI cleanup.
+- #241 — persistent status panel + Editor button rename.
 
 ## [2.11.0] — 2026-04-29
 
@@ -819,4 +922,6 @@ section, keep only the relevant subsections, and empty `[Unreleased]`:
 ### Documentation
 ```
 
-[Unreleased]: https://github.com/yocreoquesi/nukebg/compare/main...dev
+[Unreleased]: https://github.com/yocreoquesi/nukebg/compare/v2.11.2...dev
+[2.11.2]: https://github.com/yocreoquesi/nukebg/compare/v2.11.1...v2.11.2
+[2.11.1]: https://github.com/yocreoquesi/nukebg/compare/v2.11.0...v2.11.1
