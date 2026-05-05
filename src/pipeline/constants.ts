@@ -293,6 +293,18 @@ export const IMAGE_CLASSIFY_PARAMS = {
   SIGNATURE_DARK_PIXEL_MIN: 0.01,
   /** Max dark pixel ratio (not too much ink) */
   SIGNATURE_DARK_PIXEL_MAX: 0.4,
+  /**
+   * Max unique colors (5-bit/channel quantized) for a signature.
+   *
+   * Signatures are a niche content type — the calibration is intentionally
+   * asymmetric: it is much worse to misclassify a non-signature (e.g. a
+   * desaturated product photo on white) AS a signature than to miss a
+   * noisy scanned signature and let it fall through to PHOTO. Hence the
+   * tight cap aligned with ICON_MAX_UNIQUE_COLORS — both classes are
+   * flat 2D content with limited palettes; anything richer is treated
+   * as photographic.
+   */
+  SIGNATURE_UNIQUE_COLORS_MAX: 200,
 
   // ICON thresholds
   /** Max total pixels for icon classification */
@@ -303,14 +315,6 @@ export const IMAGE_CLASSIFY_PARAMS = {
   ICON_ASPECT_MIN: 0.7,
   /** Max aspect ratio for ~square icon */
   ICON_ASPECT_MAX: 1.43,
-
-  // ILLUSTRATION thresholds
-  /** Min unique colors for illustration */
-  ILLUSTRATION_UNIQUE_COLORS_MIN: 50,
-  /** Max unique colors for illustration */
-  ILLUSTRATION_UNIQUE_COLORS_MAX: 800,
-  /** Max brightness std for illustration (uniform lighting) */
-  ILLUSTRATION_BRIGHTNESS_STD_MAX: 70,
 
   // ICON RMBG threshold
   /** RMBG confidence threshold for icons (lower = more aggressive) */

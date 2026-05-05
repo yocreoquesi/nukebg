@@ -15,9 +15,9 @@ import { dropOrphanBlobs, fillSubjectHoles, promoteSpeckleAlpha } from './finali
  *      gradient, and writes onto pristine original RGB (with inpainted
  *      RGB blended in the watermark region only).
  *
- *   2. Topology cleanup gated by `contentType`. PHOTO and ILLUSTRATION
- *      assume "subject is one body": orphan blobs go (RMBG horizon
- *      bands, detached watermark fragments), interior holes get filled
+ *   2. Topology cleanup gated by `contentType`. PHOTO assumes
+ *      "subject is one body": orphan blobs go (RMBG horizon bands,
+ *      detached watermark fragments), interior holes get filled
  *      (specular highlights mistaken for background), and partial-α
  *      specks inside opaque regions get promoted. SIGNATURE and ICON
  *      may legitimately have multiple components and interior
@@ -41,7 +41,7 @@ export function finalizePipelineResult(result: PipelineResult, original: ImageDa
   });
 
   const ct = result.contentType;
-  if (ct === 'PHOTO' || ct === 'ILLUSTRATION') {
+  if (ct === 'PHOTO') {
     return promoteSpeckleAlpha(fillSubjectHoles(dropOrphanBlobs(composed)));
   }
   return composed;

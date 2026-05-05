@@ -6,13 +6,13 @@ suite (Vitest + Playwright). They never ship with production builds.
 | File | Source | Licence | Notes |
 | --- | --- | --- | --- |
 | `coche.jpg` | Pexels (royalty-free stock) | Pexels Licence | Generic car shot — used by `e2e/coche-capture.spec.ts` to baseline an outdoor photo. |
-| `fiat-clean.png` | Manually authored | Project licence (GPL-3.0) | Vector mock car on a clean checkerboard. Drives illustration-branch fixtures. |
+| `fiat-clean.png` | Manually authored | Project licence (GPL-3.0) | Vector mock car on a clean checkerboard. Flat-shaded subject — exercises the PHOTO path on illustration-style content. |
 | `football.webp` | Pexels | Pexels Licence | Stadium photo with green-on-green subject — adversarial RMBG case. |
 | `motorcycles-clean.png` | Manually authored | Project licence (GPL-3.0) | Vector mock — drives `tests/components` snapshots. |
 | `motostest.jpeg` | Pexels | Pexels Licence | Motorbike photo with hard edges + halo — used to tune foreground decontamination. |
 | `selfie-clean-corner.png` | Manually authored | Project licence (GPL-3.0) | Synthetic checkerboard fixture for AI-generated images. |
 | `selfie-sparkle-full.png` | Manually authored | Project licence (GPL-3.0) | Synthetic Gemini-watermark fixture. |
-| `trump-clean.png` | Manually authored | Project licence (GPL-3.0) | High-contrast portrait fixture for the illustration branch. |
+| `trump-clean.png` | Manually authored | Project licence (GPL-3.0) | High-contrast portrait fixture — flat-shaded illustration-style content processed via the PHOTO path. |
 
 If you add a fixture:
 

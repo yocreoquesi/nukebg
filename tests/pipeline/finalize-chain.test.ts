@@ -30,9 +30,9 @@ if (typeof globalThis.ImageData === 'undefined') {
 }
 
 // End-to-end topology cleanup chain: the same composition ar-app.ts applies
-// on the PHOTO/ILLUSTRATION path. Guards that chaining the three passes
-// produces a coherent output — no enclosed α=0 holes, no interior specks,
-// no disconnected α>0 blobs.
+// on the PHOTO path. Guards that chaining the three passes produces a
+// coherent output — no enclosed α=0 holes, no interior specks, no
+// disconnected α>0 blobs.
 const runChain = (img: ImageData): ImageData =>
   promoteSpeckleAlpha(fillSubjectHoles(dropOrphanBlobs(img)));
 

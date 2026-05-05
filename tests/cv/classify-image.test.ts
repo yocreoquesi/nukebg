@@ -107,12 +107,15 @@ describe('classifyImage', () => {
     expect(features.uniqueColors).toBeLessThan(200);
   });
 
-  it('classifies medium-color low-variance image as ILLUSTRATION', () => {
+  it('falls back to PHOTO for limited-palette flat-shaded content (formerly ILLUSTRATION)', () => {
     const w = 600,
       h = 400;
     const pixels = new Uint8ClampedArray(w * h * 4);
-    // Flat shaded regions with per-pixel variation (illustration-like):
-    // many bands with x-based and y-based subtle gradients to produce 50-800 unique quantized colors
+    // Flat shaded regions with per-pixel variation: bands with subtle
+    // gradients producing 50-800 unique quantized colors. Used to be
+    // classified as ILLUSTRATION; that class was removed because it had
+    // identical pipeline behavior to PHOTO. Regression guard: this
+    // input must classify as PHOTO, not be misrouted.
     const baseColors = [
       [200, 100, 100],
       [100, 200, 100],
@@ -131,7 +134,6 @@ describe('classifyImage', () => {
       const [r, g, b] = baseColors[band];
       for (let x = 0; x < w; x++) {
         const i = (y * w + x) * 4;
-        // Wider x-shift + y-shift to generate enough unique quantized colors (>50)
         const xShift = Math.floor((x / w) * 40);
         const yShift = Math.floor(((y % bandHeight) / bandHeight) * 20);
         pixels[i] = Math.min(255, r + xShift);
@@ -144,10 +146,7 @@ describe('classifyImage', () => {
     const features = extractImageFeatures(pixels, w, h);
     const result = classifyImage(features);
 
-    expect(result).toBe('ILLUSTRATION');
-    expect(features.uniqueColors).toBeGreaterThanOrEqual(50);
-    expect(features.uniqueColors).toBeLessThanOrEqual(800);
-    expect(features.brightnessStd).toBeLessThan(70);
+    expect(result).toBe('PHOTO');
   });
 
   it('defaults to PHOTO for ambiguous images', () => {

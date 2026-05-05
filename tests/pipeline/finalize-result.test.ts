@@ -32,8 +32,8 @@ if (typeof globalThis.ImageData === 'undefined') {
  * pin are the ones that used to be implicit in two separate callers
  * (ar-app + batch-orchestrator) and can drift if anyone refactors:
  *
- *   1. PHOTO / ILLUSTRATION run topology cleanup. SIGNATURE / ICON
- *      pass through unchanged.
+ *   1. PHOTO runs topology cleanup. SIGNATURE / ICON pass through
+ *      unchanged.
  *   2. Output dimensions match the `original` argument, not the
  *      working size on the result.
  */
@@ -59,12 +59,12 @@ function makeResult(
   }
   if (opts.detached) {
     // single-pixel orphan blob far from the body — should be dropped
-    // for PHOTO / ILLUSTRATION, kept for SIGNATURE / ICON.
+    // for PHOTO, kept for SIGNATURE / ICON.
     workingAlpha[0] = 255;
   }
   if (opts.hole) {
     // 2x2 hole inside the body — fillSubjectHoles should patch it for
-    // PHOTO / ILLUSTRATION.
+    // PHOTO.
     workingAlpha[7 * W + 7] = 0;
     workingAlpha[7 * W + 8] = 0;
     workingAlpha[8 * W + 7] = 0;
@@ -103,14 +103,6 @@ describe('finalizePipelineResult — content-type gating', () => {
     const out = finalizePipelineResult(makeResult('PHOTO', { detached: true }), makeOriginal());
     expect(out.data[0 * 4 + 3]).toBe(0); // orphan pixel zeroed
     expect(out.data[(8 * W + 8) * 4 + 3]).toBeGreaterThan(0); // body kept
-  });
-
-  it('ILLUSTRATION drops detached orphan blobs', () => {
-    const out = finalizePipelineResult(
-      makeResult('ILLUSTRATION', { detached: true }),
-      makeOriginal(),
-    );
-    expect(out.data[0 * 4 + 3]).toBe(0);
   });
 
   it('SIGNATURE keeps detached components (legitimate accent dots, separated strokes)', () => {

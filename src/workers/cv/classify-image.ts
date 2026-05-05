@@ -1,7 +1,7 @@
 import { IMAGE_CLASSIFY_PARAMS } from '../../pipeline/constants';
 
 /** Content type classification for auto-algorithm selection */
-export type ImageContentType = 'PHOTO' | 'ILLUSTRATION' | 'SIGNATURE' | 'ICON';
+export type ImageContentType = 'PHOTO' | 'SIGNATURE' | 'ICON';
 
 /** Extracted image features used for classification */
 export interface ImageFeatures {
@@ -106,18 +106,25 @@ export function extractImageFeatures(
  * Classify an image based on extracted features.
  * Returns the optimal content type for pipeline routing.
  *
- * Priority order: SIGNATURE > ICON > ILLUSTRATION > PHOTO (default)
+ * Priority order: SIGNATURE > ICON > PHOTO (default).
+ * Calibration is intentionally asymmetric for SIGNATURE: a non-signature
+ * misclassified as SIGNATURE skips ML entirely and corrupts the result,
+ * while a signature that falls through to PHOTO still gets processed
+ * acceptably. Hence the tight uniqueColors gate on SIGNATURE.
  */
 export function classifyImage(features: ImageFeatures): ImageContentType {
   const P = IMAGE_CLASSIFY_PARAMS;
 
-  // SIGNATURE: high brightness, low saturation, mostly white with some dark strokes
+  // SIGNATURE: high brightness, low saturation, mostly white with some dark strokes,
+  // and few unique colors (the uniqueColors gate rejects photographic content
+  // that happens to sit on a white background, e.g. a desaturated product shot).
   if (
     features.brightnessMean > P.SIGNATURE_BRIGHTNESS_MIN &&
     features.saturationMean < P.SIGNATURE_SATURATION_MAX &&
     features.nearWhiteRatio > P.SIGNATURE_NEAR_WHITE_MIN &&
     features.darkPixelRatio >= P.SIGNATURE_DARK_PIXEL_MIN &&
-    features.darkPixelRatio <= P.SIGNATURE_DARK_PIXEL_MAX
+    features.darkPixelRatio <= P.SIGNATURE_DARK_PIXEL_MAX &&
+    features.uniqueColors < P.SIGNATURE_UNIQUE_COLORS_MAX
   ) {
     return 'SIGNATURE';
   }
@@ -130,15 +137,6 @@ export function classifyImage(features: ImageFeatures): ImageContentType {
     features.aspectRatio <= P.ICON_ASPECT_MAX
   ) {
     return 'ICON';
-  }
-
-  // ILLUSTRATION: limited color palette, low brightness variation
-  if (
-    features.uniqueColors >= P.ILLUSTRATION_UNIQUE_COLORS_MIN &&
-    features.uniqueColors <= P.ILLUSTRATION_UNIQUE_COLORS_MAX &&
-    features.brightnessStd < P.ILLUSTRATION_BRIGHTNESS_STD_MAX
-  ) {
-    return 'ILLUSTRATION';
   }
 
   // Default: PHOTO

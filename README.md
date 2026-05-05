@@ -28,7 +28,7 @@ Drop. Nuke. Download. That's it.
 
 ```
 [+] ML BACKGROUND REMOVAL       RMBG-1.4 for segmentation with auto-classification.
-                                  Photos, illustrations, signatures, icons. Each optimized.
+                                  Photos, signatures, icons. Each optimized.
 
 [+] CHECKERBOARD OBLITERATION    Detects and classifies painted checkerboard backgrounds.
                                   Any grid size, any generator.
@@ -103,13 +103,13 @@ Deploy `dist/` to any static host: Cloudflare Pages, GitHub Pages, Netlify, Verc
     |
     v
   [1. CLASSIFY + SCAN] ---------- auto-detect content type + background (CV, instant)
-    |                              PHOTO / ILLUSTRATION / SIGNATURE / ICON
+    |                              PHOTO / SIGNATURE / ICON
     |
     +-- SIGNATURE? -------------> [CV threshold] Otsu + Sauvola (<50ms) --> DONE
     |
     +-- ICON? ------------------> [RMBG threshold 0.3] skip watermark --> DONE
     |
-    +-- PHOTO / ILLUSTRATION? --> continue
+    +-- PHOTO? -----------------> continue
     |
     v
   [2. WATERMARK DETECTION] ------ Gemini sparkle + DALL-E color bar (CV, instant)

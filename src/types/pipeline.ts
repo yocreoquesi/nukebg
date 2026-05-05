@@ -1,5 +1,5 @@
 /** Image content type for auto-algorithm selection */
-export type ImageContentType = 'PHOTO' | 'ILLUSTRATION' | 'SIGNATURE' | 'ICON';
+export type ImageContentType = 'PHOTO' | 'SIGNATURE' | 'ICON';
 
 /** Stage identifiers for progress reporting */
 export type PipelineStage = 'detect-background' | 'ml-segmentation' | 'watermark-scan' | 'inpaint';

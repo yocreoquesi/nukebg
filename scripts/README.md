@@ -24,5 +24,5 @@ called by the runtime:
 | `analyze-speckle.mjs`  | Count tiny disconnected alpha blobs (speckle), grouped by size. Drives the `MIN_CLUSTER_SIZE` constants.                                   |
 | `remove-bg-rmbg.ts`    | Run the RMBG-1.4 segmenter against a single image, save the mask + composited PNG. Used to compare model upgrades.                         |
 | `validate.ts`          | Run a full pipeline pass over every fixture in `tests/fixtures/` and emit a per-image report (timing, content-type, watermark hits).       |
-| `validate-mascots.ts`  | Same as `validate.ts` but scoped to the cartoon-mascot fixtures used to tune the illustration branch.                                      |
+| `validate-mascots.ts`  | Same as `validate.ts` but scoped to the cartoon-mascot fixtures — flat-shaded illustration-style images that exercise the PHOTO path.      |
 | `test-ml.ts`           | Smoke-test the ML worker contract end-to-end against a single fixture.                                                                     |

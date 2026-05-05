@@ -10,6 +10,39 @@ Unreleased entries accumulate on the `dev` branch. When we cut a release we copy
 
 ## [Unreleased]
 
+### Changed
+
+- **Classifier collapsed from 4 to 3 content types.** Removed `ILLUSTRATION`
+  from `ImageContentType`. Audit confirmed the label had zero behavioural
+  impact: `finalize-result.ts` treated it identically to `PHOTO` and no
+  other module branched on it. The remaining classes — `PHOTO`,
+  `SIGNATURE`, `ICON` — each now correspond to a distinct pipeline path.
+  Illustration-style content (flat shading, limited palette) still works
+  end-to-end; it just falls through to the PHOTO path. TypeScript union
+  narrowing prevents accidental re-introduction.
+- **SIGNATURE classifier tightened (asymmetric calibration).** Added
+  `SIGNATURE_UNIQUE_COLORS_MAX = 200` as a fifth gate on the SIGNATURE
+  branch. Photographic subjects on near-white backgrounds (e.g. a
+  desaturated product shot) used to satisfy the four pre-existing
+  thresholds because the white background pulled the saturation mean
+  below 0.08; the new gate filters them out by their unique-color count.
+  Calibration is intentionally asymmetric — signatures are niche, so we
+  prefer to misclassify a noisy scanned signature as PHOTO over admitting
+  a non-signature that would be corrupted by the threshold-based path.
+- **Cmdbar verb is now `nuke` instead of `nukea`.** The hardcoded
+  template literal read `nukea` regardless of UI language; replaced
+  with `nuke` so the prompt reads naturally in any locale.
+
+### Fixed
+
+- **Editor no longer flashes during reprocessing.** When a user clicked
+  *Edit* → *Process another* → pasted a new image, the editor stayed
+  visible during the entire pipeline run. `resetToIdle()` did not hide
+  `#editor-section`, and the existing hide at the end of `processImage()`
+  only fired after success. Editor visibility is now centralized: hidden
+  on processing entry and on idle reset, visible only after a successful
+  run when the user opens it via the Edit button.
+
 ## [2.12.0] — 2026-04-30
 
 Minor release. Headline feature is **autocrop on export** — the
