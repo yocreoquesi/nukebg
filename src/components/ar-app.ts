@@ -994,7 +994,7 @@ export class ArApp extends HTMLElement {
             </div>
           </div>
           <!-- Command bar moved BELOW the viewer / action grid: the
-               user did not want "$ nukea file.png · ... · ready"
+               user did not want "$ nuke file.png · ... · ready"
                appearing ABOVE the image when processing finished or
                was cancelled. The bar still owns the same status
                role / aria-live region; only the DOM position
@@ -1002,7 +1002,7 @@ export class ArApp extends HTMLElement {
           <div class="command-bar" id="command-bar" role="status" aria-live="polite">
             <div class="cmd-left">
               <span class="cmd-prompt">$</span>
-              <span class="cmd-action">nukea</span>
+              <span class="cmd-action">nuke</span>
               <span class="cmd-filename" id="cmd-filename">image.png</span>
               <span class="cmd-meta" id="cmd-meta"></span>
               <span class="cmd-state" id="cmd-state" hidden>
@@ -1589,6 +1589,12 @@ export class ArApp extends HTMLElement {
     const hero = this.shadowRoot!.querySelector('#hero')!;
     const workspace = this.shadowRoot!.querySelector('#workspace')!;
 
+    // Editor only visible after a successful processing run. Hide it
+    // here so a new run cannot inherit display:block from a previous
+    // edit that was still open when the user pasted a new image.
+    const editorSection = this.shadowRoot!.querySelector('#editor-section') as HTMLElement;
+    if (editorSection) editorSection.style.display = 'none';
+
     hero.classList.add('hidden');
     workspace.classList.add('visible');
 
@@ -1677,9 +1683,6 @@ export class ArApp extends HTMLElement {
       const editBtn = this.shadowRoot!.querySelector('#edit-btn') as HTMLElement;
       if (editBtn) editBtn.style.display = 'block';
       this.setAdvancedBtnVisible(true);
-      // Hide editor if it was open from a previous edit
-      const editorSection = this.shadowRoot!.querySelector('#editor-section') as HTMLElement;
-      if (editorSection) editorSection.style.display = 'none';
     } catch (err) {
       if (this.processingAborted) return;
       // Abort is an expected outcome from "new image dropped" or
@@ -2000,6 +2003,8 @@ export class ArApp extends HTMLElement {
     if (single) single.style.display = 'flex';
     if (detailBar) detailBar.style.display = 'none';
     if (failedBar) failedBar.style.display = 'none';
+    const editorSection = root.querySelector('#editor-section') as HTMLElement | null;
+    if (editorSection) editorSection.style.display = 'none';
 
     this.download.reset();
     this.preEditResult = null;
