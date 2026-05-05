@@ -1397,35 +1397,46 @@ export class ArApp extends HTMLElement {
       this.shadowRoot!,
       'ar:editor-done',
       async ({ imageData: rawEdited }) => {
-        // Refine: foreground decontamination + quintic alpha sharpening so manual
-        // brush strokes inherit the same studio-quality edge as the main pipeline.
-        // Topology cleanup is skipped — keepLargestComponent would discard manual
-        // restores that don't connect to the main subject body.
-        const editedData = await refineEdges(this.pipeline, rawEdited, {
-          skipTopologyCleanup: true,
-        });
-        // Crop for export; slider canvas keeps the full-size frame so
-        // the manual brush strokes still align with the original.
-        const exportImageData = autoCropToSubject(editedData);
-        const blob = await exportPng(exportImageData);
+        try {
+          // Refine: foreground decontamination + quintic alpha sharpening so manual
+          // brush strokes inherit the same studio-quality edge as the main pipeline.
+          // Topology cleanup is skipped — keepLargestComponent would discard manual
+          // restores that don't connect to the main subject body.
+          const editedData = await refineEdges(this.pipeline, rawEdited, {
+            skipTopologyCleanup: true,
+          });
+          // Crop for export; slider canvas keeps the full-size frame so
+          // the manual brush strokes still align with the original.
+          const exportImageData = autoCropToSubject(editedData);
+          const blob = await exportPng(exportImageData);
 
-        // Save pre-edit for discard functionality
-        this.preEditResult = this.lastResultImageData;
-        this.cachedEditResult = editedData;
-        this.lastResultImageData = editedData;
+          // Save pre-edit for discard functionality
+          this.preEditResult = this.lastResultImageData;
+          this.cachedEditResult = editedData;
+          this.lastResultImageData = editedData;
 
-        // "Before" stays as the original input image; only "after" updates
-        this.viewer.setResult(editedData, blob, {
-          width: exportImageData.width,
-          height: exportImageData.height,
-        });
-        await this.download.setResult(exportImageData, this.currentFileName, 0, blob);
+          // "Before" stays as the original input image; only "after" updates
+          this.viewer.setResult(editedData, blob, {
+            width: exportImageData.width,
+            height: exportImageData.height,
+          });
+          await this.download.setResult(exportImageData, this.currentFileName, 0, blob);
 
-        // Hide editor, show discard button
-        (this.shadowRoot!.querySelector('#editor-section') as HTMLElement).style.display = 'none';
-        const editBtn = this.shadowRoot!.querySelector('#edit-btn') as HTMLElement;
-        editBtn.style.display = 'block';
-        editBtn.textContent = t('edit.discard');
+          // Hide editor, show discard button
+          (this.shadowRoot!.querySelector('#editor-section') as HTMLElement).style.display =
+            'none';
+          const editBtn = this.shadowRoot!.querySelector('#edit-btn') as HTMLElement;
+          editBtn.style.display = 'block';
+          editBtn.textContent = t('edit.discard');
+        } catch (err) {
+          // refineEdges / exportPng / setResult can throw on malformed
+          // input or worker errors. Without this catch the rejection
+          // becomes an unhandledrejection and the editor leaves the user
+          // on a stale result with no signal that anything went wrong.
+          console.error('[NukeBG] Editor finalize failed:', err);
+          const msg = err instanceof Error ? err.message : String(err);
+          this.showErrorModal(msg);
+        }
       },
       { signal },
     );

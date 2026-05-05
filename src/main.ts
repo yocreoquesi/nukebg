@@ -661,7 +661,8 @@ function nukeCache(): void {
       url.searchParams.set('_cb', Date.now().toString());
       window.location.href = url.toString();
     })
-    .catch(() => {
+    .catch((err: unknown) => {
+      console.warn('[NukeBG] Cache purge failed, falling back to plain reload:', err);
       window.location.reload();
     });
 }
