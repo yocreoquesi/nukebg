@@ -36,7 +36,7 @@ Unreleased entries accumulate on the `dev` branch. When we cut a release we copy
 ### Fixed
 
 - **Editor no longer flashes during reprocessing.** When a user clicked
-  *Edit* → *Process another* → pasted a new image, the editor stayed
+  _Edit_ → _Process another_ → pasted a new image, the editor stayed
   visible during the entire pipeline run. `resetToIdle()` did not hide
   `#editor-section`, and the existing hide at the end of `processImage()`
   only fired after success. Editor visibility is now centralized: hidden
