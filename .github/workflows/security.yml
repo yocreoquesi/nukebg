@@ -73,7 +73,10 @@ jobs:
       - name: Run OSV-Scanner
         uses: google/osv-scanner-action/osv-scanner-action@v2.3.5
         with:
+          # `--skip-git` was removed in osv-scanner v2.x (git-history
+          # scanning is no longer the default and is controlled via a
+          # different mechanism). Action v2.3.5 was bumped in #253; this
+          # restores compatibility without losing dependency coverage.
           scan-args: |-
             --recursive
-            --skip-git
             ./
