@@ -55,6 +55,7 @@ export class ArViewer extends HTMLElement {
   }
 
   private render(): void {
+    // eslint-disable-next-line no-unsanitized/property -- Static shadow DOM template; only `${t(...)}` interpolations from src/i18n/index.ts. No user input.
     this.shadowRoot!.innerHTML = `
       <style>
         :host { display: block; width: 100%; }

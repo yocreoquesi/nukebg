@@ -298,6 +298,7 @@ export class ArProgress extends HTMLElement {
       return true;
     });
 
+    // eslint-disable-next-line no-unsanitized/property -- Composed from internal pipeline state; the only string from outside (`s.message`) is run through `escapeHtml` on the line below.
     container.innerHTML = visibleStages
       .map((s) => {
         const icon = this.getIcon(s.status);

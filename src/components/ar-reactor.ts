@@ -70,6 +70,7 @@ class ArReactor extends HTMLElement {
     const runtimeLabel = formatRuntime(monthsFloat);
     const burnLabel = `€${MONTHLY_BURN_EUR.toFixed(2)}/mo`;
 
+    // eslint-disable-next-line no-unsanitized/property -- Static template: `this.styles()` returns a hand-authored CSS string; the rest interpolates trusted i18n + computed labels from internal numeric state.
     this.shadowRoot!.innerHTML = `
       <style>${this.styles()}</style>
       <article class="reactor">

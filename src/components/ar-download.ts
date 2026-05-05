@@ -108,6 +108,7 @@ export class ArDownload extends HTMLElement {
   }
 
   private render(): void {
+    // eslint-disable-next-line no-unsanitized/property -- Static shadow DOM template; only `${t(...)}` interpolations from src/i18n/index.ts. No user input.
     this.shadowRoot!.innerHTML = `
       <style>
         :host { display: block; width: 100%; }
@@ -348,6 +349,7 @@ export class ArDownload extends HTMLElement {
       } catch {
         // Clipboard API not supported or permission denied - show feedback
         const btn = this.shadowRoot!.querySelector('#copy-btn')!;
+        // eslint-disable-next-line no-unsanitized/property -- Trusted i18n with literal English fallback; both branches are static-content sources.
         btn.innerHTML = `${t('download.copyFailed') || 'Copy not supported'}`;
         setTimeout(() => {
           btn.innerHTML = `${t('download.copy')}<br><small>PNG</small>`;

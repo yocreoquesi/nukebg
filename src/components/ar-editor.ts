@@ -162,6 +162,7 @@ export class ArEditor extends HTMLElement {
   }
 
   private render(): void {
+    // eslint-disable-next-line no-unsanitized/property -- Static shadow DOM template; only `${t(...)}` interpolations from src/i18n/index.ts. No user input.
     this.shadowRoot!.innerHTML = `
       <style>
         :host {
@@ -967,6 +968,7 @@ export class ArEditor extends HTMLElement {
     const meta = this.shadowRoot?.querySelector('#editor-cmd-meta');
     if (!meta) return;
     const letter = this.tool === 'erase' ? 'E' : 'R';
+    // eslint-disable-next-line no-unsanitized/property -- Internal numeric/enum state only (`brushSize: number`, `letter: 'E' | 'R'`); no user input path.
     meta.innerHTML = `·&nbsp;brush=${this.brushSize}&nbsp;·&nbsp;tool=${letter}`;
   }
 

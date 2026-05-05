@@ -93,6 +93,7 @@ class ArPostCta extends HTMLElement {
       return;
     }
     const copy = COPY[this.currentKey];
+    // eslint-disable-next-line no-unsanitized/property -- Static template: `this.styles()` returns a hand-authored CSS string and `${t(...)}` is trusted i18n. No user input.
     this.shadowRoot!.innerHTML = `
       <style>${this.styles()}</style>
       <div class="cta-bar" role="status" aria-live="polite">

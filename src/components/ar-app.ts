@@ -142,6 +142,7 @@ export class ArApp extends HTMLElement {
   }
 
   private render(): void {
+    // eslint-disable-next-line no-unsanitized/property -- Static shadow DOM template; only `${t(...)}` interpolations from src/i18n/index.ts. No user input.
     this.shadowRoot!.innerHTML = `
       <style>
         :host {
@@ -1125,6 +1126,7 @@ export class ArApp extends HTMLElement {
         `<span class="hero-title-short"><span class="accent">${t('hero.title.short')}</span></span>`;
     const subline = root.querySelector('.subline');
     if (subline)
+      // eslint-disable-next-line no-unsanitized/property -- Trusted i18n only (`t(...)` from src/i18n/index.ts); the `.replace` is on i18n output.
       subline.innerHTML =
         `<span class="subline-long">${t('hero.subtitle').replace(/\n/g, ' ')}</span>` +
         `<span class="subline-short"># ${t('hero.subtitle.short')}</span>`;

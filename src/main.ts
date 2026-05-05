@@ -333,6 +333,7 @@ function activateUltraNukeMode(reducedMotion: boolean): void {
   const dismiss = (): void => {
     const style = document.getElementById('ultra-nuke-style');
     if (style) style.remove();
+    // eslint-disable-next-line no-unsanitized/property -- Roundtrip restore of `originalH1`, captured directly from `heroH1.innerHTML` a few lines above. Same DOM, no external input.
     if (heroH1 && originalH1) heroH1.innerHTML = originalH1;
     if (toast) {
       toast.textContent = '> normal mode restored_';

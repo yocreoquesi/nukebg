@@ -10,6 +10,7 @@
 import js from '@eslint/js';
 import tseslint from 'typescript-eslint';
 import globals from 'globals';
+import noUnsanitized from 'eslint-plugin-no-unsanitized';
 
 export default tseslint.config(
   {
@@ -32,6 +33,7 @@ export default tseslint.config(
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {
+    plugins: { 'no-unsanitized': noUnsanitized },
     languageOptions: {
       ecmaVersion: 2022,
       sourceType: 'module',
@@ -59,6 +61,32 @@ export default tseslint.config(
       'prefer-const': 'error',
       // No var declarations.
       'no-var': 'error',
+
+      // Defense-in-depth against XSS from `innerHTML` / `outerHTML`. The
+      // current codebase is safe (audit on PR #257 confirmed every site
+      // uses static templates, trusted i18n via `t()`, or internal
+      // numeric state — never user input). This rule prevents future
+      // regressions: any new dynamic innerHTML assignment trips lint
+      // unless explicitly disabled with a // eslint-disable-next-line
+      // comment that documents why the input is trusted. See
+      // CONTRIBUTING.md > "innerHTML policy" for the full convention.
+      //
+      // `escape.methods` whitelists the i18n translator: `t(...)` returns
+      // strings sourced from `src/i18n/index.ts`, a trust boundary the
+      // project owns. Adding new escape methods requires the same
+      // ownership argument.
+      'no-unsanitized/property': [
+        'error',
+        {
+          escape: { methods: ['t'] },
+        },
+      ],
+      'no-unsanitized/method': [
+        'error',
+        {
+          escape: { methods: ['t'] },
+        },
+      ],
     },
   },
   {

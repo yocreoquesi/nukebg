@@ -263,6 +263,25 @@ infra: add CI workflow with GitHub Actions
 - All magic numbers and algorithm thresholds go in `src/pipeline/constants.ts`.
 - Never hardcode values directly in algorithm modules.
 
+### `innerHTML` policy
+
+NukeBG uses `.innerHTML =` in many places to build Web Component shadow DOM. The audit on PR #257 confirmed every existing site is safe — they fall into three trusted categories:
+
+1. **Static templates** — pure markup with at most `${t(...)}` interpolations from `src/i18n/index.ts` (the i18n trust boundary).
+2. **Internal numeric / enum state** — values like `brushSize: number` or `tool: 'erase' | 'refine'` that never carry user-supplied strings.
+3. **Roundtrip restores** — `el.innerHTML = saved`, where `saved` was previously read from `el.innerHTML` of the same element.
+
+The `no-unsanitized/property` ESLint rule (`eslint-plugin-no-unsanitized`) enforces this contract on every new assignment. The plugin's `escape.methods: ['t']` config recognises the i18n translator as a trusted source — `el.innerHTML = t('key')` and `\`...\${t('key')}...\`` pass without ceremony. Any other dynamic input (user filenames, pasted text, API responses) MUST go through `textContent` or DOM APIs (`createElement`, `appendChild`, `setAttribute`).
+
+If a new site really needs `innerHTML` with a different trusted source (e.g. a hand-authored CSS string, a `buildGuide()` helper that composes only `t()` outputs), add an inline disable with a short reason:
+
+```ts
+// eslint-disable-next-line no-unsanitized/property -- <why this input is trusted>
+el.innerHTML = composedSafeMarkup;
+```
+
+The reason must name the trust boundary — "static template", "trusted i18n", "internal numeric state", "roundtrip of own DOM" — not the symptom ("works fine"). Drive-by disables without justification will be rejected.
+
 ---
 
 ## > contribution_areas

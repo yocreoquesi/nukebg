@@ -68,6 +68,7 @@ export class AppInstaller {
           return;
         }
         // Browser-specific instructions for non-Chromium installs.
+        // eslint-disable-next-line no-unsanitized/property -- `buildGuide()` returns a string composed entirely of trusted `t(...)` i18n values selected by user-agent sniffing; no user input.
         this.installGuide.innerHTML = this.buildGuide();
         this.installGuide.classList.toggle('visible');
         const closeBtn = this.installGuide.querySelector('.install-guide-close');

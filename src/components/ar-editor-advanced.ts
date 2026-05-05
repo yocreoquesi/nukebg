@@ -308,6 +308,7 @@ export class ArEditorAdvanced extends HTMLElement {
 
   private render(): void {
     const shadow = this.attachShadow({ mode: 'open' });
+    // eslint-disable-next-line no-unsanitized/property -- Static shadow DOM template; only `${t(...)}` interpolations from src/i18n/index.ts. No user input.
     shadow.innerHTML = `
       <style>
         :host {
