@@ -14,7 +14,8 @@ import { resolve } from 'node:path';
  */
 
 const ROOT = resolve(__dirname, '..', '..');
-const NGINX = readFileSync(resolve(ROOT, 'infra/nginx.conf'), 'utf8');
+const REPO_ROOT = resolve(__dirname, '..', '..', '..', '..');
+const NGINX = readFileSync(resolve(REPO_ROOT, 'infra/nginx.conf'), 'utf8');
 const HEADERS = readFileSync(resolve(ROOT, 'public/_headers'), 'utf8');
 
 describe('COEP policy — #41', () => {

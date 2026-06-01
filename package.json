@@ -5,40 +5,23 @@
   "type": "module",
   "description": "NukeBG: Nuke AI backgrounds, checkerboard patterns, and watermarks. 100% client-side. Zero uploads. Zero BS.",
   "license": "GPL-3.0-only",
+  "workspaces": [
+    "packages/*"
+  ],
   "scripts": {
-    "dev": "vite",
-    "build": "tsc && vite build",
-    "preview": "vite preview",
-    "typecheck": "tsc --noEmit",
-    "test": "vitest run",
-    "test:watch": "vitest",
-    "test:e2e": "playwright test",
-    "test:e2e:webkit": "playwright test --project=webkit",
-    "test:e2e:iphone": "playwright test --project=iphone",
-    "lint": "eslint .",
-    "lint:fix": "eslint . --fix",
-    "format": "prettier --write .",
-    "format:check": "prettier --check ."
-  },
-  "devDependencies": {
-    "@eslint/js": "^9.17.0",
-    "@playwright/test": "^1.59.1",
-    "eslint": "^10.3.0",
-    "eslint-plugin-no-unsanitized": "^4.1.5",
-    "globals": "^15.14.0",
-    "happy-dom": "^20.9.0",
-    "prettier": "^3.4.2",
-    "sharp": "^0.34.5",
-    "tsx": "^4.21.0",
-    "typescript": "^6.0.3",
-    "typescript-eslint": "^8.59.1",
-    "vite": "^8.0.10",
-    "vitest": "^4.1.5"
-  },
-  "dependencies": {
-    "@huggingface/transformers": "^3.8.1",
-    "jszip": "^3.10.1",
-    "onnxruntime-web": "^1.24.3"
+    "dev": "npm run dev -w nukebg-app",
+    "build": "npm run build -w nukebg-app",
+    "preview": "npm run preview -w nukebg-app",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "test:watch": "npm run test:watch -w nukebg-app",
+    "test:e2e": "npm run test:e2e -w nukebg-app",
+    "test:e2e:webkit": "npm run test:e2e:webkit -w nukebg-app",
+    "test:e2e:iphone": "npm run test:e2e:iphone -w nukebg-app",
+    "lint": "npm run lint -w nukebg-app",
+    "lint:fix": "npm run lint:fix -w nukebg-app",
+    "format": "npm run format -w nukebg-app",
+    "format:check": "npm run format:check -w nukebg-app"
   },
   "overrides": {
     "protobufjs": "^7.5.5"

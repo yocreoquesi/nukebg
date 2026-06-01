@@ -15,19 +15,20 @@ import noUnsanitized from 'eslint-plugin-no-unsanitized';
 export default tseslint.config(
   {
     ignores: [
-      'dist/**',
-      'coverage/**',
-      '.halo-check/**',
-      'test-results/**',
-      'playwright-report/**',
+      'packages/nukebg-app/dist/**',
+      'packages/nukebg-app/coverage/**',
+      'packages/nukebg-app/.halo-check/**',
+      'packages/nukebg-app/test-results/**',
+      'packages/nukebg-app/playwright-report/**',
       'node_modules/**',
-      'public/service-worker.js',
+      'packages/*/node_modules/**',
+      'packages/nukebg-app/public/service-worker.js',
       // i18n/index.ts has hand-maintained \uXXXX escapes and a giant
       // translation dictionary — let the key-parity test guard it
       // instead of linting.
-      'src/i18n/index.ts',
-      'scripts/**',
-      'e2e/**',
+      'packages/nukebg-app/src/i18n/index.ts',
+      'packages/nukebg-app/scripts/**',
+      'packages/nukebg-app/e2e/**',
     ],
   },
   js.configs.recommended,
@@ -91,7 +92,7 @@ export default tseslint.config(
   },
   {
     // Tests get the happy-dom + vitest globals.
-    files: ['tests/**/*.ts'],
+    files: ['packages/nukebg-app/tests/**/*.ts'],
     languageOptions: {
       globals: { ...globals.node, ...globals.browser },
     },

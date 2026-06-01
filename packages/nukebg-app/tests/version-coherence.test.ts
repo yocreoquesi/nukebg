@@ -7,10 +7,14 @@ import { resolve } from 'node:path';
 // in sync after a bump, so we can't silently ship a mismatched build again
 // (see Apr 15 incident: local 2.7.0 vs prod 2.6.0 drift).
 const root = resolve(__dirname, '..');
+const repoRoot = resolve(__dirname, '..', '..', '..');
 const pkg = JSON.parse(readFileSync(resolve(root, 'package.json'), 'utf8')) as { version: string };
 const expected = pkg.version;
 
-const read = (rel: string) => readFileSync(resolve(root, rel), 'utf8');
+const read = (rel: string) => {
+  const base = rel === 'README.md' ? repoRoot : root;
+  return readFileSync(resolve(base, rel), 'utf8');
+};
 
 // Escape dots so the regex below treats "2.7.2" literally.
 const esc = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');

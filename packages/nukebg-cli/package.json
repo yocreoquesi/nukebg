@@ -1,0 +1,21 @@
+{
+  "name": "nukebg-cli",
+  "version": "0.1.0",
+  "type": "module",
+  "license": "GPL-3.0-only",
+  "description": "CLI for nukebg — Node-only background removal using nukebg-core.",
+  "bin": { "nukebg": "./dist/cli.js" },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": ["dist", "README.md", "LICENSE"],
+  "scripts": {
+    "test": "vitest run --passWithNoTests"
+  },
+  "dependencies": {
+    "nukebg-core": "0.1.0"
+  },
+  "devDependencies": {},
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

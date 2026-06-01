@@ -16,6 +16,7 @@ import { resolve } from 'node:path';
  */
 
 const ROOT = resolve(__dirname, '..');
+const REPO_ROOT = resolve(__dirname, '..', '..', '..');
 const INLINE_SCRIPT_RE = /<script\b([^>]*)>([\s\S]*?)<\/script>/g;
 
 function extractInlineHashes(): string[] {
@@ -38,7 +39,8 @@ function extractInlineHashes(): string[] {
 }
 
 function cspFrom(path: string): string {
-  const text = readFileSync(resolve(ROOT, path), 'utf8');
+  const base = path.startsWith('infra/') ? REPO_ROOT : ROOT;
+  const text = readFileSync(resolve(base, path), 'utf8');
   const match = text.match(/Content-Security-Policy[^\n]*/);
   if (!match) throw new Error(`No CSP header in ${path}`);
   return match[0];

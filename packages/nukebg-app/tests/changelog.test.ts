@@ -2,8 +2,8 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
-const ROOT = resolve(__dirname, '..');
-const CHANGELOG = readFileSync(resolve(ROOT, 'CHANGELOG.md'), 'utf8');
+const REPO_ROOT = resolve(__dirname, '..', '..', '..');
+const CHANGELOG = readFileSync(resolve(REPO_ROOT, 'CHANGELOG.md'), 'utf8');
 
 describe('CHANGELOG.md', () => {
   it('starts with a top-level heading', () => {
