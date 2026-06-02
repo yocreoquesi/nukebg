@@ -7,11 +7,20 @@ const __dirname = fileURLToPath(new URL('.', import.meta.url));
 
 export default defineConfig({
   resolve: {
-    alias: {
-      // Resolve nukebg-core to its TypeScript source during dev and test
+    alias: [
+      // Resolve nukebg-core sub-path imports (e.g. nukebg-core/cv/utils) to core source.
+      // This entry must come BEFORE the bare 'nukebg-core' alias so Vite matches it first.
+      {
+        find: /^nukebg-core\/(.+)$/,
+        replacement: resolve(__dirname, '../nukebg-core/src/$1'),
+      },
+      // Resolve bare 'nukebg-core' to its TypeScript barrel during dev and test
       // so we don't need a prior `tsc -b` build step.
-      'nukebg-core': resolve(__dirname, '../nukebg-core/src/index.ts'),
-    },
+      {
+        find: 'nukebg-core',
+        replacement: resolve(__dirname, '../nukebg-core/src/index.ts'),
+      },
+    ],
   },
   build: {
     target: 'es2022',

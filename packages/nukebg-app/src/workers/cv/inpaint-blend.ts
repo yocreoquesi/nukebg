@@ -18,7 +18,7 @@
  * Kept as a pure, standalone function so the inpaint worker stays
  * testable and the orchestrator can wire it independently.
  */
-import { clamp255 } from './clamp';
+import { clamp255 } from 'nukebg-core/cv/clamp';
 
 export interface FeatherOptions {
   /** Pixels of soft transition from inpainted to original. */

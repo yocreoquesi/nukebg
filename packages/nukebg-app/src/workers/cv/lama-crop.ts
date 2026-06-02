@@ -1,5 +1,5 @@
 import { LAMA_PARAMS } from 'nukebg-core';
-import { clamp255 } from './clamp';
+import { clamp255 } from 'nukebg-core/cv/clamp';
 
 export interface LamaCropRect {
   x: number;

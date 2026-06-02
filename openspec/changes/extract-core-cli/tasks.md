@@ -139,13 +139,13 @@ _Goal: `pipeline/constants.ts` is extracted to core so CV modules can import it 
 
 _Goal: utility and constant CV files relocate first to unblock algorithm moves in Phase 6._
 
-- [ ] 5.1 Move the following files from `packages/nukebg-app/src/workers/cv/` → `packages/nukebg-core/src/cv/`. Move their co-located tests from `packages/nukebg-app/tests/workers/cv/` and `packages/nukebg-app/tests/cv/` → `packages/nukebg-core/tests/cv/`. Update import paths in moved files only. Run `npm test`, expect green.
+- [x] 5.1 Move the following files from `packages/nukebg-app/src/workers/cv/` → `packages/nukebg-core/src/cv/`. Move their co-located tests from `packages/nukebg-app/tests/workers/cv/` and `packages/nukebg-app/tests/cv/` → `packages/nukebg-core/tests/cv/`. Update import paths in moved files only. Run `npm test`, expect green.
   - `utils.ts` + `tests/cv/utils.test.ts`
   - `clamp.ts` + `tests/workers/cv/clamp.test.ts`
 
-- [ ] 5.2 Update `packages/nukebg-core/src/cv/index.ts` barrel to re-export `utils` and `clamp`. Export `cv` namespace from `src/index.ts`. Run `npm test`, expect green.
+- [x] 5.2 Update `packages/nukebg-core/src/cv/index.ts` barrel to re-export `utils` and `clamp`. Export `cv` namespace from `src/index.ts`. Run `npm test`, expect green.
 
-- [ ] 5.3 Verification checkpoint: `npm test` green, `npm run typecheck`.
+- [x] 5.3 Verification checkpoint: `npm test` green, `npm run typecheck`.
 
 ---
 

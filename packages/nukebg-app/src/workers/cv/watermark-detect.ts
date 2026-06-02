@@ -1,6 +1,6 @@
 import { WATERMARK_PARAMS } from 'nukebg-core';
 import type { WatermarkResult } from '../../types/pipeline';
-import { pixelIndex } from './utils';
+import { pixelIndex } from 'nukebg-core/cv/utils';
 
 /**
  * Returns true when the pixel matches the Gemini sparkle palette: a

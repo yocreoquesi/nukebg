@@ -1,6 +1,6 @@
 import { CV_PARAMS } from 'nukebg-core';
 import type { BgColorResult } from '../../types/pipeline';
-import { mean, std, median } from './utils';
+import { mean, std, median } from 'nukebg-core/cv/utils';
 
 /**
  * Detect background color(s) from the image corners.

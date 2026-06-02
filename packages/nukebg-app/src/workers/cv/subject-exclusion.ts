@@ -1,5 +1,5 @@
 import { CV_PARAMS } from 'nukebg-core';
-import { pixelIndex, RingBuffer } from './utils';
+import { pixelIndex, RingBuffer } from 'nukebg-core/cv/utils';
 
 /**
  * Find the subject by detecting its colored core and expanding to include

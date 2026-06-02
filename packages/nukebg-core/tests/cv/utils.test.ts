@@ -6,7 +6,7 @@ import {
   mean,
   std,
   median,
-} from '../../src/workers/cv/utils';
+} from '../../src/cv/utils.js';
 
 describe('pixelIndex', () => {
   it('calcula el indice RGBA correcto', () => {

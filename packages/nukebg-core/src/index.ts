@@ -34,6 +34,9 @@ export {
   PipelineAbortError,
 } from './pipeline/errors.js';
 
+// Pure CV functions — public for advanced consumers, also used by the app's WorkerPipelineRunner
+export * as cv from './cv/index.js';
+
 // Constants (read-only)
 export {
   CV_PARAMS,

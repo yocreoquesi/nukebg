@@ -1,5 +1,5 @@
 import { CV_PARAMS } from 'nukebg-core';
-import { RingBuffer, maxChannelDiff, pixelIndex } from './utils';
+import { RingBuffer, maxChannelDiff, pixelIndex } from 'nukebg-core/cv/utils';
 
 /**
  * Simple flood-fill from edges matching either background color.

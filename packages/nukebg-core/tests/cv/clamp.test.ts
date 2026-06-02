@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { clamp255 } from '../../../src/workers/cv/clamp';
+import { clamp255 } from '../../src/cv/clamp.js';
 
 describe('clamp255 (#194)', () => {
   it('passes integers in range through unchanged', () => {
