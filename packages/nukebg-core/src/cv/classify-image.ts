@@ -1,4 +1,4 @@
-import { IMAGE_CLASSIFY_PARAMS } from 'nukebg-core';
+import { IMAGE_CLASSIFY_PARAMS } from '../pipeline/constants.js';
 
 /** Content type classification for auto-algorithm selection */
 export type ImageContentType = 'PHOTO' | 'SIGNATURE' | 'ICON';

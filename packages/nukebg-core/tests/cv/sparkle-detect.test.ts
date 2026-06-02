@@ -2,8 +2,8 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import sharp from 'sharp';
-import { sparkleDetect } from '../../src/workers/cv/sparkle-detect';
-import { solidImage } from '../helpers';
+import { sparkleDetect } from '../../src/cv/sparkle-detect.js';
+import { solidImage } from '../helpers.js';
 
 async function loadFixture(name: string): Promise<{
   pixels: Uint8ClampedArray;

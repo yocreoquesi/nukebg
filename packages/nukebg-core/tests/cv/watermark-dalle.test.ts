@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { watermarkDetectDalle } from '../../../src/workers/cv/watermark-dalle';
-import { DALLE_WATERMARK_PARAMS } from 'nukebg-core';
+import { watermarkDetectDalle } from '../../src/cv/watermark-dalle.js';
+import { DALLE_WATERMARK_PARAMS } from '../../src/pipeline/constants.js';
 
 /**
  * Behavioural tests for watermarkDetectDalle (#195).

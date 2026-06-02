@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { extractImageFeatures, classifyImage } from '../../src/workers/cv/classify-image';
-import { solidImage, paintRect } from '../helpers';
+import { extractImageFeatures, classifyImage } from '../../src/cv/classify-image.js';
+import { solidImage, paintRect } from '../helpers.js';
 
 describe('extractImageFeatures', () => {
   it('extracts correct features from a white image', () => {

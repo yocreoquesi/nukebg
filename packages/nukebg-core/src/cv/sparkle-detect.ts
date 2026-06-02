@@ -1,5 +1,5 @@
-import { SPARKLE_PARAMS } from 'nukebg-core';
-import type { WatermarkResult } from '../../types/pipeline';
+import { SPARKLE_PARAMS } from '../pipeline/constants.js';
+import type { WatermarkResult } from '../types/cv-results.js';
 
 /**
  * Shape-based Gemini sparkle detector.

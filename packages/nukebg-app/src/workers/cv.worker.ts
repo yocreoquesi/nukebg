@@ -1,9 +1,9 @@
-import { detectBgColors } from './cv/detect-bg-colors';
-import { watermarkDetect } from './cv/watermark-detect';
-import { watermarkDetectDalle } from './cv/watermark-dalle';
-import { sparkleDetect } from './cv/sparkle-detect';
+import { detectBgColors } from 'nukebg-core/cv/detect-bg-colors';
+import { watermarkDetect } from 'nukebg-core/cv/watermark-detect';
+import { watermarkDetectDalle } from 'nukebg-core/cv/watermark-dalle';
+import { sparkleDetect } from 'nukebg-core/cv/sparkle-detect';
 import { alphaRefine } from './cv/alpha-refine';
-import { extractImageFeatures, classifyImage } from './cv/classify-image';
+import { extractImageFeatures, classifyImage } from 'nukebg-core/cv/classify-image';
 import { signatureThreshold } from './cv/signature-threshold';
 import { estimateForeground } from './cv/foreground-estimation';
 import type { CvWorkerRequest } from '../types/worker-messages';

@@ -151,7 +151,7 @@ _Goal: utility and constant CV files relocate first to unblock algorithm moves i
 
 ## Phase 6 — Move Pure CV Modules to Core (Batch B: Detection Algorithms)
 
-- [ ] 6.1 Move detection CV files + their tests (mechanical move + import-path rewrite only):
+- [x] 6.1 Move detection CV files + their tests (mechanical move + import-path rewrite only):
   - `detect-bg-colors.ts` + `tests/cv/detect-bg-colors.test.ts`
   - `detect-checker-grid.ts` + `tests/cv/detect-checker-grid.test.ts`
   - `classify-image.ts` + `tests/cv/classify-image.test.ts`
@@ -160,11 +160,11 @@ _Goal: utility and constant CV files relocate first to unblock algorithm moves i
   - `watermark-dalle.ts` + `tests/workers/cv/watermark-dalle.test.ts`
   Run `npm test`, expect green after each file or as a batch if all move cleanly.
 
-- [ ] 6.2 Update `packages/nukebg-core/src/cv/index.ts` to export the above modules. Run `npm test`, expect green.
+- [x] 6.2 Update `packages/nukebg-core/src/cv/index.ts` to export the above modules. Run `npm test`, expect green.
 
-- [ ] 6.3 Update `packages/nukebg-app/src/workers/` — any worker files that imported the moved modules must now import from `nukebg-core`. Run `npm test`, expect green.
+- [x] 6.3 Update `packages/nukebg-app/src/workers/` — any worker files that imported the moved modules must now import from `nukebg-core`. Run `npm test`, expect green.
 
-- [ ] 6.4 Verification checkpoint: `npm test`, `npm run typecheck`, `npm run lint` all green.
+- [x] 6.4 Verification checkpoint: `npm test`, `npm run typecheck`, `npm run lint` all green.
 
 ---
 
