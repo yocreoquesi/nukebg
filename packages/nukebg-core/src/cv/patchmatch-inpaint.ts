@@ -87,9 +87,9 @@ export function patchDistance(
     for (let dx = -patchRadius; dx <= patchRadius; dx++) {
       const ai = ((ay + dy) * aw + (ax + dx)) * 4;
       const bi = ((by + dy) * aw + (bx + dx)) * 4;
-      const dr = a[ai] - b[bi];
-      const dg = a[ai + 1] - b[bi + 1];
-      const db = a[ai + 2] - b[bi + 2];
+      const dr = a[ai]! - b[bi]!;
+      const dg = a[ai + 1]! - b[bi + 1]!;
+      const db = a[ai + 2]! - b[bi + 2]!;
       sum += dr * dr + dg * dg + db * db;
     }
   }
@@ -203,10 +203,10 @@ export function patchMatchInpaint(
   for (let i = 0; i < mask.length; i++) {
     if (mask[i]) continue;
     const p = i * 4;
-    work[p] = src[p];
-    work[p + 1] = src[p + 1];
-    work[p + 2] = src[p + 2];
-    work[p + 3] = src[p + 3];
+    work[p] = src[p]!;
+    work[p + 1] = src[p + 1]!;
+    work[p + 2] = src[p + 2]!;
+    work[p + 3] = src[p + 3]!;
   }
   return work;
 }
@@ -251,9 +251,9 @@ function seedMaskedWithLocalMean(
     for (let x = rx0; x <= rx1; x++) {
       if (mask[y * width + x]) continue;
       const i = (y * width + x) * 4;
-      r += img[i];
-      g += img[i + 1];
-      b += img[i + 2];
+      r += img[i]!;
+      g += img[i + 1]!;
+      b += img[i + 2]!;
       n++;
     }
   }
@@ -291,8 +291,8 @@ function computeInitialDistances(
         dist[idx] = Infinity;
         continue;
       }
-      const sx = nnf[idx * 2],
-        sy = nnf[idx * 2 + 1];
+      const sx = nnf[idx * 2]!,
+        sy = nnf[idx * 2 + 1]!;
       dist[idx] = patchDistance(work, work, width, height, x, y, sx, sy, patchRadius);
     }
   }
@@ -312,8 +312,8 @@ function recomputeMaskedDistances(
       const idx = y * width + x;
       if (!mask[idx]) continue;
       if (!fits(x, y, width, height, patchRadius)) continue;
-      const sx = nnf[idx * 2],
-        sy = nnf[idx * 2 + 1];
+      const sx = nnf[idx * 2]!,
+        sy = nnf[idx * 2 + 1]!;
       dist[idx] = patchDistance(work, work, width, height, x, y, sx, sy, patchRadius);
     }
   }
@@ -356,16 +356,16 @@ function patchMatchPass(
       if (!mask[idx]) continue;
       if (!fits(x, y, width, height, patchRadius)) continue;
 
-      let bestSx = nnf[idx * 2];
-      let bestSy = nnf[idx * 2 + 1];
-      let bestD = dist[idx];
+      let bestSx = nnf[idx * 2]!;
+      let bestSy = nnf[idx * 2 + 1]!;
+      let bestD = dist[idx]!;
 
       // ── Propagation from horizontal neighbour ──
       const nx = x + off;
       if (nx >= 0 && nx < width) {
         const nidx = y * width + nx;
-        const candX = nnf[nidx * 2] - off;
-        const candY = nnf[nidx * 2 + 1];
+        const candX = nnf[nidx * 2]! - off;
+        const candY = nnf[nidx * 2 + 1]!;
         if (isValidSource(candX, candY, width, height, mask, patchRadius, searchRegion)) {
           const d = patchDistance(work, work, width, height, x, y, candX, candY, patchRadius);
           if (d < bestD) {
@@ -379,8 +379,8 @@ function patchMatchPass(
       const ny = y + off;
       if (ny >= 0 && ny < height) {
         const nidx = ny * width + x;
-        const candX = nnf[nidx * 2];
-        const candY = nnf[nidx * 2 + 1] - off;
+        const candX = nnf[nidx * 2]!;
+        const candY = nnf[nidx * 2 + 1]! - off;
         if (isValidSource(candX, candY, width, height, mask, patchRadius, searchRegion)) {
           const d = patchDistance(work, work, width, height, x, y, candX, candY, patchRadius);
           if (d < bestD) {
@@ -455,8 +455,8 @@ function voteReconstruct(
       const idx = y * width + x;
       if (!mask[idx]) continue;
       if (!fits(x, y, width, height, patchRadius)) continue;
-      const sx = nnf[idx * 2];
-      const sy = nnf[idx * 2 + 1];
+      const sx = nnf[idx * 2]!;
+      const sy = nnf[idx * 2 + 1]!;
       // Each NNF entry implies that the target patch at (x,y) should look
       // like the source patch at (sx,sy). Accumulate every offset so the
       // contribution averages over all overlapping source patches.
@@ -468,10 +468,10 @@ function voteReconstruct(
           const tIdx = ty * width + tx;
           if (!mask[tIdx]) continue; // only write masked pixels
           const sIdx = ((sy + dy) * width + (sx + dx)) * 4;
-          accR[tIdx] += src[sIdx];
-          accG[tIdx] += src[sIdx + 1];
-          accB[tIdx] += src[sIdx + 2];
-          accN[tIdx] += 1;
+          accR[tIdx] = accR[tIdx]! + src[sIdx]!;
+          accG[tIdx] = accG[tIdx]! + src[sIdx + 1]!;
+          accB[tIdx] = accB[tIdx]! + src[sIdx + 2]!;
+          accN[tIdx] = accN[tIdx]! + 1;
         }
       }
     }
@@ -481,9 +481,9 @@ function voteReconstruct(
     if (!mask[i]) continue;
     if (accN[i] === 0) continue;
     const p = i * 4;
-    work[p] = Math.round(accR[i] / accN[i]);
-    work[p + 1] = Math.round(accG[i] / accN[i]);
-    work[p + 2] = Math.round(accB[i] / accN[i]);
+    work[p] = Math.round(accR[i]! / accN[i]!);
+    work[p + 1] = Math.round(accG[i]! / accN[i]!);
+    work[p + 2] = Math.round(accB[i]! / accN[i]!);
     work[p + 3] = 255;
   }
 }

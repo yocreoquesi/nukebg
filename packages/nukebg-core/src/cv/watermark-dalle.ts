@@ -32,9 +32,9 @@ export function watermarkDetectDalle(
 
     for (let x = width - scanW; x < width; x++) {
       const idx = pixelIndex(x, y, width);
-      const r = pixels[idx];
-      const g = pixels[idx + 1];
-      const b = pixels[idx + 2];
+      const r = pixels[idx]!;
+      const g = pixels[idx + 1]!;
+      const b = pixels[idx + 2]!;
       // Cuantizar a bloques de 16 para agrupar colores cercanos
       const quantized = ((r >> 4) << 8) | ((g >> 4) << 4) | (b >> 4);
       colors.add(quantized);
@@ -54,9 +54,9 @@ export function watermarkDetectDalle(
     const refColors = new Set<number>();
     for (let x = width - scanW; x < width; x++) {
       const idx = pixelIndex(x, refY, width);
-      const r = pixels[idx];
-      const g = pixels[idx + 1];
-      const b = pixels[idx + 2];
+      const r = pixels[idx]!;
+      const g = pixels[idx + 1]!;
+      const b = pixels[idx + 2]!;
       const quantized = ((r >> 4) << 8) | ((g >> 4) << 4) | (b >> 4);
       refColors.add(quantized);
     }
@@ -73,9 +73,9 @@ export function watermarkDetectDalle(
       maxB = 0;
     for (let x = width - scanW; x < width; x++) {
       const idx = pixelIndex(x, y, width);
-      const r = pixels[idx];
-      const g = pixels[idx + 1];
-      const b = pixels[idx + 2];
+      const r = pixels[idx]!;
+      const g = pixels[idx + 1]!;
+      const b = pixels[idx + 2]!;
       minR = Math.min(minR, r);
       maxR = Math.max(maxR, r);
       minG = Math.min(minG, g);

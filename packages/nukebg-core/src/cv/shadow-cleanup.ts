@@ -23,9 +23,9 @@ export function shadowCleanup(
       if (result[pos]) continue; // already background
 
       const idx = pixelIndex(x, y, width);
-      const r = pixels[idx];
-      const g = pixels[idx + 1];
-      const b = pixels[idx + 2];
+      const r = pixels[idx]!;
+      const g = pixels[idx + 1]!;
+      const b = pixels[idx + 2]!;
 
       const mx = Math.max(r, g, b);
       const mn = Math.min(r, g, b);

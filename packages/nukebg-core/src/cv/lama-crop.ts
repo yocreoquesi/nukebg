@@ -95,8 +95,8 @@ export function bilinearResizeRGBA(
       const di = (ty * targetSize + tx) * 4;
 
       for (let c = 0; c < 4; c++) {
-        const top = src[i00 + c] * (1 - fx) + src[i01 + c] * fx;
-        const bot = src[i10 + c] * (1 - fx) + src[i11 + c] * fx;
+        const top = src[i00 + c]! * (1 - fx) + src[i01 + c]! * fx;
+        const bot = src[i10 + c]! * (1 - fx) + src[i11 + c]! * fx;
         dst[di + c] = top * (1 - fy) + bot * fy;
       }
     }
@@ -173,8 +173,8 @@ export function spliceLamaOutput(
       const di = (dy * baseWidth + dx) * 4;
 
       for (let c = 0; c < 3; c++) {
-        const top = lamaOutput[i00 + c] * (1 - fx) + lamaOutput[i01 + c] * fx;
-        const bot = lamaOutput[i10 + c] * (1 - fx) + lamaOutput[i11 + c] * fx;
+        const top = lamaOutput[i00 + c]! * (1 - fx) + lamaOutput[i01 + c]! * fx;
+        const bot = lamaOutput[i10 + c]! * (1 - fx) + lamaOutput[i11 + c]! * fx;
         // Explicit clamp + round (#194). Uint8ClampedArray clamps and
         // rounds on assign, but stating it makes the intent visible and
         // traps NaN before it becomes a silent 0.

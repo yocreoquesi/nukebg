@@ -22,7 +22,7 @@ export function signatureThreshold(
   const gray = new Float32Array(totalPixels);
   for (let i = 0; i < totalPixels; i++) {
     const off = i * 4;
-    gray[i] = 0.299 * pixels[off] + 0.587 * pixels[off + 1] + 0.114 * pixels[off + 2];
+    gray[i] = 0.299 * pixels[off]! + 0.587 * pixels[off + 1]! + 0.114 * pixels[off + 2]!;
   }
 
   // Always use Sauvola adaptive threshold - better for all signature types
@@ -32,8 +32,8 @@ export function signatureThreshold(
   // Apply threshold with anti-aliasing transition band
   const halfBand = P.AA_BAND_SIZE / 2;
   for (let i = 0; i < totalPixels; i++) {
-    const t = thresholdMap[i];
-    const g = gray[i];
+    const t = thresholdMap[i]!;
+    const g = gray[i]!;
     const diff = t - g; // positive = pixel is darker than threshold = foreground
 
     if (diff > halfBand) {
@@ -59,13 +59,14 @@ export function signatureThreshold(
 export function computeOtsu(gray: Float32Array): number {
   const histogram = new Float64Array(256);
   for (let i = 0; i < gray.length; i++) {
-    histogram[Math.round(Math.min(255, Math.max(0, gray[i])))]++;
+    const bin = Math.round(Math.min(255, Math.max(0, gray[i]!)));
+    histogram[bin] = histogram[bin]! + 1;
   }
 
   const total = gray.length;
   let sumAll = 0;
   for (let i = 0; i < 256; i++) {
-    sumAll += i * histogram[i];
+    sumAll += i * histogram[i]!;
   }
 
   let sumBg = 0;
@@ -75,13 +76,13 @@ export function computeOtsu(gray: Float32Array): number {
   let lastBest = 0;
 
   for (let t = 0; t < 256; t++) {
-    weightBg += histogram[t];
+    weightBg += histogram[t]!;
     if (weightBg === 0) continue;
 
     const weightFg = total - weightBg;
     if (weightFg === 0) break;
 
-    sumBg += t * histogram[t];
+    sumBg += t * histogram[t]!;
     const meanBg = sumBg / weightBg;
     const meanFg = (sumAll - sumBg) / weightFg;
     const meanDiff = meanBg - meanFg;
@@ -126,12 +127,12 @@ function computeSauvola(
     let rowSum = 0;
     let rowSqSum = 0;
     for (let x = 0; x < width; x++) {
-      const g = gray[y * width + x];
+      const g = gray[y * width + x]!;
       rowSum += g;
       rowSqSum += g * g;
       const idx = (y + 1) * (width + 1) + (x + 1);
-      integralSum[idx] = rowSum + integralSum[y * (width + 1) + (x + 1)];
-      integralSqSum[idx] = rowSqSum + integralSqSum[y * (width + 1) + (x + 1)];
+      integralSum[idx] = rowSum + integralSum[y * (width + 1) + (x + 1)]!;
+      integralSqSum[idx] = rowSqSum + integralSqSum[y * (width + 1) + (x + 1)]!;
     }
   }
 
@@ -149,16 +150,16 @@ function computeSauvola(
 
       // Sum in rectangle using integral image
       const sum =
-        integralSum[(y2 + 1) * stride + (x2 + 1)] -
-        integralSum[y1 * stride + (x2 + 1)] -
-        integralSum[(y2 + 1) * stride + x1] +
-        integralSum[y1 * stride + x1];
+        integralSum[(y2 + 1) * stride + (x2 + 1)]! -
+        integralSum[y1 * stride + (x2 + 1)]! -
+        integralSum[(y2 + 1) * stride + x1]! +
+        integralSum[y1 * stride + x1]!;
 
       const sqSum =
-        integralSqSum[(y2 + 1) * stride + (x2 + 1)] -
-        integralSqSum[y1 * stride + (x2 + 1)] -
-        integralSqSum[(y2 + 1) * stride + x1] +
-        integralSqSum[y1 * stride + x1];
+        integralSqSum[(y2 + 1) * stride + (x2 + 1)]! -
+        integralSqSum[y1 * stride + (x2 + 1)]! -
+        integralSqSum[(y2 + 1) * stride + x1]! +
+        integralSqSum[y1 * stride + x1]!;
 
       const localMean = sum / count;
       const localVariance = sqSum / count - localMean * localMean;
@@ -195,7 +196,7 @@ export function morphologicalClose(
         for (let dx = -radius; dx <= radius; dx++) {
           const nx = x + dx;
           if (nx < 0 || nx >= width) continue;
-          const val = alpha[ny * width + nx];
+          const val = alpha[ny * width + nx]!;
           if (val > maxVal) maxVal = val;
         }
       }
@@ -213,7 +214,7 @@ export function morphologicalClose(
         for (let dx = -radius; dx <= radius; dx++) {
           const nx = x + dx;
           if (nx < 0 || nx >= width) continue;
-          const val = temp[ny * width + nx];
+          const val = temp[ny * width + nx]!;
           if (val < minVal) minVal = val;
         }
       }

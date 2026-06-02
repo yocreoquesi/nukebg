@@ -61,8 +61,8 @@ export function simpleFloodFill(
   while (!queue.empty) {
     const [y, x] = queue.pop();
     for (let d = 0; d < 4; d++) {
-      const ny = y + dy[d];
-      const nx = x + dx[d];
+      const ny = y + dy[d]!;
+      const nx = x + dx[d]!;
       if (ny >= 0 && ny < height && nx >= 0 && nx < width) {
         const npos = ny * width + nx;
         if (!visited[npos]) {

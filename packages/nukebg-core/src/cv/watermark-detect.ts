@@ -58,19 +58,19 @@ export function watermarkDetect(
       for (let lx = 0; lx < scanSize; lx++) {
         const x = width - scanSize + lx;
         const idx = pixelIndex(x, y, width);
-        const r = pixels[idx];
-        const g = pixels[idx + 1];
-        const b = pixels[idx + 2];
+        const r = pixels[idx]!;
+        const g = pixels[idx + 1]!;
+        const b = pixels[idx + 2]!;
 
         const diffA = Math.max(
-          Math.abs(r - colorA[0]),
-          Math.abs(g - colorA[1]),
-          Math.abs(b - colorA[2]),
+          Math.abs(r - colorA[0]!),
+          Math.abs(g - colorA[1]!),
+          Math.abs(b - colorA[2]!),
         );
         const diffB = Math.max(
-          Math.abs(r - colorB[0]),
-          Math.abs(g - colorB[1]),
-          Math.abs(b - colorB[2]),
+          Math.abs(r - colorB[0]!),
+          Math.abs(g - colorB[1]!),
+          Math.abs(b - colorB[2]!),
         );
         const deviation = Math.min(diffA, diffB);
 
@@ -111,7 +111,7 @@ export function watermarkDetect(
     distances.push(Math.sqrt((ly - cyLocal) ** 2 + (lx - cxLocal) ** 2));
   }
   distances.sort((a, b) => a - b);
-  const medianDist = distances[Math.floor(distances.length / 2)];
+  const medianDist = distances[Math.floor(distances.length / 2)]!;
 
   if (medianDist > scanSize * WATERMARK_PARAMS.MAX_MEDIAN_DISTANCE_RATIO) {
     return { detected: false, mask: null };
@@ -146,18 +146,18 @@ export function watermarkDetect(
       } else if (dist <= radius * WATERMARK_PARAMS.HALO_RADIUS_MULTIPLIER) {
         // Check for halo anomaly
         const idx = pixelIndex(x, y, width);
-        const r = pixels[idx];
-        const g = pixels[idx + 1];
-        const b = pixels[idx + 2];
+        const r = pixels[idx]!;
+        const g = pixels[idx + 1]!;
+        const b = pixels[idx + 2]!;
         const diffA = Math.max(
-          Math.abs(r - colorA[0]),
-          Math.abs(g - colorA[1]),
-          Math.abs(b - colorA[2]),
+          Math.abs(r - colorA[0]!),
+          Math.abs(g - colorA[1]!),
+          Math.abs(b - colorA[2]!),
         );
         const diffB = Math.max(
-          Math.abs(r - colorB[0]),
-          Math.abs(g - colorB[1]),
-          Math.abs(b - colorB[2]),
+          Math.abs(r - colorB[0]!),
+          Math.abs(g - colorB[1]!),
+          Math.abs(b - colorB[2]!),
         );
         const dev = Math.min(diffA, diffB);
         if (dev > WATERMARK_PARAMS.HALO_DEVIATION_THRESHOLD && isGeminiSparkleColor(r, g, b)) {

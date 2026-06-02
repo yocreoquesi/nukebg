@@ -240,7 +240,7 @@ export async function runPipeline(
     status: 'running' | 'done' | 'skipped' | 'error',
     message?: string,
   ): void => {
-    onStage?.({ stage, status, message });
+    onStage?.(message !== undefined ? { stage, status, message } : { stage, status });
   };
 
   // Check abort at each major boundary
@@ -348,7 +348,7 @@ export async function runPipeline(
           inpainted = await runners.lama.inpaint(
             createImageDataLike(originalPixels, width, height),
             dilated,
-            { signal },
+            signal !== undefined ? { signal } : {},
           );
         } catch (err: unknown) {
           if (err instanceof PipelineAbortError) throw err;
@@ -419,7 +419,7 @@ export async function runPipeline(
           clusterRatio: profile.clusterRatio,
           minClusterSize: profile.minClusterSize,
         },
-        signal,
+        ...(signal !== undefined ? { signal } : {}),
         onProgress: (pct) =>
           emit('ml-segmentation', 'running', `Loading AI model... ${pct}%`),
       },

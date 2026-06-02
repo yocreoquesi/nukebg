@@ -47,20 +47,20 @@ export function sparkleDetect(
   if (scales.length === 0) {
     return { detected: false, mask: null };
   }
-  const maxScale = scales[scales.length - 1];
+  const maxScale = scales[scales.length - 1]!;
 
   // Pre-compute luminance grid (Rec. 601)
   const lum = new Uint8ClampedArray(width * height);
   for (let i = 0, j = 0; i < pixels.length; i += 4, j++) {
-    lum[j] = (pixels[i] * 299 + pixels[i + 1] * 587 + pixels[i + 2] * 114) / 1000;
+    lum[j] = (pixels[i]! * 299 + pixels[i + 1]! * 587 + pixels[i + 2]! * 114) / 1000;
   }
 
   // Scan area: bottom-right corner. Inset by the smallest scale's outer ring;
   // per-candidate we filter scales that don't fit at that position.
-  const minScale = scales[0];
+  const minScale = scales[0]!;
   const minMargin = Math.ceil(minScale * 1.6);
-  const scanW = Math.max(maxScale * 2, Math.floor(width * SPARKLE_PARAMS.SCAN_WIDTH_FRACTION));
-  const scanH = Math.max(maxScale * 2, Math.floor(height * SPARKLE_PARAMS.SCAN_HEIGHT_FRACTION));
+  const scanW = Math.max(maxScale! * 2, Math.floor(width * SPARKLE_PARAMS.SCAN_WIDTH_FRACTION));
+  const scanH = Math.max(maxScale! * 2, Math.floor(height * SPARKLE_PARAMS.SCAN_HEIGHT_FRACTION));
   const xStart = Math.max(minMargin, width - scanW);
   const xEnd = width - minMargin;
   const yStart = Math.max(minMargin, height - scanH);
@@ -131,24 +131,24 @@ export function sparkleDetect(
 
   for (let cy = yStart; cy < yEnd; cy += stride) {
     for (let cx = xStart; cx < xEnd; cx += stride) {
-      const c = lum[cy * width + cx];
+      const c = lum[cy * width + cx]!;
 
       for (let si = 0; si < scales.length; si++) {
-        const m = scaleMargins[si];
+        const m = scaleMargins[si]!;
         if (cy - m < 0 || cy + m >= height || cx - m < 0 || cx + m >= width) continue;
-        const off = offsetsByScale[si];
+        const off = offsetsByScale[si]!;
 
         // Sample cardinals individually (4-fold symmetry check)
-        const a0 = lum[(cy + off.arm[0][0]) * width + (cx + off.arm[0][1])];
-        const a1 = lum[(cy + off.arm[1][0]) * width + (cx + off.arm[1][1])];
-        const a2 = lum[(cy + off.arm[2][0]) * width + (cx + off.arm[2][1])];
-        const a3 = lum[(cy + off.arm[3][0]) * width + (cx + off.arm[3][1])];
+        const a0 = lum[(cy + off.arm[0]![0]!) * width + (cx + off.arm[0]![1]!)]!;
+        const a1 = lum[(cy + off.arm[1]![0]!) * width + (cx + off.arm[1]![1]!)]!;
+        const a2 = lum[(cy + off.arm[2]![0]!) * width + (cx + off.arm[2]![1]!)]!;
+        const a3 = lum[(cy + off.arm[3]![0]!) * width + (cx + off.arm[3]![1]!)]!;
 
         // Sample diagonals individually
-        const d0 = lum[(cy + off.gap[0][0]) * width + (cx + off.gap[0][1])];
-        const d1 = lum[(cy + off.gap[1][0]) * width + (cx + off.gap[1][1])];
-        const d2 = lum[(cy + off.gap[2][0]) * width + (cx + off.gap[2][1])];
-        const d3 = lum[(cy + off.gap[3][0]) * width + (cx + off.gap[3][1])];
+        const d0 = lum[(cy + off.gap[0]![0]!) * width + (cx + off.gap[0]![1]!)]!;
+        const d1 = lum[(cy + off.gap[1]![0]!) * width + (cx + off.gap[1]![1]!)]!;
+        const d2 = lum[(cy + off.gap[2]![0]!) * width + (cx + off.gap[2]![1]!)]!;
+        const d3 = lum[(cy + off.gap[3]![0]!) * width + (cx + off.gap[3]![1]!)]!;
 
         // G1: min(arms) > max(gaps) + margin
         const minA = Math.min(a0, a1, a2, a3);
@@ -173,7 +173,7 @@ export function sparkleDetect(
         // G4: contrast vs outer ring
         let oSum = 0;
         for (const [dy, dx] of off.outer) {
-          oSum += lum[(cy + dy) * width + (cx + dx)];
+          oSum += lum[(cy + dy) * width + (cx + dx)]!;
         }
         const meanO = oSum / 8;
         const cMinusO = c - meanO;
@@ -186,7 +186,7 @@ export function sparkleDetect(
         // wide solid regions with bright neighboring pixels.
         let maxPerp = 0;
         for (const [dy, dx] of off.perp) {
-          const v = lum[(cy + dy) * width + (cx + dx)];
+          const v = lum[(cy + dy) * width + (cx + dx)]!;
           if (v > maxPerp) maxPerp = v;
         }
         if (maxPerp > meanA * SPARKLE_PARAMS.MAX_PERP_ARM_RATIO) continue;
@@ -198,7 +198,7 @@ export function sparkleDetect(
           bestScore = score;
           bestY = cy;
           bestX = cx;
-          bestR = scales[si];
+          bestR = scales[si]!;
         }
       }
     }

@@ -29,9 +29,9 @@ class MinHeap {
     let pos = this.data.length - 1;
     while (pos > 0) {
       const parent = (pos - 1) >>> 1;
-      if (this.data[pos][0] < this.data[parent][0]) {
-        const tmp = this.data[parent];
-        this.data[parent] = this.data[pos];
+      if (this.data[pos]![0] < this.data[parent]![0]) {
+        const tmp = this.data[parent]!;
+        this.data[parent] = this.data[pos]!;
         this.data[pos] = tmp;
         pos = parent;
       } else {
@@ -41,7 +41,7 @@ class MinHeap {
   }
 
   pop(): HeapEntry {
-    const ret = this.data[0];
+    const ret = this.data[0]!;
     const last = this.data.pop()!;
     if (this.data.length > 0) {
       this.data[0] = last;
@@ -51,11 +51,11 @@ class MinHeap {
         const left = (pos << 1) + 1;
         const right = left + 1;
         let min = pos;
-        if (left <= end && this.data[left][0] < this.data[min][0]) min = left;
-        if (right <= end && this.data[right][0] < this.data[min][0]) min = right;
+        if (left <= end && this.data[left]![0] < this.data[min]![0]) min = left;
+        if (right <= end && this.data[right]![0] < this.data[min]![0]) min = right;
         if (min !== pos) {
-          const tmp = this.data[min];
-          this.data[min] = this.data[pos];
+          const tmp = this.data[min]!;
+          this.data[min] = this.data[pos]!;
           this.data[pos] = tmp;
           pos = min;
         } else {
@@ -102,7 +102,7 @@ export function inpaintTelea(
   for (let c = 0; c < 3; c++) {
     const ch = new Float32Array(size);
     for (let i = 0; i < size; i++) {
-      ch[i] = pixels[i * 4 + c];
+      ch[i] = pixels[i * 4 + c]!;
     }
     channels.push(ch);
   }
@@ -157,7 +157,7 @@ export function inpaintTelea(
   const heap = new MinHeap();
   for (let i = 0; i < size; i++) {
     if (flag[i] === BAND) {
-      heap.push([u[i], i]);
+      heap.push([u[i]!, i]);
     }
   }
 
@@ -173,8 +173,8 @@ export function inpaintTelea(
   // Funciones auxiliares del FMM
   function eikonal(n1: number, n2: number): number {
     let uOut = LARGE_VALUE;
-    const u1 = u[n1];
-    const u2 = u[n2];
+    const u1 = u[n1]!;
+    const u2 = u[n2]!;
     if (flag[n1] === KNOWN) {
       if (flag[n2] === KNOWN) {
         const diff = u1 - u2;
@@ -200,12 +200,12 @@ export function inpaintTelea(
   function gradFunc(array: Float32Array, n: number, step: number): number {
     if (flag[n + step] !== UNKNOWN) {
       if (flag[n - step] !== UNKNOWN) {
-        return (array[n + step] - array[n - step]) * 0.5;
+        return (array[n + step]! - array[n - step]!) * 0.5;
       }
-      return array[n + step] - array[n];
+      return array[n + step]! - array[n]!;
     }
     if (flag[n - step] !== UNKNOWN) {
-      return array[n] - array[n - step];
+      return array[n]! - array[n - step]!;
     }
     return 0;
   }
@@ -219,7 +219,7 @@ export function inpaintTelea(
     const iy = Math.floor(n / width);
 
     for (let k = 0; k < offsets.length; k++) {
-      const nb = n + offsets[k];
+      const nb = n + offsets[k]!;
       if (nb < 0 || nb >= size) continue;
 
       const nbx = nb % width;
@@ -239,11 +239,11 @@ export function inpaintTelea(
       if (dst2 === 0) continue;
 
       const geometricDst = 1 / (dst2 * Math.sqrt(dst2));
-      const levelsetDst = 1 / (1 + Math.abs(u[nb] - u[n]));
+      const levelsetDst = 1 / (1 + Math.abs(u[nb]! - u[n]!));
       const direction = Math.abs(rx * gradxU + ry * gradyU);
       const weight = geometricDst * levelsetDst * direction + SMALL_VALUE;
 
-      Ia += weight * channel[nb];
+      Ia += weight * channel[nb]!;
       norm += weight;
     }
 
@@ -266,7 +266,7 @@ export function inpaintTelea(
     // Cardinal neighbors
     const neighbors = [n - width, n - 1, n + width, n + 1];
     for (let k = 0; k < 4; k++) {
-      const nb = neighbors[k];
+      const nb = neighbors[k]!;
       if (nb < 0 || nb >= size) continue;
       if (flag[nb] === KNOWN) continue;
 
@@ -279,10 +279,10 @@ export function inpaintTelea(
 
       if (flag[nb] === UNKNOWN) {
         flag[nb] = BAND;
-        heap.push([u[nb], nb]);
+        heap.push([u[nb]!, nb]);
         // Inpaint all 3 channels at this point
         for (let c = 0; c < 3; c++) {
-          inpaintPoint(nb, channels[c]);
+          inpaintPoint(nb, channels[c]!);
         }
       }
     }
@@ -291,9 +291,9 @@ export function inpaintTelea(
   // Step 6: write processed channels back to RGBA
   for (let i = 0; i < size; i++) {
     if (!mask[i]) continue; // Only touch mask pixels
-    result[i * 4] = Math.round(Math.max(0, Math.min(255, channels[0][i])));
-    result[i * 4 + 1] = Math.round(Math.max(0, Math.min(255, channels[1][i])));
-    result[i * 4 + 2] = Math.round(Math.max(0, Math.min(255, channels[2][i])));
+    result[i * 4] = Math.round(Math.max(0, Math.min(255, channels[0]![i]!)));
+    result[i * 4 + 1] = Math.round(Math.max(0, Math.min(255, channels[1]![i]!)));
+    result[i * 4 + 2] = Math.round(Math.max(0, Math.min(255, channels[2]![i]!)));
     result[i * 4 + 3] = 255; // Opaque
   }
 

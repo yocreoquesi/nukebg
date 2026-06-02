@@ -46,7 +46,7 @@ export function dilateMask(
       const row = y * width;
       for (let x = 0; x < width; x++) {
         const i = row + x;
-        let v = src[i];
+        let v = src[i]!;
         if (x > 0 && src[i - 1]) v = 1;
         if (x < width - 1 && src[i + 1]) v = 1;
         dst[i] = v;
@@ -57,7 +57,7 @@ export function dilateMask(
       const row = y * width;
       for (let x = 0; x < width; x++) {
         const i = row + x;
-        let v = dst[i];
+        let v = dst[i]!;
         if (y > 0 && dst[i - width]) v = 1;
         if (y < height - 1 && dst[i + width]) v = 1;
         src[i] = v;
@@ -130,12 +130,12 @@ export function compositeWithFeather(
 
   // Composite with alpha + noise inside the core.
   for (let i = 0, p = 0; i < alphaMap.length; i++, p += 4) {
-    const a = alphaMap[i];
+    const a = alphaMap[i]!;
     if (a === 0) continue; // unchanged from original
 
-    let ir = inpainted[p];
-    let ig = inpainted[p + 1];
-    let ib = inpainted[p + 2];
+    let ir = inpainted[p]!;
+    let ig = inpainted[p + 1]!;
+    let ib = inpainted[p + 2]!;
 
     if (noiseSigma > 0 && coreMask[i]) {
       ir = ir + gauss() * noiseSigma;
@@ -148,9 +148,9 @@ export function compositeWithFeather(
     // but writing it out documents intent and traps a NaN before it
     // becomes a silent 0 (would happen only if upstream math drifts —
     // gauss() is currently NaN-safe via Math.max(u1, 1e-12)).
-    out[p] = clamp255((ir * a + original[p] * inv) / 255);
-    out[p + 1] = clamp255((ig * a + original[p + 1] * inv) / 255);
-    out[p + 2] = clamp255((ib * a + original[p + 2] * inv) / 255);
+    out[p] = clamp255((ir * a + original[p]! * inv) / 255);
+    out[p + 1] = clamp255((ig * a + original[p + 1]! * inv) / 255);
+    out[p + 2] = clamp255((ib * a + original[p + 2]! * inv) / 255);
     // Alpha channel: always 255 (opaque). Inpaint output may have garbage
     // here; the original is guaranteed opaque for loaded images.
     out[p + 3] = 255;

@@ -14,8 +14,8 @@ export function detectCheckerGrid(
   colorLight: number[],
 ): GridResult {
   const midBrightness =
-    ((colorDark[0] + colorDark[1] + colorDark[2]) / 3 +
-      (colorLight[0] + colorLight[1] + colorLight[2]) / 3) /
+    ((colorDark[0]! + colorDark[1]! + colorDark[2]!) / 3 +
+      (colorLight[0]! + colorLight[1]! + colorLight[2]!) / 3) /
     2;
 
   const gridSizes: number[] = [];
@@ -27,7 +27,7 @@ export function detectCheckerGrid(
 
     for (let x = 0; x < width; x++) {
       const idx = (rowIdx * width + x) * 4;
-      const b = (pixels[idx] + pixels[idx + 1] + pixels[idx + 2]) / 3;
+      const b = (pixels[idx]! + pixels[idx + 1]! + pixels[idx + 2]!) / 3;
       const above = b > midBrightness;
 
       if (x > 0 && above !== prevAbove) {
@@ -39,7 +39,7 @@ export function detectCheckerGrid(
     if (transitions.length >= 4) {
       const gaps: number[] = [];
       for (let i = 1; i < transitions.length; i++) {
-        const gap = transitions[i] - transitions[i - 1];
+        const gap = transitions[i]! - transitions[i - 1]!;
         if (gap > 5) {
           gaps.push(gap);
         }
@@ -66,7 +66,7 @@ export function detectCheckerGrid(
 
   if (centerY < height && centerX < width) {
     const idx = (centerY * width + centerX) * 4;
-    const sampleB = (pixels[idx] + pixels[idx + 1] + pixels[idx + 2]) / 3;
+    const sampleB = (pixels[idx]! + pixels[idx + 1]! + pixels[idx + 2]!) / 3;
     phase = sampleB < midBrightness ? 0 : 1;
   }
 

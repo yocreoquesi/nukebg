@@ -15,6 +15,7 @@
   "files": ["dist", "README.md", "LICENSE"],
   "scripts": {
     "build": "tsc -b",
+    "typecheck": "tsc -b",
     "test": "vitest run --passWithNoTests"
   },
   "dependencies": {},

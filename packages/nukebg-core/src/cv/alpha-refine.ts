@@ -19,14 +19,14 @@ export function alphaRefine(mask: Uint8Array, width: number, height: number): Ui
 
   // Step 3: Multiply by 2 and clamp (like np.clip(alpha_arr * 2, 0, 255))
   for (let i = 0; i < afterGauss.length; i++) {
-    afterGauss[i] = Math.min(afterGauss[i] * 2, 255);
+    afterGauss[i] = Math.min(afterGauss[i]! * 2, 255);
   }
 
   // Step 4: Threshold
   for (let i = 0; i < afterGauss.length; i++) {
-    if (afterGauss[i] > ALPHA_PARAMS.THRESHOLD_HIGH) {
+    if (afterGauss[i]! > ALPHA_PARAMS.THRESHOLD_HIGH) {
       afterGauss[i] = 255;
-    } else if (afterGauss[i] < ALPHA_PARAMS.THRESHOLD_LOW) {
+    } else if (afterGauss[i]! < ALPHA_PARAMS.THRESHOLD_LOW) {
       afterGauss[i] = 0;
     }
   }
@@ -47,13 +47,13 @@ function medianFilter(data: Uint8Array, width: number, height: number, kernel: n
         for (let kx = -half; kx <= half; kx++) {
           const ny = Math.min(Math.max(y + ky, 0), height - 1);
           const nx = Math.min(Math.max(x + kx, 0), width - 1);
-          values[count++] = data[ny * width + nx];
+          values[count++] = data[ny * width + nx]!;
         }
       }
       // Sort the neighborhood values and pick median
       const slice = values.slice(0, count);
       slice.sort((a, b) => a - b);
-      result[y * width + x] = slice[Math.floor(count / 2)];
+      result[y * width + x] = slice[Math.floor(count / 2)]!;
     }
   }
 
@@ -77,7 +77,7 @@ function gaussianBlur(data: Uint8Array, width: number, height: number, sigma: nu
   }
   // Normalize
   for (let i = 0; i < kernel.length; i++) {
-    kernel[i] /= sum;
+    kernel[i] = kernel[i]! / sum;
   }
 
   for (let y = 0; y < height; y++) {
@@ -88,7 +88,7 @@ function gaussianBlur(data: Uint8Array, width: number, height: number, sigma: nu
         for (let kx = -1; kx <= 1; kx++) {
           const ny = Math.min(Math.max(y + ky, 0), height - 1);
           const nx = Math.min(Math.max(x + kx, 0), width - 1);
-          val += data[ny * width + nx] * kernel[ki++];
+          val += data[ny * width + nx]! * kernel[ki++]!;
         }
       }
       result[y * width + x] = Math.round(val);

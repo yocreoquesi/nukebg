@@ -64,7 +64,7 @@ export function estimateForeground(
   const pyramid = buildPyramid(observed, alpha, width, height);
 
   // Initialize F = B = I at the coarsest level.
-  const coarsest = pyramid[pyramid.length - 1];
+  const coarsest = pyramid[pyramid.length - 1]!;
   let F: Float32Array = new Float32Array(coarsest.width * coarsest.height * 3);
   let B: Float32Array = new Float32Array(coarsest.width * coarsest.height * 3);
   initializeFromImage(coarsest.image, F);
@@ -72,7 +72,7 @@ export function estimateForeground(
 
   // Coarse-to-fine solve.
   for (let level = pyramid.length - 1; level >= 0; level--) {
-    const { image, alpha: a, width: w, height: h } = pyramid[level];
+    const { image, alpha: a, width: w, height: h } = pyramid[level]!;
 
     // Precompute α-weight buffers (opaque pixels should dominate F̄; transparent
     // pixels should dominate B̄). Without this weighting, F gets dragged toward
@@ -81,7 +81,7 @@ export function estimateForeground(
     const wF = new Float32Array(w * h);
     const wB = new Float32Array(w * h);
     for (let i = 0; i < w * h; i++) {
-      const an = a[i] / 255;
+      const an = a[i]! / 255;
       wF[i] = an;
       wB[i] = 1 - an;
     }
@@ -94,7 +94,7 @@ export function estimateForeground(
 
     // Upsample F and B to the next finer level (bilinear), unless we're at L0.
     if (level > 0) {
-      const next = pyramid[level - 1];
+      const next = pyramid[level - 1]!;
       F = new Float32Array(upsample3(F, w, h, next.width, next.height));
       B = new Float32Array(upsample3(B, w, h, next.width, next.height));
     }
@@ -104,18 +104,18 @@ export function estimateForeground(
   // (no floating-point round-trip). Transparent pixels output zero RGB.
   const out = new Uint8ClampedArray(width * height * 4);
   for (let i = 0; i < width * height; i++) {
-    const a = alpha[i];
+    const a = alpha[i]!;
     out[i * 4 + 3] = a;
     if (a >= 254) {
-      out[i * 4] = observed[i * 4];
-      out[i * 4 + 1] = observed[i * 4 + 1];
-      out[i * 4 + 2] = observed[i * 4 + 2];
+      out[i * 4] = observed[i * 4]!;
+      out[i * 4 + 1] = observed[i * 4 + 1]!;
+      out[i * 4 + 2] = observed[i * 4 + 2]!;
     } else if (a <= 1) {
       // Invisible — leave RGB at zero.
     } else {
-      out[i * 4] = Math.max(0, Math.min(255, Math.round(F[i * 3])));
-      out[i * 4 + 1] = Math.max(0, Math.min(255, Math.round(F[i * 3 + 1])));
-      out[i * 4 + 2] = Math.max(0, Math.min(255, Math.round(F[i * 3 + 2])));
+      out[i * 4] = Math.max(0, Math.min(255, Math.round(F[i * 3]!)));
+      out[i * 4 + 1] = Math.max(0, Math.min(255, Math.round(F[i * 3 + 1]!)));
+      out[i * 4 + 2] = Math.max(0, Math.min(255, Math.round(F[i * 3 + 2]!)));
     }
   }
   return out;
@@ -140,7 +140,7 @@ function buildPyramid(
   while (Math.min(w, h) >= MIN_LEVEL_DIM * 2) {
     const nw = Math.max(1, w >> 1);
     const nh = Math.max(1, h >> 1);
-    const parent = levels[levels.length - 1];
+    const parent = levels[levels.length - 1]!;
     const nextImage = downsample2xRGBA(parent.image, parent.width, parent.height, nw, nh);
     const nextAlpha = downsample2xU8(parent.alpha, parent.width, parent.height, nw, nh);
     levels.push({ image: nextImage, alpha: nextAlpha, width: nw, height: nh });
@@ -153,9 +153,9 @@ function buildPyramid(
 function initializeFromImage(image: Uint8ClampedArray, out: Float32Array): void {
   const n = out.length / 3;
   for (let i = 0; i < n; i++) {
-    out[i * 3] = image[i * 4];
-    out[i * 3 + 1] = image[i * 4 + 1];
-    out[i * 3 + 2] = image[i * 4 + 2];
+    out[i * 3] = image[i * 4]!;
+    out[i * 3 + 1] = image[i * 4 + 1]!;
+    out[i * 3 + 2] = image[i * 4 + 2]!;
   }
 }
 
@@ -176,7 +176,7 @@ function solveIteration(
 ): void {
   const n = width * height;
   for (let i = 0; i < n; i++) {
-    const aN = alpha[i] / 255;
+    const aN = alpha[i]! / 255;
     const inv = 1 - aN;
 
     const a11 = aN * aN + lambda;
@@ -186,9 +186,9 @@ function solveIteration(
     if (det < 1e-6) continue; // degenerate; skip this pixel
 
     for (let ch = 0; ch < 3; ch++) {
-      const ii = image[i * 4 + ch];
-      const rf = aN * ii + lambda * Favg[i * 3 + ch];
-      const rb = inv * ii + lambda * Bavg[i * 3 + ch];
+      const ii = image[i * 4 + ch]!;
+      const rf = aN * ii + lambda * Favg[i * 3 + ch]!;
+      const rb = inv * ii + lambda * Bavg[i * 3 + ch]!;
       const newF = (rf * a22 - rb * a12) / det;
       const newB = (rb * a11 - rf * a12) / det;
       F[i * 3 + ch] = newF;
@@ -222,12 +222,12 @@ function weightedBoxBlur3(
         for (let dx = -r; dx <= r; dx++) {
           const xi = Math.min(Math.max(x + dx, 0), width - 1);
           const ni = yi * width + xi;
-          const wv = weights[ni];
+          const wv = weights[ni]!;
           if (wv === 0) continue;
           wsum += wv;
-          sr += wv * src[ni * 3];
-          sg += wv * src[ni * 3 + 1];
-          sb += wv * src[ni * 3 + 2];
+          sr += wv * src[ni * 3]!;
+          sg += wv * src[ni * 3 + 1]!;
+          sb += wv * src[ni * 3 + 2]!;
         }
       }
       const oi = y * width + x;
@@ -236,9 +236,9 @@ function weightedBoxBlur3(
         out[oi * 3 + 1] = sg / wsum;
         out[oi * 3 + 2] = sb / wsum;
       } else {
-        out[oi * 3] = src[oi * 3];
-        out[oi * 3 + 1] = src[oi * 3 + 1];
-        out[oi * 3 + 2] = src[oi * 3 + 2];
+        out[oi * 3] = src[oi * 3]!;
+        out[oi * 3 + 1] = src[oi * 3 + 1]!;
+        out[oi * 3 + 2] = src[oi * 3 + 2]!;
       }
     }
   }
@@ -270,10 +270,10 @@ function upsample3(
       const dx = sx - x0;
 
       for (let ch = 0; ch < 3; ch++) {
-        const a = src[(y0 * srcW + x0) * 3 + ch];
-        const b = src[(y0 * srcW + x1) * 3 + ch];
-        const c = src[(y1 * srcW + x0) * 3 + ch];
-        const d = src[(y1 * srcW + x1) * 3 + ch];
+        const a = src[(y0 * srcW + x0) * 3 + ch]!;
+        const b = src[(y0 * srcW + x1) * 3 + ch]!;
+        const c = src[(y1 * srcW + x0) * 3 + ch]!;
+        const d = src[(y1 * srcW + x1) * 3 + ch]!;
         const top = a + (b - a) * dx;
         const bot = c + (d - c) * dx;
         dst[(y * dstW + x) * 3 + ch] = top + (bot - top) * dy;
@@ -301,10 +301,10 @@ function downsample2xRGBA(
       const x1 = Math.min(x0 + 1, srcW - 1);
       for (let ch = 0; ch < 3; ch++) {
         const s =
-          src[(y0 * srcW + x0) * 4 + ch] +
-          src[(y0 * srcW + x1) * 4 + ch] +
-          src[(y1 * srcW + x0) * 4 + ch] +
-          src[(y1 * srcW + x1) * 4 + ch];
+          src[(y0 * srcW + x0) * 4 + ch]! +
+          src[(y0 * srcW + x1) * 4 + ch]! +
+          src[(y1 * srcW + x0) * 4 + ch]! +
+          src[(y1 * srcW + x1) * 4 + ch]!;
         dst[(y * dstW + x) * 4 + ch] = (s + 2) >> 2;
       }
       dst[(y * dstW + x) * 4 + 3] = 255;
@@ -329,7 +329,7 @@ function downsample2xU8(
       const x0 = Math.min(x * 2, srcW - 1);
       const x1 = Math.min(x0 + 1, srcW - 1);
       const s =
-        src[y0 * srcW + x0] + src[y0 * srcW + x1] + src[y1 * srcW + x0] + src[y1 * srcW + x1];
+        src[y0 * srcW + x0]! + src[y0 * srcW + x1]! + src[y1 * srcW + x0]! + src[y1 * srcW + x1]!;
       dst[y * dstW + x] = (s + 2) >> 2;
     }
   }

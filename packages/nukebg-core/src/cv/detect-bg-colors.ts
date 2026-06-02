@@ -32,9 +32,9 @@ export function detectBgColors(
     for (let y = y0; y < y1; y++) {
       for (let x = x0; x < x1; x++) {
         const idx = (y * width + x) * 4;
-        const r = pixels[idx];
-        const g = pixels[idx + 1];
-        const b = pixels[idx + 2];
+        const r = pixels[idx]!;
+        const g = pixels[idx + 1]!;
+        const b = pixels[idx + 2]!;
         allR.push(r);
         allG.push(g);
         allB.push(b);
@@ -68,14 +68,14 @@ export function detectBgColors(
   const lightB: number[] = [];
 
   for (let i = 0; i < brightness.length; i++) {
-    if (brightness[i] <= medianB) {
-      darkR.push(allR[i]);
-      darkG.push(allG[i]);
-      darkB.push(allB[i]);
+    if (brightness[i]! <= medianB) {
+      darkR.push(allR[i]!);
+      darkG.push(allG[i]!);
+      darkB.push(allB[i]!);
     } else {
-      lightR.push(allR[i]);
-      lightG.push(allG[i]);
-      lightB.push(allB[i]);
+      lightR.push(allR[i]!);
+      lightG.push(allG[i]!);
+      lightB.push(allB[i]!);
     }
   }
 

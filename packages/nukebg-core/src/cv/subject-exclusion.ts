@@ -30,9 +30,9 @@ export function subjectExclusion(
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
       const idx = pixelIndex(x, y, width);
-      const r = pixels[idx];
-      const g = pixels[idx + 1];
-      const b = pixels[idx + 2];
+      const r = pixels[idx]!;
+      const g = pixels[idx + 1]!;
+      const b = pixels[idx + 2]!;
 
       const mx = Math.max(r, g, b);
       const mn = Math.min(r, g, b);
