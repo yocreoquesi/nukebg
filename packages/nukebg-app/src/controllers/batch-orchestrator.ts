@@ -24,10 +24,16 @@ import type { ArDownload } from '../components/ar-download';
 import type { ArBatchGrid } from '../components/ar-batch-grid';
 import type { BatchItem, StageSnapshot } from '../types/batch';
 import { createZip, safeZipEntryName, downloadBlob } from '../utils/zip';
-import { finalizePipelineResult } from '../pipeline/finalize-result';
+import { finalizePipelineResult } from 'nukebg-core/pipeline/finalize-result';
 import { exportPng } from '../utils/image-io';
 import { getRecommendedPrecision } from '../utils/device-adaptation';
-import { autoCropToSubject } from '../utils/auto-crop';
+import { autoCropToSubject } from 'nukebg-core/pipeline/auto-crop';
+import type { ImageDataLike } from 'nukebg-core';
+
+/** Convert an ImageDataLike plain object to a native ImageData for Canvas/DOM APIs. */
+function toImageData(like: ImageDataLike): ImageData {
+  return new ImageData(new Uint8ClampedArray(like.data), like.width, like.height);
+}
 
 export type BatchMode = 'off' | 'grid' | 'detail';
 
@@ -195,14 +201,14 @@ export class BatchOrchestrator {
           ac.signal,
         );
         if (this.aborted) return;
-        const finalImageData = finalizePipelineResult(result, item.originalImageData);
+        const finalImageData = toImageData(finalizePipelineResult(result, item.originalImageData));
         // Tight bbox for export — see autoCropToSubject. finalImageData
         // stays full-size so the detail-view slider aligns with the
         // original; exportImageData feeds the per-item download CTA and
         // the ZIP. Thumbnails come from the cropped version because the
         // grid card is dominated by transparency on a wide-canvas
         // result, which makes the subject hard to recognise.
-        const exportImageData = autoCropToSubject(finalImageData);
+        const exportImageData = toImageData(autoCropToSubject(finalImageData));
         item.result = result;
         item.finalImageData = finalImageData;
         item.exportImageData = exportImageData;

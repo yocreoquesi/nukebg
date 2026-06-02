@@ -201,27 +201,27 @@ _Goal: utility and constant CV files relocate first to unblock algorithm moves i
 
 _Goal: the 7 `new ImageData(...)` call sites in pipeline utils are replaced with `createImageDataLike`. Strict TDD per file._
 
-- [ ] 8.1 Move `packages/nukebg-app/src/pipeline/finalize.ts` → `packages/nukebg-core/src/pipeline/finalize.ts` and move `packages/nukebg-app/tests/pipeline/finalize.test.ts` → `packages/nukebg-core/tests/pipeline/finalize.test.ts` (mechanical move, import paths only). Run `npm test`, expect green.
+- [x] 8.1 Move `packages/nukebg-app/src/pipeline/finalize.ts` → `packages/nukebg-core/src/pipeline/finalize.ts` and move `packages/nukebg-app/tests/pipeline/finalize.test.ts` → `packages/nukebg-core/tests/pipeline/finalize.test.ts` (mechanical move, import paths only). Run `npm test`, expect green.
 
-- [ ] 8.2 Write failing tests in `packages/nukebg-core/tests/pipeline/finalize.test.ts` that assert each of the four `finalize.ts` call sites (`fillSubjectHoles`, `dropOrphanBlobs`, `promoteSpeckleAlpha`, `refineEdges`) returns a plain object satisfying `ImageDataLike` (not an `ImageData` instance). Confirm these tests fail before the refactor (REQ-CORE-PIPELINE-2, design §F rows 1–4).
+- [x] 8.2 Write failing tests in `packages/nukebg-core/tests/pipeline/finalize.test.ts` that assert each of the four `finalize.ts` call sites (`fillSubjectHoles`, `dropOrphanBlobs`, `promoteSpeckleAlpha`, `refineEdges`) returns a plain object satisfying `ImageDataLike` (not an `ImageData` instance). Confirm these tests fail before the refactor (REQ-CORE-PIPELINE-2, design §F rows 1–4).
 
-- [ ] 8.3 Replace each `new ImageData(out, width, height)` in `packages/nukebg-core/src/pipeline/finalize.ts` with `createImageDataLike(out, width, height)`. Remove the `ImageData` global dependency from the file. Run tests, expect green.
+- [x] 8.3 Replace each `new ImageData(out, width, height)` in `packages/nukebg-core/src/pipeline/finalize.ts` with `createImageDataLike(out, width, height)`. Remove the `ImageData` global dependency from the file. Run tests, expect green.
 
-- [ ] 8.4 Write failing tests for `final-composite.ts` asserting return value is a plain `ImageDataLike` (design §F rows 5–6). These tests should NOT polyfill `ImageData` — construct plain objects directly.
+- [x] 8.4 Write failing tests for `final-composite.ts` asserting return value is a plain `ImageDataLike` (design §F rows 5–6). These tests should NOT polyfill `ImageData` — construct plain objects directly.
   - File: `packages/nukebg-core/tests/pipeline/final-composite.test.ts` (updated from app's moved test).
 
-- [ ] 8.5 Move `packages/nukebg-app/src/utils/final-composite.ts` → `packages/nukebg-core/src/pipeline/final-composite.ts`. Move its test. Replace two `new ImageData(...)` sites with `createImageDataLike`. DELETE the `ImageData` polyfill from the test file. Run tests, expect green.
+- [x] 8.5 Move `packages/nukebg-app/src/utils/final-composite.ts` → `packages/nukebg-core/src/pipeline/final-composite.ts`. Move its test. Replace two `new ImageData(...)` sites with `createImageDataLike`. DELETE the `ImageData` polyfill from the test file. Run tests, expect green.
 
-- [ ] 8.6 Write failing test for `auto-crop.ts` asserting the return is a plain `ImageDataLike` (design §F row 7).
+- [x] 8.6 Write failing test for `auto-crop.ts` asserting the return is a plain `ImageDataLike` (design §F row 7).
   - File: `packages/nukebg-core/tests/pipeline/auto-crop.test.ts`.
 
-- [ ] 8.7 Move `packages/nukebg-app/src/utils/auto-crop.ts` → `packages/nukebg-core/src/pipeline/auto-crop.ts`. Move its test. Replace `new ImageData(out, cw, ch)` with `createImageDataLike`. Run tests, expect green.
+- [x] 8.7 Move `packages/nukebg-app/src/utils/auto-crop.ts` → `packages/nukebg-core/src/pipeline/auto-crop.ts`. Move its test. Replace `new ImageData(out, cw, ch)` with `createImageDataLike`. Run tests, expect green.
 
-- [ ] 8.8 Move `packages/nukebg-app/src/pipeline/finalize-result.ts` → `packages/nukebg-core/src/pipeline/finalize-result.ts`. Move `tests/pipeline/finalize-result.test.ts`. Apply any `ImageDataLike` changes needed. Run tests, expect green.
+- [x] 8.8 Move `packages/nukebg-app/src/pipeline/finalize-result.ts` → `packages/nukebg-core/src/pipeline/finalize-result.ts`. Move `tests/pipeline/finalize-result.test.ts`. Apply any `ImageDataLike` changes needed. Run tests, expect green.
 
-- [ ] 8.9 Update all imports in `packages/nukebg-app/src/` that previously referenced the moved files to import from `nukebg-core` (or its re-exports). Run `npm test`, expect green.
+- [x] 8.9 Update all imports in `packages/nukebg-app/src/` that previously referenced the moved files to import from `nukebg-core` (or its re-exports). Run `npm test`, expect green.
 
-- [ ] 8.10 Verification: `npm test`, `npm run typecheck`, `npm run lint` all green. Milestone: "`ImageDataLike` adopted everywhere in core; no `new ImageData(...)` in core source".
+- [x] 8.10 Verification: `npm test`, `npm run typecheck`, `npm run lint` all green. Milestone: "`ImageDataLike` adopted everywhere in core; no `new ImageData(...)` in core source".
 
 ---
 
@@ -584,4 +584,4 @@ _Goal: all README and CONTRIBUTING files updated. REQ-CLI-LICENSE-5 satisfied._
 
 - [ ] X.6 **CI secret / model cache**: before Phase 18, decide and document the CI strategy for caching RMBG and LaMa models (GitHub Actions cache key based on model SHA from `LAMA_PARAMS.EXPECTED_SHA256`). Parity tests run with `NUKEBG_PARITY_REQUIRE=1` only on the leg that has the cache populated.
 
-- [ ] X.7 **`finalize-chain` and `pending-timers` tests**: `tests/pipeline/finalize-chain.test.ts` and `tests/pipeline/pending-timers.test.ts` currently live in the app tree. After Phase 8, confirm they either move to core or stay in app depending on what they import. Adjust in whichever phase moves the files they test.
+- [x] X.7 **`finalize-chain` and `pending-timers` tests**: `finalize-chain.test.ts` moved to `packages/nukebg-core/tests/pipeline/finalize-chain.test.ts` (imports only core finalize functions — no DOM). `pending-timers.test.ts` stays in app (reads `orchestrator.ts` and `worker-channel.ts` source files which live in the app).

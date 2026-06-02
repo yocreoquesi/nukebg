@@ -13,12 +13,18 @@ import type { ArDropzone } from './ar-dropzone';
 import type { ArBatchGrid } from './ar-batch-grid';
 import { BatchOrchestrator, type BatchStageCallback } from '../controllers/batch-orchestrator';
 import { emit, on } from '../lib/event-bus';
-import { refineEdges } from '../pipeline/finalize';
-import { finalizePipelineResult } from '../pipeline/finalize-result';
+import { refineEdges } from 'nukebg-core/pipeline/finalize';
+import { finalizePipelineResult } from 'nukebg-core/pipeline/finalize-result';
 import { getRecommendedPrecision } from '../utils/device-adaptation';
-import { autoCropToSubject } from '../utils/auto-crop';
+import { autoCropToSubject } from 'nukebg-core/pipeline/auto-crop';
 import { exportPng } from '../utils/image-io';
 import type { ArEditorAdvanced } from './ar-editor-advanced';
+import type { ImageDataLike } from 'nukebg-core';
+
+/** Convert an ImageDataLike plain object to a native ImageData for Canvas/DOM APIs. */
+function toImageData(like: ImageDataLike): ImageData {
+  return new ImageData(new Uint8ClampedArray(like.data), like.width, like.height);
+}
 
 export class ArApp extends HTMLElement {
   private static readonly MODEL_ID: ModelId = 'briaai/RMBG-1.4';
@@ -1355,7 +1361,7 @@ export class ArApp extends HTMLElement {
           // Same split as the main flow: slider keeps the full-size
           // canvas (alignment with original); export + info label use
           // the cropped subject bbox.
-          const exportImageData = autoCropToSubject(this.lastResultImageData);
+          const exportImageData = toImageData(autoCropToSubject(this.lastResultImageData));
           const blob = await exportPng(exportImageData);
           const originalForViewer = this.currentOriginalImageData ?? this.currentImageData;
           if (originalForViewer) this.viewer.setOriginal(originalForViewer, this.currentFileSize);
@@ -1404,12 +1410,12 @@ export class ArApp extends HTMLElement {
           // brush strokes inherit the same studio-quality edge as the main pipeline.
           // Topology cleanup is skipped — keepLargestComponent would discard manual
           // restores that don't connect to the main subject body.
-          const editedData = await refineEdges(this.pipeline, rawEdited, {
-            skipTopologyCleanup: true,
-          });
+          const editedData = toImageData(
+            await refineEdges(this.pipeline, rawEdited, { skipTopologyCleanup: true }),
+          );
           // Crop for export; slider canvas keeps the full-size frame so
           // the manual brush strokes still align with the original.
-          const exportImageData = autoCropToSubject(editedData);
+          const exportImageData = toImageData(autoCropToSubject(editedData));
           const blob = await exportPng(exportImageData);
 
           // Save pre-edit for discard functionality
@@ -1491,12 +1497,12 @@ export class ArApp extends HTMLElement {
 
         // Same reasoning as the basic editor: skip topology cleanup so the
         // user's lasso crops / restores survive the refinement pass.
-        const refined = await refineEdges(this.pipeline, imageData, {
-          skipTopologyCleanup: true,
-        });
+        const refined = toImageData(
+          await refineEdges(this.pipeline, imageData, { skipTopologyCleanup: true }),
+        );
         // Same split as elsewhere: slider stays full-size for alignment;
         // export + info label use the cropped subject bbox.
-        const exportImageData = autoCropToSubject(refined);
+        const exportImageData = toImageData(autoCropToSubject(refined));
         const blob = await exportPng(exportImageData);
         this.viewer.setResult(refined, blob, {
           width: exportImageData.width,
@@ -1663,12 +1669,12 @@ export class ArApp extends HTMLElement {
       );
       if (this.processingAborted) return;
 
-      const finalImageData = finalizePipelineResult(result, originalImageData);
+      const finalImageData = toImageData(finalizePipelineResult(result, originalImageData));
       // Tight bbox around the subject for export. Slider keeps full-size
       // (alignment with original) but the downloaded PNG and the info
       // label show the cropped resolution — the user gets a Slack-emote-
       // sized file, not a 4K canvas with a 200×200 dot.
-      const exportImageData = autoCropToSubject(finalImageData);
+      const exportImageData = toImageData(autoCropToSubject(finalImageData));
       const nukedPct = result.nukedPct;
       const totalTimeMs = result.totalTimeMs;
 
@@ -1945,7 +1951,8 @@ export class ArApp extends HTMLElement {
       const finalImageData = item.finalImageData ?? item.result.imageData;
       // Mirror the single-image flow: slider gets full-size; download
       // and the resolution label get the cropped subject bbox.
-      const exportImageData = item.exportImageData ?? autoCropToSubject(finalImageData);
+      const exportImageData =
+        item.exportImageData ?? toImageData(autoCropToSubject(finalImageData));
       const blob = await exportPng(exportImageData);
       this.viewer.setResult(finalImageData, blob, {
         width: exportImageData.width,

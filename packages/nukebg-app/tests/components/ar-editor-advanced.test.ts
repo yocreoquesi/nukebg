@@ -48,7 +48,7 @@ vi.mock('../../src/workers/cv/patchmatch-inpaint', () => ({
   patchMatchInpaint: vi.fn(() => new Uint8ClampedArray(64)),
 }));
 
-vi.mock('../../src/pipeline/finalize', () => ({
+vi.mock('nukebg-core/pipeline/finalize', () => ({
   refineEdges: vi.fn((alpha: Uint8Array) => alpha),
   dropOrphanBlobs: vi.fn((alpha: Uint8Array) => alpha),
   fillSubjectHoles: vi.fn((alpha: Uint8Array) => alpha),
