@@ -87,39 +87,39 @@ _Goal: all browser app source moves from `src/` (root) → `packages/nukebg-app/
 
 _Goal: `nukebg-core` exports its type layer and `createImageDataLike` factory. No algorithm code yet._
 
-- [ ] 3.1 Write failing tests for `ImageDataLike` structural contract and `createImageDataLike` factory (REQ-CORE-PIPELINE-2):
+- [x] 3.1 Write failing tests for `ImageDataLike` structural contract and `createImageDataLike` factory (REQ-CORE-PIPELINE-2):
   - File: `packages/nukebg-core/tests/types/image-data-like.test.ts`
   - Scenarios: factory returns `{ data, width, height }` plain object; plain object satisfies the interface (type-level compile check via `@ts-expect-error` absence); `colorSpace` field is optional.
 
-- [ ] 3.2 Implement `packages/nukebg-core/src/types/image-data-like.ts` — `ImageDataLike` interface + `createImageDataLike` factory as per design §B.2. Export from `src/index.ts`. Run tests, expect green.
+- [x] 3.2 Implement `packages/nukebg-core/src/types/image-data-like.ts` — `ImageDataLike` interface + `createImageDataLike` factory as per design §B.2. Export from `src/index.ts`. Run tests, expect green.
 
-- [ ] 3.3 Write failing tests for `PipelineOptions`, `PipelineMode`, `PipelinePrecision` types (compile-time structural checks; at least one runtime test for default-value semantics if helpers are added):
+- [x] 3.3 Write failing tests for `PipelineOptions`, `PipelineMode`, `PipelinePrecision` types (compile-time structural checks; at least one runtime test for default-value semantics if helpers are added):
   - File: `packages/nukebg-core/tests/types/pipeline-options.test.ts`
 
-- [ ] 3.4 Implement `packages/nukebg-core/src/types/pipeline-options.ts` and `packages/nukebg-core/src/types/pipeline-result.ts` with shapes from design §B.7. Export from `src/index.ts`. Run tests, expect green.
+- [x] 3.4 Implement `packages/nukebg-core/src/types/pipeline-options.ts` and `packages/nukebg-core/src/types/pipeline-result.ts` with shapes from design §B.7. Export from `src/index.ts`. Run tests, expect green.
 
-- [ ] 3.5 Write failing tests verifying `PipelineResult` shape (at minimum: `output` is `ImageDataLike`, `resolvedMode` is one of the three literal types, `durationMs` is a number, `stageTimings` contains the four required keys — REQ-CORE-PIPELINE-6):
+- [x] 3.5 Write failing tests verifying `PipelineResult` shape (at minimum: `output` is `ImageDataLike`, `resolvedMode` is one of the three literal types, `durationMs` is a number, `stageTimings` contains the four required keys — REQ-CORE-PIPELINE-6):
   - File: `packages/nukebg-core/tests/types/pipeline-result.test.ts`
 
-- [ ] 3.6 Implement `packages/nukebg-core/src/types/cv-results.ts` — `BgColorResult`, `WatermarkResult`, `ClassifyImageResult`, `ImageFeatures`, `GridResult`. Export from `src/index.ts`. Run tests, expect green.
+- [x] 3.6 Implement `packages/nukebg-core/src/types/cv-results.ts` — `BgColorResult`, `WatermarkResult`, `ClassifyImageResult`, `ImageFeatures`, `GridResult`. Export from `src/index.ts`. Run tests, expect green.
 
-- [ ] 3.7 Write failing tests for runner interface structural compliance — type-only tests asserting that an object literal satisfying `RmbgRunner`, `LamaRunner`, `ImageCodec`, `PipelineRunner` does not produce TS errors (REQ-CORE-RUNNERS-1 through 4):
+- [x] 3.7 Write failing tests for runner interface structural compliance — type-only tests asserting that an object literal satisfying `RmbgRunner`, `LamaRunner`, `ImageCodec`, `PipelineRunner` does not produce TS errors (REQ-CORE-RUNNERS-1 through 4):
   - File: `packages/nukebg-core/tests/runners/interfaces.test.ts`
 
-- [ ] 3.8 Implement runner interface files:
+- [x] 3.8 Implement runner interface files:
   - `packages/nukebg-core/src/runners/pipeline-runner.ts` (design §B.3)
   - `packages/nukebg-core/src/runners/rmbg-runner.ts` (design §B.4)
   - `packages/nukebg-core/src/runners/lama-runner.ts` (design §B.5)
   - `packages/nukebg-core/src/runners/image-codec.ts` (design §B.6)
   Export all from `src/index.ts`. Run tests, expect green.
 
-- [ ] 3.9 Write failing tests for `NukebgError` base class and the discriminated error subclasses `RmbgError`, `LamaError`, `DecodeError`, `PipelineAbortError` (REQ-CORE-RUNNERS-5, REQ-CORE-PIPELINE-4):
+- [x] 3.9 Write failing tests for `NukebgError` base class and the discriminated error subclasses `RmbgError`, `LamaError`, `DecodeError`, `PipelineAbortError` (REQ-CORE-RUNNERS-5, REQ-CORE-PIPELINE-4):
   - File: `packages/nukebg-core/tests/pipeline/errors.test.ts`
   - Scenarios: `error instanceof NukebgError` is true for each subclass; `error.code` is correct; `error.cause` is preserved.
 
-- [ ] 3.10 Implement `packages/nukebg-core/src/pipeline/errors.ts` — `NukebgError`, `RmbgError`, `LamaError`, `DecodeError`, `PipelineAbortError`. Export `PipelineAbortError` from `src/index.ts`. Run tests, expect green.
+- [x] 3.10 Implement `packages/nukebg-core/src/pipeline/errors.ts` — `NukebgError`, `RmbgError`, `LamaError`, `DecodeError`, `PipelineAbortError`. Export `PipelineAbortError` from `src/index.ts`. Run tests, expect green.
 
-- [ ] 3.11 Verification: `npm test` green (core + app suites), `npm run typecheck`, `npm run lint`. Milestone: "core type layer + errors exported, zero algorithm code".
+- [x] 3.11 Verification: `npm test` green (core + app suites), `npm run typecheck`, `npm run lint`. Milestone: "core type layer + errors exported, zero algorithm code".
 
 ---
 

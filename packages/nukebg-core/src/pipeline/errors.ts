@@ -1,0 +1,71 @@
+/**
+ * Base error class for all nukebg-core errors.
+ * Every error carries a discriminating `code` string (REQ-CORE-RUNNERS-5).
+ */
+export class NukebgError extends Error {
+  readonly code: string;
+
+  constructor(message: string, code: string, opts?: { cause?: unknown }) {
+    super(message, opts as ErrorOptions);
+    this.code = code;
+    this.name = 'NukebgError';
+
+    // Fix prototype chain for environments where extending built-ins breaks instanceof
+    Object.setPrototypeOf(this, new.target.prototype);
+  }
+}
+
+interface ErrorSubclassOpts {
+  cause?: unknown;
+  /** Override the default code. */
+  code?: string;
+}
+
+/**
+ * Thrown when the RMBG segmentation model fails.
+ * Default code: "RMBG_FAILED" (REQ-CORE-PIPELINE-4).
+ */
+export class RmbgError extends NukebgError {
+  constructor(message: string, opts?: ErrorSubclassOpts) {
+    super(message, opts?.code ?? 'RMBG_FAILED', opts?.cause !== undefined ? { cause: opts.cause } : undefined);
+    this.name = 'RmbgError';
+    Object.setPrototypeOf(this, new.target.prototype);
+  }
+}
+
+/**
+ * Thrown when the LaMa inpainting model fails.
+ * Default code: "LAMA_FAILED" (REQ-CORE-PIPELINE-4).
+ */
+export class LamaError extends NukebgError {
+  constructor(message: string, opts?: ErrorSubclassOpts) {
+    super(message, opts?.code ?? 'LAMA_FAILED', opts?.cause !== undefined ? { cause: opts.cause } : undefined);
+    this.name = 'LamaError';
+    Object.setPrototypeOf(this, new.target.prototype);
+  }
+}
+
+/**
+ * Thrown when the codec cannot decode input bytes.
+ * Default code: "DECODE_FAILED" (REQ-CORE-PIPELINE-4).
+ */
+export class DecodeError extends NukebgError {
+  constructor(message: string, opts?: ErrorSubclassOpts) {
+    super(message, opts?.code ?? 'DECODE_FAILED', opts?.cause !== undefined ? { cause: opts.cause } : undefined);
+    this.name = 'DecodeError';
+    Object.setPrototypeOf(this, new.target.prototype);
+  }
+}
+
+/**
+ * Thrown when an AbortSignal fires during pipeline execution.
+ * code: "PIPELINE_ABORTED" (REQ-CORE-PIPELINE-4).
+ * name: "AbortError" (REQ-CORE-PIPELINE-3 — spec requires error.name === "AbortError").
+ */
+export class PipelineAbortError extends NukebgError {
+  constructor(message: string, opts?: { cause?: unknown }) {
+    super(message, 'PIPELINE_ABORTED', opts);
+    this.name = 'AbortError';
+    Object.setPrototypeOf(this, new.target.prototype);
+  }
+}
