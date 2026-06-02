@@ -1425,8 +1425,7 @@ export class ArApp extends HTMLElement {
           await this.download.setResult(exportImageData, this.currentFileName, 0, blob);
 
           // Hide editor, show discard button
-          (this.shadowRoot!.querySelector('#editor-section') as HTMLElement).style.display =
-            'none';
+          (this.shadowRoot!.querySelector('#editor-section') as HTMLElement).style.display = 'none';
           const editBtn = this.shadowRoot!.querySelector('#edit-btn') as HTMLElement;
           editBtn.style.display = 'block';
           editBtn.textContent = t('edit.discard');
