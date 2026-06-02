@@ -283,7 +283,7 @@ _Goal: `PipelineOrchestrator` → `WorkerPipelineRunner`. Browser app satisfies 
 
 _Goal: first Node-side adapter. Strict TDD: encode/decode round-trip._
 
-- [ ] 11.1 Write failing tests for `SharpImageCodec.decode` (REQ-CORE-RUNNERS-3):
+- [x] 11.1 Write failing tests for `SharpImageCodec.decode` (REQ-CORE-RUNNERS-3):
   - File: `packages/nukebg-cli/tests/codecs/sharp-codec.test.ts`
   - Scenarios:
     - Valid PNG bytes → `ImageDataLike` with correct `width`, `height`, non-empty `data` (length = `width * height * 4`).
@@ -291,18 +291,18 @@ _Goal: first Node-side adapter. Strict TDD: encode/decode round-trip._
     - Invalid bytes (non-image) → rejects with `DecodeError`, `error.code === "DECODE_FAILED"`.
     - Alpha channel preserved: encode RGBA with transparent pixels → decode back → alpha values match.
 
-- [ ] 11.2 Implement `packages/nukebg-cli/src/codecs/sharp-codec.ts` — `SharpImageCodec implements ImageCodec` using `sharp`. Format detection by magic bytes. Run tests, expect green.
+- [x] 11.2 Implement `packages/nukebg-cli/src/codecs/sharp-codec.ts` — `SharpImageCodec implements ImageCodec` using `sharp`. Format detection by magic bytes. Run tests, expect green.
 
-- [ ] 11.3 Write failing tests for `SharpImageCodec.encode`:
+- [x] 11.3 Write failing tests for `SharpImageCodec.encode`:
   - PNG output starts with PNG magic bytes.
   - WebP output starts with RIFF/WEBP header.
   - Round-trip: encode PNG then decode → pixel data identical.
 
-- [ ] 11.4 Implement `encode` method in `SharpImageCodec`. Run tests, expect green.
+- [x] 11.4 Implement `encode` method in `SharpImageCodec`. Run tests, expect green.
 
-- [ ] 11.5 Refactor if needed (extract magic-byte detection to a private helper). Run tests, expect green.
+- [x] 11.5 Refactor if needed (extract magic-byte detection to a private helper). Run tests, expect green.
 
-- [ ] 11.6 Verification: `npm test` (CLI project only: `npm test -w nukebg-cli`), `npm run typecheck`. Milestone: "`SharpImageCodec` implemented and round-trip tested".
+- [x] 11.6 Verification: `npm test` (CLI project only: `npm test -w nukebg-cli`), `npm run typecheck`. Milestone: "`SharpImageCodec` implemented and round-trip tested".
 
 ---
 

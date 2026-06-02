@@ -1,13 +1,12 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "composite": true,
-    "outDir": "./dist",
-    "rootDir": "./src"
+    "ignoreDeprecations": "6.0",
+    "paths": {
+      "nukebg-core": ["../nukebg-core/src/index.ts"],
+      "nukebg-core/*": ["../nukebg-core/src/*"]
+    }
   },
-  "references": [
-    { "path": "../nukebg-core" }
-  ],
-  "include": ["src/**/*.ts"],
+  "include": ["src/**/*.ts", "tests/**/*.ts"],
   "exclude": ["node_modules", "dist"]
 }
