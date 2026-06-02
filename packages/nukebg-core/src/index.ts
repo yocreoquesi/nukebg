@@ -34,6 +34,10 @@ export {
   PipelineAbortError,
 } from './pipeline/errors.js';
 
+// Top-level pipeline orchestrator + runner bundle type
+export { runPipeline } from './pipeline/run-pipeline.js';
+export type { RunnerBundle } from './pipeline/run-pipeline.js';
+
 // Pure CV functions — public for advanced consumers, also used by the app's WorkerPipelineRunner
 export * as cv from './cv/index.js';
 

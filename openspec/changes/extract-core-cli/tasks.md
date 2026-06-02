@@ -229,7 +229,7 @@ _Goal: the 7 `new ImageData(...)` call sites in pipeline utils are replaced with
 
 _Goal: runtime-agnostic pipeline orchestrator implemented. Strict TDD with stub runners._
 
-- [ ] 9.1 Write failing contract tests for `runPipeline` happy-path scenarios using stub/mock runners (REQ-CORE-PIPELINE-1, REQ-CORE-PIPELINE-6):
+- [x] 9.1 Write failing contract tests for `runPipeline` happy-path scenarios using stub/mock runners (REQ-CORE-PIPELINE-1, REQ-CORE-PIPELINE-6):
   - File: `packages/nukebg-core/tests/pipeline/run-pipeline.test.ts`
   - Scenarios:
     - Happy path with `mode: "photo"`, `skipWatermark: false` → `PipelineResult` with `output: ImageDataLike`, all four `stageTimings` keys present, `durationMs > 0`.
@@ -237,21 +237,21 @@ _Goal: runtime-agnostic pipeline orchestrator implemented. Strict TDD with stub 
     - `mode: "auto"` → `resolvedMode` is one of `photo | signature | icon`.
     - SIGNATURE shortcut → RMBG runner not called.
 
-- [ ] 9.2 Write failing tests for abort behavior (REQ-CORE-PIPELINE-3):
+- [x] 9.2 Write failing tests for abort behavior (REQ-CORE-PIPELINE-3):
   - Abort before RMBG → rejects with `PipelineAbortError`.
   - No signal → resolves normally.
 
-- [ ] 9.3 Write failing tests for typed error propagation (REQ-CORE-PIPELINE-4):
+- [x] 9.3 Write failing tests for typed error propagation (REQ-CORE-PIPELINE-4):
   - RmbgRunner throws → rejects with `RmbgError` wrapping the original error.
   - LamaRunner throws → rejects with `LamaError` wrapping the original error.
 
-- [ ] 9.4 Implement `packages/nukebg-core/src/pipeline/run-pipeline.ts` — algorithm from design §D.1. Private helpers `composeResult`, `combineMasks`, `modeToContentType` in the same file. No `new ImageData()`. Run all three test groups, expect green.
+- [x] 9.4 Implement `packages/nukebg-core/src/pipeline/run-pipeline.ts` — algorithm from design §D.1. Private helpers `composeResult`, `combineMasks`, `modeToContentType` in the same file. No `new ImageData()`. Run all three test groups, expect green.
 
-- [ ] 9.5 Export `runPipeline` and `RunnerBundle` from `packages/nukebg-core/src/index.ts`. Run `npm test`, expect green.
+- [x] 9.5 Export `runPipeline` and `RunnerBundle` from `packages/nukebg-core/src/index.ts`. Run `npm test`, expect green.
 
-- [ ] 9.6 Split `packages/nukebg-app/tests/pipeline/orchestrator.test.ts` — move pipeline-logic tests to `packages/nukebg-core/tests/pipeline/run-pipeline.test.ts` (already started in 9.1); keep Worker-boundary mocking tests in a new `packages/nukebg-app/tests/pipeline/worker-pipeline-runner.test.ts`. Run `npm test`, expect green.
+- [x] 9.6 Split `packages/nukebg-app/tests/pipeline/orchestrator.test.ts` — move pipeline-logic tests to `packages/nukebg-core/tests/pipeline/run-pipeline.test.ts` (already started in 9.1); keep Worker-boundary mocking tests in a new `packages/nukebg-app/tests/pipeline/worker-pipeline-runner.test.ts`. Run `npm test`, expect green.
 
-- [ ] 9.7 Verification: `npm test`, `npm run typecheck`, `npm run lint` all green. Milestone: "`runPipeline` live in core, contract-tested with stubs".
+- [x] 9.7 Verification: `npm test`, `npm run typecheck`, `npm run lint` all green. Milestone: "`runPipeline` live in core, contract-tested with stubs".
 
 ---
 
