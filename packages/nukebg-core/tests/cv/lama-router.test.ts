@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { shouldUseLama } from '../../src/workers/cv/lama-router';
-import { LAMA_ROUTER_PARAMS } from 'nukebg-core';
+import { shouldUseLama } from '../../src/cv/lama-router';
+import { LAMA_ROUTER_PARAMS } from '../../src/pipeline/constants';
 
 /** Solid-color RGBA canvas. */
 function solid(w: number, h: number, gray: number): Uint8ClampedArray {

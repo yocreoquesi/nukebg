@@ -1,12 +1,12 @@
 import { describe, it, expect } from 'vitest';
 import { detectBgColors } from 'nukebg-core/cv/detect-bg-colors';
 import { detectCheckerGrid } from 'nukebg-core/cv/detect-checker-grid';
-import { gridFloodFill } from '../src/workers/cv/grid-flood-fill';
-import { subjectExclusion } from '../src/workers/cv/subject-exclusion';
-import { simpleFloodFill } from '../src/workers/cv/simple-flood-fill';
+import { gridFloodFill } from 'nukebg-core/cv/grid-flood-fill';
+import { subjectExclusion } from 'nukebg-core/cv/subject-exclusion';
+import { simpleFloodFill } from 'nukebg-core/cv/simple-flood-fill';
 import { watermarkDetect } from 'nukebg-core/cv/watermark-detect';
-import { shadowCleanup } from '../src/workers/cv/shadow-cleanup';
-import { alphaRefine } from '../src/workers/cv/alpha-refine';
+import { shadowCleanup } from 'nukebg-core/cv/shadow-cleanup';
+import { alphaRefine } from 'nukebg-core/cv/alpha-refine';
 import { CV_PARAMS } from 'nukebg-core';
 import { solidImage, checkerboardImage, paintRect } from './helpers';
 

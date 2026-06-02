@@ -1,7 +1,7 @@
 /**
  * Post-processing for Telea-inpainted regions.
  *
- * Telea FMM reconstructs the masked zone by propagating neighbor colors
+ * Telea FMM reconstructs the masked zone by propagating neighbour colors
  * inward. The output is geometrically correct but visually flat: no film
  * grain, and a hard seam where the mask boundary sits. This module softens
  * the result with two tricks:
@@ -18,7 +18,7 @@
  * Kept as a pure, standalone function so the inpaint worker stays
  * testable and the orchestrator can wire it independently.
  */
-import { clamp255 } from 'nukebg-core/cv/clamp';
+import { clamp255 } from './clamp.js';
 
 export interface FeatherOptions {
   /** Pixels of soft transition from inpainted to original. */

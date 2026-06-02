@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { inpaintTelea } from '../../../src/workers/cv/inpaint-telea';
+import { inpaintTelea } from '../../src/cv/inpaint-telea';
 
 /**
  * Behavioural tests for inpaintTelea (#195).

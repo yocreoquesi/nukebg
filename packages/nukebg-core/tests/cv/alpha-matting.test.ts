@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { guidedFilter } from '../../src/workers/cv/alpha-matting';
+import { guidedFilter } from '../../src/cv/alpha-matting';
 
 /** Create a simple RGBA pixel buffer filled with a single grayscale value */
 function makePixels(w: number, h: number, gray: number): Uint8ClampedArray {

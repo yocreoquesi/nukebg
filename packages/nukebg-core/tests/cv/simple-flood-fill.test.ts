@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { simpleFloodFill } from '../../src/workers/cv/simple-flood-fill';
+import { simpleFloodFill } from '../../src/cv/simple-flood-fill';
 import { solidImage, paintRect, countBg } from '../helpers';
 
 describe('simpleFloodFill', () => {

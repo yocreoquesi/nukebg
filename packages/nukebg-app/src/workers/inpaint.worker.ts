@@ -6,9 +6,8 @@
  * voting from those sources. Unlike Telea FMM it produces no radial streaks
  * and preserves local texture across the fill. Pure CV, no model needed.
  */
-import { patchMatchInpaint } from './cv/patchmatch-inpaint';
+import { patchMatchInpaint } from 'nukebg-core/inpaint/patch-match';
 import type { InpaintWorkerRequest, InpaintWorkerResponse } from '../types/worker-messages';
-import { PATCHMATCH_PARAMS } from 'nukebg-core';
 
 async function inpaint(
   id: string,
@@ -23,10 +22,7 @@ async function inpaint(
     stage: 'processing',
   } satisfies InpaintWorkerResponse);
 
-  const resultPixels = patchMatchInpaint(pixels, width, height, mask, {
-    iterations: PATCHMATCH_PARAMS.ITERATIONS,
-    patchRadius: PATCHMATCH_PARAMS.PATCH_RADIUS,
-  });
+  const resultPixels = patchMatchInpaint(pixels, width, height, mask);
 
   self.postMessage(
     { id, type: 'inpaint-result', result: resultPixels } satisfies InpaintWorkerResponse,

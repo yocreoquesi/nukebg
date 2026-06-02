@@ -1,4 +1,4 @@
-import { guidedFilter } from '../workers/cv/alpha-matting';
+import { guidedFilter } from 'nukebg-core/cv/alpha-matting';
 import { EDGE_REFINE_PARAMS } from 'nukebg-core';
 
 /**

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { patchDistance, initNNF, patchMatchInpaint } from '../../src/workers/cv/patchmatch-inpaint';
+import { patchDistance, initNNF, patchMatchInpaint } from '../../src/cv/patchmatch-inpaint';
 
 /** RGBA image filled with a solid color. */
 function solid(w: number, h: number, r: number, g: number, b: number): Uint8ClampedArray {

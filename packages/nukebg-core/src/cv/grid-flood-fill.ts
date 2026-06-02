@@ -1,5 +1,5 @@
-import { CV_PARAMS } from 'nukebg-core';
-import { RingBuffer, maxChannelDiff, pixelIndex } from 'nukebg-core/cv/utils';
+import { CV_PARAMS } from '../pipeline/constants.js';
+import { RingBuffer, maxChannelDiff, pixelIndex } from './utils.js';
 
 /**
  * Build background mask using grid-aware pixel matching + flood-fill from edges.

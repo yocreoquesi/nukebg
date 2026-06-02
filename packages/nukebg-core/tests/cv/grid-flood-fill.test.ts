@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { gridFloodFill } from '../../src/workers/cv/grid-flood-fill';
+import { gridFloodFill } from '../../src/cv/grid-flood-fill';
 import { checkerboardImage, paintRect, countBg } from '../helpers';
 
 describe('gridFloodFill', () => {

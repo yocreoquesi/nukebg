@@ -37,6 +37,10 @@ export {
 // Pure CV functions — public for advanced consumers, also used by the app's WorkerPipelineRunner
 export * as cv from './cv/index.js';
 
+// Inpaint module — patchMatchInpaint with PATCHMATCH_PARAMS defaults (Phase 7)
+export { patchMatchInpaint } from './inpaint/patch-match.js';
+export type { PatchMatchOptions } from './inpaint/patch-match.js';
+
 // Constants (read-only)
 export {
   CV_PARAMS,

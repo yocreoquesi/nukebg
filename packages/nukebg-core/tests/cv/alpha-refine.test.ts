@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { alphaRefine } from '../../src/workers/cv/alpha-refine';
+import { alphaRefine } from '../../src/cv/alpha-refine';
 
 describe('alphaRefine', () => {
   it('convierte mascara binaria a alpha: bg=0, fg=255', () => {

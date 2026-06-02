@@ -10,3 +10,32 @@ export type { ImageFeatures, ImageContentType } from './classify-image.js';
 export { sparkleDetect } from './sparkle-detect.js';
 export { watermarkDetect } from './watermark-detect.js';
 export { watermarkDetectDalle } from './watermark-dalle.js';
+
+// Inpaint algorithms (Phase 7 — Batch C)
+export { inpaintTelea } from './inpaint-telea.js';
+export { compositeWithFeather, dilateMask } from './inpaint-blend.js';
+export type { FeatherOptions } from './inpaint-blend.js';
+export { patchMatchInpaint, patchDistance, initNNF } from './patchmatch-inpaint.js';
+export type { PatchMatchOptions } from './patchmatch-inpaint.js';
+export { simpleFloodFill } from './simple-flood-fill.js';
+export { gridFloodFill } from './grid-flood-fill.js';
+
+// Alpha and matting (Phase 7 — Batch C)
+export { guidedFilter } from './alpha-matting.js';
+export { alphaRefine } from './alpha-refine.js';
+export { estimateForeground } from './foreground-estimation.js';
+export type { ForegroundEstimationOptions } from './foreground-estimation.js';
+export { shadowCleanup } from './shadow-cleanup.js';
+export { signatureThreshold, computeOtsu, morphologicalClose } from './signature-threshold.js';
+export { subjectExclusion } from './subject-exclusion.js';
+
+// LaMa crop/router (Phase 7 — Batch C)
+export {
+  computeLamaCropRect,
+  bilinearResizeRGBA,
+  nearestResizeMask,
+  spliceLamaOutput,
+} from './lama-crop.js';
+export type { LamaCropRect } from './lama-crop.js';
+export { shouldUseLama } from './lama-router.js';
+export type { LamaRouterDecision } from './lama-router.js';

@@ -19,9 +19,9 @@ import { CV_PARAMS } from 'nukebg-core';
 // Import CV functions directly (without workers)
 import { detectBgColors } from 'nukebg-core/cv/detect-bg-colors';
 import { detectCheckerGrid } from 'nukebg-core/cv/detect-checker-grid';
-import { gridFloodFill } from '../../src/workers/cv/grid-flood-fill';
-import { simpleFloodFill } from '../../src/workers/cv/simple-flood-fill';
-import { subjectExclusion } from '../../src/workers/cv/subject-exclusion';
+import { gridFloodFill } from 'nukebg-core/cv/grid-flood-fill';
+import { simpleFloodFill } from 'nukebg-core/cv/simple-flood-fill';
+import { subjectExclusion } from 'nukebg-core/cv/subject-exclusion';
 import { watermarkDetect } from 'nukebg-core/cv/watermark-detect';
 import { solidImage, checkerboardImage, paintRect, countBg } from '../helpers';
 

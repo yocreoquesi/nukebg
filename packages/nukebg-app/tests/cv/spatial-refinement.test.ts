@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { shadowCleanup } from '../../src/workers/cv/shadow-cleanup';
+import { shadowCleanup } from 'nukebg-core/cv/shadow-cleanup';
 import { solidImage, paintRect } from '../helpers';
 
 /**

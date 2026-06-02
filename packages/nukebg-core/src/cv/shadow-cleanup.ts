@@ -1,5 +1,5 @@
-import { SHADOW_PARAMS } from 'nukebg-core';
-import { pixelIndex } from 'nukebg-core/cv/utils';
+import { SHADOW_PARAMS } from '../pipeline/constants.js';
+import { pixelIndex } from './utils.js';
 
 /**
  * Remove shadow/smudge blobs - low-saturation islands not connected to subject.

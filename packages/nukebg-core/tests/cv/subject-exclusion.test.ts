@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { subjectExclusion } from '../../src/workers/cv/subject-exclusion';
+import { subjectExclusion } from '../../src/cv/subject-exclusion';
 import { checkerboardImage, paintRect, countBg } from '../helpers';
 
 describe('subjectExclusion', () => {

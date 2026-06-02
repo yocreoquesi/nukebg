@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { compositeWithFeather, dilateMask } from '../../src/workers/cv/inpaint-blend';
+import { compositeWithFeather, dilateMask } from '../../src/cv/inpaint-blend';
 
 /** RGBA image filled with a solid color. */
 function solid(w: number, h: number, r: number, g: number, b: number): Uint8ClampedArray {

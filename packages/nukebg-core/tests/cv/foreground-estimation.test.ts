@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { estimateForeground } from '../../src/workers/cv/foreground-estimation';
+import { estimateForeground } from '../../src/cv/foreground-estimation';
 
 /**
  * Synthetic compositing: I = α·F + (1−α)·B

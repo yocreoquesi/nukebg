@@ -21,7 +21,7 @@ import {
   computeLamaCropRect,
   nearestResizeMask,
   spliceLamaOutput,
-} from './cv/lama-crop';
+} from 'nukebg-core/cv/lama-crop';
 
 // Point ORT at the JSDelivr CDN for its WASM runtime (ort-wasm-*.wasm +
 // ort-wasm-*.mjs). Vite's dev server refuses to serve .mjs files out of

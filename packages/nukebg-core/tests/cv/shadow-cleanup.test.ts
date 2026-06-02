@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { shadowCleanup } from '../../src/workers/cv/shadow-cleanup';
+import { shadowCleanup } from '../../src/cv/shadow-cleanup';
 import { solidImage, paintRect, countBg } from '../helpers';
 
 describe('shadowCleanup', () => {

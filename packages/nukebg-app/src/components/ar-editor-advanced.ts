@@ -33,7 +33,7 @@ import { refineEdges } from '../pipeline/finalize';
 import { SamRefiner } from '../controllers/sam-refiner';
 import { processRoi } from '../refine/roi-process';
 import { rasterizePolygon } from '../refine/roi-process';
-import { patchMatchInpaint } from '../workers/cv/patchmatch-inpaint';
+import { patchMatchInpaint } from 'nukebg-core/inpaint/patch-match';
 import { PATCHMATCH_PARAMS } from 'nukebg-core';
 import { t } from '../i18n';
 import { type Point } from './lasso-simplify';

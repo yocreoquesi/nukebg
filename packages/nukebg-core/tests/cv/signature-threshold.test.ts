@@ -3,7 +3,7 @@ import {
   signatureThreshold,
   computeOtsu,
   morphologicalClose,
-} from '../../src/workers/cv/signature-threshold';
+} from '../../src/cv/signature-threshold';
 import { solidImage } from '../helpers';
 
 describe('signatureThreshold', () => {

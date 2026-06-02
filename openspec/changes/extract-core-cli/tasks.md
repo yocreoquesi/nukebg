@@ -170,7 +170,7 @@ _Goal: utility and constant CV files relocate first to unblock algorithm moves i
 
 ## Phase 7 — Move Pure CV Modules to Core (Batch C: Inpaint Algorithms)
 
-- [ ] 7.1 Move inpaint and flood-fill CV files + their tests:
+- [x] 7.1 Move inpaint and flood-fill CV files + their tests:
   - `inpaint-telea.ts` + `tests/workers/cv/inpaint-telea.test.ts`
   - `inpaint-blend.ts` + `tests/cv/inpaint-blend.test.ts`
   - `patchmatch-inpaint.ts` + `tests/cv/patchmatch-inpaint.test.ts`
@@ -178,7 +178,7 @@ _Goal: utility and constant CV files relocate first to unblock algorithm moves i
   - `grid-flood-fill.ts` + `tests/cv/grid-flood-fill.test.ts`
   Run `npm test`, expect green.
 
-- [ ] 7.2 Move remaining CV files + their tests:
+- [x] 7.2 Move remaining CV files + their tests:
   - `alpha-matting.ts` + `tests/cv/alpha-matting.test.ts`
   - `alpha-refine.ts` + `tests/cv/alpha-refine.test.ts`
   - `foreground-estimation.ts` + `tests/cv/foreground-estimation.test.ts`
@@ -189,11 +189,11 @@ _Goal: utility and constant CV files relocate first to unblock algorithm moves i
   - `lama-router.ts` + `tests/cv/lama-router.test.ts`
   Run `npm test`, expect green.
 
-- [ ] 7.3 Extract the pure `patchMatchInpaint` function from `packages/nukebg-app/src/workers/inpaint.worker.ts` into `packages/nukebg-core/src/inpaint/patch-match.ts`. The worker file keeps a thin wrapper that imports from core. Run `npm test`, expect green.
+- [x] 7.3 Extract the pure `patchMatchInpaint` function from `packages/nukebg-app/src/workers/inpaint.worker.ts` into `packages/nukebg-core/src/inpaint/patch-match.ts`. The worker file keeps a thin wrapper that imports from core. Run `npm test`, expect green.
 
-- [ ] 7.4 Update `packages/nukebg-core/src/cv/index.ts` barrel to export all newly moved modules. Run `npm test`, expect green.
+- [x] 7.4 Update `packages/nukebg-core/src/cv/index.ts` barrel to export all newly moved modules. Run `npm test`, expect green.
 
-- [ ] 7.5 Verification: `npm test`, `npm run typecheck`, `npm run lint` all green. Milestone: "all 21 CV modules + patchmatch in core; app workers import from `nukebg-core`".
+- [x] 7.5 Verification: `npm test`, `npm run typecheck`, `npm run lint` all green. Milestone: "all 21 CV modules + patchmatch in core; app workers import from `nukebg-core`".
 
 ---
 
