@@ -14,10 +14,9 @@
  * The orchestrator never reaches into the host directly — it talks through
  * the BatchHost interface. The host passes itself in at construction.
  */
-import { PipelineAbortError } from '../pipeline/orchestrator';
-import type { ImageProcessor } from '../pipeline/image-processor';
+import { PipelineAbortError } from 'nukebg-core';
+import type { WorkerPipelineRunner } from '../pipeline/worker-pipeline-runner';
 import type { PipelineStage, StageStatus } from '../types/pipeline';
-import type { ModelId } from '../types/worker-messages';
 import type { ArViewer } from '../components/ar-viewer';
 import type { ArProgress } from '../components/ar-progress';
 import type { ArDownload } from '../components/ar-download';
@@ -26,7 +25,7 @@ import type { BatchItem, StageSnapshot } from '../types/batch';
 import { createZip, safeZipEntryName, downloadBlob } from '../utils/zip';
 import { finalizePipelineResult } from 'nukebg-core/pipeline/finalize-result';
 import { exportPng } from '../utils/image-io';
-import { getRecommendedPrecision } from '../utils/device-adaptation';
+import { getRecommendedPipelinePrecision } from '../utils/device-adaptation';
 import { autoCropToSubject } from 'nukebg-core/pipeline/auto-crop';
 import type { ImageDataLike } from 'nukebg-core';
 
@@ -57,7 +56,7 @@ export interface BatchHost {
   /** Install the per-batch stage callback onto the (lazy) pipeline and
    *  return the armed pipeline for `process()` calls. The host owns the
    *  lazy-creation logic so single-image flow can share the same instance. */
-  installBatchStageCallback(cb: BatchStageCallback): ImageProcessor;
+  installBatchStageCallback(cb: BatchStageCallback): WorkerPipelineRunner;
 
   /** Set the AbortController for the in-flight item. Host stores it so the
    *  global `ar:cancel-processing` handler can abort either single-image
@@ -74,8 +73,6 @@ export interface BatchHost {
 }
 
 export class BatchOrchestrator {
-  private static readonly MODEL_ID: ModelId = 'briaai/RMBG-1.4';
-
   private items: BatchItem[] = [];
   private mode: BatchMode = 'off';
   private detailId: string | null = null;
@@ -194,12 +191,10 @@ export class BatchOrchestrator {
       const ac = new AbortController();
       this.host.setProcessingAbortController(ac);
       try {
-        const result = await pipeline.process(
-          item.imageData,
-          BatchOrchestrator.MODEL_ID,
-          getRecommendedPrecision(),
-          ac.signal,
-        );
+        const result = await pipeline.run(item.imageData, {
+          precision: getRecommendedPipelinePrecision(),
+          signal: ac.signal,
+        });
         if (this.aborted) return;
         const finalImageData = toImageData(finalizePipelineResult(result, item.originalImageData));
         // Tight bbox for export — see autoCropToSubject. finalImageData
@@ -277,7 +272,7 @@ export class BatchOrchestrator {
       done.map(async (item, idx) => ({
         name: safeZipEntryName(idx + 1, done.length, item.originalName),
         blob: await exportPng(
-          item.exportImageData ?? item.finalImageData ?? item.result!.imageData,
+          item.exportImageData ?? item.finalImageData ?? toImageData(item.result!.output),
         ),
       })),
     );
