@@ -1,4 +1,4 @@
-import { SPARKLE_PARAMS } from '../../pipeline/constants';
+import { SPARKLE_PARAMS } from 'nukebg-core';
 import type { WatermarkResult } from '../../types/pipeline';
 
 /**

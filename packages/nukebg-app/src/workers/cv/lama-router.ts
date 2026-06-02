@@ -1,4 +1,4 @@
-import { LAMA_ROUTER_PARAMS } from '../../pipeline/constants';
+import { LAMA_ROUTER_PARAMS } from 'nukebg-core';
 
 export interface LamaRouterDecision {
   /** True → use LaMa (ONNX, content-aware). False → PatchMatch (CV, instant). */

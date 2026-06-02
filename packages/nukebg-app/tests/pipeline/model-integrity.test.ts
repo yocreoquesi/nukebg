@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { LAMA_PARAMS, MOBILESAM_PARAMS, RMBG_PARAMS } from '../../src/pipeline/constants';
+import { LAMA_PARAMS, MOBILESAM_PARAMS, RMBG_PARAMS } from 'nukebg-core';
 
 /**
  * Supply-chain hardening (#132): every model loaded by the app must be

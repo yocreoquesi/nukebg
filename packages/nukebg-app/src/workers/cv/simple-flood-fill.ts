@@ -1,4 +1,4 @@
-import { CV_PARAMS } from '../../pipeline/constants';
+import { CV_PARAMS } from 'nukebg-core';
 import { RingBuffer, maxChannelDiff, pixelIndex } from './utils';
 
 /**

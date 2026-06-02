@@ -33,3 +33,25 @@ export {
   DecodeError,
   PipelineAbortError,
 } from './pipeline/errors.js';
+
+// Constants (read-only)
+export {
+  CV_PARAMS,
+  WATERMARK_PARAMS,
+  SPARKLE_PARAMS,
+  DALLE_WATERMARK_PARAMS,
+  SHADOW_PARAMS,
+  ALPHA_PARAMS,
+  EDGE_REFINE_PARAMS,
+  PATCHMATCH_PARAMS,
+  INPAINT_PARAMS,
+  LAMA_PARAMS,
+  LAMA_ROUTER_PARAMS,
+  REFINE_PARAMS,
+  PRECISION_PROFILES,
+  IMAGE_CLASSIFY_PARAMS,
+  MOBILESAM_PARAMS,
+  RMBG_PARAMS,
+  type PrecisionMode,
+  type PrecisionProfile,
+} from './pipeline/constants.js';

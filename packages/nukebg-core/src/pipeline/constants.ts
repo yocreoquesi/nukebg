@@ -102,8 +102,8 @@ export const ALPHA_PARAMS = {
  * quintic sharpen lands on the correct pixel.
  *
  * Only applied when a downscale actually occurred (working res < original).
- * The filter is restricted to the trimap band: pixels at α ≤ BAND_LO or
- * α ≥ BAND_HI are passed through verbatim so pure background and pure body
+ * The filter is restricted to the trimap band: pixels at alpha <= BAND_LO or
+ * alpha >= BAND_HI are passed through verbatim so pure background and pure body
  * never drift.
  */
 export const EDGE_REFINE_PARAMS = {
@@ -114,14 +114,14 @@ export const EDGE_REFINE_PARAMS = {
   /** Regularization — small value = stronger structure transfer from the
    *  guide (snap the alpha edge to RGB gradient). Higher = more smoothing. */
   EPSILON: 1e-3,
-  /** Pixels with α ≤ this are kept verbatim (true background). */
+  /** Pixels with alpha <= this are kept verbatim (true background). */
   BAND_LO: 10,
-  /** Pixels with α ≥ this are kept verbatim (true foreground body). */
+  /** Pixels with alpha >= this are kept verbatim (true foreground body). */
   BAND_HI: 245,
 } as const;
 
 export const PATCHMATCH_PARAMS = {
-  /** Patch radius (pixels). 3 → 7×7 patches, the Barnes 2009 sweet-spot
+  /** Patch radius (pixels). 3 -> 7x7 patches, the Barnes 2009 sweet-spot
    *  for texture reconstruction on natural photos. */
   PATCH_RADIUS: 3,
   /** Number of propagation + random-search + voting iterations.
@@ -180,24 +180,24 @@ export const LAMA_PARAMS = {
    *  tight and the reconstruction looks flat. */
   CROP_PADDING: 48,
   /** Minimum square side (in original-image scale) the crop expands
-   *  to if the mask bbox is tiny. Prevents degenerate 20×20 crops
+   *  to if the mask bbox is tiny. Prevents degenerate 20x20 crops
    *  that blow up to 512 and produce mush. */
   MIN_CROP_SIDE: 128,
   /** Feather radius used when compositing the inpainted region back
-   *  into the untouched image. Must be ≥ INPAINT_PARAMS.FEATHER_RADIUS
+   *  into the untouched image. Must be >= INPAINT_PARAMS.FEATHER_RADIUS
    *  so the LaMa-reconstructed core blends as softly as PatchMatch. */
   COMPOSITE_FEATHER: 6,
 } as const;
 
 /** Heuristic that decides whether a detected watermark lives over
- *  structured content (→ LaMa) or uniform background (→ PatchMatch).
+ *  structured content (-> LaMa) or uniform background (-> PatchMatch).
  *  Tuned against real photos with Gemini sparkles / DALL-E bars. */
 export const LAMA_ROUTER_PARAMS = {
-  /** Luminance variance over the mask-bbox sample. Above this → content
+  /** Luminance variance over the mask-bbox sample. Above this -> content
    *  has texture/gradient worth reconstructing with the model. Uniform
    *  sky/wall typically sits around 50-150. */
   VARIANCE_THRESHOLD: 350,
-  /** Mean Sobel gradient magnitude over the sample. Above this → edges
+  /** Mean Sobel gradient magnitude over the sample. Above this -> edges
    *  are present (object outlines, text, rivets). Flat zones score near 0. */
   EDGE_DENSITY_THRESHOLD: 20,
   /** Pixels added around the raw mask bbox when sampling the heuristic.

@@ -14,8 +14,8 @@ import type {
   ModelId,
   ClassifyImageResult,
 } from '../types/worker-messages';
-import { IMAGE_CLASSIFY_PARAMS, INPAINT_PARAMS, PRECISION_PROFILES } from './constants';
-import type { PrecisionMode } from './constants';
+import { IMAGE_CLASSIFY_PARAMS, INPAINT_PARAMS, PRECISION_PROFILES } from 'nukebg-core';
+import type { PrecisionMode } from 'nukebg-core';
 import { compositeWithFeather, dilateMask } from '../workers/cv/inpaint-blend';
 import { shouldUseLama } from '../workers/cv/lama-router';
 import { WorkerChannel } from './worker-channel';

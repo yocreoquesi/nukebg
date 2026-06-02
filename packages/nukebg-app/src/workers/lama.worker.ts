@@ -15,7 +15,7 @@
  */
 import * as ort from 'onnxruntime-web';
 import type { LamaWorkerRequest, LamaWorkerResponse } from '../types/worker-messages';
-import { LAMA_PARAMS } from '../pipeline/constants';
+import { LAMA_PARAMS } from 'nukebg-core';
 import {
   bilinearResizeRGBA,
   computeLamaCropRect,

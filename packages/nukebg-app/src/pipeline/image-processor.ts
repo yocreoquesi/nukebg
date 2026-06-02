@@ -1,6 +1,6 @@
 import type { PipelineResult, PipelineStage, StageStatus } from '../types/pipeline';
 import type { ModelId } from '../types/worker-messages';
-import type { PrecisionMode } from './constants';
+import type { PrecisionMode } from 'nukebg-core';
 
 /**
  * Stage callback the processor invokes to surface progress to the UI.

@@ -1,4 +1,4 @@
-import { ALPHA_PARAMS } from '../../pipeline/constants';
+import { ALPHA_PARAMS } from 'nukebg-core';
 
 /**
  * Refine alpha channel: median filter + gaussian blur + threshold.

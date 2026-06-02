@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { CV_PARAMS } from '../../src/pipeline/constants';
+import { CV_PARAMS } from 'nukebg-core';
 
 /**
  * Pipeline orchestrator tests.

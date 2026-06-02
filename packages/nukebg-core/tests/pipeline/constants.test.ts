@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { PRECISION_PROFILES, REFINE_PARAMS } from 'nukebg-core';
-import type { PrecisionMode, PrecisionProfile } from 'nukebg-core';
+import { PRECISION_PROFILES, REFINE_PARAMS } from '../../src/pipeline/constants.js';
+import type { PrecisionMode, PrecisionProfile } from '../../src/pipeline/constants.js';
 
 describe('PrecisionProfiles', () => {
   const modes: PrecisionMode[] = ['low-power', 'normal', 'high-power', 'full-nuke'];
