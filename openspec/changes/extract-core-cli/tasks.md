@@ -381,7 +381,7 @@ _Goal: inline runner wiring codec + runners into `runPipeline`. Contract-tested.
 
 _Goal: all REQ-CLI-LICENSE-* scenarios passing. State-machine tests per spec._
 
-- [ ] 15.1 Write failing tests for `LicenseMarker` read/write/validate logic (REQ-CLI-LICENSE-3):
+- [x] 15.1 Write failing tests for `LicenseMarker` read/write/validate logic (REQ-CLI-LICENSE-3):
   - File: `packages/nukebg-cli/tests/license/marker.test.ts`
   - Scenarios:
     - Valid JSON with correct `version`, `acknowledged`, `acceptedAt` → returns `LicenseMarker`.
@@ -390,9 +390,9 @@ _Goal: all REQ-CLI-LICENSE-* scenarios passing. State-machine tests per spec._
     - `acknowledged` value wrong → returns `null`.
     - Write uses atomic temp-file + rename pattern.
 
-- [ ] 15.2 Implement `packages/nukebg-cli/src/license/marker.ts` — `LicenseMarker` schema, `readMarker()`, `writeMarker()`, `deleteMarker()` using `env-paths` for config dir resolution (design §G.1, §G.2). Run tests, expect green.
+- [x] 15.2 Implement `packages/nukebg-cli/src/license/marker.ts` — `LicenseMarker` schema, `readMarker()`, `writeMarker()`, `deleteMarker()` using `env-paths` for config dir resolution (design §G.1, §G.2). Run tests, expect green.
 
-- [ ] 15.3 Write failing tests for `gate.ts` state machine covering all five branches (REQ-CLI-LICENSE-1, REQ-CLI-LICENSE-2):
+- [x] 15.3 Write failing tests for `gate.ts` state machine covering all five branches (REQ-CLI-LICENSE-1, REQ-CLI-LICENSE-2):
   - File: `packages/nukebg-cli/tests/license/gate.test.ts`
   - Scenarios:
     - Valid marker exists → `assertAccepted()` resolves without prompt.
@@ -402,18 +402,18 @@ _Goal: all REQ-CLI-LICENSE-* scenarios passing. State-machine tests per spec._
     - No marker + non-TTY + no flag → throws `LicenseRequiredError` immediately.
     - Corrupted marker + TTY → treats as absent, shows prompt.
 
-- [ ] 15.4 Implement `packages/nukebg-cli/src/license/gate.ts` — `assertAccepted()`, `accept()`, `revoke()`, `state()` (design §G.3, §G.4, §G.5). Use `node:readline/promises` for prompt. Prompt goes to stderr. Run tests, expect green.
+- [x] 15.4 Implement `packages/nukebg-cli/src/license/gate.ts` — `assertAccepted()`, `accept()`, `revoke()`, `state()` (design §G.3, §G.4, §G.5). Use `node:readline/promises` for prompt. Prompt goes to stderr. Run tests, expect green.
 
-- [ ] 15.5 Write failing tests for `nukebg license` subcommand output (REQ-CLI-LICENSE-4):
+- [x] 15.5 Write failing tests for `nukebg license` subcommand output (REQ-CLI-LICENSE-4):
   - File: `packages/nukebg-cli/tests/commands/license.test.ts`
   - Scenarios:
     - Accepted marker → stdout contains `Status: accepted` + ISO timestamp + CC-BY-NC-4.0 notice.
     - No marker → stdout contains `Status: not accepted`.
     - `--revoke` → marker deleted, confirmation printed.
 
-- [ ] 15.6 Implement `packages/nukebg-cli/src/commands/license.ts` — license subcommand handler. Run tests, expect green.
+- [x] 15.6 Implement `packages/nukebg-cli/src/commands/license.ts` — license subcommand handler. Run tests, expect green.
 
-- [ ] 15.7 Verification: `npm test -w nukebg-cli`, `npm run typecheck`. Milestone: "license gate fully tested and implemented".
+- [x] 15.7 Verification: `npm test -w nukebg-cli`, `npm run typecheck`. Milestone: "license gate fully tested and implemented".
 
 ---
 
