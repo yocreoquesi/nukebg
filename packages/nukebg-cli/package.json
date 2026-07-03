@@ -19,7 +19,10 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@huggingface/transformers": "^3.8.1",
+    "env-paths": "^3.0.0",
     "nukebg-core": "0.1.0",
+    "onnxruntime-node": "^1.21.0",
     "sharp": "^0.34.5"
   },
   "engines": {
