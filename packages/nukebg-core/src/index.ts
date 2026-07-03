@@ -41,6 +41,23 @@ export type { RunnerBundle } from './pipeline/run-pipeline.js';
 // Pure CV functions — public for advanced consumers, also used by the app's WorkerPipelineRunner
 export * as cv from './cv/index.js';
 
+// LaMa crop/resize/splice helpers — re-exported at the root so runtime
+// runners can `import { ... } from 'nukebg-core'` (the package `exports` map
+// only exposes '.', so subpath imports like 'nukebg-core/cv/lama-crop' fail).
+export {
+  computeLamaCropRect,
+  bilinearResizeRGBA,
+  nearestResizeMask,
+  spliceLamaOutput,
+} from './cv/lama-crop.js';
+export type { LamaCropRect } from './cv/lama-crop.js';
+
+// Shared RMBG mask resampler (pixel-center offset — single source of truth)
+export { resampleMask } from './cv/resample-mask.js';
+
+// Shared PURE LaMa tensor packing (no onnxruntime; caller wraps ort.Tensor)
+export { packRgbaToChw, packMaskToChw, unpackChwToRgba } from './cv/lama-tensors.js';
+
 // Inpaint module — patchMatchInpaint with PATCHMATCH_PARAMS defaults (Phase 7)
 export { patchMatchInpaint } from './inpaint/patch-match.js';
 export type { PatchMatchOptions } from './inpaint/patch-match.js';

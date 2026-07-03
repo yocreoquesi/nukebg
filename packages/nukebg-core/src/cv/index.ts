@@ -39,3 +39,9 @@ export {
 export type { LamaCropRect } from './lama-crop.js';
 export { shouldUseLama } from './lama-router.js';
 export type { LamaRouterDecision } from './lama-router.js';
+
+// Shared RMBG mask resampler (single source of truth, pixel-center offset)
+export { resampleMask } from './resample-mask.js';
+
+// Shared PURE LaMa tensor packing (no onnxruntime import)
+export { packRgbaToChw, packMaskToChw, unpackChwToRgba } from './lama-tensors.js';
