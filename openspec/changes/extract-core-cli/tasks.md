@@ -567,29 +567,34 @@ _Goal: `nukebg-core` and `nukebg-cli` publishable packages. `npm pack --dry-run`
 
 _Goal: all README and CONTRIBUTING files updated. REQ-CLI-LICENSE-5 satisfied._
 
-- [ ] 20.1 Write `packages/nukebg-cli/README.md`:
+- [x] 20.1 Write `packages/nukebg-cli/README.md`:
   - License banner: "CC-BY-NC-4.0" text and BRIA AI license URL appear before the first code block (REQ-CLI-LICENSE-5).
   - Install section: `npm install -g nukebg-cli`.
   - Usage section: cover all flags from design §H.6.
   - License gate section: explain RMBG-1.4 CC-BY-NC-4.0, first-run prompt, `--accept-non-commercial` for CI.
   - Supported platforms section: Linux x64, macOS arm64, Windows x64. Note: macOS x64 and Linux arm64 untested.
+  - Verified: `CC-BY-NC-4.0` and a BRIA URL (`https://huggingface.co/briaai/RMBG-1.4` and `https://bria.ai/bria-huggingface-model-license-agreement/`) both appear before the first ` ``` ` (index 912, well before the license notice ends). Also documented the `--json` flag as accepted-but-inert (v1) per the real `cli.ts` comment, and the additive `NO_INPUT` (66) exit code deviation.
 
-- [ ] 20.2 Write `packages/nukebg-core/README.md`:
+- [x] 20.2 Write `packages/nukebg-core/README.md`:
   - Public API reference: `ImageDataLike`, `PipelineRunner`, `RmbgRunner`, `LamaRunner`, `ImageCodec`, `runPipeline`, error classes.
   - Usage example for embedding in a Node app (programmatic use, injecting own runners).
   - Note that `nukebg-core` has zero runtime dependencies.
+  - Documented `RunnerBundle` with its real shape (`{ rmbg, lama? }`, verified against `run-pipeline.ts`), the pure `cv` namespace, and the additional root-level helper re-exports (`compareAlpha`, `patchMatchInpaint`, LaMa tensor helpers, constants).
 
-- [ ] 20.3 Update root `README.md`:
+- [x] 20.3 Update root `README.md`:
   - Add monorepo map pointing at the three packages.
   - Add link to `nukebg-cli/README.md` for CLI users.
-  - Keep existing browser-app usage documentation.
+  - Keep existing browser-app usage documentation (untouched — new section inserted before `> tech_stack`, nothing removed).
 
-- [ ] 20.4 Update `CONTRIBUTING.md` (or create if absent):
-  - Workspace dev workflow: `npm install` at root, per-package `npm test -w <pkg>`, `npm run dev -w nukebg-app` for the browser app.
-  - Strict TDD convention: tests before code.
-  - Conventional commits reminder (no AI attribution).
+- [x] 20.4 Update `CONTRIBUTING.md` (or create if absent):
+  - Workspace dev workflow: `npm install` at root, per-package `npm test -w <pkg>`, `npm run dev -w nukebg-app` for the browser app. Added as a new `> workspaces` section.
+  - Strict TDD convention: tests before code — documented in the new `> workspaces` section.
+  - Conventional commits reminder (no AI attribution) — added under `> commits`.
+  - **Known gap (not fixed here, out of this task's explicit scope)**: the pre-existing `> project_structure` section still shows the pre-Phase-2 `src/` layout, not the post-move `packages/nukebg-app/src/` layout. Flagged for a future docs pass; not part of 20.4's explicit checklist (workflow/TDD/commits only).
 
-- [ ] 20.5 Verification: `npm test`, `npm run lint` green. Confirm `packages/nukebg-cli/README.md` contains "CC-BY-NC-4.0" before the first code block. Milestone: "documentation complete; change ready for review".
+- [x] 20.5 Verification: `npm test`, `npm run lint` green. Confirm `packages/nukebg-cli/README.md` contains "CC-BY-NC-4.0" before the first code block. Milestone: "documentation complete; change ready for review".
+  - `npm test`: nukebg-app 737/737, nukebg-cli 76/76, nukebg-core 336/336 + 1 skipped (expected parity skip, no cached model). `npm run lint`: clean (scoped to nukebg-app, pre-existing convention). Grep-verified the CC-BY-NC-4.0 requirement programmatically (see apply-progress for the exact check). Root `LICENSE` (GPL-3.0-only, matches both packages' `package.json` `license` field) copied to `packages/nukebg-core/LICENSE` and `packages/nukebg-cli/LICENSE` so `npm pack` tarballs are license-complete per the Phase 19 `files` array.
+  - **ALL PHASES 1-20 NOW COMPLETE** (only intentionally-deferred items remain unchecked: 18.3 requires a real GitHub push; X.2-X.6 are cross-phase follow-ups explicitly deferred in earlier phases, tracked separately from the 20-phase milestone gate). Change is implementation-complete and ready for `sdd-verify`.
 
 ---
 
