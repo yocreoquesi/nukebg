@@ -310,7 +310,7 @@ _Goal: first Node-side adapter. Strict TDD: encode/decode round-trip._
 
 _Goal: RMBG-1.4 via `@huggingface/transformers` Node mode. Cache resolution unit-testable; model load via contract test._
 
-- [ ] 12.1 Write failing unit tests for cache directory resolution logic (design §I.1):
+- [x] 12.1 Write failing unit tests for cache directory resolution logic (design §I.1):
   - File: `packages/nukebg-cli/tests/runners/rmbg-cache.test.ts`
   - Scenarios:
     - `--cache-dir` flag value takes priority over env vars.
@@ -318,19 +318,19 @@ _Goal: RMBG-1.4 via `@huggingface/transformers` Node mode. Cache resolution unit
     - `HF_HOME` used when `TRANSFORMERS_CACHE` absent.
     - `env-paths('nukebg').cache` used as final fallback.
 
-- [ ] 12.2 Implement `resolveCacheDir(flagValue?: string): string` as an exported helper in `packages/nukebg-cli/src/runners/onnx-node-rmbg.ts`. Run tests, expect green.
+- [x] 12.2 Implement `resolveCacheDir(flagValue?: string): string` as an exported helper in `packages/nukebg-cli/src/runners/onnx-node-rmbg.ts`. Run tests, expect green.
 
-- [ ] 12.3 Write failing tests for `OnnxNodeRmbgRunner.segment` using a tiny 1×1 fixture model or a spy/stub on `@huggingface/transformers` pipeline (contract test — REQ-CORE-RUNNERS-1):
+- [x] 12.3 Write failing tests for `OnnxNodeRmbgRunner.segment` using a tiny 1×1 fixture model or a spy/stub on `@huggingface/transformers` pipeline (contract test — REQ-CORE-RUNNERS-1):
   - File: `packages/nukebg-cli/tests/runners/onnx-node-rmbg.test.ts`
   - Scenarios:
     - `segment` returns `Uint8Array` of length `width * height`.
     - `AbortSignal` fired before call → rejects with `PipelineAbortError`.
 
-- [ ] 12.4 Implement `OnnxNodeRmbgRunner implements RmbgRunner` in `packages/nukebg-cli/src/runners/onnx-node-rmbg.ts` using `@huggingface/transformers` pipeline API from design §I.1. Run tests, expect green.
+- [x] 12.4 Implement `OnnxNodeRmbgRunner implements RmbgRunner` in `packages/nukebg-cli/src/runners/onnx-node-rmbg.ts` using `@huggingface/transformers` pipeline API from design §I.1. Run tests, expect green.
 
-- [ ] 12.5 Write failing test: model integrity hash mismatch → rejects with `RmbgError` code `"RMBG_INTEGRITY_FAILED"` (REQ-CORE-RUNNERS-1 integrity scenario). Implement the post-download integrity check. Run tests, expect green.
+- [x] 12.5 Write failing test: model integrity hash mismatch → rejects with `RmbgError` code `"RMBG_INTEGRITY_FAILED"` (REQ-CORE-RUNNERS-1 integrity scenario). Implement the post-download integrity check. Run tests, expect green.
 
-- [ ] 12.6 Verification: `npm test -w nukebg-cli`, `npm run typecheck`. Milestone: "`OnnxNodeRmbgRunner` implemented with cache resolution and integrity check".
+- [x] 12.6 Verification: `npm test -w nukebg-cli`, `npm run typecheck`. Milestone: "`OnnxNodeRmbgRunner` implemented with cache resolution and integrity check".
 
 ---
 
@@ -338,7 +338,7 @@ _Goal: RMBG-1.4 via `@huggingface/transformers` Node mode. Cache resolution unit
 
 _Goal: LaMa via `onnxruntime-node` directly. Same pattern as RMBG runner._
 
-- [ ] 13.1 Write failing tests for `OnnxNodeLamaRunner` cache + download logic:
+- [x] 13.1 Write failing tests for `OnnxNodeLamaRunner` cache + download logic:
   - File: `packages/nukebg-cli/tests/runners/onnx-node-lama.test.ts`
   - Scenarios:
     - Cache hit: reads from disk, skips download.
@@ -346,15 +346,15 @@ _Goal: LaMa via `onnxruntime-node` directly. Same pattern as RMBG runner._
     - HTTP failure after download → rejects with `LamaError` code `"LAMA_DOWNLOAD_FAILED"` (REQ-CORE-RUNNERS-2).
     - SHA-256 mismatch → rejects with `LamaError`.
 
-- [ ] 13.2 Implement `OnnxNodeLamaRunner implements LamaRunner` in `packages/nukebg-cli/src/runners/onnx-node-lama.ts` — loading logic from design §I.2. Tensor pre/post-processing (Float32Array packing, ORT Tensor construction) stays in the runner. Run tests, expect green.
+- [x] 13.2 Implement `OnnxNodeLamaRunner implements LamaRunner` in `packages/nukebg-cli/src/runners/onnx-node-lama.ts` — loading logic from design §I.2. Tensor pre/post-processing (Float32Array packing, ORT Tensor construction) stays in the runner. Run tests, expect green.
 
-- [ ] 13.3 Write failing tests for `inpaint` method:
+- [x] 13.3 Write failing tests for `inpaint` method:
   - Output is `Uint8ClampedArray` of length `width * height * 4`.
   - Output dimensions match input dimensions.
 
-- [ ] 13.4 Implement `inpaint` method. Run tests, expect green.
+- [x] 13.4 Implement `inpaint` method. Run tests, expect green.
 
-- [ ] 13.5 Verification: `npm test -w nukebg-cli`, `npm run typecheck`. Milestone: "`OnnxNodeLamaRunner` implemented with integrity check".
+- [x] 13.5 Verification: `npm test -w nukebg-cli`, `npm run typecheck`. Milestone: "`OnnxNodeLamaRunner` implemented with integrity check".
 
 ---
 
@@ -362,18 +362,18 @@ _Goal: LaMa via `onnxruntime-node` directly. Same pattern as RMBG runner._
 
 _Goal: inline runner wiring codec + runners into `runPipeline`. Contract-tested._
 
-- [ ] 14.1 Write failing tests for `NodePipelineRunner` using stub runners (REQ-CORE-RUNNERS-4 Node scenario):
+- [x] 14.1 Write failing tests for `NodePipelineRunner` using stub runners (REQ-CORE-RUNNERS-4 Node scenario):
   - File: `packages/nukebg-cli/tests/runners/node-pipeline-runner.test.ts`
   - Scenarios:
     - `runner.run(image, options)` delegates to `runPipeline` and returns `PipelineResult`.
     - `dispose()` calls `rmbgRunner.dispose()` and `lamaRunner.dispose()`.
     - `preload()` calls `rmbgRunner.load()`.
 
-- [ ] 14.2 Implement `NodePipelineRunner implements PipelineRunner` in `packages/nukebg-cli/src/runners/node-pipeline-runner.ts`. Run tests, expect green.
+- [x] 14.2 Implement `NodePipelineRunner implements PipelineRunner` in `packages/nukebg-cli/src/runners/node-pipeline-runner.ts`. Run tests, expect green.
 
-- [ ] 14.3 Refactor if needed. Run tests, expect green.
+- [x] 14.3 Refactor if needed. Run tests, expect green.
 
-- [ ] 14.4 Verification: `npm test -w nukebg-cli`, `npm run typecheck`. Milestone: "`NodePipelineRunner` wires core `runPipeline` with Node adapters".
+- [x] 14.4 Verification: `npm test -w nukebg-cli`, `npm run typecheck`. Milestone: "`NodePipelineRunner` wires core `runPipeline` with Node adapters".
 
 ---
 
