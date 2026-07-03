@@ -421,16 +421,16 @@ _Goal: all REQ-CLI-LICENSE-* scenarios passing. State-machine tests per spec._
 
 _Goal: `commander` wiring, exit-code mapping, all CLI invocation scenarios from spec._
 
-- [ ] 16.1 Write failing tests for exit-code mapping (REQ-CLI-INVOCATION-6, design §H.3):
+- [x] 16.1 Write failing tests for exit-code mapping (REQ-CLI-INVOCATION-6, design §H.3):
   - File: `packages/nukebg-cli/tests/util/errors.test.ts`
   - Scenarios: each named error class maps to its `ExitCode` constant; unknown error → `PIPELINE_FAILED`.
 
-- [ ] 16.2 Implement `packages/nukebg-cli/src/util/exit-codes.ts` (frozen `ExitCode` enum, design §H.2) and `packages/nukebg-cli/src/util/errors.ts` (`exitCodeFor` function + named error classes). Run tests, expect green.
+- [x] 16.2 Implement `packages/nukebg-cli/src/util/exit-codes.ts` (frozen `ExitCode` enum, design §H.2) and `packages/nukebg-cli/src/util/errors.ts` (`exitCodeFor` function + named error classes). Run tests, expect green.
 
-- [ ] 16.3 Write failing tests for the `process` command handler (REQ-CLI-INVOCATION-1 through 5):
+- [x] 16.3 Write failing tests for the `process` command handler (REQ-CLI-INVOCATION-1 through 5):
   - File: `packages/nukebg-cli/tests/commands/process.test.ts`
   - Scenarios (mock filesystem, mock runners):
-    - Missing input file → exits `USER_ERROR` (64) with message on stderr.
+    - Missing input file → exits `NO_INPUT` (66) with message on stderr. **DEVIATION**: implemented/tested as 66 (`EX_NOINPUT`) per REQ-CLI-INVOCATION-2's explicit scenario and REQ-CLI-INVOCATION-6's exit table, not the `USER_ERROR` (64) this line originally said — see exit-codes.ts doc comment and apply-progress.
     - Non-image bytes → exits `INPUT_DECODE_FAILED` (65).
     - Valid image, no `-o` → output written to `<stem>.nukebg.png` in same directory.
     - `-o result.png` → output at explicit path.
@@ -442,21 +442,23 @@ _Goal: `commander` wiring, exit-code mapping, all CLI invocation scenarios from 
     - Model download failure → exits `MODEL_DOWNLOAD_FAILED` (74).
     - Pipeline failure → exits `PIPELINE_FAILED` (70).
 
-- [ ] 16.4 Implement `packages/nukebg-cli/src/commands/process.ts` — `ProcessCommand` that decodes input, runs license gate, loads runners, calls `runPipeline` via `NodePipelineRunner`, encodes output, writes file (design §D.2 sequence). Run tests, expect green.
+- [x] 16.4 Implement `packages/nukebg-cli/src/commands/process.ts` — `ProcessCommand` that decodes input, runs license gate, loads runners, calls `runPipeline` via `NodePipelineRunner`, encodes output, writes file (design §D.2 sequence). Run tests, expect green.
 
-- [ ] 16.5 Write failing tests for the `version.ts` helper (resolves package version at build time):
+- [x] 16.5 Write failing tests for the `version.ts` helper (resolves package version at build time):
   - File: `packages/nukebg-cli/tests/util/version.test.ts`
   - Scenario: version string matches semver pattern.
 
-- [ ] 16.6 Implement `packages/nukebg-cli/src/util/version.ts`. Run tests, expect green.
+- [x] 16.6 Implement `packages/nukebg-cli/src/util/version.ts`. Run tests, expect green.
 
-- [ ] 16.7 Implement `packages/nukebg-cli/src/cli.ts` — commander setup wiring `process` command and `license` subcommand per design §H.1 and §H.6 option set. Handle SIGINT → exit `ABORTED` (130). Run existing tests, expect green.
+- [x] 16.7 Implement `packages/nukebg-cli/src/cli.ts` — commander setup wiring `process` command and `license` subcommand per design §H.1 and §H.6 option set. Handle SIGINT → exit `ABORTED` (130). Run existing tests, expect green.
+  - Unblocked: `commander@12.1.0` installed and resolves (root `node_modules/commander`, dual ESM/CJS `exports` map). `runCli(argv, deps)` returns the resolved exit code rather than calling `process.exit` directly (mirrors `ProcessCommand.execute`'s testable pattern); the real `main()` entrypoint (guarded by an `isMainModule()` check) is the only place that calls `process.exit`. `errors.ts`'s `CommanderError` detection was upgraded from name-based duck-typing to a real `instanceof commander.CommanderError` now that the package resolves.
 
-- [ ] 16.8 Write failing tests for unrecognized flag behavior (REQ-CLI-INVOCATION-1 unrecognized flag scenario) and `--help` / `--version` exit codes. Run tests, expect green.
+- [x] 16.8 Write failing tests for unrecognized flag behavior (REQ-CLI-INVOCATION-1 unrecognized flag scenario) and `--help` / `--version` exit codes. Run tests, expect green.
+  - File: `packages/nukebg-cli/tests/cli.test.ts` (8 tests total, covering process-option forwarding, `license`/`--revoke` dispatch, unrecognized flag → `USER_ERROR` (64), missing `<input>` → `USER_ERROR` (64), `--help` → `OK` (0), `--version` → `OK` (0) with version string on stdout).
 
-- [ ] 16.9 Smoke test: build CLI (`npm run build -w nukebg-cli`) and execute `node packages/nukebg-cli/dist/cli.js --version`. Confirm output and exit 0.
+- [x] 16.9 Smoke test: run `npx tsx packages/nukebg-cli/src/cli.ts --version` (tsx from `node_modules/.bin`; `npm run build -w nukebg-cli` still can't run — no `tsup.config.ts` until Phase 19, unchanged from the earlier note). Output: `0.1.0`, exit code `0`. Confirmed. Real dist-build smoke test remains deferred to Phase 19.
 
-- [ ] 16.10 Verification: `npm test`, `npm run typecheck`, `npm run lint` all green. Milestone: "CLI entrypoint wired, all invocation scenarios tested".
+- [x] 16.10 Verification: `npm test`, `npm run typecheck`, `npm run lint` all green. `npm test -w nukebg-cli`: 76/76. Full monorepo `npm test`: 1137/1137 (737 nukebg-app + 76 nukebg-cli + 324 nukebg-core). `npm run typecheck` (all 3 workspaces): green. `npm run lint` (root → nukebg-app only, pre-existing scope, unrelated to this phase): green. Milestone "CLI entrypoint wired, all invocation scenarios tested" — MET.
 
 ---
 
