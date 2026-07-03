@@ -495,15 +495,19 @@ _Goal: automated cross-runtime parity test. REQ-PARITY-1 and REQ-PARITY-4._
 
 _Goal: GitHub Actions runs CLI build + test on Linux x64, macOS arm64, Windows x64._
 
-- [ ] 18.1 Create or update `.github/workflows/cli.yml` — matrix strategy:
+- [x] 18.1 Create or update `.github/workflows/cli.yml` — matrix strategy:
   - OS: `ubuntu-latest` (x64), `macos-latest` (arm64), `windows-latest` (x64).
   - Steps: checkout, `npm ci`, `npm run build -w nukebg-cli`, `npm test -w nukebg-cli`.
   - Cache `~/.npm` per OS.
   - Set `NUKEBG_PARITY_REQUIRE=1` only when model cache is pre-populated (if not, skip parity in CI first-pass until cache strategy is defined).
+  - **DEVIATION**: `npm run build -w nukebg-cli` is NOT wired into the workflow yet — `nukebg-cli/package.json` has no `build` script and `tsup.config.ts` doesn't exist until Phase 19, so including it would fail every leg with "Missing script: build" (confirmed locally: `npm run build -w nukebg-cli` errors today). Scoped the job to `npm ci` → `npm run typecheck -w nukebg-cli` → `npm test -w nukebg-cli` (both verified green locally on this tree: typecheck clean, 76/76 tests), with a commented-out `Build nukebg-cli (tsup)` step + explanatory comment ready to uncomment once Phase 19 lands. `NUKEBG_PARITY_REQUIRE` is left unset (see X.6 — no cache step or reference PNGs exist yet); documented inline with the full future cache-key strategy.
+  - Node version (`22`) and action versions (`actions/checkout@v6`, `actions/setup-node@v6` with `cache: 'npm'`) matched from `.github/workflows/ci.yml`/`security.yml`/`safari-real-device.yml`. `permissions: contents: read` matched too.
 
-- [ ] 18.2 Ensure existing `.github/workflows/` CI (browser app, e2e) is unchanged and continues to run independently of the CLI workflow.
+- [x] 18.2 Ensure existing `.github/workflows/` CI (browser app, e2e) is unchanged and continues to run independently of the CLI workflow.
+  - Verified via `git diff --stat` on `ci.yml`, `security.yml`, `safari-real-device.yml`, `dependabot-automerge.yml` — zero diff, all four untouched. New `cli.yml` uses a distinct `name: CLI` and is `paths:`-filtered to `packages/nukebg-cli/**`, `packages/nukebg-core/**`, root manifests/tsconfigs, and its own workflow file, so it doesn't collide with or get triggered redundantly alongside the other workflows' broader (unfiltered) triggers.
 
 - [ ] 18.3 Verification: push to a feature branch and confirm all three OS legs pass in GitHub Actions. Milestone: "CLI CI matrix green on all three platforms".
+  - **NOT DONE HERE** — requires an actual push to GitHub Actions, which this environment/session cannot perform (no push permitted per task constraints). Left unchecked. User must push `.github/workflows/cli.yml` (on this branch or a dedicated feature branch) and confirm all three matrix legs (ubuntu-latest, macos-latest, windows-latest) go green before checking this off. Locally validated instead: YAML parsed successfully (Node `yaml` package), job/step structure sanity-checked, and both included commands (`npm run typecheck -w nukebg-cli`, `npm test -w nukebg-cli`) verified green on this machine.
 
 ---
 
@@ -590,5 +594,6 @@ _Goal: all README and CONTRIBUTING files updated. REQ-CLI-LICENSE-5 satisfied._
 - [ ] X.5 **`tsconfig` project references**: after each new package or move, update the root `tsconfig.json` references array and run `tsc -b` to confirm no missing-reference errors. Do not defer — broken references silently invalidate incremental builds.
 
 - [ ] X.6 **CI secret / model cache**: before Phase 18, decide and document the CI strategy for caching RMBG and LaMa models (GitHub Actions cache key based on model SHA from `LAMA_PARAMS.EXPECTED_SHA256`). Parity tests run with `NUKEBG_PARITY_REQUIRE=1` only on the leg that has the cache populated.
+  - **PARTIAL**: strategy *documented* (not yet implemented) as an inline comment in `.github/workflows/cli.yml`'s "Test nukebg-cli" step: an `actions/cache` step keyed on a hash derived from `LAMA_PARAMS.EXPECTED_SHA256` / `RMBG_PARAMS.EXPECTED_SHA256` (`packages/nukebg-core/src/pipeline/constants.ts`), content-addressed so a model swap busts the cache automatically, plus a download step for the cache-miss case, on exactly one matrix leg (model download too slow/wasteful to repeat x3). `NUKEBG_PARITY_REQUIRE` stays unset on all legs until this cache step + Phase 17's still-missing committed browser-baseline reference PNGs both exist. Remains unchecked — no `actions/cache` step or download step actually implemented yet; that's follow-up work, not part of Phase 18 scope per the apply brief.
 
 - [x] X.7 **`finalize-chain` and `pending-timers` tests**: `finalize-chain.test.ts` moved to `packages/nukebg-core/tests/pipeline/finalize-chain.test.ts` (imports only core finalize functions — no DOM). `pending-timers.test.ts` stays in app (reads `orchestrator.ts` and `worker-channel.ts` source files which live in the app).
