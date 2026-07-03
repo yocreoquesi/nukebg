@@ -62,6 +62,11 @@ export { packRgbaToChw, packMaskToChw, unpackChwToRgba } from './cv/lama-tensors
 export { patchMatchInpaint } from './inpaint/patch-match.js';
 export type { PatchMatchOptions } from './inpaint/patch-match.js';
 
+// Parity comparison helper — pure alpha/RGB diff math backing the
+// browser<->Node pixel parity test (Phase 17, REQ-PARITY-1)
+export { compareAlpha } from './parity/compare-alpha.js';
+export type { CompareAlphaOptions, CompareAlphaResult } from './parity/compare-alpha.js';
+
 // Constants (read-only)
 export {
   CV_PARAMS,
