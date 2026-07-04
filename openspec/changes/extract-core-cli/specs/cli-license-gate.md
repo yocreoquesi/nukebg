@@ -37,7 +37,7 @@ The marker file MUST be written to `<os-config-dir>/nukebg/accepted-license.json
 
 - GIVEN no marker file exists and the terminal is a TTY
 - WHEN `nukebg image.png` is executed and the user presses Enter (default `N`)
-- THEN the process exits 2
+- THEN the process exits 78
 - AND the marker file is NOT created
 - AND the error message references the CC-BY-NC-4.0 license on stderr
 
@@ -54,11 +54,11 @@ The marker file MUST be written to `<os-config-dir>/nukebg/accepted-license.json
 - THEN the marker file is written
 - AND processing continues and exits 0 on success
 
-#### Scenario: Non-TTY without flag exits 2
+#### Scenario: Non-TTY without flag exits 78
 
 - GIVEN the marker file does not exist and stdin is not a TTY
 - WHEN `nukebg image.png` is run without `--accept-non-commercial`
-- THEN the process exits 2 immediately with a message explaining the flag is required
+- THEN the process exits 78 immediately with a message explaining the flag is required
 
 ---
 
@@ -108,7 +108,7 @@ The marker file MUST be written to `<os-config-dir>/nukebg/accepted-license.json
 - WHEN `nukebg license --revoke` is executed
 - THEN the marker file is deleted
 - AND stdout confirms revocation
-- AND a subsequent `nukebg image.png` invocation in non-TTY exits 2
+- AND a subsequent `nukebg image.png` invocation in non-TTY exits 78
 
 ---
 
