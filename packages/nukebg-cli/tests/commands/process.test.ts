@@ -205,6 +205,18 @@ describe('ProcessCommand', () => {
     );
   });
 
+  it('forwards skipAutoCrop: true to the pipeline runner when --no-auto-crop is passed (W1)', async () => {
+    const { deps, stubRunner } = makeDeps();
+    const cmd = new ProcessCommand(deps);
+
+    await cmd.execute({ input: 'photo.png', noAutoCrop: true });
+
+    expect(stubRunner.run).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ skipAutoCrop: true }),
+    );
+  });
+
   it('emits nothing on stderr when --quiet is passed and processing succeeds', async () => {
     const { deps } = makeDeps();
     const cmd = new ProcessCommand(deps);

@@ -170,6 +170,27 @@ describe('OnnxNodeRmbgRunner integrity check', () => {
     expect(disposeSpy).toHaveBeenCalledTimes(1);
   });
 
+  it('rejects with RmbgError code RMBG_DOWNLOAD_FAILED when the model download/load fails (W4)', async () => {
+    // Simulate a network-style failure inside `@huggingface/transformers`'
+    // `pipeline()` (download/load). Per REQ-CORE-RUNNERS-1's "model download
+    // fails" scenario this MUST surface as RMBG_DOWNLOAD_FAILED, not the
+    // default RMBG_FAILED — mirroring the LaMa runner's LAMA_DOWNLOAD_FAILED.
+    mockPipelineFactory.mockRejectedValueOnce(
+      Object.assign(new Error('getaddrinfo ENOTFOUND huggingface.co'), { code: 'ENOTFOUND' }),
+    );
+
+    const runner = new OnnxNodeRmbgRunner({ cacheDir: '/tmp/nukebg-test-cache-download' });
+    const width = 4;
+    const height = 4;
+    const input = { data: new Uint8ClampedArray(width * height * 4), width, height };
+
+    await expect(
+      runner.segment(input, { threshold: 0.5, refine: REFINE }),
+    ).rejects.toSatisfy(
+      (e: unknown) => e instanceof RmbgError && (e as RmbgError).code === 'RMBG_DOWNLOAD_FAILED',
+    );
+  });
+
   it('skips the check (resolves normally) when the cached file cannot be found', async () => {
     // Simulates the documented v1 fallback: cache-layout resolution
     // missed the file (e.g. not yet on disk, or a future transformers.js

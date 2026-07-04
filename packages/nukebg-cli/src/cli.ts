@@ -48,6 +48,7 @@ interface RawProcessOptions {
   mode?: PipelineMode;
   precision?: PipelinePrecision;
   watermark?: boolean;
+  autoCrop?: boolean;
   cacheDir?: string;
   acceptNonCommercial?: boolean;
   json?: boolean;
@@ -74,6 +75,9 @@ function buildProcessOptions(
     // commander's `--no-watermark` sets `watermark: false`; default (flag
     // absent) is `watermark: true`. `noWatermark` is the inverse.
     noWatermark: raw.watermark === false,
+    // commander's `--no-auto-crop` sets `autoCrop: false`; default (flag
+    // absent) is `autoCrop: true`. `noAutoCrop` is the inverse.
+    noAutoCrop: raw.autoCrop === false,
     ...(raw.cacheDir !== undefined ? { cacheDir: raw.cacheDir } : {}),
     ...(raw.acceptNonCommercial !== undefined
       ? { acceptNonCommercial: raw.acceptNonCommercial }
@@ -133,6 +137,7 @@ export async function runCli(argv: string[], deps: RunCliDeps = {}): Promise<num
       ] as const),
     )
     .option('--no-watermark', 'skip watermark detection + inpainting')
+    .option('--no-auto-crop', 'do not auto-crop the result to the subject bounding box')
     .option('--cache-dir <path>', 'override model cache directory')
     .option('--accept-non-commercial', 'acknowledge RMBG-1.4 CC-BY-NC-4.0 (non-interactive)')
     .option('--json', 'emit line-delimited JSON events on stdout (deferred to v1.1)')

@@ -210,7 +210,20 @@ export class OnnxNodeRmbgRunner implements RmbgRunner {
           },
         });
       } catch (cause) {
-        throw new RmbgError('Failed to load RMBG-1.4 model', { cause });
+        // An in-flight abort must still propagate as PipelineAbortError, not be
+        // misclassified as a download failure.
+        if (cause instanceof PipelineAbortError) throw cause;
+        if (signal?.aborted) {
+          throw new PipelineAbortError('aborted during RMBG model load');
+        }
+        // `pipeline()` performs the model download + native session load in one
+        // step. A load/download/network failure here maps to
+        // RMBG_DOWNLOAD_FAILED (REQ-CORE-RUNNERS-1's "model download fails"
+        // scenario) — mirroring the LaMa runner's LAMA_DOWNLOAD_FAILED.
+        throw new RmbgError('Failed to load RMBG-1.4 model', {
+          code: 'RMBG_DOWNLOAD_FAILED',
+          cause,
+        });
       }
 
       // `pipeline()` fully loads the native ORT session above. Any throw AFTER

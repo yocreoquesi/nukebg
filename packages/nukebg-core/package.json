@@ -20,6 +20,18 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
+    },
+    "./cv/*": {
+      "types": "./dist/cv/*.d.ts",
+      "import": "./dist/cv/*.js"
+    },
+    "./pipeline/*": {
+      "types": "./dist/pipeline/*.d.ts",
+      "import": "./dist/pipeline/*.js"
+    },
+    "./inpaint/*": {
+      "types": "./dist/inpaint/*.d.ts",
+      "import": "./dist/inpaint/*.js"
     }
   },
   "files": ["dist", "README.md", "LICENSE"],

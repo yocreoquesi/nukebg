@@ -42,6 +42,7 @@ export interface ProcessCommandOptions {
   readonly mode?: PipelineMode;
   readonly precision?: PipelinePrecision;
   readonly noWatermark?: boolean;
+  readonly noAutoCrop?: boolean;
   readonly cacheDir?: string;
   readonly acceptNonCommercial?: boolean;
   readonly quiet?: boolean;
@@ -174,6 +175,7 @@ export class ProcessCommand {
       log(`Running pipeline (mode=${options.mode ?? 'auto'}, precision=${options.precision ?? 'normal'})...\n`);
       const pipelineOptions: PipelineOptions = {
         skipWatermark: noWatermark,
+        skipAutoCrop: options.noAutoCrop ?? false,
         ...(options.mode !== undefined ? { mode: options.mode } : {}),
         ...(options.precision !== undefined ? { precision: options.precision } : {}),
       };
