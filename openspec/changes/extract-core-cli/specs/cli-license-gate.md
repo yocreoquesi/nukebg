@@ -13,7 +13,7 @@ RMBG-1.4 is licensed CC-BY-NC-4.0 (non-commercial use only). The `nukebg-cli` pa
 1. Print a summary of the RMBG-1.4 CC-BY-NC-4.0 license to stderr.
 2. Prompt interactively: `Do you accept non-commercial use only? [y/N]:`.
 3. If the user answers `y` or `Y`, write the marker file and continue processing.
-4. If the user answers anything else (including empty/Enter), exit 2 with a clear message.
+4. If the user answers anything else (including empty/Enter), exit 78 (`LICENSE_REQUIRED`, `EX_CONFIG`) with a clear message. (Reconciled from an earlier `exit 2` during `sdd-verify`, finding S4; the CLI exit-code table in cli-invocation.md and design §H.2 use 78.)
 
 The marker file MUST be written to `<os-config-dir>/nukebg/accepted-license.json` with the following shape:
 
@@ -64,7 +64,7 @@ The marker file MUST be written to `<os-config-dir>/nukebg/accepted-license.json
 
 ### REQ-CLI-LICENSE-3: Marker file check on every invocation
 
-**Statement**: Before invoking any pipeline logic, the CLI MUST check for the marker file. If the marker file exists and is valid JSON with `acknowledged === "RMBG-1.4 CC-BY-NC-4.0"` and `version === 1`, processing proceeds without a prompt. If the file is malformed or has an unexpected version, the CLI MUST treat it as absent and re-prompt (or exit 2 on non-TTY).
+**Statement**: Before invoking any pipeline logic, the CLI MUST check for the marker file. If the marker file exists and is valid JSON with `acknowledged === "RMBG-1.4 CC-BY-NC-4.0"` and `version === 1`, processing proceeds without a prompt. If the file is malformed or has an unexpected version, the CLI MUST treat it as absent and re-prompt (or exit 78 `LICENSE_REQUIRED` on non-TTY).
 
 #### Scenario: Valid marker present — no prompt
 
@@ -88,7 +88,7 @@ The marker file MUST be written to `<os-config-dir>/nukebg/accepted-license.json
 2. If accepted: the `acceptedAt` timestamp and the `acknowledged` string.
 3. The full RMBG-1.4 CC-BY-NC-4.0 license notice (URL is acceptable in lieu of full text in v1).
 
-`nukebg license --revoke` MUST delete the marker file and print a confirmation. After revocation, the next `nukebg` processing invocation MUST re-prompt (or exit 2 on non-TTY). `nukebg license` MUST exit 0 in all cases unless a filesystem error occurs, in which case it exits 1.
+`nukebg license --revoke` MUST delete the marker file and print a confirmation. After revocation, the next `nukebg` processing invocation MUST re-prompt (or exit 78 `LICENSE_REQUIRED` on non-TTY). `nukebg license` MUST exit 0 in all cases unless a filesystem error occurs, in which case it exits 1.
 
 #### Scenario: Print accepted status
 

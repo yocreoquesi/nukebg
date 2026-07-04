@@ -615,3 +615,18 @@ _Goal: all README and CONTRIBUTING files updated. REQ-CLI-LICENSE-5 satisfied._
   - **PARTIAL**: strategy *documented* (not yet implemented) as an inline comment in `.github/workflows/cli.yml`'s "Test nukebg-cli" step: an `actions/cache` step keyed on a hash derived from `LAMA_PARAMS.EXPECTED_SHA256` / `RMBG_PARAMS.EXPECTED_SHA256` (`packages/nukebg-core/src/pipeline/constants.ts`), content-addressed so a model swap busts the cache automatically, plus a download step for the cache-miss case, on exactly one matrix leg (model download too slow/wasteful to repeat x3). `NUKEBG_PARITY_REQUIRE` stays unset on all legs until this cache step + Phase 17's still-missing committed browser-baseline reference PNGs both exist. Remains unchecked — no `actions/cache` step or download step actually implemented yet; that's follow-up work, not part of Phase 18 scope per the apply brief.
 
 - [x] X.7 **`finalize-chain` and `pending-timers` tests**: `finalize-chain.test.ts` moved to `packages/nukebg-core/tests/pipeline/finalize-chain.test.ts` (imports only core finalize functions — no DOM). `pending-timers.test.ts` stays in app (reads `orchestrator.ts` and `worker-channel.ts` source files which live in the app).
+
+---
+
+## Post-Verify Reconciliations (v1.1 deferrals + doc drift)
+
+`sdd-verify` (report at engram `sdd/extract-core-cli/verify-report`) returned PASS-WITH-WARNINGS. The two CRITICAL findings were formal spec/design deferrals, not implementation gaps; the acceptance contract was amended to record them (the same way the exit-code set was reconciled). Warnings that were code bugs were fixed.
+
+- [x] **C2 → v1.1**: `specs/cli-invocation.md` REQ-CLI-INVOCATION-4 (stdin `nukebg -` / stdout `-o -`) amended to DEFERRED-to-v1.1, matching design §H.5. v1 is file-paths-only.
+- [x] **C1 → v1.1**: `specs/browser-app-parity.md` REQ-PARITY-1 and REQ-PARITY-4 amended — v1 ships the `compareAlpha` metric + automated skip-guarded `parity.test.ts` + synthetic fixtures; committing real browser baselines, wiring the CI model cache, and forcing `NUKEBG_PARITY_REQUIRE=1` in CI are the v1.1 enforcement target.
+- [x] **W3 → v1.1**: REQ-CLI-INVOCATION-7 amended — v1 emits coarse phase progress on stderr (+`--verbose` timings); structured one-event-per-stage output ships with `--json` in v1.1.
+- [x] **W6 (doc drift)**: design §H.2 exit-code table gained `NO_INPUT: 66` (EX_NOINPUT) to match `specs/cli-invocation.md` REQ-2/6 and `exit-codes.ts`.
+- [x] **S4 (doc drift)**: `specs/cli-license-gate.md` reconciled `exit 2` → `exit 78` (LICENSE_REQUIRED) in all three references.
+- [ ] **W4/W1/W7 (code fixes)**: applied in a separate fix pass (RMBG `RMBG_DOWNLOAD_FAILED` code; `skipAutoCrop` option + `--no-auto-crop` wiring; core `exports` subpaths). See that commit + apply-progress.
+
+**Still open (explicitly deferred, not blocking archive after this reconciliation):** 18.3 (CI 3-OS confirmation — needs a push), X.2–X.6, and the v1.1 items above (parity enforcement, stdin/stdout, `--json`, per-stage events).
