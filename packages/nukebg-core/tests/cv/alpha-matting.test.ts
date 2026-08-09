@@ -70,11 +70,11 @@ describe('guidedFilter (alpha matting)', () => {
 
     // Should still be a gradient (left should be darker, right brighter)
     const leftAvg =
-      (result[(h / 2) * w + 0] + result[(h / 2) * w + 1] + result[(h / 2) * w + 2]) / 3;
+      (result[(h / 2) * w + 0]! + result[(h / 2) * w + 1]! + result[(h / 2) * w + 2]!) / 3;
     const rightAvg =
-      (result[(h / 2) * w + (w - 1)] +
-        result[(h / 2) * w + (w - 2)] +
-        result[(h / 2) * w + (w - 3)]) /
+      (result[(h / 2) * w + (w - 1)]! +
+        result[(h / 2) * w + (w - 2)]! +
+        result[(h / 2) * w + (w - 3)]!) /
       3;
     expect(rightAvg).toBeGreaterThan(leftAvg);
 

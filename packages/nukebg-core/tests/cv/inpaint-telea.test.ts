@@ -28,7 +28,7 @@ function rgbAt(
   w: number,
 ): [number, number, number, number] {
   const i = (y * w + x) * 4;
-  return [px[i], px[i + 1], px[i + 2], px[i + 3]];
+  return [px[i]!, px[i + 1]!, px[i + 2]!, px[i + 3]!];
 }
 
 describe('inpaintTelea', () => {

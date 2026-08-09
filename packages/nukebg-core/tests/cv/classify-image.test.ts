@@ -116,7 +116,7 @@ describe('classifyImage', () => {
     // classified as ILLUSTRATION; that class was removed because it had
     // identical pipeline behavior to PHOTO. Regression guard: this
     // input must classify as PHOTO, not be misrouted.
-    const baseColors = [
+    const baseColors: Array<[number, number, number]> = [
       [200, 100, 100],
       [100, 200, 100],
       [100, 100, 200],
@@ -131,7 +131,7 @@ describe('classifyImage', () => {
     const bandHeight = Math.floor(h / baseColors.length);
     for (let y = 0; y < h; y++) {
       const band = Math.min(Math.floor(y / bandHeight), baseColors.length - 1);
-      const [r, g, b] = baseColors[band];
+      const [r, g, b] = baseColors[band]!;
       for (let x = 0; x < w; x++) {
         const i = (y * w + x) * 4;
         const xShift = Math.floor((x / w) * 40);

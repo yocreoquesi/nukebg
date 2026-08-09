@@ -24,6 +24,8 @@ describe('PipelineResult types (REQ-CORE-PIPELINE-6)', () => {
       watermarkMask: null,
       workingPixels: new Uint8ClampedArray(4),
       workingAlpha: new Uint8Array(1),
+      workingWidth: 1,
+      workingHeight: 1,
       nukedPct: 0,
       contentType: 'PHOTO',
     };
@@ -43,6 +45,8 @@ describe('PipelineResult types (REQ-CORE-PIPELINE-6)', () => {
         watermarkMask: null,
         workingPixels: new Uint8ClampedArray(4),
         workingAlpha: new Uint8Array(1),
+        workingWidth: 1,
+        workingHeight: 1,
         nukedPct: 0,
         contentType: 'PHOTO',
       };
@@ -60,6 +64,8 @@ describe('PipelineResult types (REQ-CORE-PIPELINE-6)', () => {
       watermarkMask: null,
       workingPixels: new Uint8ClampedArray(4),
       workingAlpha: new Uint8Array(1),
+      workingWidth: 1,
+      workingHeight: 1,
       nukedPct: 0,
       contentType: 'PHOTO',
     };
@@ -83,6 +89,8 @@ describe('PipelineResult types (REQ-CORE-PIPELINE-6)', () => {
       watermarkMask: null,
       workingPixels: new Uint8ClampedArray(4),
       workingAlpha: new Uint8Array(1),
+      workingWidth: 1,
+      workingHeight: 1,
       nukedPct: 0,
       contentType: 'PHOTO',
     };
@@ -108,6 +116,8 @@ describe('PipelineResult types (REQ-CORE-PIPELINE-6)', () => {
       watermarkMask: null,
       workingPixels: new Uint8ClampedArray(4),
       workingAlpha: new Uint8Array(1),
+      workingWidth: 1,
+      workingHeight: 1,
       nukedPct: 50,
       contentType: 'SIGNATURE',
     };

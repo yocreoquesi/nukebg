@@ -43,7 +43,7 @@ describe('PrecisionProfiles', () => {
     // low-power > normal > high-power > full-nuke
     for (let i = 1; i < thresholds.length; i++) {
       expect(thresholds[i], `${modes[i]} threshold < ${modes[i - 1]} threshold`).toBeLessThan(
-        thresholds[i - 1],
+        thresholds[i - 1]!,
       );
     }
   });
@@ -53,7 +53,7 @@ describe('PrecisionProfiles', () => {
     // Each mode should have >= the passes of the previous mode
     for (let i = 1; i < passes.length; i++) {
       expect(passes[i], `${modes[i]} passes >= ${modes[i - 1]} passes`).toBeGreaterThanOrEqual(
-        passes[i - 1],
+        passes[i - 1]!,
       );
     }
   });
@@ -64,7 +64,7 @@ describe('PrecisionProfiles', () => {
     // full-nuke keeps the most detail (lower ratio)
     for (let i = 1; i < ratios.length; i++) {
       expect(ratios[i], `${modes[i]} ratio <= ${modes[i - 1]} ratio`).toBeLessThanOrEqual(
-        ratios[i - 1],
+        ratios[i - 1]!,
       );
     }
   });
@@ -73,7 +73,7 @@ describe('PrecisionProfiles', () => {
     const sizes = modes.map((m) => PRECISION_PROFILES[m].minClusterSize);
     for (let i = 1; i < sizes.length; i++) {
       expect(sizes[i], `${modes[i]} minCluster <= ${modes[i - 1]} minCluster`).toBeLessThanOrEqual(
-        sizes[i - 1],
+        sizes[i - 1]!,
       );
     }
   });
@@ -92,8 +92,8 @@ describe('PrecisionProfiles', () => {
 
   it('full-nuke has the most aggressive morphological opening', () => {
     const radii = modes.map((m) => PRECISION_PROFILES[m].morphOpenRadius);
-    expect(radii[3]).toBeGreaterThanOrEqual(radii[0]);
-    expect(radii[3]).toBeGreaterThanOrEqual(radii[1]);
-    expect(radii[3]).toBeGreaterThanOrEqual(radii[2]);
+    expect(radii[3]).toBeGreaterThanOrEqual(radii[0]!);
+    expect(radii[3]).toBeGreaterThanOrEqual(radii[1]!);
+    expect(radii[3]).toBeGreaterThanOrEqual(radii[2]!);
   });
 });

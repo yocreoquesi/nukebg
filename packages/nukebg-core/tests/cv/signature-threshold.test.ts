@@ -69,7 +69,7 @@ describe('signatureThreshold', () => {
     // Every pixel should be 0 (no foreground)
     let maxAlpha = 0;
     for (let i = 0; i < alpha.length; i++) {
-      if (alpha[i] > maxAlpha) maxAlpha = alpha[i];
+      if (alpha[i]! > maxAlpha) maxAlpha = alpha[i]!;
     }
     expect(maxAlpha).toBe(0);
   });

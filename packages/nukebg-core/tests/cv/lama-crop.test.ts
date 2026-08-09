@@ -104,7 +104,7 @@ describe('bilinearResizeRGBA', () => {
       [0, 0],
       [32, 32],
       [63, 63],
-    ]) {
+    ] as Array<[number, number]>) {
       const i = (oy * 64 + ox) * 4;
       expect(out[i]).toBe(120);
       expect(out[i + 1]).toBe(80);

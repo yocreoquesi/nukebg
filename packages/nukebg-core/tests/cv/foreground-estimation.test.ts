@@ -90,9 +90,9 @@ describe('estimateForeground', () => {
     for (let y = 10; y < h - 10; y++) {
       for (let x = 25; x < 35; x++) {
         const i = y * w + x;
-        dr += Math.abs(out[i * 4] - FG[0]);
-        dg += Math.abs(out[i * 4 + 1] - FG[1]);
-        db += Math.abs(out[i * 4 + 2] - FG[2]);
+        dr += Math.abs(out[i * 4]! - FG[0]);
+        dg += Math.abs(out[i * 4 + 1]! - FG[1]);
+        db += Math.abs(out[i * 4 + 2]! - FG[2]);
         n++;
       }
     }
