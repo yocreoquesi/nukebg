@@ -17,9 +17,9 @@ jobs:
     # surfaces a wave of legitimate diffs that need their own sweep PR.
     continue-on-error: false
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: '22'
           cache: 'npm'
@@ -37,7 +37,7 @@ jobs:
     name: Typecheck + tests
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - uses: actions/setup-node@v6
         with:
@@ -65,16 +65,16 @@ jobs:
       # one we ship from index.html (presence of the JSON-LD blocks).
       - name: Verify build output
         run: |
-          test -f dist/index.html || (echo 'dist/index.html missing' && exit 1)
-          grep -q 'application/ld+json' dist/index.html || (echo 'JSON-LD missing from build output' && exit 1)
-          test -d dist/assets || (echo 'dist/assets missing' && exit 1)
+          test -f packages/nukebg-app/dist/index.html || (echo 'dist/index.html missing' && exit 1)
+          grep -q 'application/ld+json' packages/nukebg-app/dist/index.html || (echo 'JSON-LD missing from build output' && exit 1)
+          test -d packages/nukebg-app/dist/assets || (echo 'dist/assets missing' && exit 1)
 
   e2e:
     name: Playwright pipeline e2e
     runs-on: ubuntu-latest
     needs: test
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - uses: actions/setup-node@v6
         with:
@@ -88,6 +88,7 @@ jobs:
         run: npx playwright install --with-deps chromium
 
       - name: Run Playwright (Chromium)
+        working-directory: packages/nukebg-app
         run: npx playwright test --project=chromium
 
       - name: Upload trace on failure
@@ -117,9 +118,9 @@ jobs:
       matrix:
         project: [webkit, iphone]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: '22'
           cache: 'npm'
@@ -131,11 +132,12 @@ jobs:
         run: npx playwright install --with-deps webkit
 
       - name: Run Playwright (${{ matrix.project }})
+        working-directory: packages/nukebg-app
         run: npx playwright test --project=${{ matrix.project }}
 
       - name: Upload trace on failure
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: playwright-trace-${{ matrix.project }}
           path: test-results/

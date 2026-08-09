@@ -1,0 +1,25 @@
+{
+  "name": "nukebg-core",
+  "version": "0.1.0",
+  "type": "module",
+  "license": "GPL-3.0-only",
+  "description": "Pure CV+ML pipeline for nukebg — runtime-agnostic background removal, watermark detection, and inpainting.",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": ["dist", "README.md", "LICENSE"],
+  "scripts": {
+    "build": "tsc -b",
+    "test": "vitest run --passWithNoTests"
+  },
+  "dependencies": {},
+  "devDependencies": {},
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}
