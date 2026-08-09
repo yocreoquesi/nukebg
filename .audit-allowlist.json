@@ -1,0 +1,87 @@
+{
+  "$comment": [
+    "Advisories this repo has consciously accepted, with the reasoning and an expiry.",
+    "",
+    "This file exists because `npm audit` was a required check that had been red for",
+    "months. A permanently-red gate is worse than no gate: it trains everyone to",
+    "ignore it, so a genuinely new advisory arrives invisible. Accepting a finding is",
+    "allowed here, but only in writing, only with a reachability argument, and only",
+    "until a date.",
+    "",
+    "scripts/audit-gate.mjs fails the build on: any advisory not listed here, and any",
+    "entry past its reviewBy date. Neither can be silenced by ignoring this file.",
+    "",
+    "To accept a new finding: add an entry with a real `reachability` analysis — where",
+    "the vulnerable code runs and whether an attacker can reach it — not just a",
+    "severity restatement."
+  ],
+  "entries": [
+    {
+      "package": "sharp",
+      "advisories": ["GHSA-f88m-g3jw-g9cj"],
+      "severity": "high",
+      "reachability": "RUNTIME, attacker-reachable. sharp decodes user-supplied images in nukebg-cli, and these are inherited libvips CVEs (CVE-2026-33327/33328/35590). This is the highest ACTUAL risk of everything listed here despite not being the highest CVSS.",
+      "why-accepted": "No fix exists. 0.35.3 is the latest published sharp and still carries them; there is nothing to upgrade to. Tracked in #331.",
+      "reviewBy": "2026-09-15"
+    },
+    {
+      "package": "@huggingface/transformers",
+      "advisories": [],
+      "severity": "high",
+      "reachability": "Inherited entirely from its sharp dependency — same libvips CVEs as the entry above, no independent surface.",
+      "why-accepted": "Resolves when sharp does. No separate action possible.",
+      "reviewBy": "2026-09-15"
+    },
+    {
+      "package": "tar",
+      "advisories": [
+        "GHSA-vmf3-w455-68vh",
+        "GHSA-w8wr-v893-vjvp",
+        "GHSA-23hp-3jrh-7fpw",
+        "GHSA-8x88-c5mf-7j5w",
+        "GHSA-gvwx-54wh-qm9j",
+        "GHSA-r292-9mhp-454m"
+      ],
+      "severity": "critical",
+      "reachability": "BUILD-TIME only. tar is reached through onnxruntime-node's install script unpacking its own prebuilt binaries from the npm registry. No nukebg code path feeds it an archive, and model downloads at runtime go through @huggingface/transformers over HTTPS, not tar. Marked critical, but not attacker-controlled here.",
+      "why-accepted": "An override to ^7.5.22 was declared and reverted: npm keeps the already-resolved entry and neither `npm install` nor `npm dedupe` re-resolves it. Needs a full lockfile regeneration, which belongs in its own PR with e2e validation. Tracked in #331.",
+      "reviewBy": "2026-09-15"
+    },
+    {
+      "package": "protobufjs",
+      "advisories": [
+        "GHSA-66ff-xgx4-vchm",
+        "GHSA-2pr8-phx7-x9h3",
+        "GHSA-fx83-v9x8-x52w",
+        "GHSA-75px-5xx7-5xc7",
+        "GHSA-jvwf-75h9-cwgg",
+        "GHSA-685m-2w69-288q",
+        "GHSA-q6x5-8v7m-xcrf",
+        "GHSA-jggg-4jg4-v7c6",
+        "GHSA-wcpc-wj8m-hjx6",
+        "GHSA-f38q-mgvj-vph7",
+        "GHSA-j3f2-48v5-ccww"
+      ],
+      "severity": "high",
+      "reachability": "Transitive under the ONNX stack. nukebg does not define or decode protobuf messages itself; the surface is ONNX model parsing, and the models are SHA-256 verified before load (RMBG_PARAMS/LAMA_PARAMS EXPECTED_SHA256), so a tampered model is rejected before protobufjs sees it.",
+      "why-accepted": "The fix is protobufjs 8.x, a major bump of a transitive ONNX dependency. Not something to ride along with unrelated work. Tracked in #331.",
+      "reviewBy": "2026-09-15"
+    },
+    {
+      "package": "@protobufjs/utf8",
+      "advisories": ["GHSA-q6x5-8v7m-xcrf"],
+      "severity": "moderate",
+      "reachability": "Same path and same SHA-256 gate as the protobufjs entry above.",
+      "why-accepted": "Resolves with protobufjs 8.x.",
+      "reviewBy": "2026-09-15"
+    },
+    {
+      "package": "esbuild",
+      "advisories": ["GHSA-g7r4-m6w7-qqqr"],
+      "severity": "low",
+      "reachability": "Development server only, and only on Windows. Never runs in CI, never ships to users, not part of any published artifact.",
+      "why-accepted": "An override to ^0.28.2 was declared and reverted for the same npm resolution reason as tar. Low severity and no production surface.",
+      "reviewBy": "2026-09-15"
+    }
+  ]
+}
