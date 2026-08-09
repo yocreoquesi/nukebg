@@ -651,34 +651,42 @@ _Goal: all README and CONTRIBUTING files updated. REQ-CLI-LICENSE-5 satisfied._
 
 - [ ] **F.4 Evaluate the `@huggingface/transformers` v3.8.1 → v4.x bump**: worth its own change, and it settles three things at once. (a) It removes the F.3 pin — v4 pins `onnxruntime-node 1.24.3`, matching what the CLI actually wanted. (b) v4 ships a WebGPU runtime rewritten in C++ with the ONNX Runtime team, which is the specific subsystem that caused the `NetworkError` behind the `detectDevice()` hard-coded `return 'wasm'` in `packages/nukebg-app/src/workers/ml.worker.ts:98-102` (forced on 2026-03-27 in `dcd22e6`; the dependency has not moved since). (c) v4 claims WebGPU in Node/Bun/Deno, which would matter for the CLI, not just the browser. It is a major bump of the project's core ML dependency and needs its own spike: verify the `pipeline` / `env` / `RawImage` API surface the app and CLI use, and re-test the WebGPU path on the browsers that originally failed before removing the WASM force. Note that LaMa and SAM do not go through transformers.js at all — they use `onnxruntime-web` directly with `executionProviders: ['wasm']` — so a v4 bump accelerates only the RMBG segmentation path unless those workers are migrated too.
 
-- [ ] **F.5 Cloudflare Pages build fails on the chain** — root cause identified, fix applied and verified on Linux CI, but Pages is STILL red. Not closed. The Pages check was `success` on `dev` and `main` but `failure` on every chain PR from #291 onward: the monorepo move broke the deploy. There is no `wrangler.toml` — the build command, root directory and output directory all live in the Cloudflare dashboard.
-  - **Root cause, from the build log.** Install and build both succeed; the deploy fails at the very last step:
+- [x] **F.5 Cloudflare Pages build failed on the chain** — FIXED. Pages was `success` on `dev` and `main` and `failure` on every chain PR. It turned out to be **two independent failures, one stacked behind the other**, which is why the first fix looked wrong.
 
-    ```text
-    Installing project dependencies: npm clean-install --progress=false
-    added 257 packages, and audited 261 packages in 12s
-    Executing user command: npm run build
-    > vite build
-    ✓ built in 2.39s
-    Validating asset output directory
-    Error: Output directory "dist" not found.
-    Failed: build output directory not found
-    ```
+  **Failure 1 — output directory (from phase 2).** Pages validates its configured output dir (`dist`) relative to its root directory, which is the repo root. Vite resolves `outDir` against *its* project root, so the phase 2 move sent the artifact to `packages/nukebg-app/dist/` and the path Pages checks stopped existing:
 
-    Cloudflare looks for `dist` relative to its root directory (the repo root, "v2 root directory strategy"). Vite resolves `outDir` against *its* project root, so after phase 2 the artifact landed at `packages/nukebg-app/dist/` and the path Pages validates no longer existed.
-  - **Fix:** `outDir: '../../dist'` with `emptyOutDir: true` in `packages/nukebg-app/vite.config.ts`, restoring the pre-monorepo contract with no dashboard change; `ci.yml`'s three build assertions follow it back to the repo root.
-  - **Process note worth keeping.** This fix was written, then reverted, then reinstated. The revert was a mistake: the same fix was already in `dc8ba00`, Pages failed on that commit, and that single red check was read as "the diagnosis is wrong" — without ever opening the build log for it. Absence of success is not evidence of a wrong cause. The intervening "leading hypothesis" (that a workspace root install now drags in nukebg-cli's ~230 MB of native deps — `onnxruntime-node` at 208 MB plus sharp's `@img` binaries at 20 MB) is **disproven** by the log above: Pages installs 257 packages in 12 seconds and never touches that tree.
-  - **STATUS: fix verified on Linux, Pages still red — cause not yet identified.** GitHub Actions' `Verify build output` step asserts `dist/index.html`, its JSON-LD, and `dist/assets` **at the repo root**, and it passes on the chain tip (`06d81c7`). So on Linux the fix does produce exactly what the Pages log asked for. Pages nonetheless failed on both commits that carried it (`dc8ba00`, `06d81c7`). The remaining possibilities: the Pages root directory is not the repo root after all; the output-directory setting differs from what the earlier log implied; or — most likely — **the error on those commits is a different one**, and the only log actually read was for `a81aa24`, which predates the fix. Do not assume the message is unchanged; that assumption already caused one wrong revert.
-  - **Next step:** read the Pages build log for `06d81c7` specifically, via the `cloudflare-builds` MCP server (OAuth) or by pasting it. If the error text changed, the fix helped and something further is missing; if it is byte-identical, the fix is not reaching the Pages build at all and the dashboard route below becomes the answer.
+  ```text
+  Validating asset output directory
+  Error: Output directory "dist" not found.
+  ```
 
-  - **Cleaner alternative, still available:** set the Pages project's root directory to `packages/nukebg-app` and revert `outDir` to plain `'dist'`, keeping build output inside the package where it belongs. That needs dashboard access. Note the two fixes are mutually exclusive — with the root directory moved, `'../../dist'` would write outside it and break the deploy again.
-  - `README.md:97` ("Deploy `dist/`") is accurate again under the applied fix; it would need updating if the dashboard route is taken instead.
+  Fixed with `outDir: '../../dist'` + `emptyOutDir: true` in `packages/nukebg-app/vite.config.ts`, plus the matching `ci.yml` assertions.
+
+  **Failure 2 — asset over the Pages size ceiling (self-inflicted, `42e1e9b`).** Only visible once failure 1 was fixed and the deploy reached the next step:
+
+  ```text
+  Error: Pages only supports files up to 25 MiB in size
+    assets/ort-wasm-simd-threaded.jsep-DC5y_g6C.wasm is 25.6 MiB in size
+  ```
+
+  `42e1e9b` ran `npm install`/`npm dedupe` to fix the onnxruntime-node duplication, and the caret on `^1.24.3` let **onnxruntime-web** float 1.24.3 → 1.27.0. The lockfile was committed after checking only the onnxruntime-node entries. 1.27.0 emits a 25.6 MiB WASM, over Pages' hard per-file limit. It also created a silent runtime mismatch: `lama.worker.ts:35` and `sam.worker.ts:23` hardcode the WASM CDN to `onnxruntime-web@1.24.3`, so 1.27.0 JS glue was pairing with 1.24.3 binaries. Fixed by pinning `onnxruntime-web` to exactly `1.24.3`.
+
+  **Verified:** Pages `success` on `b1128c1`, alongside all three OS legs, lint, typecheck and the 1151-test suite.
+
+  **Two lessons worth keeping.**
+  - *A fix that does not turn the check green is not necessarily the wrong fix.* This one was reverted once on exactly that inference, without ever reading the build log for the commit that carried it. Read the log for **that** commit before concluding anything.
+  - *Never commit a regenerated lockfile by inspecting only the dependency you meant to change.* A caret range moved 40 MB of WASM silently. Diff every changed resolution.
+
+  **Standing risks.**
+  - Headroom is thin: the largest asset is now 23.86 MiB against a 25 MiB ceiling. Any ORT bump must be checked for asset size before landing — this applies directly to F.4.
+  - The alternative fix (Pages root directory → `packages/nukebg-app`, `outDir` back to `'dist'`) remains cleaner, keeping build output inside the package. It needs dashboard access, and it is **mutually exclusive** with the applied fix: with the root directory moved, `'../../dist'` writes outside it.
+  - `README.md:97` ("Deploy `dist/`") is accurate under the applied fix; it needs updating if the dashboard route is ever taken.
 
 
 - [x] **F.6 `CONTRIBUTING.md` is stale about the lint gate** — FIXED: line 230 states the `Lint + format` job is "non-blocking today (`continue-on-error: true`)", but `.github/workflows/ci.yml` sets `continue-on-error: false` — it was flipped to blocking in #134 after the prettier sweep. One-line doc correction.
 
-**Still open (explicitly deferred, not blocking archive after this reconciliation):** X.6 (see its note: coupled to the v1.1 parity baselines), F.1/F.2/F.4 above, and the v1.1 items (parity enforcement, stdin/stdout, `--json`, per-stage events). X.2–X.5, F.3, F.6 and 18.3 are now closed; F.5 has a workaround in place with the preferred fix still open.
+**Still open (explicitly deferred, not blocking archive after this reconciliation):** X.6 (see its note: coupled to the v1.1 parity baselines), F.1/F.2/F.4 above, and the v1.1 items (parity enforcement, stdin/stdout, `--json`, per-stage events). X.2–X.5, F.3, F.5, F.6 and 18.3 are now closed.
 
-**Merge blocker:** F.5 — Cloudflare Pages is still failing on the chain tip. Every other check is green: all three OS legs, lint, typecheck, the 1151-test suite, and the three Playwright e2e projects.
+**Merge status:** no blockers. Every check is green on the chain tip — all three OS legs, lint, typecheck, the 1151-test suite, and Cloudflare Pages. The tracker PR can be opened as soon as #291 merges into `feat/extract-core-cli` (GitHub rejects a zero-diff PR until then).
 
 **18.3 status:** the chain is pushed and the three-OS matrix now runs on every chain PR. macOS and Windows passed on the first run; ubuntu was red on F.3 and is awaiting confirmation on the run that includes the fix. Do not tick 18.3 until a run shows all three legs green.
