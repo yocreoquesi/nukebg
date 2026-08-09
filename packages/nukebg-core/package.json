@@ -1,9 +1,19 @@
 {
   "name": "nukebg-core",
   "version": "0.1.0",
+  "private": false,
   "type": "module",
   "license": "GPL-3.0-only",
   "description": "Pure CV+ML pipeline for nukebg — runtime-agnostic background removal, watermark detection, and inpainting.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yocreoquesi/nukebg.git",
+    "directory": "packages/nukebg-core"
+  },
+  "bugs": {
+    "url": "https://github.com/yocreoquesi/nukebg/issues"
+  },
+  "homepage": "https://github.com/yocreoquesi/nukebg/tree/main/packages/nukebg-core#readme",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {

@@ -126,6 +126,26 @@ Deploy `dist/` to any static host: Cloudflare Pages, GitHub Pages, Netlify, Verc
 
 The ML model is lazy-loaded on first use, then cached by the Service Worker for offline access.
 
+## > monorepo_map
+
+This repo is an npm workspaces monorepo with three packages:
+
+| Package | Path | What it is | Published? |
+| --- | --- | --- | --- |
+| `nukebg-app` | [`packages/nukebg-app`](packages/nukebg-app) | The browser app described above — Vite + Web Components, deployed to [nukebg.app](https://nukebg.app). | No (`private`) |
+| `nukebg-core` | [`packages/nukebg-core`](packages/nukebg-core) | Runtime-agnostic CV/ML pipeline. Zero runtime dependencies. Used by both other packages. | Yes — [`nukebg-core` README](packages/nukebg-core/README.md) |
+| `nukebg-cli` | [`packages/nukebg-cli`](packages/nukebg-cli) | Node CLI for background removal from the terminal/CI. | Yes — [`nukebg-cli` README](packages/nukebg-cli/README.md) |
+
+**Want the CLI?** Read the [`nukebg-cli` README](packages/nukebg-cli/README.md) —
+it covers install, every flag, exit codes, and the RMBG-1.4 license gate
+(CC-BY-NC-4.0, non-commercial use only).
+
+**Want to embed background removal in your own Node app?** Read the
+[`nukebg-core` README](packages/nukebg-core/README.md) for the public API and
+a programmatic embedding example.
+
+Everything below this section documents the browser app (`nukebg-app`).
+
 ## > tech_stack
 
 | Layer      | Technology                                                       |
