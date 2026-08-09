@@ -687,6 +687,34 @@ _Goal: all README and CONTRIBUTING files updated. REQ-CLI-LICENSE-5 satisfied._
 
 **Still open (explicitly deferred, not blocking archive after this reconciliation):** X.6 (see its note: coupled to the v1.1 parity baselines), F.1/F.2/F.4 above, and the v1.1 items (parity enforcement, stdin/stdout, `--json`, per-stage events). X.2–X.5, F.3, F.5, F.6 and 18.3 are now closed.
 
+## Regression guards added
+
+Three failures in this change reached CI or a failed deploy without any test noticing.
+Each now fails before merge, and each guard was verified by reintroducing the exact
+regression it targets rather than by passing on a healthy tree.
+
+- **`packages/nukebg-app/tests/onnxruntime-coherence.test.ts`** — `onnxruntime-web` must be
+  pinned with no range prefix, every hard-coded `wasmPaths` CDN URL must name that same
+  version, and the lockfile must resolve to it. The workers fetch WASM from a versioned
+  CDN URL instead of bundling it, so the JS glue and the binary are independently
+  versioned halves of one runtime and can drift apart silently. *Verified: restoring
+  `^1.24.3` fails all three assertions; drifting one CDN URL fails the second.*
+- **`packages/nukebg-cli/tests/onnxruntime-single-runtime.test.ts`** — exactly one
+  `onnxruntime-node` resolution in the lockfile, and the direct spec must equal the
+  version `@huggingface/transformers` pins. Two copies collide on Linux over the shared
+  `libonnxruntime.so.1` soname; macOS and Windows do not, so the three-OS matrix went
+  green-green-red. *Verified: restoring `^1.24.0` fails the second assertion.*
+- **`.github/workflows/ci.yml` → "Verify no asset exceeds the Cloudflare Pages 25 MiB
+  limit"** — Pages enforces its per-file ceiling at deploy time, after the build has
+  already succeeded, so CI was fully green while the deploy was rejected. This moves the
+  failure back into CI and prints the five largest assets on every run. *Verified: a
+  26 MiB probe file trips it.* Headroom is thin — the largest asset is ~23.9 MiB.
+
+What none of these can catch is the reasoning error that made them necessary: concluding
+a fix was wrong because the check stayed red, without reading the build log for the commit
+that carried the fix. There were two stacked failures, and the second was only visible once
+the first was gone. Read the log for **that** commit before drawing conclusions.
+
 **Merge status:** no blockers. Every check is green on the chain tip — all three OS legs, lint, typecheck, the 1151-test suite, and Cloudflare Pages. The tracker PR can be opened as soon as #291 merges into `feat/extract-core-cli` (GitHub rejects a zero-diff PR until then).
 
 **18.3 status:** the chain is pushed and the three-OS matrix now runs on every chain PR. macOS and Windows passed on the first run; ubuntu was red on F.3 and is awaiting confirmation on the run that includes the fix. Do not tick 18.3 until a run shows all three legs green.
