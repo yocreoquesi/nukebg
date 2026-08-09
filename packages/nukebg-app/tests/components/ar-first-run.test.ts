@@ -10,7 +10,14 @@ import { resolve } from 'node:path';
  */
 
 const ROOT = resolve(__dirname, '..', '..');
-const APP = readFileSync(resolve(ROOT, 'src/components/ar-app.ts'), 'utf8');
+// APP concatenates ar-app.ts + extracted modules so source-level invariants
+// still hold after the #254 refactor (CSS → ar-app.styles.ts, HTML template
+// → ar-app.template.ts).
+const APP = [
+  readFileSync(resolve(ROOT, 'src/components/ar-app.ts'), 'utf8'),
+  readFileSync(resolve(ROOT, 'src/components/ar-app.styles.ts'), 'utf8'),
+  readFileSync(resolve(ROOT, 'src/components/ar-app.template.ts'), 'utf8'),
+].join('\n');
 const DZ = readFileSync(resolve(ROOT, 'src/components/ar-dropzone.ts'), 'utf8');
 const I18N = readFileSync(resolve(ROOT, 'src/i18n/index.ts'), 'utf8');
 

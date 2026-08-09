@@ -27,8 +27,22 @@ function readComponentFiles(dir: string): { name: string; content: string }[] {
     .map((f) => ({ name: join(dir, f), content: readFileSync(resolve(absDir, f), 'utf8') }));
 }
 
-/** Extract CSS template strings from a component file (inside backtick <style>...</style>) */
-function extractCssBlocks(source: string): string[] {
+/**
+ * Extract CSS from a component file.
+ *
+ * Normally that means the `<style>...</style>` blocks inside the component's
+ * template literal. A dedicated `*.styles.ts` module has no wrapper — the file
+ * IS the stylesheet — so it is taken whole.
+ *
+ * Without that branch the ar-app styles split silently emptied this audit:
+ * ar-app.ts and ar-app.styles.ts both yield zero blocks and get skipped, and
+ * ar-app.template.ts yields the literal `\${AR_APP_STYLES}`, which contains no
+ * colours. ~800 lines of CSS stopped being checked and every assertion here
+ * stayed green.
+ */
+function extractCssBlocks(source: string, name = ''): string[] {
+  if (/\.styles\.ts$/.test(name)) return [source];
+
   const blocks: string[] = [];
   const regex = /<style>([\s\S]*?)<\/style>/g;
   let match;
@@ -64,7 +78,7 @@ describe('color consistency — no hardcoded theme colors in components', () => 
   const components = readComponentFiles('src/components');
 
   for (const { name, content } of components) {
-    const cssBlocks = extractCssBlocks(content);
+    const cssBlocks = extractCssBlocks(content, name);
     if (cssBlocks.length === 0) continue;
 
     describe(name, () => {
@@ -156,7 +170,7 @@ describe('color consistency — :host must not shadow theme variables', () => {
   const THEME_VAR_PREFIXES = ['--color-', '--terminal-color-'];
 
   for (const { name, content } of components) {
-    const cssBlocks = extractCssBlocks(content);
+    const cssBlocks = extractCssBlocks(content, name);
     if (cssBlocks.length === 0) continue;
 
     it(`${name} :host does not declare theme CSS custom properties`, () => {
