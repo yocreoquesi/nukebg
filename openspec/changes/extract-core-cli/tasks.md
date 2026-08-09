@@ -636,6 +636,12 @@ _Goal: all README and CONTRIBUTING files updated. REQ-CLI-LICENSE-5 satisfied._
 ## Follow-ups opened during the X.2–X.6 pass
 
 - [ ] **F.1 Prettier scope mirrors the old ESLint gap**: root `format` / `format:check` still delegate to `-w nukebg-app`, so nukebg-core and nukebg-cli are never format-checked — and they are currently formatted at roughly `printWidth: 80` against the root `.prettierrc.json`'s `printWidth: 100`. Widening the scope means reformatting both packages, a large mechanical diff deliberately kept out of this already-328-file change. Do it as its own sweep PR, the same way #134 handled the app.
+  - **Landmine for that sweep:** `CONTRIBUTING.md:322` (the innerHTML policy paragraph) is
+    already unformatted per Prettier, and running `--write` on it *corrupts the prose*:
+    Prettier strips the spaces around an inline-code span that contains escaped backticks,
+    welding the closing span onto the next word. Root-level docs sit outside the current
+    app-scoped `format:check`, so nothing catches it today. Fix that line by hand, or add it
+    to `.prettierignore`, before widening the scope.
 - [ ] **F.2 CRLF vs `endOfLine: "lf"` on Windows**: with `core.autocrlf=true` and no `.gitattributes` text rule, `npm run format:check` reports every checked-out file as unformatted on Windows (121 files locally) while CI on Linux passes. Confirmed a false positive via `git ls-files --eol` (`i/lf`, `w/crlf`), not a real formatting drift. A `* text=auto eol=lf` rule in `.gitattributes` would fix it, but it rewrites every working tree on checkout — schedule it deliberately, not inside a feature branch.
 
 - [x] **F.3 `onnxruntime-node` duplicated, broke the Linux CI leg** — FIXED in the phase-19-20 slice. The first real push of this chain surfaced what no local run could. **nukebg-cli itself** depends on both `@huggingface/transformers` (which pins `onnxruntime-node` to exactly `1.21.0`, hoisted to the root `node_modules`) and `onnxruntime-node` directly at `^1.24.0` (resolved to `1.27.0`, nested under the package) — two ONNX runtimes inside one process, not an app↔cli clash as first assumed. On Linux the root napi-v3 `onnxruntime_binding.node` resolves the shared soname `libonnxruntime.so.1` to the nested 1.27 build, which does not export `VERS_1.21.0`, so `tests/cli.test.ts` and `tests/commands/process.test.ts` failed to load. macOS and Windows use different library lookup rules and never collided, which is why two legs were green and one was red.
