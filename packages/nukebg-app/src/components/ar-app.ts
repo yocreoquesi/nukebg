@@ -1,5 +1,5 @@
-import { PipelineOrchestrator, PipelineAbortError } from '../pipeline/orchestrator';
-import type { ImageProcessor } from '../pipeline/image-processor';
+import { WorkerPipelineRunner } from '../pipeline/worker-pipeline-runner';
+import { PipelineAbortError } from 'nukebg-core';
 import type { PipelineStage, StageStatus } from '../types/pipeline';
 import type { ModelId } from '../types/worker-messages';
 import { t } from '../i18n';
@@ -15,7 +15,7 @@ import { BatchOrchestrator, type BatchStageCallback } from '../controllers/batch
 import { emit, on } from '../lib/event-bus';
 import { refineEdges } from 'nukebg-core/pipeline/finalize';
 import { finalizePipelineResult } from 'nukebg-core/pipeline/finalize-result';
-import { getRecommendedPrecision } from '../utils/device-adaptation';
+import { getRecommendedPipelinePrecision } from '../utils/device-adaptation';
 import { autoCropToSubject } from 'nukebg-core/pipeline/auto-crop';
 import { exportPng } from '../utils/image-io';
 import type { ArEditorAdvanced } from './ar-editor-advanced';
@@ -28,7 +28,7 @@ function toImageData(like: ImageDataLike): ImageData {
 
 export class ArApp extends HTMLElement {
   private static readonly MODEL_ID: ModelId = 'briaai/RMBG-1.4';
-  private pipeline: ImageProcessor | null = null;
+  private pipeline: WorkerPipelineRunner | null = null;
   private viewer!: ArViewer;
   private progress!: ArProgress;
   private download!: ArDownload;
@@ -79,7 +79,7 @@ export class ArApp extends HTMLElement {
     const statusEl = () => this.shadowRoot?.querySelector('#status-model');
     let firstRunSettled = false;
 
-    this.pipeline = new PipelineOrchestrator(
+    this.pipeline = new WorkerPipelineRunner(
       (_stage: PipelineStage, _status: StageStatus, message?: string) => {
         if (firstRunSettled) return;
         const m = message?.match(/(\d+)\s*%/);
@@ -111,7 +111,7 @@ export class ArApp extends HTMLElement {
     };
 
     this.pipeline
-      .preloadModel(ArApp.MODEL_ID)
+      .preload(ArApp.MODEL_ID)
       .then(() => {
         finish(true);
         const s = statusEl();
@@ -1103,11 +1103,11 @@ export class ArApp extends HTMLElement {
       {
         installBatchStageCallback: (cb: BatchStageCallback) => {
           if (!this.pipeline) {
-            this.pipeline = new PipelineOrchestrator(cb);
+            this.pipeline = new WorkerPipelineRunner(cb);
           } else {
             this.pipeline.setStageCallback(cb);
           }
-          return this.pipeline;
+          return this.pipeline!;
         },
         setProcessingAbortController: (c) => {
           this.processingAbortController = c;
@@ -1633,7 +1633,7 @@ export class ArApp extends HTMLElement {
 
     // Reuse existing pipeline (keeps model loaded)
     if (!this.pipeline) {
-      this.pipeline = new PipelineOrchestrator(
+      this.pipeline = new WorkerPipelineRunner(
         (stage: PipelineStage, status: StageStatus, message?: string) => {
           this.progress.setStage(stage, status, message);
         },
@@ -1661,12 +1661,10 @@ export class ArApp extends HTMLElement {
         console.info(`[NukeBG] ${msg}`);
       }
 
-      const result = await this.pipeline.process(
-        imageData,
-        ArApp.MODEL_ID,
-        getRecommendedPrecision(),
-        this.processingAbortController?.signal,
-      );
+      const result = await this.pipeline.run(imageData, {
+        precision: getRecommendedPipelinePrecision(),
+        signal: this.processingAbortController?.signal,
+      });
       if (this.processingAborted) return;
 
       const finalImageData = toImageData(finalizePipelineResult(result, originalImageData));
@@ -1676,7 +1674,7 @@ export class ArApp extends HTMLElement {
       // sized file, not a 4K canvas with a 200×200 dot.
       const exportImageData = toImageData(autoCropToSubject(finalImageData));
       const nukedPct = result.nukedPct;
-      const totalTimeMs = result.totalTimeMs;
+      const totalTimeMs = result.durationMs;
 
       if (this.processingAborted) return;
 
@@ -1948,7 +1946,7 @@ export class ArApp extends HTMLElement {
       // which left every stage 'pending' and blanked out every icon.
       this.batch.replayStageHistory(item.stageHistory);
       this.download.reset();
-      const finalImageData = item.finalImageData ?? item.result.imageData;
+      const finalImageData = item.finalImageData ?? toImageData(item.result.output);
       // Mirror the single-image flow: slider gets full-size; download
       // and the resolution label get the cropped subject bbox.
       const exportImageData =
@@ -1961,7 +1959,7 @@ export class ArApp extends HTMLElement {
       await this.download.setResult(
         exportImageData,
         item.originalName,
-        item.result.totalTimeMs,
+        item.result.durationMs,
         blob,
       );
       this.lastResultImageData = finalImageData;

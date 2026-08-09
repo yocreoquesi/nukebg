@@ -1,7 +1,6 @@
 import type {
   PipelineStage,
   StageStatus,
-  PipelineResult,
   BgColorResult,
   WatermarkResult,
   ImageContentType,
@@ -14,16 +13,22 @@ import type {
   ModelId,
   ClassifyImageResult,
 } from '../types/worker-messages';
-import { IMAGE_CLASSIFY_PARAMS, INPAINT_PARAMS, PRECISION_PROFILES } from 'nukebg-core';
-import type { PrecisionMode } from 'nukebg-core';
+import {
+  IMAGE_CLASSIFY_PARAMS,
+  INPAINT_PARAMS,
+  PRECISION_PROFILES,
+  PipelineAbortError,
+} from 'nukebg-core';
+import type {
+  PrecisionMode,
+  PipelineRunner,
+  PipelineResult,
+  ImageDataLike,
+  PipelineOptions,
+} from 'nukebg-core';
 import { compositeWithFeather, dilateMask } from 'nukebg-core/cv/inpaint-blend';
 import { shouldUseLama } from 'nukebg-core/cv/lama-router';
 import { WorkerChannel } from './worker-channel';
-import type { ImageProcessor, StageCallback } from './image-processor';
-
-// Re-export so existing callers that imported from the orchestrator
-// don't have to chase a new path.
-export type { ImageProcessor, StageCallback } from './image-processor';
 
 /** Worker call timeout in ms */
 const CV_TIMEOUT_MS = 60_000;
@@ -35,7 +40,7 @@ const INPAINT_TIMEOUT_MS = 30_000;
  *  then runs Fourier-convolution inference on WASM. 5 min covers the
  *  worst-case cold start on a slow connection. */
 const LAMA_TIMEOUT_MS = 300_000;
-/** Total wall-clock cap for process(). Generous because a first-time
+/** Total wall-clock cap for run(). Generous because a first-time
  *  run on a slow connection can pay for the RMBG download (~45MB),
  *  the LaMa download (~95MB) and the ONNX Runtime WASM fetch from
  *  jsDelivr (~6MB) in sequence before any CPU work starts. If this
@@ -43,16 +48,18 @@ const LAMA_TIMEOUT_MS = 300_000;
  *  timeouts didn't catch — abort instead of letting the UI sit forever. */
 const PROCESS_TIMEOUT_MS = 20 * 60_000;
 
-/**
- * Error thrown when a pipeline run is aborted via AbortSignal or
- * orchestrator.abort(). Callers can `instanceof PipelineAbortError` to
- * distinguish abort from genuine failures.
- */
-export class PipelineAbortError extends Error {
-  readonly name = 'PipelineAbortError';
-}
+/** Stage callback type: used internally to wire progress to UI. */
+export type StageCallback = (stage: PipelineStage, status: StageStatus, message?: string) => void;
 
-export class PipelineOrchestrator implements ImageProcessor {
+/**
+ * Browser Worker-backed implementation of the `PipelineRunner` interface from
+ * `nukebg-core`. Keeps the existing postMessage fan-out architecture (CV worker,
+ * ML worker, Inpaint worker, LaMa worker) intact while satisfying the runtime-
+ * agnostic contract that `PipelineRunner` defines.
+ *
+ * Renamed from `PipelineOrchestrator` in Phase 10.
+ */
+export class WorkerPipelineRunner implements PipelineRunner {
   private cv: WorkerChannel<CvWorkerResponse>;
   private ml: WorkerChannel<MlWorkerResponse>;
   private inpaint: WorkerChannel<InpaintWorkerResponse>;
@@ -178,10 +185,10 @@ export class PipelineOrchestrator implements ImageProcessor {
   /**
    * Hard-abort the current pipeline run. Terminates all workers (killing
    * in-flight CPU immediately) and recreates the cv + ml workers so the
-   * next `process()` call works. Inpaint/LaMa workers are lazy and are
+   * next `run()` call works. Inpaint/LaMa workers are lazy and are
    * simply dropped. Pending promises reject with `PipelineAbortError`.
    *
-   * Called from `process()` when the provided AbortSignal fires, or
+   * Called from `run()` when the provided AbortSignal fires, or
    * directly by callers who want to tear down.
    *
    * NOTE: ml worker termination drops the loaded RMBG session — the
@@ -212,9 +219,25 @@ export class PipelineOrchestrator implements ImageProcessor {
     this.onStageChange = cb;
   }
 
-  /** Pre-load the ML model so it's ready when the user drops an image */
-  async preloadModel(modelId?: ModelId): Promise<void> {
+  /**
+   * Implements PipelineRunner.preload().
+   * Pre-load the ML model so it's ready when the user drops an image.
+   */
+  async preload(modelId?: ModelId): Promise<void> {
     await this.ml.call('load-model', undefined, modelId ? { modelId } : undefined);
+  }
+
+  /** Legacy alias kept for callers that haven't migrated to preload() yet. */
+  async preloadModel(modelId?: ModelId): Promise<void> {
+    return this.preload(modelId);
+  }
+
+  /**
+   * Implements PipelineRunner.dispose().
+   * Release resources (workers). The instance is unusable afterwards.
+   */
+  async dispose(): Promise<void> {
+    this.destroy();
   }
 
   /**
@@ -266,7 +289,7 @@ export class PipelineOrchestrator implements ImageProcessor {
    * Bind an AbortSignal to the current processing run. Detaches any
    * previously attached signal. When the signal fires, `abort()` runs,
    * pending worker calls reject with `PipelineAbortError`, and workers
-   * are torn down. Called internally by `process()`.
+   * are torn down. Called internally by `run()`.
    */
   private bindAbortSignal(signal: AbortSignal | undefined): void {
     // Detach previous run's handler, if any.
@@ -284,39 +307,90 @@ export class PipelineOrchestrator implements ImageProcessor {
     this.activeSignalCleanup = () => signal.removeEventListener('abort', onAbort);
   }
 
-  async process(
-    imageData: ImageData,
-    modelId?: ModelId,
-    precision: PrecisionMode = 'normal',
-    signal?: AbortSignal,
-  ): Promise<PipelineResult> {
+  /**
+   * Implements PipelineRunner.run().
+   * Accepts ImageDataLike (browser ImageData is structurally compatible) and
+   * reshapes modelId/precision from PipelineOptions.
+   *
+   * The internal worker fan-out is unchanged — this is a call-signature
+   * adapter only.
+   */
+  async run(input: ImageDataLike, options: PipelineOptions = {}): Promise<PipelineResult> {
+    const { mode, precision = 'normal', signal, onStage } = options;
+
+    // Map PipelinePrecision (public API) → PrecisionMode (internal PRECISION_PROFILES key)
+    const precisionMode: PrecisionMode = (() => {
+      switch (precision) {
+        case 'low':
+          return 'low-power';
+        case 'high':
+          return 'high-power';
+        case 'ultra':
+          return 'full-nuke';
+        default:
+          return 'normal';
+      }
+    })();
+
+    // Wire the onStage callback to the internal stage emitter if provided
+    let originalCallback: StageCallback | null = null;
+    if (onStage) {
+      originalCallback = this.onStageChange;
+      this.onStageChange = (stage, status, message) => {
+        onStage({ stage, status, message });
+      };
+    }
+
     this.bindAbortSignal(signal);
-    // Wall-clock safety net. Rarely meaningful in practice — the
-    // per-stage timeouts should kick first — but guarantees the UI
-    // never sits on a spinner indefinitely if something truly hangs.
     const timeoutId = setTimeout(() => {
       this.abort(`processing timeout after ${PROCESS_TIMEOUT_MS / 60_000}min`);
     }, PROCESS_TIMEOUT_MS);
     try {
-      return await this._process(imageData, modelId, precision);
+      return await this._run(input, precisionMode, mode);
     } finally {
       clearTimeout(timeoutId);
-      // Detach signal listener so a late abort on a previous run can't
-      // tear down a subsequent process() that reuses the same signal.
+      this.activeSignalCleanup?.();
+      this.activeSignalCleanup = null;
+      // Restore original callback if we replaced it
+      if (onStage && originalCallback !== null) {
+        this.onStageChange = originalCallback;
+      }
+    }
+  }
+
+  /**
+   * Legacy process() method — kept for backwards-compatibility.
+   * Accepts PrecisionMode (internal type) and adapts to the new run() API.
+   */
+  async process(
+    imageData: ImageData,
+    _modelId?: ModelId,
+    precision: PrecisionMode = 'normal',
+    signal?: AbortSignal,
+  ): Promise<PipelineResult> {
+    // Call internal _run directly to avoid double timeout wiring
+    this.bindAbortSignal(signal);
+    const timeoutId = setTimeout(() => {
+      this.abort(`processing timeout after ${PROCESS_TIMEOUT_MS / 60_000}min`);
+    }, PROCESS_TIMEOUT_MS);
+    try {
+      return await this._run(imageData, precision);
+    } finally {
+      clearTimeout(timeoutId);
       this.activeSignalCleanup?.();
       this.activeSignalCleanup = null;
     }
   }
 
-  private async _process(
-    imageData: ImageData,
-    modelId: ModelId | undefined,
+  private async _run(
+    input: ImageDataLike,
     precision: PrecisionMode,
+    _mode?: string,
   ): Promise<PipelineResult> {
     this.suppressMlProgress = false; // new image = show progress
     const startTime = performance.now();
-    const { width, height } = imageData;
-    const originalPixels = new Uint8ClampedArray(imageData.data);
+    const { width, height } = input;
+    const originalPixels = new Uint8ClampedArray(input.data);
     const stageTiming: Partial<Record<PipelineStage, number>> = {};
 
     // ── Stage 1: Scan image + classify content type (CV, no ML, instant) ──
@@ -326,12 +400,12 @@ export class PipelineOrchestrator implements ImageProcessor {
     // Run bg detection and content classification in parallel
     const [bgInfo, classifyResult] = await Promise.all([
       this.cv.call<BgColorResult>('detect-bg-colors', {
-        pixels: new Uint8ClampedArray(imageData.data),
+        pixels: new Uint8ClampedArray(input.data),
         width,
         height,
       }),
       this.cv.call<ClassifyImageResult>('classify-image', {
-        pixels: new Uint8ClampedArray(imageData.data),
+        pixels: new Uint8ClampedArray(input.data),
         width,
         height,
       }),
@@ -381,19 +455,19 @@ export class PipelineOrchestrator implements ImageProcessor {
 
       const [wmGemini, wmDalle, wmSparkle] = await Promise.all([
         this.cv.call<WatermarkResult>('watermark-detect', {
-          pixels: new Uint8ClampedArray(imageData.data),
+          pixels: new Uint8ClampedArray(input.data),
           width,
           height,
           colorA: bgInfo.colorA,
           colorB: bgInfo.colorB,
         }),
         this.cv.call<WatermarkResult>('watermark-detect-dalle', {
-          pixels: new Uint8ClampedArray(imageData.data),
+          pixels: new Uint8ClampedArray(input.data),
           width,
           height,
         }),
         this.cv.call<WatermarkResult>('sparkle-detect', {
-          pixels: new Uint8ClampedArray(imageData.data),
+          pixels: new Uint8ClampedArray(input.data),
           width,
           height,
         }),
@@ -416,7 +490,7 @@ export class PipelineOrchestrator implements ImageProcessor {
       const geminiConfirmed = wmGemini.detected && wmSparkle.detected;
       const geminiMaskGated = geminiConfirmed ? wmGemini.mask : null;
       const anyWatermark = geminiConfirmed || wmDalle.detected || wmSparkle.detected;
-      const combinedMask = PipelineOrchestrator.combineMasks(
+      const combinedMask = WorkerPipelineRunner.combineMasks(
         [geminiMaskGated, wmDalle.mask, wmSparkle.mask],
         width * height,
       );
@@ -515,7 +589,6 @@ export class PipelineOrchestrator implements ImageProcessor {
     // Use the (possibly inpainted) pixels for segmentation
     const profile = PRECISION_PROFILES[precision];
     const extra: Record<string, unknown> = {};
-    if (modelId) extra.modelId = modelId;
     // ICON: use lower threshold for more aggressive removal
     extra.threshold =
       contentType === 'ICON' ? IMAGE_CLASSIFY_PARAMS.ICON_RMBG_THRESHOLD : profile.rmbgThreshold;
@@ -589,32 +662,56 @@ export class PipelineOrchestrator implements ImageProcessor {
       );
     }
 
-    const resultImageData = new ImageData(resultPixels, width, height);
-    const totalTimeMs = performance.now() - startTime;
+    // Build the output ImageDataLike — browser ImageData is structurally
+    // compatible with ImageDataLike (has data, width, height). We return a
+    // plain object to keep core's no-DOM contract satisfied.
+    const output = new ImageData(resultPixels, width, height);
+    const durationMs = performance.now() - startTime;
+
+    // Build stageTimings for core PipelineResult compatibility
+    const stageTimings: Record<string, number> = {};
+    for (const [k, v] of Object.entries(stageTiming)) {
+      if (v !== undefined) stageTimings[k] = v;
+    }
+
+    // Map internal content type to resolvedMode for core PipelineResult
+    const resolvedMode: 'photo' | 'signature' | 'icon' =
+      contentType === 'SIGNATURE' ? 'signature' : contentType === 'ICON' ? 'icon' : 'photo';
 
     // Freeze to prevent accidental reassignment by callers. Typed-array
     // contents remain writable (the runtime does not freeze ArrayBuffer
     // views), but the `readonly` marks on PipelineResult catch those at
     // compile time. If a caller truly needs to mutate, it clones first.
     return Object.freeze({
-      imageData: resultImageData,
+      // core PipelineResult fields
+      output,
+      resolvedMode,
+      durationMs,
+      stageTimings,
+      // shared fields (present in both app and core PipelineResult)
+      watermarkRemoved,
+      watermarkMask,
       workingPixels: originalPixels,
       workingAlpha: finalAlpha,
+      nukedPct,
+      contentType,
+      // browser-specific extra fields (not in core PipelineResult interface but
+      // present on the object for backwards-compat with existing callers)
       workingWidth: width,
       workingHeight: height,
-      watermarkMask,
-      totalTimeMs,
-      watermarkRemoved,
-      nukedPct,
+      // Legacy field alias: callers using result.imageData get the same object
+      imageData: output,
+      // Legacy field alias: callers using result.totalTimeMs get durationMs
+      totalTimeMs: durationMs,
+      // Legacy field: stageTiming (old shape) alongside stageTimings (core shape)
       stageTiming,
-      contentType,
     });
   }
 
   destroy(): void {
     this.activeSignalCleanup?.();
     this.activeSignalCleanup = null;
-    const err = new Error('orchestrator destroyed');
+    const err = new Error('runner destroyed');
     this.cv.rejectAllPending(err);
     this.ml.rejectAllPending(err);
     this.inpaint.rejectAllPending(err);
@@ -644,3 +741,7 @@ export class PipelineOrchestrator implements ImageProcessor {
     );
   }
 }
+
+// Re-export StageCallback so existing callers that imported from orchestrator.ts
+// via the image-processor path continue to compile.
+export type { StageCallback as ImageProcessorStageCallback };

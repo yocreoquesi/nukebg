@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { PipelineAbortError } from '../../src/pipeline/orchestrator';
+import { PipelineAbortError } from 'nukebg-core';
 
 /**
  * Orchestrator abort contract.
@@ -13,7 +13,9 @@ describe('PipelineAbortError', () => {
   it('is an Error subclass with the expected name', () => {
     const err = new PipelineAbortError('user cancelled');
     expect(err).toBeInstanceOf(Error);
-    expect(err.name).toBe('PipelineAbortError');
+    // Core's PipelineAbortError uses name="AbortError" per REQ-CORE-PIPELINE-3
+    // (AbortError duck-typing convention). The old app class used "PipelineAbortError".
+    expect(err.name).toBe('AbortError');
     expect(err.message).toBe('user cancelled');
   });
 
