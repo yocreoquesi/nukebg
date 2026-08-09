@@ -107,6 +107,16 @@ export default tseslint.config(
     },
   },
   {
+    // Repo-level maintenance scripts. Unlike `packages/*/scripts/**` these are
+    // deliberately NOT ignored: audit-gate.mjs decides whether CI passes, so it
+    // should be held to the same standard as anything else that can block a
+    // merge. Node globals, no DOM.
+    files: ['scripts/**/*.{js,mjs}'],
+    languageOptions: {
+      globals: { ...globals.node },
+    },
+  },
+  {
     // Runtime-agnostic core and the Node CLI. Node globals only — and
     // deliberately no `no-unsanitized`, since neither package touches the
     // DOM (see the app block above).

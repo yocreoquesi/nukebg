@@ -1,0 +1,114 @@
+# OSV-Scanner suppressions — the mirror of .audit-allowlist.json.
+#
+# Same discipline as the npm-audit gate: nothing is silenced without a written
+# reason and an expiry. `ignoreUntil` is deliberately the same date across both
+# files so the two gates come up for review together rather than drifting.
+#
+# The reachability analysis lives in .audit-allowlist.json, which has room for
+# it. Keep the two in sync — if you add an entry here, add it there too.
+
+# --- sharp / libvips -------------------------------------------------------
+# The one that actually matters: runtime, decodes user-supplied images, and
+# has no fix. 0.35.3 is the latest published sharp and still carries these.
+[[IgnoredVulns]]
+id = "GHSA-f88m-g3jw-g9cj"
+ignoreUntil = 2026-09-15
+reason = "No fix published. sharp 0.35.3 is latest and still inherits the libvips CVEs. Highest real risk here despite not being the highest CVSS — tracked in #331."
+
+# --- tar -------------------------------------------------------------------
+# Marked critical, but build-time only: reached through onnxruntime-node's
+# install script unpacking its own prebuilt binaries from the npm registry.
+[[IgnoredVulns]]
+id = "GHSA-vmf3-w455-68vh"
+ignoreUntil = 2026-09-15
+reason = "Build-time only (onnxruntime-node install script). Override attempted; npm keeps the resolved entry. Needs a lockfile regeneration PR — #331."
+
+[[IgnoredVulns]]
+id = "GHSA-w8wr-v893-vjvp"
+ignoreUntil = 2026-09-15
+reason = "Build-time only (onnxruntime-node install script). See #331."
+
+[[IgnoredVulns]]
+id = "GHSA-23hp-3jrh-7fpw"
+ignoreUntil = 2026-09-15
+reason = "Build-time only (onnxruntime-node install script). See #331."
+
+[[IgnoredVulns]]
+id = "GHSA-8x88-c5mf-7j5w"
+ignoreUntil = 2026-09-15
+reason = "Build-time only (onnxruntime-node install script). See #331."
+
+[[IgnoredVulns]]
+id = "GHSA-gvwx-54wh-qm9j"
+ignoreUntil = 2026-09-15
+reason = "Build-time only (onnxruntime-node install script). See #331."
+
+[[IgnoredVulns]]
+id = "GHSA-r292-9mhp-454m"
+ignoreUntil = 2026-09-15
+reason = "Build-time only (onnxruntime-node install script). See #331."
+
+# --- protobufjs ------------------------------------------------------------
+# Transitive under the ONNX stack. Models are SHA-256 verified before load, so
+# a tampered model is rejected before protobufjs parses it. Fix is a major.
+[[IgnoredVulns]]
+id = "GHSA-66ff-xgx4-vchm"
+ignoreUntil = 2026-09-15
+reason = "Transitive ONNX dependency; models are SHA-256 verified before parse. Fix requires protobufjs 8.x major — #331."
+
+[[IgnoredVulns]]
+id = "GHSA-2pr8-phx7-x9h3"
+ignoreUntil = 2026-09-15
+reason = "Transitive ONNX dependency; models are SHA-256 verified before parse. See #331."
+
+[[IgnoredVulns]]
+id = "GHSA-fx83-v9x8-x52w"
+ignoreUntil = 2026-09-15
+reason = "Transitive ONNX dependency; models are SHA-256 verified before parse. See #331."
+
+[[IgnoredVulns]]
+id = "GHSA-75px-5xx7-5xc7"
+ignoreUntil = 2026-09-15
+reason = "Transitive ONNX dependency; models are SHA-256 verified before parse. See #331."
+
+[[IgnoredVulns]]
+id = "GHSA-jvwf-75h9-cwgg"
+ignoreUntil = 2026-09-15
+reason = "Transitive ONNX dependency; models are SHA-256 verified before parse. See #331."
+
+[[IgnoredVulns]]
+id = "GHSA-685m-2w69-288q"
+ignoreUntil = 2026-09-15
+reason = "Transitive ONNX dependency; models are SHA-256 verified before parse. See #331."
+
+[[IgnoredVulns]]
+id = "GHSA-q6x5-8v7m-xcrf"
+ignoreUntil = 2026-09-15
+reason = "Transitive ONNX dependency (@protobufjs/utf8); models are SHA-256 verified before parse. See #331."
+
+[[IgnoredVulns]]
+id = "GHSA-jggg-4jg4-v7c6"
+ignoreUntil = 2026-09-15
+reason = "Transitive ONNX dependency; models are SHA-256 verified before parse. See #331."
+
+[[IgnoredVulns]]
+id = "GHSA-wcpc-wj8m-hjx6"
+ignoreUntil = 2026-09-15
+reason = "Transitive ONNX dependency; models are SHA-256 verified before parse. See #331."
+
+[[IgnoredVulns]]
+id = "GHSA-f38q-mgvj-vph7"
+ignoreUntil = 2026-09-15
+reason = "Transitive ONNX dependency; models are SHA-256 verified before parse. See #331."
+
+[[IgnoredVulns]]
+id = "GHSA-j3f2-48v5-ccww"
+ignoreUntil = 2026-09-15
+reason = "Transitive ONNX dependency; models are SHA-256 verified before parse. See #331."
+
+# --- esbuild ---------------------------------------------------------------
+# Dev server only, Windows only. Never runs in CI, never ships.
+[[IgnoredVulns]]
+id = "GHSA-g7r4-m6w7-qqqr"
+ignoreUntil = 2026-09-15
+reason = "Development server only, Windows only. No production or CI surface. See #331."

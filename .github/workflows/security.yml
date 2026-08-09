@@ -28,10 +28,20 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # Fails the job on moderate or higher severity.
-      # Low/info are reported but don't block — noise reduction.
-      - name: Run npm audit
-        run: npm audit --audit-level=moderate
+      # Gated through scripts/audit-gate.mjs rather than raw `npm audit`.
+      #
+      # Raw audit had been red for months: several findings have no upstream fix
+      # (sharp inherits libvips CVEs and 0.35.3 is the latest published), so the
+      # job could never go green and everyone learned to scroll past it. A
+      # permanently-red required check is worse than no check — a genuinely new
+      # advisory arrives invisible among the familiar ones.
+      #
+      # The gate fails on any advisory not justified in .audit-allowlist.json,
+      # and on any allowlist entry past its reviewBy date, so accepted risk
+      # cannot quietly become permanent. Accepted findings are printed on every
+      # run instead of being silenced.
+      - name: Audit gate (npm audit + reviewed allowlist)
+        run: node scripts/audit-gate.mjs
 
   codeql:
     name: CodeQL
