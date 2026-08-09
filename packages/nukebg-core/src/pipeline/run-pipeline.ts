@@ -353,9 +353,14 @@ export async function runPipeline(
         } catch (err: unknown) {
           if (err instanceof PipelineAbortError) throw err;
           throw new LamaError('LaMa inpaint failed', { cause: err });
-        } finally {
-          await runners.lama.dispose();
         }
+        // Deliberately NOT disposing the runner here. `runners.lama` is
+        // injected and owned by the caller: a host that reuses one
+        // RunnerBundle across images (batch mode, a server, the CLI) would
+        // otherwise pay a ~90MB model reload on every image after the first,
+        // and a Worker-backed LamaRunner whose dispose() terminates the
+        // worker would fail outright on the second call. Lifetime belongs to
+        // whoever constructed the runner.
       } else {
         emit('inpaint', 'running', 'Reconstructing watermark area...');
         inpainted = patchMatchInpaint(originalPixels, width, height, dilated);

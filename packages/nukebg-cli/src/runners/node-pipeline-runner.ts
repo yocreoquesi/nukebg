@@ -51,7 +51,14 @@ export class NodePipelineRunner implements PipelineRunner {
   }
 
   async preload(): Promise<void> {
-    await Promise.all([this.rmbgRunner.load?.(), this.lamaRunner?.load?.()]);
+    // RMBG only. LaMa stays lazy — the same policy the browser orchestrator
+    // had ("Inpaint + LaMa stay lazy so we don't pay for a worker the router
+    // may not pick"): the watermark router decides per image whether LaMa is
+    // needed at all, and most images never reach it. Preloading it eagerly
+    // made every run download ~90MB before any work started, and turned a
+    // failed LaMa fetch into a hard failure for images that needed no
+    // inpainting. `runPipeline` loads it on first use via the runner itself.
+    await this.rmbgRunner.load?.();
   }
 
   async dispose(): Promise<void> {
