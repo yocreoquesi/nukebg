@@ -21,7 +21,11 @@ const workerPath = resolve(pkgRoot, 'dist', 'pipeline.worker.js');
 
 beforeAll(() => {
   if (!existsSync(workerPath)) {
-    execSync('npm run build -w nukebg-cli', {
+    // nukebg-core FIRST: tsup externalises it, so the emitted worker imports
+    // nukebg-core/dist/index.js at runtime rather than inlining it. Without
+    // core built, the worker dies with ERR_MODULE_NOT_FOUND — which is how CI
+    // caught this in the first place.
+    execSync('npm run build -w nukebg-core && npm run build -w nukebg-cli', {
       cwd: resolve(pkgRoot, '..', '..'),
       stdio: 'ignore',
     });
