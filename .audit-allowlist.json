@@ -1,28 +1,44 @@
 {
   "$comment": [
-    "Advisories this repo has consciously accepted, with the reasoning and an expiry.",
+    "Advisories this repo has consciously accepted, with the reasoning behind each.",
     "",
-    "This file exists because `npm audit` was a required check that had been red for",
+    "This file exists because npm audit was a required check that had been red for",
     "months. A permanently-red gate is worse than no gate: it trains everyone to",
-    "ignore it, so a genuinely new advisory arrives invisible. Accepting a finding is",
-    "allowed here, but only in writing, only with a reachability argument, and only",
-    "until a date.",
+    "ignore it, so a genuinely new advisory arrives invisible.",
     "",
-    "scripts/audit-gate.mjs fails the build on: any advisory not listed here, and any",
-    "entry past its reviewBy date. Neither can be silenced by ignoring this file.",
+    "There are deliberately NO review dates. nukebg ships a static, fully",
+    "client-side site and none of these packages reach it — verified: sharp is a",
+    "devDependency nothing imports, protobufjs sits under onnxruntime-web whose",
+    "parsing runs in WASM, tar runs in an install script, esbuild in the dev",
+    "server. A calendar expiry would only add a scheduled CI failure and busywork",
+    "to a low-maintenance repo.",
     "",
-    "To accept a new finding: add an entry with a real `reachability` analysis — where",
-    "the vulnerable code runs and whether an attacker can reach it — not just a",
-    "severity restatement."
+    "Expiry is event-driven instead. scripts/audit-gate.mjs fails on:",
+    "  - an advisory in a package not listed here",
+    "  - a NEW advisory id in a package that IS listed (the ids matter, they are",
+    "    not decorative)",
+    "  - an entry marked acceptedBecause: no-fix-available once npm reports a fix",
+    "",
+    "acceptedBecause must be either:",
+    "  no-fix-available        upstream has published nothing to upgrade to.",
+    "                          Re-fails the build the moment it does.",
+    "  fix-exists-but-not-taken  a fix exists and was deliberately skipped;",
+    "                          why-accepted explains the call.",
+    "",
+    "To accept a new finding: give a real reachability analysis — where the",
+    "vulnerable code runs and whether an attacker can reach it — not a severity",
+    "restatement."
   ],
   "entries": [
     {
       "package": "sharp",
-      "advisories": ["GHSA-f88m-g3jw-g9cj"],
+      "advisories": [
+        "GHSA-f88m-g3jw-g9cj"
+      ],
       "severity": "high",
       "reachability": "RUNTIME, attacker-reachable. sharp decodes user-supplied images in nukebg-cli, and these are inherited libvips CVEs (CVE-2026-33327/33328/35590). This is the highest ACTUAL risk of everything listed here despite not being the highest CVSS.",
       "why-accepted": "No fix exists. 0.35.3 is the latest published sharp and still carries them; there is nothing to upgrade to. Tracked in #331.",
-      "reviewBy": "2026-09-15"
+      "acceptedBecause": "no-fix-available"
     },
     {
       "package": "@huggingface/transformers",
@@ -30,7 +46,7 @@
       "severity": "high",
       "reachability": "Inherited entirely from its sharp dependency — same libvips CVEs as the entry above, no independent surface.",
       "why-accepted": "Resolves when sharp does. No separate action possible.",
-      "reviewBy": "2026-09-15"
+      "acceptedBecause": "no-fix-available"
     },
     {
       "package": "tar",
@@ -45,7 +61,7 @@
       "severity": "critical",
       "reachability": "BUILD-TIME only. tar is reached through onnxruntime-node's install script unpacking its own prebuilt binaries from the npm registry. No nukebg code path feeds it an archive, and model downloads at runtime go through @huggingface/transformers over HTTPS, not tar. Marked critical, but not attacker-controlled here.",
       "why-accepted": "An override to ^7.5.22 was declared and reverted: npm keeps the already-resolved entry and neither `npm install` nor `npm dedupe` re-resolves it. Needs a full lockfile regeneration, which belongs in its own PR with e2e validation. Tracked in #331.",
-      "reviewBy": "2026-09-15"
+      "acceptedBecause": "fix-exists-but-not-taken"
     },
     {
       "package": "protobufjs",
@@ -65,23 +81,27 @@
       "severity": "high",
       "reachability": "Transitive under the ONNX stack. nukebg does not define or decode protobuf messages itself; the surface is ONNX model parsing, and the models are SHA-256 verified before load (RMBG_PARAMS/LAMA_PARAMS EXPECTED_SHA256), so a tampered model is rejected before protobufjs sees it.",
       "why-accepted": "The fix is protobufjs 8.x, a major bump of a transitive ONNX dependency. Not something to ride along with unrelated work. Tracked in #331.",
-      "reviewBy": "2026-09-15"
+      "acceptedBecause": "fix-exists-but-not-taken"
     },
     {
       "package": "@protobufjs/utf8",
-      "advisories": ["GHSA-q6x5-8v7m-xcrf"],
+      "advisories": [
+        "GHSA-q6x5-8v7m-xcrf"
+      ],
       "severity": "moderate",
       "reachability": "Same path and same SHA-256 gate as the protobufjs entry above.",
       "why-accepted": "Resolves with protobufjs 8.x.",
-      "reviewBy": "2026-09-15"
+      "acceptedBecause": "fix-exists-but-not-taken"
     },
     {
       "package": "esbuild",
-      "advisories": ["GHSA-g7r4-m6w7-qqqr"],
+      "advisories": [
+        "GHSA-g7r4-m6w7-qqqr"
+      ],
       "severity": "low",
       "reachability": "Development server only, and only on Windows. Never runs in CI, never ships to users, not part of any published artifact.",
       "why-accepted": "An override to ^0.28.2 was declared and reverted for the same npm resolution reason as tar. Low severity and no production surface.",
-      "reviewBy": "2026-09-15"
+      "acceptedBecause": "fix-exists-but-not-taken"
     }
   ]
 }

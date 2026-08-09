@@ -9,12 +9,15 @@
  * This gate fails on:
  *   - an advisory for a package not in .audit-allowlist.json
  *   - a NEW advisory in a package that is listed for other advisories
- *   - an allowlist entry past its reviewBy date
- *   - an allowlist entry that is malformed (missing reviewBy, bad date format,
- *     no advisories array) — those used to pass silently and never expire
+ *   - an entry accepted because no fix existed, once npm reports one
+ *   - an entry that is malformed (bad acceptedBecause, no advisories array)
+ *
+ * There are no review dates: a calendar expiry would add a scheduled CI
+ * failure and busywork to a low-maintenance repo, and none of the accepted
+ * packages reach the shipped static site. See .audit-allowlist.json.
  *
  * Accepted findings are printed on every run, so they stay visible rather than
- * silently suppressed, and they expire on their own.
+ * silently suppressed.
  *
  * The decision logic lives in audit-gate-core.mjs and is unit-tested; this file
  * is only the shell that runs npm and prints.
@@ -55,8 +58,7 @@ function runAudit() {
 }
 
 const { entries } = JSON.parse(readFileSync(ALLOWLIST, 'utf8'));
-const today = new Date().toISOString().slice(0, 10);
-const r = evaluate(runAudit(), entries, today);
+const r = evaluate(runAudit(), entries);
 
 const total = r.accepted.length + r.unlisted.length + r.undeclared.length;
 console.log(`npm audit: ${total} advisories, ${r.accepted.length} accepted\n`);
@@ -65,7 +67,7 @@ if (r.accepted.length) {
   console.log('Accepted (documented in .audit-allowlist.json):');
   for (const { finding, entry } of r.accepted) {
     console.log(
-      `  ${finding.severity.padEnd(9)} ${finding.name.padEnd(26)} review by ${entry.reviewBy}`,
+      `  ${finding.severity.padEnd(9)} ${finding.name.padEnd(26)} ${entry.acceptedBecause}`,
     );
   }
   console.log('');
@@ -95,10 +97,13 @@ if (r.undeclared.length) {
   console.error('');
 }
 
-if (r.expired.length) {
-  console.error('Allowlist entries past their review date:');
-  for (const e of r.expired) {
-    console.error(`  ::error::${e.package} was due for review on ${e.reviewBy}`);
+if (r.fixNowAvailable.length) {
+  console.error('Accepted only because no fix existed — a fix now exists:');
+  for (const f of r.fixNowAvailable) {
+    console.error(
+      `  ::error::${f.severity} ${f.name} — upgrade it, or change acceptedBecause to ` +
+        `fix-exists-but-not-taken and say why`,
+    );
   }
   console.error('');
 }
@@ -116,4 +121,4 @@ if (!r.ok) {
   process.exit(1);
 }
 
-console.log('Audit gate passed: every finding is accounted for and in date.');
+console.log('Audit gate passed: every finding is accounted for.');
