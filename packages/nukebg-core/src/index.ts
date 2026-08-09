@@ -32,6 +32,7 @@ export {
   LamaError,
   DecodeError,
   PipelineAbortError,
+  PipelineTimeoutError,
 } from './pipeline/errors.js';
 
 // Top-level pipeline orchestrator + runner bundle type

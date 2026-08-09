@@ -1,4 +1,5 @@
 import type { StageEvent } from './pipeline-result.js';
+import type { PipelineTimeouts } from '../pipeline/constants.js';
 
 export type PipelineMode = 'photo' | 'signature' | 'icon' | 'auto';
 export type PipelinePrecision = 'low' | 'normal' | 'high' | 'ultra';
@@ -24,6 +25,16 @@ export interface PipelineOptions {
   readonly skipAutoCrop?: boolean;
   /** Cancellation. */
   readonly signal?: AbortSignal;
+  /**
+   * Per-stage and whole-run time budgets in milliseconds. Any omitted key
+   * falls back to `PIPELINE_TIMEOUTS`.
+   *
+   * Only the asynchronous stages can actually be bounded — a `Promise.race`
+   * cannot interrupt synchronous CV on the same thread — but those are where
+   * the real hangs live (a stalled model fetch). Pass `Infinity` for a key to
+   * opt out of that budget.
+   */
+  readonly timeouts?: Partial<PipelineTimeouts>;
   /** Stage event sink. Optional. */
   readonly onStage?: (event: StageEvent) => void;
 }

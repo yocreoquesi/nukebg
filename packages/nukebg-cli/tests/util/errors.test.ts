@@ -1,6 +1,12 @@
 import { describe, it, expect } from 'vitest';
 import { CommanderError } from 'commander';
-import { DecodeError, RmbgError, LamaError, PipelineAbortError } from 'nukebg-core';
+import {
+  DecodeError,
+  RmbgError,
+  LamaError,
+  PipelineAbortError,
+  PipelineTimeoutError,
+} from 'nukebg-core';
 import { exitCodeFor, IoError, NoInputError } from '../../src/util/errors.js';
 import { LicenseRequiredError } from '../../src/license/gate.js';
 import { ExitCode } from '../../src/util/exit-codes.js';
@@ -56,6 +62,17 @@ describe('exitCodeFor', () => {
   it('maps model inference failures to ExitCode.PIPELINE_FAILED (70)', () => {
     expect(exitCodeFor(new RmbgError('RMBG segmentation failed'))).toBe(ExitCode.PIPELINE_FAILED);
     expect(exitCodeFor(new LamaError('LaMa inpaint failed'))).toBe(ExitCode.PIPELINE_FAILED);
+  });
+
+  // A timeout is not a generic pipeline failure: it is retryable, and folding
+  // it into 70 would lose that. 124 matches GNU timeout(1), which is what
+  // scripts already branch on — the sysexits range (64-78) has no slot for
+  // "took too long". See issue #328.
+  it('maps PipelineTimeoutError to ExitCode.TIMEOUT (124)', () => {
+    expect(exitCodeFor(new PipelineTimeoutError('RMBG segmentation', 300_000))).toBe(
+      ExitCode.TIMEOUT,
+    );
+    expect(ExitCode.TIMEOUT).toBe(124);
   });
 
   it('maps NoInputError to ExitCode.NO_INPUT (66)', () => {

@@ -1,5 +1,11 @@
 import { CommanderError } from 'commander';
-import { PipelineAbortError, DecodeError, RmbgError, LamaError } from 'nukebg-core';
+import {
+  PipelineAbortError,
+  PipelineTimeoutError,
+  DecodeError,
+  RmbgError,
+  LamaError,
+} from 'nukebg-core';
 import { LicenseRequiredError } from '../license/gate.js';
 import { ExitCode } from './exit-codes.js';
 
@@ -74,6 +80,7 @@ const MODEL_ACQUISITION_CODES = new Set([
 
 export function exitCodeFor(err: unknown): number {
   if (err instanceof PipelineAbortError) return ExitCode.ABORTED;
+  if (err instanceof PipelineTimeoutError) return ExitCode.TIMEOUT;
   if (err instanceof CommanderError) return ExitCode.USER_ERROR;
   if (err instanceof LicenseRequiredError) return ExitCode.LICENSE_REQUIRED;
   if (err instanceof NoInputError) return ExitCode.NO_INPUT;
