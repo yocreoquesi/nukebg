@@ -259,23 +259,23 @@ _Goal: runtime-agnostic pipeline orchestrator implemented. Strict TDD with stub 
 
 _Goal: `PipelineOrchestrator` → `WorkerPipelineRunner`. Browser app satisfies `PipelineRunner`. Tests updated._
 
-- [ ] 10.1 Write failing test in `packages/nukebg-app/tests/pipeline/worker-pipeline-runner.test.ts` asserting that `WorkerPipelineRunner` (class not yet renamed) satisfies the `PipelineRunner` interface — i.e., a variable typed `PipelineRunner` can be assigned an instance without TypeScript error (REQ-PARITY-2).
+- [x] 10.1 Write failing test in `packages/nukebg-app/tests/pipeline/worker-pipeline-runner.test.ts` asserting that `WorkerPipelineRunner` (class not yet renamed) satisfies the `PipelineRunner` interface — i.e., a variable typed `PipelineRunner` can be assigned an instance without TypeScript error (REQ-PARITY-2).
 
-- [ ] 10.2 Rename `packages/nukebg-app/src/pipeline/orchestrator.ts` → `packages/nukebg-app/src/pipeline/worker-pipeline-runner.ts`. Rename the class `WorkerPipelineRunner`. Change `process(imageData: ImageData, ...)` → `run(input: ImageDataLike, options?: PipelineOptions): Promise<PipelineResult>`. Add `preload()` and `dispose()` stubs. Import `PipelineRunner` from `nukebg-core` and declare `implements PipelineRunner`. Run tests, expect green.
+- [x] 10.2 Rename `packages/nukebg-app/src/pipeline/orchestrator.ts` → `packages/nukebg-app/src/pipeline/worker-pipeline-runner.ts`. Rename the class `WorkerPipelineRunner`. Change `process(imageData: ImageData, ...)` → `run(input: ImageDataLike, options?: PipelineOptions): Promise<PipelineResult>`. Add `preload()` and `dispose()` stubs. Import `PipelineRunner` from `nukebg-core` and declare `implements PipelineRunner`. Run tests, expect green.
 
-- [ ] 10.3 Delete `packages/nukebg-app/src/pipeline/image-processor.ts`. Update all imports of `ImageProcessor` in browser app components to `PipelineRunner` from `nukebg-core`. Run `npm test`, expect green.
+- [x] 10.3 Delete `packages/nukebg-app/src/pipeline/image-processor.ts`. Update all imports of `ImageProcessor` in browser app components to `PipelineRunner` from `nukebg-core`. Run `npm test`, expect green.
 
-- [ ] 10.4 Update browser app components (`ar-*.ts`) that construct or reference `PipelineOrchestrator`:
+- [x] 10.4 Update browser app components (`ar-*.ts`) that construct or reference `PipelineOrchestrator`:
   - Change construction to `WorkerPipelineRunner`.
   - Rename `.process(...)` calls → `.run(...)`.
   - Reshape any `modelId`, `precision` parameters into `PipelineOptions`.
   Estimate ~10 spots (design §E.2). Run `npm test`, expect green after each component or as a batch.
 
-- [ ] 10.5 Update browser worker files that imported from the old `pipeline/constants` path (now `nukebg-core`) and any remaining direct imports of moved CV files. Run `npm test`, expect green.
+- [x] 10.5 Update browser worker files that imported from the old `pipeline/constants` path (now `nukebg-core`) and any remaining direct imports of moved CV files. Run `npm test`, expect green.
 
-- [ ] 10.6 Verify `WorkerPipelineRunner` satisfies `PipelineRunner` at the type level (compile check). Run `npm run typecheck`, expect zero errors (REQ-PARITY-2).
+- [x] 10.6 Verify `WorkerPipelineRunner` satisfies `PipelineRunner` at the type level (compile check). Run `npm run typecheck`, expect zero errors (REQ-PARITY-2).
 
-- [ ] 10.7 Verification: `npm test`, `npm run typecheck`, `npm run lint`, `npm run test:e2e` all green. Milestone: "browser uses `WorkerPipelineRunner`, behavior unchanged, e2e passes".
+- [x] 10.7 Verification: `npm test`, `npm run typecheck`, `npm run lint`, `npm run test:e2e` all green. Milestone: "browser uses `WorkerPipelineRunner`, behavior unchanged, e2e passes".
 
 ---
 

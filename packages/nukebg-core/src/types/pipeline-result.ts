@@ -39,6 +39,10 @@ export interface PipelineResult {
   readonly workingPixels: Uint8ClampedArray;
   /** Alpha mask (0..255) */
   readonly workingAlpha: Uint8Array;
+  /** Width of the working resolution buffer (matches output.width) */
+  readonly workingWidth: number;
+  /** Height of the working resolution buffer (matches output.height) */
+  readonly workingHeight: number;
   /** Percentage of pixels made transparent */
   readonly nukedPct: number;
   /** Detected content type */

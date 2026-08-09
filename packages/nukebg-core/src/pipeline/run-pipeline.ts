@@ -198,6 +198,8 @@ function composeResult(
     watermarkMask,
     workingPixels,
     workingAlpha: finalAlpha,
+    workingWidth: width,
+    workingHeight: height,
     nukedPct,
     contentType,
   });
