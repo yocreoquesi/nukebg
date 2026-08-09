@@ -45,3 +45,7 @@ export { resampleMask } from './resample-mask.js';
 
 // Shared PURE LaMa tensor packing (no onnxruntime import)
 export { packRgbaToChw, packMaskToChw, unpackChwToRgba } from './lama-tensors.js';
+
+// RMBG mask refinement chain — single source of truth for both the browser
+// worker and the Node runner (see issue #327).
+export { refineMask, spatialPass, morphOpen, removeSmallClusters } from './refine-mask.js';

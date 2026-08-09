@@ -70,6 +70,12 @@ export { resampleMask } from './cv/resample-mask.js';
 // Shared PURE LaMa tensor packing (no onnxruntime; caller wraps ort.Tensor)
 export { packRgbaToChw, packMaskToChw, unpackChwToRgba } from './cv/lama-tensors.js';
 
+// RMBG mask refinement — re-exported at the root so runtime runners can
+// `import { refineMask } from 'nukebg-core'` the same way they import the
+// tensor helpers. REQ-CORE-PIPELINE (specs/core-pipeline.md:115) also
+// requires stage functions to be individually exported.
+export { refineMask, spatialPass, morphOpen, removeSmallClusters } from './cv/refine-mask.js';
+
 // Inpaint module — patchMatchInpaint with PATCHMATCH_PARAMS defaults (Phase 7)
 export { patchMatchInpaint } from './inpaint/patch-match.js';
 export type { PatchMatchOptions } from './inpaint/patch-match.js';
