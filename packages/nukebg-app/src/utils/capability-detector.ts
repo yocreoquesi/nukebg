@@ -73,11 +73,9 @@ type PerformanceWithMemory = Performance & {
  */
 function guessTier(): { tier: CapabilityTier; reason: string } {
   const nav = (typeof navigator !== 'undefined' ? navigator : undefined) as
-    | NavigatorWithMemory
-    | undefined;
+    NavigatorWithMemory | undefined;
   const perf = (typeof performance !== 'undefined' ? performance : undefined) as
-    | PerformanceWithMemory
-    | undefined;
+    PerformanceWithMemory | undefined;
 
   const memory = nav?.deviceMemory; // 0.25 | 0.5 | 1 | 2 | 4 | 8 | undefined
   const cores = nav?.hardwareConcurrency ?? 0;

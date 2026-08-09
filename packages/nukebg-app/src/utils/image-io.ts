@@ -140,8 +140,7 @@ async function rasterizeBitmap(
     canvas.height = height;
   }
   const ctx = canvas.getContext('2d')! as
-    | CanvasRenderingContext2D
-    | OffscreenCanvasRenderingContext2D;
+    CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D;
   // High-quality downscale for better alpha-edge results after upscale.
   ctx.imageSmoothingEnabled = true;
   ctx.imageSmoothingQuality = 'high';

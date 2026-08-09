@@ -235,10 +235,7 @@ export type LamaWorkerResponse =
 /** ======== SAM (MobileSAM interactive segmentation) Worker Messages ======== */
 
 export type SamWorkerRequest =
-  | SamLoadRequest
-  | SamEncodeRequest
-  | SamDecodeRequest
-  | SamDisposeRequest;
+  SamLoadRequest | SamEncodeRequest | SamDecodeRequest | SamDisposeRequest;
 
 export interface SamLoadRequest {
   id: string;

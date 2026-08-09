@@ -91,8 +91,7 @@ interface SegmenterEntry {
 const segmenters = new Map<string, SegmenterEntry>();
 let currentModelId: ModelId = DEFAULT_MODEL;
 let RawImageClass:
-  | (new (data: Uint8ClampedArray, w: number, h: number, channels: number) => unknown)
-  | null = null;
+  (new (data: Uint8ClampedArray, w: number, h: number, channels: number) => unknown) | null = null;
 
 /** Detect compute device - currently forced to WASM */
 async function detectDevice(): Promise<'webgpu' | 'wasm'> {
