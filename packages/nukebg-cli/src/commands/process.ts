@@ -19,6 +19,7 @@ import { SharpImageCodec } from '../codecs/sharp-codec.js';
 import { OnnxNodeLamaRunner } from '../runners/onnx-node-lama.js';
 import { OnnxNodeRmbgRunner } from '../runners/onnx-node-rmbg.js';
 import { NodePipelineRunner } from '../runners/node-pipeline-runner.js';
+import { WorkerPipelineRunner } from '../runners/worker-pipeline-runner.js';
 import { assertAccepted as defaultAssertAccepted } from '../license/gate.js';
 import type { GateOptions } from '../license/gate.js';
 import { ExitCode } from '../util/exit-codes.js';
@@ -134,9 +135,15 @@ function resolveDeps(deps: ProcessCommandDeps): ResolvedDeps {
 
 export class ProcessCommand {
   private readonly deps: ResolvedDeps;
+  /**
+   * True when the caller injected its own pipeline runner. Tests do; the real
+   * CLI does not, and takes the worker path instead.
+   */
+  private readonly runnerInjected: boolean;
 
   constructor(deps: ProcessCommandDeps = {}) {
     this.deps = resolveDeps(deps);
+    this.runnerInjected = deps.createPipelineRunner !== undefined;
   }
 
   async execute(options: ProcessCommandOptions): Promise<number> {
@@ -169,17 +176,33 @@ export class ProcessCommand {
       const outputPath = resolveOutputPath(options.input, options.output, format);
 
       const noWatermark = options.noWatermark ?? false;
-      const rmbgRunner = this.deps.createRmbgRunner(
-        options.cacheDir !== undefined ? { cacheDir: options.cacheDir } : {},
-      );
-      const lamaRunner = noWatermark
-        ? undefined
-        : this.deps.createLamaRunner(
-            options.cacheDir !== undefined ? { cacheDir: options.cacheDir } : {},
-          );
-      const runner = this.deps.createPipelineRunner(
-        lamaRunner ? { rmbgRunner, lamaRunner } : { rmbgRunner },
-      );
+
+      // Default path: the whole pipeline runs on a worker thread, and the ONNX
+      // runners are constructed inside it. Building them here too would mean
+      // two copies of every model. See issue #329 — synchronous CV
+      // (patchMatchInpaint, ~2.3s at 720p and ~14.4s at 6MP) blocks the event
+      // loop, so on the main thread SIGINT cannot be answered at all.
+      //
+      // When a caller injects its own runner it wins, which is how the unit
+      // tests drive this without spawning threads.
+      const runner: PipelineRunner = this.runnerInjected
+        ? this.deps.createPipelineRunner(
+            (() => {
+              const rmbgRunner = this.deps.createRmbgRunner(
+                options.cacheDir !== undefined ? { cacheDir: options.cacheDir } : {},
+              );
+              const lamaRunner = noWatermark
+                ? undefined
+                : this.deps.createLamaRunner(
+                    options.cacheDir !== undefined ? { cacheDir: options.cacheDir } : {},
+                  );
+              return lamaRunner ? { rmbgRunner, lamaRunner } : { rmbgRunner };
+            })(),
+          )
+        : new WorkerPipelineRunner({
+            noWatermark,
+            ...(options.cacheDir !== undefined ? { cacheDir: options.cacheDir } : {}),
+          });
 
       log('Loading models...\n');
       await runner.preload?.();

@@ -19,7 +19,10 @@ import { defineConfig } from 'tsup';
 // ---------------------------------------------------------------------------
 
 export default defineConfig({
-  entry: { cli: 'src/cli.ts' },
+  // Two entries: the CLI and the pipeline worker it spawns. The worker MUST
+  // be its own emitted file — worker_threads needs a real path on disk, and
+  // worker-pipeline-runner.ts resolves it as a sibling of the bundle.
+  entry: { cli: 'src/cli.ts', 'pipeline.worker': 'src/runners/pipeline.worker.ts' },
   format: ['esm'],
   target: 'node20',
   platform: 'node',
