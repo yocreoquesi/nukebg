@@ -24,25 +24,7 @@ export default defineConfig({
   },
   build: {
     target: 'es2022',
-    // Emit to the repo root `dist/`, not `packages/nukebg-app/dist/`. Vite
-    // resolves a relative outDir against the project root, so this climbs out
-    // of the package.
-    //
-    // The deploy contract predates the monorepo: Cloudflare Pages builds from
-    // the repo root and looks for `dist/` there, and that setting lives in the
-    // Pages dashboard, not in this repo (there is no wrangler.toml). Moving
-    // the app under `packages/` in phase 2 pointed the artifact somewhere
-    // Pages does not look, so every branch in this chain failed its Pages
-    // build while dev and main stayed green.
-    //
-    // This is a workaround, not the preferred fix. The clean fix is to set the
-    // Pages project's root directory to `packages/nukebg-app` and revert this
-    // to 'dist' — do that if you have dashboard access, and drop this block.
-    //
-    // `emptyOutDir` is explicit because Vite will not clean an outDir that
-    // sits outside the project root unless told to.
-    outDir: '../../dist',
-    emptyOutDir: true,
+    outDir: 'dist',
     sourcemap: false,
   },
   worker: {
