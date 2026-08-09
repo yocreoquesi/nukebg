@@ -1,16 +1,14 @@
-import { guidedFilter } from 'nukebg-core/cv/alpha-matting';
-import { EDGE_REFINE_PARAMS } from 'nukebg-core';
+import { guidedFilter } from '../cv/alpha-matting.js';
+import { EDGE_REFINE_PARAMS } from './constants.js';
+import { createImageDataLike } from '../types/image-data-like.js';
+import type { ImageDataLike } from '../types/image-data-like.js';
 
 /**
  * Compose the final output at the original input resolution.
  *
- * When the pipeline runs on a downscaled working copy (memory budget),
- * this helper bilinear-upscales the resulting alpha mask back to the
- * original resolution, runs `refineUpscaledAlpha` to snap the soft edge
- * band to the real RGB gradient, and composites onto the original RGB
- * pixels. Pristine RGB is preserved outside the watermark region; inside
- * the watermark region the inpainted RGB is upscaled and blended using
- * the mask.
+ * Moved from packages/nukebg-app/src/utils/final-composite.ts in Phase 8.
+ * All `new ImageData(...)` calls replaced with `createImageDataLike(...)`.
+ * No DOM globals used.
  */
 
 /**
@@ -42,10 +40,10 @@ export function bilinearUpscaleU8(
       const x1 = Math.min(x0 + 1, srcW - 1);
       const dx = sx - x0;
 
-      const a = src[y0 * srcW + x0];
-      const b = src[y0 * srcW + x1];
-      const c = src[y1 * srcW + x0];
-      const d = src[y1 * srcW + x1];
+      const a = src[y0 * srcW + x0] ?? 0;
+      const b = src[y0 * srcW + x1] ?? 0;
+      const c = src[y1 * srcW + x0] ?? 0;
+      const d = src[y1 * srcW + x1] ?? 0;
 
       const top = a + (b - a) * dx;
       const bot = c + (d - c) * dx;
@@ -87,10 +85,10 @@ export function bilinearUpscaleRGB(
 
       const dstIdx = (y * dstW + x) * 4;
       for (let ch = 0; ch < 3; ch++) {
-        const a = src[(y0 * srcW + x0) * 4 + ch];
-        const b = src[(y0 * srcW + x1) * 4 + ch];
-        const c = src[(y1 * srcW + x0) * 4 + ch];
-        const d = src[(y1 * srcW + x1) * 4 + ch];
+        const a = src[(y0 * srcW + x0) * 4 + ch] ?? 0;
+        const b = src[(y0 * srcW + x1) * 4 + ch] ?? 0;
+        const c = src[(y1 * srcW + x0) * 4 + ch] ?? 0;
+        const d = src[(y1 * srcW + x1) * 4 + ch] ?? 0;
 
         const top = a + (b - a) * dx;
         const bot = c + (d - c) * dx;
@@ -105,15 +103,7 @@ export function bilinearUpscaleRGB(
 
 /**
  * Snap an upscaled alpha edge to the real image gradient at original
- * resolution. Only the trimap band (α strictly between BAND_LO and BAND_HI)
- * is replaced by the guided-filter output; pixels at or past either gate
- * are passed through verbatim so pure background / pure body never drift.
- *
- * Purpose: after any upsample (bilinear or JBU), the alpha edge sits
- * somewhere inside a soft band that may not align with the true RGB
- * gradient. A tight guided filter driven by the original luminance pulls
- * that band toward the actual edge, so `sharpenAlpha` lands on the right
- * pixel. Cheap (O(1) per-pixel box filter) and band-local.
+ * resolution.
  */
 export function refineUpscaledAlpha(
   alpha: Uint8Array,
@@ -123,12 +113,9 @@ export function refineUpscaledAlpha(
   radius: number = EDGE_REFINE_PARAMS.RADIUS,
   epsilon: number = EDGE_REFINE_PARAMS.EPSILON,
 ): Uint8Array {
-  // If no pixel sits in the trimap band, there's no edge to snap — skip
-  // the filter entirely. Guards the common case where RMBG already emitted
-  // a near-binary alpha and returns a cheap copy.
   let hasBand = false;
   for (let i = 0; i < alpha.length; i++) {
-    const a = alpha[i];
+    const a = alpha[i] ?? 0;
     if (a > EDGE_REFINE_PARAMS.BAND_LO && a < EDGE_REFINE_PARAMS.BAND_HI) {
       hasBand = true;
       break;
@@ -139,8 +126,9 @@ export function refineUpscaledAlpha(
   const filtered = guidedFilter(alpha, guideRgba, w, h, radius, epsilon);
   const out = new Uint8Array(alpha.length);
   for (let i = 0; i < alpha.length; i++) {
-    const a = alpha[i];
-    out[i] = a <= EDGE_REFINE_PARAMS.BAND_LO || a >= EDGE_REFINE_PARAMS.BAND_HI ? a : filtered[i];
+    const a = alpha[i] ?? 0;
+    out[i] =
+      a <= EDGE_REFINE_PARAMS.BAND_LO || a >= EDGE_REFINE_PARAMS.BAND_HI ? a : (filtered[i] ?? 0);
   }
   return out;
 }
@@ -161,21 +149,15 @@ export interface ComposeAtOriginalInput {
 
   /**
    * Watermark mask at working resolution (0 or 1), if inpainting happened.
-   * Controls which pixels get replaced by upscaled inpainted RGB.
    * If omitted or null, original RGB is preserved everywhere.
    */
   inpaintMask?: Uint8Array | null;
 }
 
 /**
- * Compose the final RGBA ImageData at original resolution.
- * - Alpha: bilinear-upscaled from working size, then snapped to the
- *   original-res RGB gradient by `refineUpscaledAlpha` when a downscale
- *   actually occurred.
- * - RGB: original pristine pixels, with inpainted region replaced where
- *   the mask says so.
+ * Compose the final RGBA ImageDataLike at original resolution.
  */
-export function composeAtOriginal(input: ComposeAtOriginalInput): ImageData {
+export function composeAtOriginal(input: ComposeAtOriginalInput): ImageDataLike {
   const {
     originalRgba,
     originalWidth: oW,
@@ -189,35 +171,28 @@ export function composeAtOriginal(input: ComposeAtOriginalInput): ImageData {
 
   const sameSize = oW === wW && oH === wH;
 
-  // Fast path: no upscale needed. Working RGBA already lives at original
-  // resolution; alpha passes through untouched.
+  // Fast path: no upscale needed.
   if (sameSize) {
     const out = new Uint8ClampedArray(oW * oH * 4);
     for (let i = 0; i < oW * oH; i++) {
-      out[i * 4] = workingRgba[i * 4];
-      out[i * 4 + 1] = workingRgba[i * 4 + 1];
-      out[i * 4 + 2] = workingRgba[i * 4 + 2];
-      out[i * 4 + 3] = workingAlpha[i];
+      out[i * 4] = workingRgba[i * 4] ?? 0;
+      out[i * 4 + 1] = workingRgba[i * 4 + 1] ?? 0;
+      out[i * 4 + 2] = workingRgba[i * 4 + 2] ?? 0;
+      out[i * 4 + 3] = workingAlpha[i] ?? 0;
     }
-    return new ImageData(out, oW, oH);
+    return createImageDataLike(out, oW, oH);
   }
 
-  // Downscale path: bilinear upsample, then snap the soft edge band to
-  // the original-res RGB gradient. Trimap-band restricted so pure 0/255
-  // pixels never drift.
+  // Downscale path: bilinear upsample, then snap the soft edge band.
   const upAlphaRaw = bilinearUpscaleU8(workingAlpha, wW, wH, oW, oH);
   const upAlpha = refineUpscaledAlpha(upAlphaRaw, originalRgba, oW, oH);
 
-  // Base RGB: pristine original
   const out = new Uint8ClampedArray(originalRgba);
 
-  // If inpaint happened, blend upscaled inpainted RGB in masked region.
-  // The detector emits a binary 0/1 mask — normalize to 0/255 before bilinear
-  // upscale so interpolated boundary weights live in the full 0..255 range.
   if (inpaintMask) {
     let maskMax = 0;
     for (let i = 0; i < inpaintMask.length; i++) {
-      if (inpaintMask[i] > maskMax) maskMax = inpaintMask[i];
+      if ((inpaintMask[i] ?? 0) > maskMax) maskMax = inpaintMask[i] ?? 0;
       if (maskMax === 255) break;
     }
     const scaledMask =
@@ -226,7 +201,7 @@ export function composeAtOriginal(input: ComposeAtOriginalInput): ImageData {
         : (() => {
             const s = new Uint8Array(inpaintMask.length);
             const k = 255 / maskMax;
-            for (let i = 0; i < inpaintMask.length; i++) s[i] = Math.round(inpaintMask[i] * k);
+            for (let i = 0; i < inpaintMask.length; i++) s[i] = Math.round((inpaintMask[i] ?? 0) * k);
             return s;
           })();
 
@@ -234,22 +209,21 @@ export function composeAtOriginal(input: ComposeAtOriginalInput): ImageData {
     const upInpaintRgb = bilinearUpscaleRGB(workingRgba, wW, wH, oW, oH);
     const total = oW * oH;
     for (let i = 0; i < total; i++) {
-      const m = upMask[i];
+      const m = upMask[i] ?? 0;
       if (m === 0) continue;
       const w = m / 255;
       const invW = 1 - w;
       const px = i * 4;
-      out[px] = out[px] * invW + upInpaintRgb[px] * w;
-      out[px + 1] = out[px + 1] * invW + upInpaintRgb[px + 1] * w;
-      out[px + 2] = out[px + 2] * invW + upInpaintRgb[px + 2] * w;
+      out[px] = (out[px] ?? 0) * invW + (upInpaintRgb[px] ?? 0) * w;
+      out[px + 1] = (out[px + 1] ?? 0) * invW + (upInpaintRgb[px + 1] ?? 0) * w;
+      out[px + 2] = (out[px + 2] ?? 0) * invW + (upInpaintRgb[px + 2] ?? 0) * w;
     }
   }
 
-  // Write upscaled alpha into RGBA
   const total = oW * oH;
   for (let i = 0; i < total; i++) {
-    out[i * 4 + 3] = upAlpha[i];
+    out[i * 4 + 3] = upAlpha[i] ?? 0;
   }
 
-  return new ImageData(out, oW, oH);
+  return createImageDataLike(out, oW, oH);
 }

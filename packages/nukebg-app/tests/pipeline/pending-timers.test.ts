@@ -15,7 +15,7 @@ import { resolve } from 'node:path';
 
 const ROOT = resolve(__dirname, '..', '..', 'src', 'pipeline');
 const CHANNEL = readFileSync(resolve(ROOT, 'worker-channel.ts'), 'utf8');
-const ORCH = readFileSync(resolve(ROOT, 'orchestrator.ts'), 'utf8');
+const ORCH = readFileSync(resolve(ROOT, 'worker-pipeline-runner.ts'), 'utf8');
 
 describe('worker-channel — pending-timer bookkeeping (#44)', () => {
   it('PendingRequest entries carry the timer handle so response handlers can clear it', () => {

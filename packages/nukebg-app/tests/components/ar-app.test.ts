@@ -20,29 +20,44 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 // `vi.hoisted` makes these refs survive vi.mock's automatic hoisting above
 // the module imports — needed so the test can reach the orchestrator mock
 // to flip resolve/reject per scenario.
-const { preloadModelMock } = vi.hoisted(() => ({
-  preloadModelMock: vi.fn(() => Promise.resolve()),
+const { preloadMock } = vi.hoisted(() => ({
+  preloadMock: vi.fn(() => Promise.resolve()),
 }));
 
-vi.mock('../../src/pipeline/orchestrator', () => ({
-  PipelineOrchestrator: class MockOrchestrator {
-    preloadModel = preloadModelMock;
-    process = vi.fn(() =>
+vi.mock('../../src/pipeline/worker-pipeline-runner', () => ({
+  WorkerPipelineRunner: class MockWorkerPipelineRunner {
+    preload = preloadMock;
+    // Legacy alias used by some edge paths
+    preloadModel = preloadMock;
+    run = vi.fn(() =>
       Promise.resolve({
-        imageData: new ImageData(4, 4),
-        watermarks: [],
-        stages: [],
+        output: new ImageData(4, 4),
+        resolvedMode: 'photo',
+        durationMs: 100,
+        stageTimings: {},
+        watermarkRemoved: false,
+        watermarkMask: null,
+        workingPixels: new Uint8ClampedArray(4 * 4 * 4),
+        workingAlpha: new Uint8Array(4 * 4),
+        workingWidth: 4,
+        workingHeight: 4,
+        nukedPct: 50,
+        contentType: 'PHOTO',
       }),
     );
     abort = vi.fn();
+    dispose = vi.fn(() => Promise.resolve());
     setStageCallback = vi.fn();
   },
-  PipelineAbortError: class PipelineAbortError extends Error {
-    constructor(msg = 'aborted') {
-      super(msg);
-    }
-  },
 }));
+
+// PipelineAbortError is now from nukebg-core — mock it there too
+vi.mock('nukebg-core', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('nukebg-core')>();
+  return {
+    ...actual,
+  };
+});
 
 vi.mock('../../src/sw-register', () => ({
   installApp: vi.fn(() => Promise.resolve(true)),
@@ -153,8 +168,8 @@ describe('ArApp orchestrator (#131)', () => {
   let app: ArApp;
 
   beforeEach(() => {
-    preloadModelMock.mockClear();
-    preloadModelMock.mockReturnValue(Promise.resolve());
+    preloadMock.mockClear();
+    preloadMock.mockReturnValue(Promise.resolve());
     app = document.createElement('ar-app') as ArApp;
     document.body.appendChild(app);
   });
@@ -239,10 +254,10 @@ describe('ArApp orchestrator (#131)', () => {
   describe('initial status line', () => {
     // Use a never-resolving preload so the reactor/model don't flip to
     // their post-load state before the assertions run. The default
-    // preloadModelMock above resolves immediately, which is right for
+    // preloadMock above resolves immediately, which is right for
     // the "on resolve" test but races these two.
     function freshAppWithPendingPreload(): ArApp {
-      preloadModelMock.mockReturnValueOnce(new Promise(() => {}));
+      preloadMock.mockReturnValueOnce(new Promise(() => {}));
       const inst = document.createElement('ar-app') as ArApp;
       document.body.appendChild(inst);
       return inst;
@@ -265,13 +280,13 @@ describe('ArApp orchestrator (#131)', () => {
 
   // ─── Preload pipeline ────────────────────────────────────────────────────
 
-  describe('preloadModel flow', () => {
-    it('constructs a PipelineOrchestrator and calls preloadModel on connect', () => {
-      expect(preloadModelMock).toHaveBeenCalledWith('briaai/RMBG-1.4');
+  describe('preload flow', () => {
+    it('constructs a WorkerPipelineRunner and calls preload on connect', () => {
+      expect(preloadMock).toHaveBeenCalledWith('briaai/RMBG-1.4');
     });
 
     it('on resolve, flips reactor → online and model → ready', async () => {
-      preloadModelMock.mockReturnValueOnce(Promise.resolve());
+      preloadMock.mockReturnValueOnce(Promise.resolve());
       const fresh = document.createElement('ar-app') as ArApp;
       document.body.appendChild(fresh);
       await flushMicrotasks();
@@ -284,7 +299,7 @@ describe('ArApp orchestrator (#131)', () => {
     });
 
     it('on reject, keeps reactor offline and sets model → lazy', async () => {
-      preloadModelMock.mockReturnValueOnce(Promise.reject(new Error('network down')));
+      preloadMock.mockReturnValueOnce(Promise.reject(new Error('network down')));
       vi.spyOn(console, 'error').mockImplementationOnce(() => {});
 
       const fresh = document.createElement('ar-app') as ArApp;
