@@ -3,7 +3,13 @@ import { readFile, unlink } from 'node:fs/promises';
 import { join } from 'node:path';
 import { env, pipeline, RawImage } from '@huggingface/transformers';
 import type { ImageDataLike, RmbgRefineOptions, RmbgRunner } from 'nukebg-core';
-import { PipelineAbortError, RmbgError, RMBG_PARAMS, resampleMask } from 'nukebg-core';
+import {
+  PipelineAbortError,
+  RmbgError,
+  RMBG_PARAMS,
+  refineMask,
+  resampleMask,
+} from 'nukebg-core';
 import { resolveCacheDir } from './cache-dir.js';
 
 // Re-exported for backward compatibility — callers/tests importing
@@ -169,7 +175,21 @@ export class OnnxNodeRmbgRunner implements RmbgRunner {
 
     // Shared resampler (core `resampleMask`, pixel-center offset) — single
     // source of truth matching the browser `ml.worker.ts` resize.
-    return resampleMask(mask.data, mask.width, mask.height, input.width, input.height);
+    const resampled = resampleMask(
+      mask.data,
+      mask.width,
+      mask.height,
+      input.width,
+      input.height,
+    );
+
+    // Apply the same refinement chain the browser runs on every segmentation
+    // (spatial passes -> morphological opening -> small-cluster removal).
+    // This used to be skipped entirely: `opts.refine` was accepted and
+    // dropped, so `--precision` only moved `rmbgThreshold` and CLI output
+    // kept the speckle noise and false-positive clusters the web app removes
+    // (issue #327).
+    return refineMask(resampled, input.width, input.height, opts.refine);
   }
 
   async dispose(): Promise<void> {

@@ -104,7 +104,7 @@ const shouldSkip = !modelCached && !forceRequired;
 
 describe('Browser<->Node pixel parity (REQ-PARITY-1, REQ-PARITY-4)', () => {
   if (shouldSkip) {
-    // eslint-disable-next-line vitest/expect-expect -- intentional skip stub, no assertions
+    // Intentional skip stub: no assertions, the body never runs.
     it.skip('Skipping parity test — RMBG model not cached (set NUKEBG_PARITY_REQUIRE=1 to force)', () => {});
     return;
   }
@@ -142,7 +142,12 @@ describe('Browser<->Node pixel parity (REQ-PARITY-1, REQ-PARITY-4)', () => {
 
       const rmbgRunner = new OnnxNodeRmbgRunner();
       const lamaRunner = fixture.skipWatermark ? undefined : new OnnxNodeLamaRunner();
-      const runner = new NodePipelineRunner({ rmbgRunner, lamaRunner });
+      // `exactOptionalPropertyTypes` forbids passing an explicit `undefined`
+      // for an optional property — omit the key instead.
+      const runner = new NodePipelineRunner({
+        rmbgRunner,
+        ...(lamaRunner ? { lamaRunner } : {}),
+      });
 
       try {
         const result = await runner.run(input, {

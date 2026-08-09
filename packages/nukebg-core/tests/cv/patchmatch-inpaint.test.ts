@@ -72,8 +72,8 @@ describe('initNNF', () => {
     for (let y = 0; y < h; y++) {
       for (let x = 0; x < w; x++) {
         if (!mask[y * w + x]) continue;
-        const sx = nnf[(y * w + x) * 2];
-        const sy = nnf[(y * w + x) * 2 + 1];
+        const sx = nnf[(y * w + x) * 2]!;
+        const sy = nnf[(y * w + x) * 2 + 1]!;
         // Source must fit a 3-radius patch inside the image
         expect(sx).toBeGreaterThanOrEqual(3);
         expect(sx).toBeLessThan(w - 3);
@@ -115,9 +115,9 @@ describe('patchMatchInpaint', () => {
       for (let x = 0; x < w; x++) {
         if (!mask[y * w + x]) continue;
         const i = (y * w + x) * 4;
-        expect(Math.abs(out[i] - 140)).toBeLessThanOrEqual(2);
-        expect(Math.abs(out[i + 1] - 80)).toBeLessThanOrEqual(2);
-        expect(Math.abs(out[i + 2] - 40)).toBeLessThanOrEqual(2);
+        expect(Math.abs(out[i]! - 140)).toBeLessThanOrEqual(2);
+        expect(Math.abs(out[i + 1]! - 80)).toBeLessThanOrEqual(2);
+        expect(Math.abs(out[i + 2]! - 40)).toBeLessThanOrEqual(2);
       }
     }
   });
@@ -143,7 +143,7 @@ describe('patchMatchInpaint', () => {
         if (!mask[y * w + x]) continue;
         total++;
         const i = (y * w + x) * 4;
-        if (out[i] < 80 || out[i] > 170) crisp++;
+        if (out[i]! < 80 || out[i]! > 170) crisp++;
       }
     }
     // At least 70% of reconstructed pixels should be crisp (not midtone mush)

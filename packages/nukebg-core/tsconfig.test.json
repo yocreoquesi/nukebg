@@ -1,0 +1,16 @@
+// Typecheck-only project for nukebg-core's test suite.
+//
+// The main tsconfig.json is a composite build (rootDir ./src, outDir ./dist)
+// and therefore cannot include tests/ without breaking rootDir. That left the
+// test suite completely untypechecked while nukebg-app and nukebg-cli both
+// cover their tests/ directories. This project closes that gap: same strict
+// options, no emit, src + tests in one program.
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "ignoreDeprecations": "6.0"
+  },
+  "include": ["src/**/*.ts", "tests/**/*.ts"],
+  "exclude": ["node_modules", "dist"]
+}

@@ -506,8 +506,9 @@ _Goal: GitHub Actions runs CLI build + test on Linux x64, macOS arm64, Windows x
 - [x] 18.2 Ensure existing `.github/workflows/` CI (browser app, e2e) is unchanged and continues to run independently of the CLI workflow.
   - Verified via `git diff --stat` on `ci.yml`, `security.yml`, `safari-real-device.yml`, `dependabot-automerge.yml` — zero diff, all four untouched. New `cli.yml` uses a distinct `name: CLI` and is `paths:`-filtered to `packages/nukebg-cli/**`, `packages/nukebg-core/**`, root manifests/tsconfigs, and its own workflow file, so it doesn't collide with or get triggered redundantly alongside the other workflows' broader (unfiltered) triggers.
 
-- [ ] 18.3 Verification: push to a feature branch and confirm all three OS legs pass in GitHub Actions. Milestone: "CLI CI matrix green on all three platforms".
-  - **NOT DONE HERE** — requires an actual push to GitHub Actions, which this environment/session cannot perform (no push permitted per task constraints). Left unchecked. User must push `.github/workflows/cli.yml` (on this branch or a dedicated feature branch) and confirm all three matrix legs (ubuntu-latest, macos-latest, windows-latest) go green before checking this off. Locally validated instead: YAML parsed successfully (Node `yaml` package), job/step structure sanity-checked, and both included commands (`npm run typecheck -w nukebg-cli`, `npm test -w nukebg-cli`) verified green on this machine.
+- [x] 18.3 Verification: push to a feature branch and confirm all three OS legs pass in GitHub Actions. Milestone: "CLI CI matrix green on all three platforms".
+  - **DONE.** The chain was pushed and `cli.yml` now runs on every chain PR. First run: macOS and Windows green, ubuntu red — the duplicated `onnxruntime-node` (F.3). After that fix, all three legs are green on PR #322 (the slice carrying the fix) and PR #324 (the chain tip), alongside `Lint + format` and `Typecheck + tests`.
+  - This is exactly the class of failure 18.3 exists to catch: it was invisible to every local run, because Linux is the only platform where the shared-soname collision resolves to the wrong library.
 
 ---
 
@@ -603,16 +604,17 @@ _Goal: all README and CONTRIBUTING files updated. REQ-CLI-LICENSE-5 satisfied._
 - [x] X.1 **Lock file hygiene**: after each phase that modifies `package.json` files (Phases 1, 2, 4, 11, 12, 13, 14, 19), run `npm install` at root and commit the updated `package-lock.json` as part of that phase's commit.
   - Phase 19: `npm install` run at root after bumping `onnxruntime-node` to `^1.24.0` and adding `tsup`; `package-lock.json` regenerated cleanly (working tree shows only `package-lock.json` + the two touched `package.json` files as modified — no unrelated drift). Not committed (per this task's no-commit constraint); left staged as a working-tree diff for the user to commit.
 
-- [ ] X.2 **`eslint.config.js` path coverage**: after Phase 2 moves `src/` to `packages/nukebg-app/src/`, verify the flat ESLint config's `rootDir` still resolves all three package directories. Adjust globs if needed. Run `npm run lint` clean.
+- [x] X.2 **`eslint.config.js` path coverage**: root `lint`/`lint:fix` were still scoped to `-w nukebg-app`, so nukebg-core and nukebg-cli were never linted at all. Root scripts now run `eslint .` across the workspace; ignore globs generalised (`**/dist/**`, `**/node_modules/**`, `packages/*/scripts/**`, `packages/nukebg-app/public/**`) so the sweep covers the three packages' source and tests without dragging in build output or untyped `.mjs`. Extending coverage surfaced two genuine errors, both fixed: `prefer-const` in `packages/nukebg-cli/src/codecs/sharp-codec.ts` and a stale `eslint-disable` for the uninstalled `vitest/expect-expect` rule in `parity.test.ts`. Also moved the lint toolchain (`eslint`, `@eslint/js`, `typescript-eslint`, `globals`, `eslint-plugin-no-unsanitized`) from nukebg-app to root `devDependencies` — the root config imports them, and it had been resolving only by npm hoisting. `npm run lint` clean at root and in nukebg-app.
 
-- [ ] X.3 **Vitest `include` patterns**: after each batch move in Phases 5–8, confirm root `vitest.config.ts` picks up the new test paths under `packages/nukebg-core/tests/`. Add explicit `include` patterns if Vitest's default discovery misses any file.
+- [x] X.3 **Vitest `include` patterns**: no root `vitest.config.ts` exists — each package owns its discovery (nukebg-app via `vite.config.ts`, nukebg-cli via `vitest.config.ts`, nukebg-core on Vitest defaults). Verified by counting `.test.ts` files on disk against files Vitest actually ran: app 58/58, cli 12/12, core 39/39 (38 + 1 expected parity skip). No orphans, so no explicit `include` patterns needed.
 
-- [ ] X.4 **`no-unsanitized` ESLint rule scope**: after Phase 2, confirm the `no-unsanitized` lint rule (added in commit `f54eac8`) still applies to `packages/nukebg-app/src/` and does NOT apply to `packages/nukebg-core/src/` or `packages/nukebg-cli/src/` (no DOM in those).
+- [x] X.4 **`no-unsanitized` ESLint rule scope**: the rule block had no `files` restriction, so it applied to whatever ESLint touched. Split the config — `no-unsanitized/property` and `no-unsanitized/method` (plus browser/worker globals) now live in a block scoped to `packages/nukebg-app/**/*.ts`; core and cli get a Node-globals block with no DOM rules. Verified empirically with `eslint --print-config`: both rules present for `nukebg-app/src/main.ts`, **NONE** for `nukebg-core/src/index.ts` and `nukebg-cli/src/codecs/sharp-codec.ts`.
 
-- [ ] X.5 **`tsconfig` project references**: after each new package or move, update the root `tsconfig.json` references array and run `tsc -b` to confirm no missing-reference errors. Do not defer — broken references silently invalidate incremental builds.
+- [x] X.5 **`tsconfig` project references**: `tsc -b` at root resolves cleanly — the references array correctly lists nukebg-core, the only composite project (app and cli are `--noEmit` consumers that path-map to core *source*, so they are deliberately not references). Verification uncovered a real gap: nukebg-core's composite tsconfig has `include: ["src/**/*.ts"]` and `rootDir: ./src`, so its **39 test files were never typechecked** — proven by injecting a deliberate type error into `tests/` and watching `tsc -b` report nothing, while app and cli both cover their `tests/`. Added `packages/nukebg-core/tsconfig.test.json` (noEmit, same strict base, `src` + `tests` in one program) and wired core's `typecheck` to `tsc -b && tsc -p tsconfig.test.json`. First run surfaced **46 latent type errors across 12 files**, all fixed — most were `noUncheckedIndexedAccess` violations in assertions, but `pipeline-result.test.ts` and `interfaces.test.ts` were building `PipelineResult` fixtures missing `workingWidth`/`workingHeight`, fields the type had gained with no test ever noticing. Guard re-verified: the same probe now fails the build.
 
 - [ ] X.6 **CI secret / model cache**: before Phase 18, decide and document the CI strategy for caching RMBG and LaMa models (GitHub Actions cache key based on model SHA from `LAMA_PARAMS.EXPECTED_SHA256`). Parity tests run with `NUKEBG_PARITY_REQUIRE=1` only on the leg that has the cache populated.
-  - **PARTIAL**: strategy *documented* (not yet implemented) as an inline comment in `.github/workflows/cli.yml`'s "Test nukebg-cli" step: an `actions/cache` step keyed on a hash derived from `LAMA_PARAMS.EXPECTED_SHA256` / `RMBG_PARAMS.EXPECTED_SHA256` (`packages/nukebg-core/src/pipeline/constants.ts`), content-addressed so a model swap busts the cache automatically, plus a download step for the cache-miss case, on exactly one matrix leg (model download too slow/wasteful to repeat x3). `NUKEBG_PARITY_REQUIRE` stays unset on all legs until this cache step + Phase 17's still-missing committed browser-baseline reference PNGs both exist. Remains unchecked — no `actions/cache` step or download step actually implemented yet; that's follow-up work, not part of Phase 18 scope per the apply brief.
+  - **DEFERRED to v1.1 (deliberate).** Re-verified that the documented strategy is not stale: `RMBG_PARAMS.EXPECTED_SHA256` and `LAMA_PARAMS.EXPECTED_SHA256` are live at `packages/nukebg-core/src/pipeline/constants.ts:170` and `:377`, and the three synthetic input fixtures are committed under `tests/fixtures/parity/`. The blocker stands: no browser-baseline reference outputs exist (C1, amended to v1.1). Implementing `actions/cache` + a download step *now* would make every CLI CI run pull hundreds of MB of ONNX weights to populate a cache whose only consumer — the parity test — stays skipped. That is CI spend for zero signal. The cache step lands together with the baselines that make parity enforceable, not before.
+  - Original note — strategy *documented* (not yet implemented) as an inline comment in `.github/workflows/cli.yml`'s "Test nukebg-cli" step: an `actions/cache` step keyed on a hash derived from `LAMA_PARAMS.EXPECTED_SHA256` / `RMBG_PARAMS.EXPECTED_SHA256` (`packages/nukebg-core/src/pipeline/constants.ts`), content-addressed so a model swap busts the cache automatically, plus a download step for the cache-miss case, on exactly one matrix leg (model download too slow/wasteful to repeat x3). `NUKEBG_PARITY_REQUIRE` stays unset on all legs until this cache step + Phase 17's still-missing committed browser-baseline reference PNGs both exist. Remains unchecked — no `actions/cache` step or download step actually implemented yet; that's follow-up work, not part of Phase 18 scope per the apply brief.
 
 - [x] X.7 **`finalize-chain` and `pending-timers` tests**: `finalize-chain.test.ts` moved to `packages/nukebg-core/tests/pipeline/finalize-chain.test.ts` (imports only core finalize functions — no DOM). `pending-timers.test.ts` stays in app (reads `orchestrator.ts` and `worker-channel.ts` source files which live in the app).
 
@@ -627,6 +629,92 @@ _Goal: all README and CONTRIBUTING files updated. REQ-CLI-LICENSE-5 satisfied._
 - [x] **W3 → v1.1**: REQ-CLI-INVOCATION-7 amended — v1 emits coarse phase progress on stderr (+`--verbose` timings); structured one-event-per-stage output ships with `--json` in v1.1.
 - [x] **W6 (doc drift)**: design §H.2 exit-code table gained `NO_INPUT: 66` (EX_NOINPUT) to match `specs/cli-invocation.md` REQ-2/6 and `exit-codes.ts`.
 - [x] **S4 (doc drift)**: `specs/cli-license-gate.md` reconciled `exit 2` → `exit 78` (LICENSE_REQUIRED) in all three references.
-- [ ] **W4/W1/W7 (code fixes)**: applied in a separate fix pass (RMBG `RMBG_DOWNLOAD_FAILED` code; `skipAutoCrop` option + `--no-auto-crop` wiring; core `exports` subpaths). See that commit + apply-progress.
+- [x] **W4/W1/W7 (code fixes)**: applied in a separate fix pass (RMBG `RMBG_DOWNLOAD_FAILED` code; `skipAutoCrop` option + `--no-auto-crop` wiring; core `exports` subpaths). Landed in commit `02582f3`; the checkbox was left unticked by drift, not by pending work.
 
-**Still open (explicitly deferred, not blocking archive after this reconciliation):** 18.3 (CI 3-OS confirmation — needs a push), X.2–X.6, and the v1.1 items above (parity enforcement, stdin/stdout, `--json`, per-stage events).
+---
+
+## Follow-ups opened during the X.2–X.6 pass
+
+- [ ] **F.1 Prettier scope mirrors the old ESLint gap**: root `format` / `format:check` still delegate to `-w nukebg-app`, so nukebg-core and nukebg-cli are never format-checked — and they are currently formatted at roughly `printWidth: 80` against the root `.prettierrc.json`'s `printWidth: 100`. Widening the scope means reformatting both packages, a large mechanical diff deliberately kept out of this already-328-file change. Do it as its own sweep PR, the same way #134 handled the app.
+  - **Landmine for that sweep:** `CONTRIBUTING.md:322` (the innerHTML policy paragraph) is
+    already unformatted per Prettier, and running `--write` on it *corrupts the prose*:
+    Prettier strips the spaces around an inline-code span that contains escaped backticks,
+    welding the closing span onto the next word. Root-level docs sit outside the current
+    app-scoped `format:check`, so nothing catches it today. Fix that line by hand, or add it
+    to `.prettierignore`, before widening the scope.
+- [ ] **F.2 CRLF vs `endOfLine: "lf"` on Windows**: with `core.autocrlf=true` and no `.gitattributes` text rule, `npm run format:check` reports every checked-out file as unformatted on Windows (121 files locally) while CI on Linux passes. Confirmed a false positive via `git ls-files --eol` (`i/lf`, `w/crlf`), not a real formatting drift. A `* text=auto eol=lf` rule in `.gitattributes` would fix it, but it rewrites every working tree on checkout — schedule it deliberately, not inside a feature branch.
+
+- [x] **F.3 `onnxruntime-node` duplicated, broke the Linux CI leg** — FIXED in the phase-19-20 slice. The first real push of this chain surfaced what no local run could. **nukebg-cli itself** depends on both `@huggingface/transformers` (which pins `onnxruntime-node` to exactly `1.21.0`, hoisted to the root `node_modules`) and `onnxruntime-node` directly at `^1.24.0` (resolved to `1.27.0`, nested under the package) — two ONNX runtimes inside one process, not an app↔cli clash as first assumed. On Linux the root napi-v3 `onnxruntime_binding.node` resolves the shared soname `libonnxruntime.so.1` to the nested 1.27 build, which does not export `VERS_1.21.0`, so `tests/cli.test.ts` and `tests/commands/process.test.ts` failed to load. macOS and Windows use different library lookup rules and never collided, which is why two legs were green and one was red.
+  - **Fix:** pinned the direct dependency to the same `1.21.0` transformers already requires, collapsing the tree to a single copy. The CLI only uses `ort.InferenceSession`, `ort.Tensor` and `ort.meta`, all stable in 1.21.0.
+  - **Gotcha worth remembering:** changing the spec was not enough. npm rewrote the dependency spec but left the stale nested resolution in the lockfile and reported "up to date"; even deleting both `node_modules` copies did not re-resolve it. `npm dedupe` was required to actually collapse the tree. Root `overrides` also failed here — npm will not apply an override to a package a workspace depends on directly unless the specs match exactly (the `protobufjs` override works because nothing declares it directly).
+  - **Long-term:** the `1.21.0` pin is a coupling, not a preference — it silently re-breaks if transformers moves its pin. `@huggingface/transformers@4.x` pins `onnxruntime-node 1.24.3`, which would satisfy the original `^1.24.0` with no artificial pin. See F.4.
+
+- [ ] **F.4 Evaluate the `@huggingface/transformers` v3.8.1 → v4.x bump**: worth its own change, and it settles three things at once. (a) It removes the F.3 pin — v4 pins `onnxruntime-node 1.24.3`, matching what the CLI actually wanted. (b) v4 ships a WebGPU runtime rewritten in C++ with the ONNX Runtime team, which is the specific subsystem that caused the `NetworkError` behind the `detectDevice()` hard-coded `return 'wasm'` in `packages/nukebg-app/src/workers/ml.worker.ts:98-102` (forced on 2026-03-27 in `dcd22e6`; the dependency has not moved since). (c) v4 claims WebGPU in Node/Bun/Deno, which would matter for the CLI, not just the browser. It is a major bump of the project's core ML dependency and needs its own spike: verify the `pipeline` / `env` / `RawImage` API surface the app and CLI use, and re-test the WebGPU path on the browsers that originally failed before removing the WASM force. Note that LaMa and SAM do not go through transformers.js at all — they use `onnxruntime-web` directly with `executionProviders: ['wasm']` — so a v4 bump accelerates only the RMBG segmentation path unless those workers are migrated too.
+
+- [x] **F.5 Cloudflare Pages build failed on the chain** — FIXED. Pages was `success` on `dev` and `main` and `failure` on every chain PR. It turned out to be **two independent failures, one stacked behind the other**, which is why the first fix looked wrong.
+
+  **Failure 1 — output directory (from phase 2).** Pages validates its configured output dir (`dist`) relative to its root directory, which is the repo root. Vite resolves `outDir` against *its* project root, so the phase 2 move sent the artifact to `packages/nukebg-app/dist/` and the path Pages checks stopped existing:
+
+  ```text
+  Validating asset output directory
+  Error: Output directory "dist" not found.
+  ```
+
+  Fixed with `outDir: '../../dist'` + `emptyOutDir: true` in `packages/nukebg-app/vite.config.ts`, plus the matching `ci.yml` assertions.
+
+  **Failure 2 — asset over the Pages size ceiling (self-inflicted, `42e1e9b`).** Only visible once failure 1 was fixed and the deploy reached the next step:
+
+  ```text
+  Error: Pages only supports files up to 25 MiB in size
+    assets/ort-wasm-simd-threaded.jsep-DC5y_g6C.wasm is 25.6 MiB in size
+  ```
+
+  `42e1e9b` ran `npm install`/`npm dedupe` to fix the onnxruntime-node duplication, and the caret on `^1.24.3` let **onnxruntime-web** float 1.24.3 → 1.27.0. The lockfile was committed after checking only the onnxruntime-node entries. 1.27.0 emits a 25.6 MiB WASM, over Pages' hard per-file limit. It also created a silent runtime mismatch: `lama.worker.ts:35` and `sam.worker.ts:23` hardcode the WASM CDN to `onnxruntime-web@1.24.3`, so 1.27.0 JS glue was pairing with 1.24.3 binaries. Fixed by pinning `onnxruntime-web` to exactly `1.24.3`.
+
+  **Verified:** Pages `success` on `b1128c1`, alongside all three OS legs, lint, typecheck and the 1151-test suite.
+
+  **Two lessons worth keeping.**
+  - *A fix that does not turn the check green is not necessarily the wrong fix.* This one was reverted once on exactly that inference, without ever reading the build log for the commit that carried it. Read the log for **that** commit before concluding anything.
+  - *Never commit a regenerated lockfile by inspecting only the dependency you meant to change.* A caret range moved 40 MB of WASM silently. Diff every changed resolution.
+
+  **Standing risks.**
+  - Headroom is thin: the largest asset is now 23.86 MiB against a 25 MiB ceiling. Any ORT bump must be checked for asset size before landing — this applies directly to F.4.
+  - The alternative fix (Pages root directory → `packages/nukebg-app`, `outDir` back to `'dist'`) remains cleaner, keeping build output inside the package. It needs dashboard access, and it is **mutually exclusive** with the applied fix: with the root directory moved, `'../../dist'` writes outside it.
+  - `README.md:97` ("Deploy `dist/`") is accurate under the applied fix; it needs updating if the dashboard route is ever taken.
+
+
+- [x] **F.6 `CONTRIBUTING.md` is stale about the lint gate** — FIXED: line 230 states the `Lint + format` job is "non-blocking today (`continue-on-error: true`)", but `.github/workflows/ci.yml` sets `continue-on-error: false` — it was flipped to blocking in #134 after the prettier sweep. One-line doc correction.
+
+**Still open (explicitly deferred, not blocking archive after this reconciliation):** X.6 (see its note: coupled to the v1.1 parity baselines), F.1/F.2/F.4 above, and the v1.1 items (parity enforcement, stdin/stdout, `--json`, per-stage events). X.2–X.5, F.3, F.5, F.6 and 18.3 are now closed.
+
+## Regression guards added
+
+Three failures in this change reached CI or a failed deploy without any test noticing.
+Each now fails before merge, and each guard was verified by reintroducing the exact
+regression it targets rather than by passing on a healthy tree.
+
+- **`packages/nukebg-app/tests/onnxruntime-coherence.test.ts`** — `onnxruntime-web` must be
+  pinned with no range prefix, every hard-coded `wasmPaths` CDN URL must name that same
+  version, and the lockfile must resolve to it. The workers fetch WASM from a versioned
+  CDN URL instead of bundling it, so the JS glue and the binary are independently
+  versioned halves of one runtime and can drift apart silently. *Verified: restoring
+  `^1.24.3` fails all three assertions; drifting one CDN URL fails the second.*
+- **`packages/nukebg-cli/tests/onnxruntime-single-runtime.test.ts`** — exactly one
+  `onnxruntime-node` resolution in the lockfile, and the direct spec must equal the
+  version `@huggingface/transformers` pins. Two copies collide on Linux over the shared
+  `libonnxruntime.so.1` soname; macOS and Windows do not, so the three-OS matrix went
+  green-green-red. *Verified: restoring `^1.24.0` fails the second assertion.*
+- **`.github/workflows/ci.yml` → "Verify no asset exceeds the Cloudflare Pages 25 MiB
+  limit"** — Pages enforces its per-file ceiling at deploy time, after the build has
+  already succeeded, so CI was fully green while the deploy was rejected. This moves the
+  failure back into CI and prints the five largest assets on every run. *Verified: a
+  26 MiB probe file trips it.* Headroom is thin — the largest asset is ~23.9 MiB.
+
+What none of these can catch is the reasoning error that made them necessary: concluding
+a fix was wrong because the check stayed red, without reading the build log for the commit
+that carried the fix. There were two stacked failures, and the second was only visible once
+the first was gone. Read the log for **that** commit before drawing conclusions.
+
+**Merge status:** no blockers. Every check is green on the chain tip — all three OS legs, lint, typecheck, the 1151-test suite, and Cloudflare Pages. The tracker PR can be opened as soon as #291 merges into `feat/extract-core-cli` (GitHub rejects a zero-diff PR until then).
+
+**18.3 status:** the chain is pushed and the three-OS matrix now runs on every chain PR. macOS and Windows passed on the first run; ubuntu was red on F.3 and is awaiting confirmation on the run that includes the fix. Do not tick 18.3 until a run shows all three legs green.

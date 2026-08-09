@@ -238,7 +238,11 @@ describe('ProcessCommand', () => {
   });
 
   it('exits MODEL_DOWNLOAD_FAILED (74) when the model preload fails', async () => {
-    const { deps } = makeDeps({ preloadError: new RmbgError('network error after retries') });
+    const { deps } = makeDeps({
+      preloadError: new RmbgError('network error after retries', {
+        code: 'RMBG_DOWNLOAD_FAILED',
+      }),
+    });
     const cmd = new ProcessCommand(deps);
 
     const exitCode = await cmd.execute({ input: 'input.png' });

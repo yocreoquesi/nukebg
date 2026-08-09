@@ -10,6 +10,7 @@ import type {
   PipelineRunner,
   RmbgRunner,
 } from 'nukebg-core';
+import { autoCropToSubject, finalizePipelineResult } from 'nukebg-core';
 import { SharpImageCodec } from '../codecs/sharp-codec.js';
 import { OnnxNodeLamaRunner } from '../runners/onnx-node-lama.js';
 import { OnnxNodeRmbgRunner } from '../runners/onnx-node-rmbg.js';
@@ -187,8 +188,18 @@ export class ProcessCommand {
         }
       }
 
+      // `result.output` is the working-resolution composite, not the image a
+      // user should receive. The browser host runs the same two-step export
+      // chain (see nukebg-app batch-orchestrator): compose at original
+      // resolution and clean up topology, then tighten to the subject bbox.
+      // Skipping it here is what made CLI output diverge visibly from the web
+      // app — soft-alpha halos left unsharpened, orphan blobs kept, interior
+      // holes unfilled — and made `--no-auto-crop` an inert flag.
+      const finalized = finalizePipelineResult(result, decoded.image);
+      const exported = options.noAutoCrop === true ? finalized : autoCropToSubject(finalized);
+
       log('Encoding output...\n');
-      const encoded = await this.deps.codec.encode(result.output, format);
+      const encoded = await this.deps.codec.encode(exported, format);
 
       try {
         await this.deps.writeFileImpl(outputPath, encoded);

@@ -7,6 +7,7 @@ import type { ProcessCommandOptions } from './commands/process.js';
 import { runLicenseCommand } from './commands/license.js';
 import type { LicenseCommandOptions } from './commands/license.js';
 import { ExitCode } from './util/exit-codes.js';
+import { exitCodeFor } from './util/errors.js';
 import { resolveVersion } from './util/version.js';
 
 // ---------------------------------------------------------------------------
@@ -161,7 +162,15 @@ export async function runCli(argv: string[], deps: RunCliDeps = {}): Promise<num
     if (err instanceof CommanderError) {
       return err.exitCode === 0 ? ExitCode.OK : ExitCode.USER_ERROR;
     }
-    throw err;
+    // Map anything else through the same sysexits table the process command
+    // uses. `ProcessCommand.execute` catches internally, but the license
+    // action does not: `revoke()` rethrows non-ENOENT fs errors, so a
+    // read-only marker file (EACCES on the OS config dir) used to escape
+    // here, past `main()`, and surface as an unhandled rejection with a raw
+    // stack trace and exit 1 — bypassing the documented exit codes scripts
+    // are told to branch on.
+    stderrWrite(`${err instanceof Error ? err.message : String(err)}\n`);
+    return exitCodeFor(err);
   }
 
   return exitCode;
@@ -183,7 +192,16 @@ async function main(): Promise<void> {
   process.on('SIGINT', () => {
     process.exit(ExitCode.ABORTED);
   });
-  const code = await runCli(process.argv.slice(2));
+  // Last-resort net. `runCli` maps everything it can, but anything thrown
+  // before or around that mapping must still leave through the documented
+  // exit-code table rather than as an unhandled rejection.
+  let code: number;
+  try {
+    code = await runCli(process.argv.slice(2));
+  } catch (err) {
+    process.stderr.write(`${err instanceof Error ? err.message : String(err)}\n`);
+    code = exitCodeFor(err);
+  }
   process.exit(code);
 }
 

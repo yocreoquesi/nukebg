@@ -38,6 +38,18 @@ export {
 export { runPipeline } from './pipeline/run-pipeline.js';
 export type { RunnerBundle } from './pipeline/run-pipeline.js';
 
+// Export-time stage functions. `runPipeline` returns a working-resolution
+// intermediate; turning that into the image a user actually receives is a
+// two-step host-side chain — `finalizePipelineResult` composes at original
+// resolution and cleans up topology, then `autoCropToSubject` tightens to the
+// subject bbox. Both hosts must run it or their outputs diverge, and
+// REQ-CORE-PIPELINE (specs/core-pipeline.md:115) requires each stage function
+// to be individually exported.
+export { finalizePipelineResult } from './pipeline/finalize-result.js';
+export type { WorkingResult } from './pipeline/finalize-result.js';
+export { autoCropToSubject } from './pipeline/auto-crop.js';
+export type { AutoCropOptions } from './pipeline/auto-crop.js';
+
 // Pure CV functions — public for advanced consumers, also used by the app's WorkerPipelineRunner
 export * as cv from './cv/index.js';
 
@@ -57,6 +69,12 @@ export { resampleMask } from './cv/resample-mask.js';
 
 // Shared PURE LaMa tensor packing (no onnxruntime; caller wraps ort.Tensor)
 export { packRgbaToChw, packMaskToChw, unpackChwToRgba } from './cv/lama-tensors.js';
+
+// RMBG mask refinement — re-exported at the root so runtime runners can
+// `import { refineMask } from 'nukebg-core'` the same way they import the
+// tensor helpers. REQ-CORE-PIPELINE (specs/core-pipeline.md:115) also
+// requires stage functions to be individually exported.
+export { refineMask, spatialPass, morphOpen, removeSmallClusters } from './cv/refine-mask.js';
 
 // Inpaint module — patchMatchInpaint with PATCHMATCH_PARAMS defaults (Phase 7)
 export { patchMatchInpaint } from './inpaint/patch-match.js';

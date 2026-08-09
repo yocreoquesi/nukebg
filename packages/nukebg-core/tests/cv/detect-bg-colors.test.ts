@@ -38,8 +38,8 @@ describe('detectBgColors', () => {
     expect(result.isCheckerboard).toBe(true);
     expect(result.cornerVariance).toBeGreaterThanOrEqual(15);
     // colorA debe ser el oscuro, colorB el claro
-    const darkBrightness = (result.colorA[0] + result.colorA[1] + result.colorA[2]) / 3;
-    const lightBrightness = (result.colorB[0] + result.colorB[1] + result.colorB[2]) / 3;
+    const darkBrightness = (result.colorA[0]! + result.colorA[1]! + result.colorA[2]!) / 3;
+    const lightBrightness = (result.colorB[0]! + result.colorB[1]! + result.colorB[2]!) / 3;
     expect(darkBrightness).toBeLessThan(lightBrightness);
   });
 

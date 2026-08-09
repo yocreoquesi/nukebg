@@ -33,12 +33,29 @@ describe('exitCodeFor', () => {
     expect(exitCodeFor(new DecodeError('bad bytes'))).toBe(ExitCode.INPUT_DECODE_FAILED);
   });
 
-  it('maps RmbgError to ExitCode.MODEL_DOWNLOAD_FAILED (74)', () => {
-    expect(exitCodeFor(new RmbgError('download failed'))).toBe(ExitCode.MODEL_DOWNLOAD_FAILED);
+  // 74 means "we could not obtain the model" and nothing else. These are the
+  // only codes the ONNX runners throw for acquisition failures. Callers retry
+  // 74 as a transient fault, so an inference error must never land here or a
+  // retry loop never terminates.
+  it('maps model acquisition failures to ExitCode.MODEL_DOWNLOAD_FAILED (74)', () => {
+    for (const code of ['RMBG_DOWNLOAD_FAILED', 'RMBG_INTEGRITY_FAILED']) {
+      expect(exitCodeFor(new RmbgError('acquire failed', { code }))).toBe(
+        ExitCode.MODEL_DOWNLOAD_FAILED,
+      );
+    }
+    for (const code of ['LAMA_DOWNLOAD_FAILED', 'LAMA_INTEGRITY_FAILED']) {
+      expect(exitCodeFor(new LamaError('acquire failed', { code }))).toBe(
+        ExitCode.MODEL_DOWNLOAD_FAILED,
+      );
+    }
   });
 
-  it('maps LamaError to ExitCode.MODEL_DOWNLOAD_FAILED (74)', () => {
-    expect(exitCodeFor(new LamaError('download failed'))).toBe(ExitCode.MODEL_DOWNLOAD_FAILED);
+  // The defaults these errors carry are inference-flavoured (RMBG_FAILED /
+  // LAMA_FAILED) — that is what runPipeline wraps a failed segment()/inpaint()
+  // in. Those are deterministic pipeline failures, not download problems.
+  it('maps model inference failures to ExitCode.PIPELINE_FAILED (70)', () => {
+    expect(exitCodeFor(new RmbgError('RMBG segmentation failed'))).toBe(ExitCode.PIPELINE_FAILED);
+    expect(exitCodeFor(new LamaError('LaMa inpaint failed'))).toBe(ExitCode.PIPELINE_FAILED);
   });
 
   it('maps NoInputError to ExitCode.NO_INPUT (66)', () => {

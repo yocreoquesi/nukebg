@@ -34,10 +34,14 @@
       "import": "./dist/inpaint/*.js"
     }
   },
-  "files": ["dist", "README.md", "LICENSE"],
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
     "build": "tsc -b",
-    "typecheck": "tsc -b",
+    "typecheck": "tsc -b && tsc -p tsconfig.test.json",
     "test": "vitest run --passWithNoTests"
   },
   "dependencies": {},

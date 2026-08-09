@@ -78,9 +78,13 @@ export class SharpImageCodec implements ImageCodec {
     originalHeight: number;
     wasDownsampled: boolean;
   }> {
-    const buf = bytes instanceof Uint8Array
-      ? Buffer.from(bytes.buffer, bytes.byteOffset, bytes.byteLength)
-      : Buffer.from((bytes as ArrayBufferView).buffer);
+    // Honour the view's window for every ArrayBufferView, not just Uint8Array.
+    // Dropping byteOffset/byteLength made a DataView or Int8Array slice into a
+    // larger pooled buffer read the whole backing ArrayBuffer from offset 0, so
+    // detectFormat saw the wrong leading bytes and rejected valid images — or
+    // worse, silently decoded a different image than the caller passed.
+    const view = bytes as ArrayBufferView;
+    const buf = Buffer.from(view.buffer, view.byteOffset, view.byteLength);
 
     // Quick magic-byte check — reject obviously non-image data early
     const asUint8 = new Uint8Array(buf.buffer, buf.byteOffset, buf.byteLength);
@@ -145,7 +149,7 @@ export class SharpImageCodec implements ImageCodec {
     // sharp expects a plain Buffer; Uint8ClampedArray is compatible in layout
     const buf = Buffer.from(data.buffer, data.byteOffset, data.byteLength);
 
-    let pipeline = sharp(buf, {
+    const pipeline = sharp(buf, {
       raw: { width, height, channels: 4 },
     });
 

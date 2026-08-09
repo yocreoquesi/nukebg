@@ -60,13 +60,36 @@ export class IoError extends Error {
   }
 }
 
+/**
+ * `RmbgError`/`LamaError` codes that mean "we could not obtain the model",
+ * as opposed to "the model ran and failed". Kept in sync with the codes the
+ * ONNX runners throw in `onnx-node-rmbg.ts` / `onnx-node-lama.ts`.
+ */
+const MODEL_ACQUISITION_CODES = new Set([
+  'RMBG_DOWNLOAD_FAILED',
+  'RMBG_INTEGRITY_FAILED',
+  'LAMA_DOWNLOAD_FAILED',
+  'LAMA_INTEGRITY_FAILED',
+]);
+
 export function exitCodeFor(err: unknown): number {
   if (err instanceof PipelineAbortError) return ExitCode.ABORTED;
   if (err instanceof CommanderError) return ExitCode.USER_ERROR;
   if (err instanceof LicenseRequiredError) return ExitCode.LICENSE_REQUIRED;
   if (err instanceof NoInputError) return ExitCode.NO_INPUT;
   if (err instanceof DecodeError) return ExitCode.INPUT_DECODE_FAILED;
-  if (err instanceof RmbgError || err instanceof LamaError) return ExitCode.MODEL_DOWNLOAD_FAILED;
+  if (err instanceof RmbgError || err instanceof LamaError) {
+    // Discriminate on the `code` the error already carries, not on its class.
+    // Only model acquisition — download or integrity — is a 74; an inference
+    // failure (ORT run error, OOM on a large image) is a pipeline failure.
+    // Collapsing both onto 74 told callers "model download failed" for
+    // deterministic errors, so a CI wrapper retrying 74 as a transient network
+    // fault would retry the same image forever, and 70 was unreachable for
+    // every ML-stage failure.
+    return MODEL_ACQUISITION_CODES.has(err.code)
+      ? ExitCode.MODEL_DOWNLOAD_FAILED
+      : ExitCode.PIPELINE_FAILED;
+  }
   if (err instanceof IoError) return ExitCode.IO_ERROR;
   return ExitCode.PIPELINE_FAILED;
 }
