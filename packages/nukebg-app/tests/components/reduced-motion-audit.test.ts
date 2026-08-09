@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 /**
@@ -10,21 +10,19 @@ import { resolve } from 'node:path';
  */
 
 const ROOT = resolve(__dirname, '..', '..');
-const COMPONENTS = [
-  'ar-app.ts',
-  // ar-app's @keyframes (marquee-scroll, smoke-rise, cmd-pulse) moved here in
-  // the styles split. Without this entry the audit finds no @keyframes for
-  // ar-app, early-returns, and passes vacuously — issue #35's guard would stop
-  // guarding anything. Verified: deleting the reduce block fails this with the
-  // entry, and passes without it.
-  'ar-app.styles.ts',
-  'ar-editor.ts',
-  'ar-editor-advanced.ts',
-  'ar-dropzone.ts',
-  'ar-batch-item.ts',
-  'ar-progress.ts',
-  'ar-viewer.ts',
-];
+/**
+ * Every component source, discovered rather than listed.
+ *
+ * This used to be a hand-maintained array, which is a guard that silently
+ * stops guarding: when ar-app's @keyframes moved into ar-app.styles.ts, the
+ * audit found no keyframes for ar-app, early-returned, and passed vacuously
+ * until someone noticed in review. A glob cannot drift out of date, and it
+ * only ever ADDS coverage — the assertion below is a no-op for files with no
+ * @keyframes at all.
+ */
+const COMPONENTS = readdirSync(resolve(ROOT, 'src/components'))
+  .filter((f) => f.endsWith('.ts'))
+  .sort();
 
 describe('reduced-motion audit (#35)', () => {
   for (const f of COMPONENTS) {
