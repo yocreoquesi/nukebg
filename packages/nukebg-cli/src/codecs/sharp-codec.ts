@@ -145,7 +145,7 @@ export class SharpImageCodec implements ImageCodec {
     // sharp expects a plain Buffer; Uint8ClampedArray is compatible in layout
     const buf = Buffer.from(data.buffer, data.byteOffset, data.byteLength);
 
-    let pipeline = sharp(buf, {
+    const pipeline = sharp(buf, {
       raw: { width, height, channels: 4 },
     });
 
