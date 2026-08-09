@@ -66,18 +66,18 @@ jobs:
       - name: Typecheck nukebg-cli
         run: npm run typecheck -w nukebg-cli
 
-      # NOTE (Phase 18 -> Phase 19 handoff): `npm run build -w nukebg-cli`
-      # is intentionally NOT wired in yet. nukebg-cli's package.json has no
-      # `build` script today, and `tsup.config.ts` for nukebg-cli does not
-      # exist until Phase 19 (CLI packaging & distribution) — running it
-      # now would fail the whole matrix with "Missing script: build" on
-      # every OS leg. Once Phase 19 lands the tsup config + `build` script,
-      # uncomment the step below (it must run before the test step so
-      # `dist/cli.js` exists for any test that shells out to the built
-      # binary, if such a test is added):
+      # Build both packages before testing. This is no longer optional: tsup
+      # externalises nukebg-core, so the emitted worker imports
+      # nukebg-core/dist/index.js at RUNTIME. Without core built the pipeline
+      # worker dies with ERR_MODULE_NOT_FOUND, and tests/runners/worker-bundle.test.ts
+      # exists precisely to catch that — it did, on all three legs.
       #
-      # - name: Build nukebg-cli (tsup)
-      #   run: npm run build -w nukebg-cli
+      # Order matters: core first, then the CLI bundle that depends on it.
+      - name: Build nukebg-core
+        run: npm run build -w nukebg-core
+
+      - name: Build nukebg-cli (tsup)
+        run: npm run build -w nukebg-cli
 
       # Parity placeholder (tasks.md X.6): the browser<->Node pixel parity
       # test (packages/nukebg-core/tests/parity/parity.test.ts, REQ-PARITY-1
