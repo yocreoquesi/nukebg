@@ -50,7 +50,7 @@ jobs:
 
       # Node version matches every other workflow in this repo (ci.yml,
       # security.yml, safari-real-device.yml) — keep in sync if bumped.
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
         with:
           node-version: '22'
           cache: 'npm'
