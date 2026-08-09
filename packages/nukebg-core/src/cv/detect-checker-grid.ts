@@ -1,6 +1,6 @@
-import { CV_PARAMS } from 'nukebg-core';
-import type { GridResult } from '../../types/pipeline';
-import { median } from 'nukebg-core/cv/utils';
+import { CV_PARAMS } from '../pipeline/constants.js';
+import type { GridResult } from '../types/cv-results.js';
+import { median } from './utils.js';
 
 /**
  * Detect checkerboard grid size and phase from the image edges.

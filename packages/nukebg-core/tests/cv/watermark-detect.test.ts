@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { watermarkDetect } from '../../src/workers/cv/watermark-detect';
-import { solidImage, paintRect } from '../helpers';
+import { watermarkDetect } from '../../src/cv/watermark-detect.js';
+import { solidImage, paintRect } from '../helpers.js';
 
 describe('watermarkDetect', () => {
   it('no detecta watermark en imagen limpia con fondo solido', () => {
@@ -107,7 +107,7 @@ describe('watermarkDetect', () => {
           const i = (y * w + x) * 4;
           pixels[i] = 255;
           pixels[i + 1] = 255;
-          pixels[i + 2] = 0;
+          pixels[i + 2] = 255;
         }
       }
     }

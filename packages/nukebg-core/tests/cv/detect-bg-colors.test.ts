@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { detectBgColors } from '../../src/workers/cv/detect-bg-colors';
-import { solidImage, checkerboardImage } from '../helpers';
+import { detectBgColors } from '../../src/cv/detect-bg-colors.js';
+import { solidImage, checkerboardImage } from '../helpers.js';
 
 describe('detectBgColors', () => {
   it('detecta fondo solido blanco', () => {

@@ -1,6 +1,6 @@
-import { DALLE_WATERMARK_PARAMS } from 'nukebg-core';
-import type { WatermarkResult } from '../../types/pipeline';
-import { pixelIndex } from 'nukebg-core/cv/utils';
+import { DALLE_WATERMARK_PARAMS } from '../pipeline/constants.js';
+import type { WatermarkResult } from '../types/cv-results.js';
+import { pixelIndex } from './utils.js';
 
 /**
  * Detect the DALL-E 3 watermark: a multicolor bar of ~5px in the

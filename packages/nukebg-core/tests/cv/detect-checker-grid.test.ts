@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { detectCheckerGrid } from '../../src/workers/cv/detect-checker-grid';
-import { checkerboardImage, solidImage } from '../helpers';
+import { detectCheckerGrid } from '../../src/cv/detect-checker-grid.js';
+import { checkerboardImage, solidImage } from '../helpers.js';
 
 describe('detectCheckerGrid', () => {
   it('detecta grid de 16px en checkerboard clasico', () => {

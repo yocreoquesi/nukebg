@@ -17,12 +17,12 @@ import { CV_PARAMS } from 'nukebg-core';
  */
 
 // Import CV functions directly (without workers)
-import { detectBgColors } from '../../src/workers/cv/detect-bg-colors';
-import { detectCheckerGrid } from '../../src/workers/cv/detect-checker-grid';
+import { detectBgColors } from 'nukebg-core/cv/detect-bg-colors';
+import { detectCheckerGrid } from 'nukebg-core/cv/detect-checker-grid';
 import { gridFloodFill } from '../../src/workers/cv/grid-flood-fill';
 import { simpleFloodFill } from '../../src/workers/cv/simple-flood-fill';
 import { subjectExclusion } from '../../src/workers/cv/subject-exclusion';
-import { watermarkDetect } from '../../src/workers/cv/watermark-detect';
+import { watermarkDetect } from 'nukebg-core/cv/watermark-detect';
 import { solidImage, checkerboardImage, paintRect, countBg } from '../helpers';
 
 /**
