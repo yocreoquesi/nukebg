@@ -227,7 +227,7 @@ The `Typecheck + tests` job in `.github/workflows/ci.yml` runs:
 2. `npm test` (vitest, ~600 source-invariant tests)
 3. `npm run build` — same command Cloudflare Pages runs on every deploy
 
-If `Typecheck + tests` is red, the deploy is red too — fix before merging. The Lint + format job is non-blocking today (`continue-on-error: true`) while the codebase finishes migrating to the strict ESLint + Prettier config; flip that flag once the formatter is fully run.
+If `Typecheck + tests` is red, the deploy is red too — fix before merging. `Lint + format` is blocking as well: it was flipped to `continue-on-error: false` in #134 once the one-shot Prettier sweep landed. ESLint covers all three workspace packages; Prettier's `--check` still only covers `nukebg-app`.
 
 ### Branch protection (recommended on `main`)
 
