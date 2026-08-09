@@ -12,12 +12,7 @@ import { evaluate } from '../../../scripts/audit-gate-core.mjs';
 // There are no review dates in this model. Expiry is event-driven: an entry
 // accepted because upstream had no fix re-fails the moment a fix appears.
 
-function finding(
-  name: string,
-  severity: string,
-  ids: string[],
-  fixAvailable: unknown = false,
-) {
+function finding(name: string, severity: string, ids: string[], fixAvailable: unknown = false) {
   return {
     name,
     severity,
@@ -27,7 +22,12 @@ function finding(
 }
 
 /** A finding inherited from a dependency carries strings, not advisory objects. */
-function transitiveFinding(name: string, severity: string, viaPackage: string, fixAvailable = false) {
+function transitiveFinding(
+  name: string,
+  severity: string,
+  viaPackage: string,
+  fixAvailable = false,
+) {
   return { name, severity, fixAvailable, via: [viaPackage] };
 }
 
@@ -73,7 +73,11 @@ describe('audit gate', () => {
   // The replacement for calendar expiry: the justification "there is nothing
   // to upgrade to" stops being true the moment upstream ships something.
   it('fails when a fix appears for something accepted only because none existed', () => {
-    const e = entry({ package: 'sharp', advisories: ['GHSA-s'], acceptedBecause: 'no-fix-available' });
+    const e = entry({
+      package: 'sharp',
+      advisories: ['GHSA-s'],
+      acceptedBecause: 'no-fix-available',
+    });
 
     const noFixYet = evaluate(auditWith(finding('sharp', 'high', ['GHSA-s'], false)), [e]);
     expect(noFixYet.ok).toBe(true);
@@ -119,7 +123,11 @@ describe('audit gate', () => {
     const t = transitiveFinding('@huggingface/transformers', 'high', 'sharp');
 
     const withEmpty = evaluate(auditWith(t), [
-      entry({ package: '@huggingface/transformers', advisories: [], acceptedBecause: 'no-fix-available' }),
+      entry({
+        package: '@huggingface/transformers',
+        advisories: [],
+        acceptedBecause: 'no-fix-available',
+      }),
     ]);
     expect(withEmpty.ok).toBe(true);
 
