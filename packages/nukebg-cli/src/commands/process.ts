@@ -10,7 +10,11 @@ import type {
   PipelineRunner,
   RmbgRunner,
 } from 'nukebg-core';
-import { autoCropToSubject, finalizePipelineResult } from 'nukebg-core';
+import {
+  autoCropToSubject,
+  finalizePipelineResult,
+  PipelineAbortError,
+} from 'nukebg-core';
 import { SharpImageCodec } from '../codecs/sharp-codec.js';
 import { OnnxNodeLamaRunner } from '../runners/onnx-node-lama.js';
 import { OnnxNodeRmbgRunner } from '../runners/onnx-node-rmbg.js';
@@ -49,6 +53,13 @@ export interface ProcessCommandOptions {
   readonly quiet?: boolean;
   readonly verbose?: boolean;
   readonly cliVersion?: string;
+  /**
+   * Cancellation. Honoured at every asynchronous boundary — model download,
+   * RMBG segmentation, LaMa inpaint and each stage checkpoint in
+   * `runPipeline`. Synchronous CV (PatchMatch, sparkle detection) cannot be
+   * interrupted mid-loop; see issue #329.
+   */
+  readonly signal?: AbortSignal;
 }
 
 export interface ProcessCommandDeps {
@@ -177,6 +188,7 @@ export class ProcessCommand {
       const pipelineOptions: PipelineOptions = {
         skipWatermark: noWatermark,
         skipAutoCrop: options.noAutoCrop ?? false,
+        ...(options.signal !== undefined ? { signal: options.signal } : {}),
         ...(options.mode !== undefined ? { mode: options.mode } : {}),
         ...(options.precision !== undefined ? { precision: options.precision } : {}),
       };
@@ -197,6 +209,10 @@ export class ProcessCommand {
       // holes unfilled — and made `--no-auto-crop` an inert flag.
       const finalized = finalizePipelineResult(result, decoded.image);
       const exported = options.noAutoCrop === true ? finalized : autoCropToSubject(finalized);
+
+      if (options.signal?.aborted) {
+        throw new PipelineAbortError('aborted before encoding output');
+      }
 
       log('Encoding output...\n');
       const encoded = await this.deps.codec.encode(exported, format);

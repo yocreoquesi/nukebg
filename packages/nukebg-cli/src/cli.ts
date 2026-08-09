@@ -88,7 +88,11 @@ function buildProcessOptions(
   };
 }
 
-export async function runCli(argv: string[], deps: RunCliDeps = {}): Promise<number> {
+export async function runCli(
+  argv: string[],
+  deps: RunCliDeps = {},
+  signal?: AbortSignal,
+): Promise<number> {
   const stdoutWrite =
     deps.stdoutWrite ??
     ((text: string) => {
@@ -145,7 +149,10 @@ export async function runCli(argv: string[], deps: RunCliDeps = {}): Promise<num
     .option('-q, --quiet', 'suppress non-error stderr output')
     .option('-v, --verbose', 'extra timings on stderr')
     .action(async (input: string, raw: RawProcessOptions) => {
-      exitCode = await runProcessCommand(buildProcessOptions(input, raw, cliVersion));
+      const opts = buildProcessOptions(input, raw, cliVersion);
+      exitCode = await runProcessCommand(
+        signal !== undefined ? { ...opts, signal } : opts,
+      );
     });
 
   program
@@ -189,15 +196,38 @@ function isMainModule(): boolean {
 }
 
 async function main(): Promise<void> {
+  const controller = new AbortController();
+  let interrupted = false;
+
   process.on('SIGINT', () => {
-    process.exit(ExitCode.ABORTED);
+    if (interrupted) {
+      // Second Ctrl+C: the graceful path did not get us out. Drop the
+      // listener so SIGINT stops being handled in JS, and re-raise — the
+      // user always gets a way out.
+      process.removeAllListeners('SIGINT');
+      process.kill(process.pid, 'SIGINT');
+      return;
+    }
+    interrupted = true;
+    // Abort rather than exit. Exiting here would leave the run's own
+    // cleanup unrun and, worse, could fire mid-write; aborting unwinds
+    // through the pipeline's checkpoints and returns exit 130 the normal
+    // way, which is also what makes that code reachable at all.
+    controller.abort();
+    process.stderr.write('\nInterrupted — finishing the current step...\n');
   });
+
+  // Honest limit (issue #329): this cancels at asynchronous boundaries —
+  // model download, RMBG segmentation, LaMa inpaint, and each stage
+  // checkpoint. Synchronous CV (PatchMatch, sparkle detection) blocks the
+  // event loop, so the handler above cannot even run until that loop
+  // finishes. Interrupting those needs them off the main thread.
   // Last-resort net. `runCli` maps everything it can, but anything thrown
   // before or around that mapping must still leave through the documented
   // exit-code table rather than as an unhandled rejection.
   let code: number;
   try {
-    code = await runCli(process.argv.slice(2));
+    code = await runCli(process.argv.slice(2), {}, controller.signal);
   } catch (err) {
     process.stderr.write(`${err instanceof Error ? err.message : String(err)}\n`);
     code = exitCodeFor(err);
