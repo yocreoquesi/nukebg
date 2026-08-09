@@ -1,4 +1,4 @@
-import { DALLE_WATERMARK_PARAMS } from '../../pipeline/constants';
+import { DALLE_WATERMARK_PARAMS } from 'nukebg-core';
 import type { WatermarkResult } from '../../types/pipeline';
 import { pixelIndex } from './utils';
 

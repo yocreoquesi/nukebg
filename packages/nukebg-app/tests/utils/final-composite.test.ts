@@ -22,7 +22,7 @@ import {
   composeAtOriginal,
   refineUpscaledAlpha,
 } from '../../src/utils/final-composite';
-import { EDGE_REFINE_PARAMS } from '../../src/pipeline/constants';
+import { EDGE_REFINE_PARAMS } from 'nukebg-core';
 
 describe('bilinearUpscaleU8', () => {
   it('returns a copy when sizes match', () => {

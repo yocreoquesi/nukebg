@@ -8,7 +8,7 @@
  */
 import { patchMatchInpaint } from './cv/patchmatch-inpaint';
 import type { InpaintWorkerRequest, InpaintWorkerResponse } from '../types/worker-messages';
-import { PATCHMATCH_PARAMS } from '../pipeline/constants';
+import { PATCHMATCH_PARAMS } from 'nukebg-core';
 
 async function inpaint(
   id: string,

@@ -127,11 +127,11 @@ _Goal: `nukebg-core` exports its type layer and `createImageDataLike` factory. N
 
 _Goal: `pipeline/constants.ts` is extracted to core so CV modules can import it in Phase 5._
 
-- [ ] 4.1 Move `packages/nukebg-app/src/pipeline/constants.ts` → `packages/nukebg-core/src/pipeline/constants.ts`. Update all imports in `packages/nukebg-app/src/` from the old path to `nukebg-core`. Co-located tests (if any reference constants directly) move to `packages/nukebg-core/tests/pipeline/constants.test.ts`. Run `npm test`, expect green.
+- [x] 4.1 Move `packages/nukebg-app/src/pipeline/constants.ts` → `packages/nukebg-core/src/pipeline/constants.ts`. Update all imports in `packages/nukebg-app/src/` from the old path to `nukebg-core`. Co-located tests (if any reference constants directly) move to `packages/nukebg-core/tests/pipeline/constants.test.ts`. Run `npm test`, expect green.
 
-- [ ] 4.2 Export constants from `packages/nukebg-core/src/index.ts` per design §B.1. Run `npm test`, expect green.
+- [x] 4.2 Export constants from `packages/nukebg-core/src/index.ts` per design §B.1. Run `npm test`, expect green.
 
-- [ ] 4.3 Verification: `npm test`, `npm run typecheck`, `npm run lint` all green. Milestone: "constants in core, app imports from `nukebg-core`".
+- [x] 4.3 Verification: `npm test`, `npm run typecheck`, `npm run lint` all green. Milestone: "constants in core, app imports from `nukebg-core`".
 
 ---
 

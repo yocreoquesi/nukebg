@@ -1,4 +1,4 @@
-import { LAMA_PARAMS } from '../../pipeline/constants';
+import { LAMA_PARAMS } from 'nukebg-core';
 import { clamp255 } from './clamp';
 
 export interface LamaCropRect {

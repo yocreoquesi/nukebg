@@ -1,4 +1,4 @@
-import { CV_PARAMS } from '../../pipeline/constants';
+import { CV_PARAMS } from 'nukebg-core';
 import type { GridResult } from '../../types/pipeline';
 import { median } from './utils';
 

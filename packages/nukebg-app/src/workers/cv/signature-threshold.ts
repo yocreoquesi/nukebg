@@ -1,4 +1,4 @@
-import { IMAGE_CLASSIFY_PARAMS } from '../../pipeline/constants';
+import { IMAGE_CLASSIFY_PARAMS } from 'nukebg-core';
 
 /**
  * Signature threshold: extract signature strokes from a mostly-white background

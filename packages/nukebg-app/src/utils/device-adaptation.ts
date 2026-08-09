@@ -16,7 +16,7 @@
  */
 
 import { getCapability, type CapabilityTier } from './capability-detector';
-import type { PrecisionMode } from '../pipeline/constants';
+import type { PrecisionMode } from 'nukebg-core';
 
 /**
  * Map a capability tier to the precision mode that strikes the right

@@ -1,4 +1,4 @@
-import { SHADOW_PARAMS } from '../../pipeline/constants';
+import { SHADOW_PARAMS } from 'nukebg-core';
 import { pixelIndex } from './utils';
 
 /**

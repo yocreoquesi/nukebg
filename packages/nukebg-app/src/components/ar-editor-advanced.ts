@@ -34,7 +34,7 @@ import { SamRefiner } from '../controllers/sam-refiner';
 import { processRoi } from '../refine/roi-process';
 import { rasterizePolygon } from '../refine/roi-process';
 import { patchMatchInpaint } from '../workers/cv/patchmatch-inpaint';
-import { PATCHMATCH_PARAMS } from '../pipeline/constants';
+import { PATCHMATCH_PARAMS } from 'nukebg-core';
 import { t } from '../i18n';
 import { type Point } from './lasso-simplify';
 import { LassoModel } from '../lib/lasso-model';

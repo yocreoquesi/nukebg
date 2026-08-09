@@ -10,7 +10,7 @@
  * propagates edge information inward naturally.
  */
 
-import { INPAINT_PARAMS } from '../../pipeline/constants';
+import { INPAINT_PARAMS } from 'nukebg-core';
 
 // --- Min-Heap para Fast Marching ---
 

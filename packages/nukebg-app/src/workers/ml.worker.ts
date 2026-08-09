@@ -10,7 +10,7 @@ import type {
   ModelId,
   WarmupDiagnostic,
 } from '../types/worker-messages';
-import { REFINE_PARAMS, RMBG_PARAMS } from '../pipeline/constants';
+import { REFINE_PARAMS, RMBG_PARAMS } from 'nukebg-core';
 
 const DEFAULT_MODEL: ModelId = 'briaai/RMBG-1.4';
 

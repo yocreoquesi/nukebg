@@ -7,7 +7,7 @@ import { subjectExclusion } from '../src/workers/cv/subject-exclusion';
 import { watermarkDetect } from '../src/workers/cv/watermark-detect';
 import { shadowCleanup } from '../src/workers/cv/shadow-cleanup';
 import { alphaRefine } from '../src/workers/cv/alpha-refine';
-import { CV_PARAMS } from '../src/pipeline/constants';
+import { CV_PARAMS } from 'nukebg-core';
 import { solidImage, checkerboardImage, paintRect } from './helpers';
 
 /**

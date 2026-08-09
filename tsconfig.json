@@ -1,7 +1,6 @@
 {
   "files": [],
   "references": [
-    { "path": "./packages/nukebg-app" },
     { "path": "./packages/nukebg-core" },
     { "path": "./packages/nukebg-cli" }
   ]

@@ -5,7 +5,7 @@ import {
   nearestResizeMask,
   spliceLamaOutput,
 } from '../../src/workers/cv/lama-crop';
-import { LAMA_PARAMS } from '../../src/pipeline/constants';
+import { LAMA_PARAMS } from 'nukebg-core';
 
 function makeMask(
   w: number,

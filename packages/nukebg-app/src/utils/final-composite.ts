@@ -1,5 +1,5 @@
 import { guidedFilter } from '../workers/cv/alpha-matting';
-import { EDGE_REFINE_PARAMS } from '../pipeline/constants';
+import { EDGE_REFINE_PARAMS } from 'nukebg-core';
 
 /**
  * Compose the final output at the original input resolution.
