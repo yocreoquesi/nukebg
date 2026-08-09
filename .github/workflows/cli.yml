@@ -1,0 +1,105 @@
+name: CLI
+
+# Cross-platform build/test matrix for nukebg-cli (extract-core-cli Phase 18).
+# Kept in its own workflow file — distinct `name:` and `paths:` filter — so
+# it runs independently of ci.yml (browser app build/e2e) and security.yml.
+# Path-filtered to only the packages/workspace files that can affect the
+# CLI or the core package it depends on, so unrelated app-only changes
+# don't trigger this matrix (and vice versa: ci.yml is not path-filtered
+# today, so it still runs on CLI-only changes too — that's fine, it's the
+# cheaper of the two workflows).
+
+on:
+  push:
+    branches: [main, dev]
+    paths:
+      - 'packages/nukebg-cli/**'
+      - 'packages/nukebg-core/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'tsconfig.json'
+      - 'tsconfig.base.json'
+      - '.github/workflows/cli.yml'
+  pull_request:
+    paths:
+      - 'packages/nukebg-cli/**'
+      - 'packages/nukebg-core/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'tsconfig.json'
+      - 'tsconfig.base.json'
+      - '.github/workflows/cli.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    name: Build + test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        # ubuntu-latest = Linux x64, macos-latest = macOS arm64 (Apple
+        # Silicon runners since GH's 2024 default flip), windows-latest =
+        # Windows x64. Together these are the three nukebg-cli install
+        # targets (REQ-CLI-DISTRIBUTION cross-platform requirement).
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v6
+
+      # Node version matches every other workflow in this repo (ci.yml,
+      # security.yml, safari-real-device.yml) — keep in sync if bumped.
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      # nukebg-cli's tsconfig.json path-maps the bare `nukebg-core` import
+      # to `../nukebg-core/src/index.ts` (source, not dist — see
+      # packages/nukebg-cli/tsconfig.json `compilerOptions.paths`), and
+      # vitest.config.ts does the same via a resolve.alias. So typecheck
+      # and test below do NOT need nukebg-core built first.
+      - name: Typecheck nukebg-cli
+        run: npm run typecheck -w nukebg-cli
+
+      # NOTE (Phase 18 -> Phase 19 handoff): `npm run build -w nukebg-cli`
+      # is intentionally NOT wired in yet. nukebg-cli's package.json has no
+      # `build` script today, and `tsup.config.ts` for nukebg-cli does not
+      # exist until Phase 19 (CLI packaging & distribution) — running it
+      # now would fail the whole matrix with "Missing script: build" on
+      # every OS leg. Once Phase 19 lands the tsup config + `build` script,
+      # uncomment the step below (it must run before the test step so
+      # `dist/cli.js` exists for any test that shells out to the built
+      # binary, if such a test is added):
+      #
+      # - name: Build nukebg-cli (tsup)
+      #   run: npm run build -w nukebg-cli
+
+      # Parity placeholder (tasks.md X.6): the browser<->Node pixel parity
+      # test (packages/nukebg-core/tests/parity/parity.test.ts, REQ-PARITY-1
+      # / REQ-PARITY-4) self-skips unless the RMBG/LaMa models are already
+      # present in the local model cache AND NUKEBG_PARITY_REQUIRE=1 is set.
+      # NUKEBG_PARITY_REQUIRE is intentionally left UNSET on every leg below
+      # — forcing it here today would fail the whole matrix, because:
+      #   1. No GitHub Actions cache step exists yet to populate the model
+      #      cache directory. The future strategy: an actions/cache step
+      #      keyed on a hash derived from
+      #      packages/nukebg-core/src/pipeline/constants.ts's
+      #      LAMA_PARAMS.EXPECTED_SHA256 / RMBG_PARAMS.EXPECTED_SHA256
+      #      (content-addressed, so a model swap busts the cache
+      #      automatically), plus a download step for the cache-miss case,
+      #      only on ONE leg (model download is too slow to repeat x3).
+      #   2. No committed browser-baseline reference PNGs exist yet
+      #      (packages/nukebg-core/tests/fixtures/parity/README.md
+      #      documents this gap — Phase 17 apply-progress note).
+      # Until both land, parity stays in its default skip mode on every
+      # leg. Do not set NUKEBG_PARITY_REQUIRE=1 here until the cache step
+      # + reference PNGs exist, or this job will fail on every OS with an
+      # actionable-but-loud "reference file doesn't exist" error by design
+      # (see the parity test's non-skip path).
+      - name: Test nukebg-cli
+        run: npm test -w nukebg-cli

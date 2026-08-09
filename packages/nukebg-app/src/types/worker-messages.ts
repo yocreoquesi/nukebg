@@ -1,0 +1,280 @@
+import type { BgColorResult, WatermarkResult, ImageContentType } from './pipeline';
+import type { ImageFeatures } from 'nukebg-core/cv/classify-image';
+
+/** ======== CV Worker Messages ======== */
+
+export type CvWorkerRequest =
+  | CvDetectBgColorsRequest
+  | CvWatermarkDetectRequest
+  | CvWatermarkDetectDalleRequest
+  | CvSparkleDetectRequest
+  | CvAlphaRefineRequest
+  | CvClassifyImageRequest
+  | CvSignatureThresholdRequest
+  | CvForegroundEstimateRequest;
+
+interface CvBaseRequest {
+  id: string;
+}
+
+export interface CvDetectBgColorsRequest extends CvBaseRequest {
+  type: 'detect-bg-colors';
+  payload: {
+    pixels: Uint8ClampedArray;
+    width: number;
+    height: number;
+    sampleSize?: number;
+  };
+}
+
+export interface CvWatermarkDetectRequest extends CvBaseRequest {
+  type: 'watermark-detect';
+  payload: {
+    pixels: Uint8ClampedArray;
+    width: number;
+    height: number;
+    colorA: number[];
+    colorB: number[];
+  };
+}
+
+export interface CvWatermarkDetectDalleRequest extends CvBaseRequest {
+  type: 'watermark-detect-dalle';
+  payload: {
+    pixels: Uint8ClampedArray;
+    width: number;
+    height: number;
+  };
+}
+
+export interface CvSparkleDetectRequest extends CvBaseRequest {
+  type: 'sparkle-detect';
+  payload: {
+    pixels: Uint8ClampedArray;
+    width: number;
+    height: number;
+  };
+}
+
+export interface CvAlphaRefineRequest extends CvBaseRequest {
+  type: 'alpha-refine';
+  payload: {
+    mask: Uint8Array;
+    width: number;
+    height: number;
+  };
+}
+
+export interface CvClassifyImageRequest extends CvBaseRequest {
+  type: 'classify-image';
+  payload: {
+    pixels: Uint8ClampedArray;
+    width: number;
+    height: number;
+  };
+}
+
+export interface CvSignatureThresholdRequest extends CvBaseRequest {
+  type: 'signature-threshold';
+  payload: {
+    pixels: Uint8ClampedArray;
+    width: number;
+    height: number;
+  };
+}
+
+export interface CvForegroundEstimateRequest extends CvBaseRequest {
+  type: 'foreground-estimate';
+  payload: {
+    pixels: Uint8ClampedArray;
+    alpha: Uint8Array;
+    width: number;
+    height: number;
+    /** Optional tuning; falls back to module defaults when omitted. */
+    iterationsPerLevel?: number;
+    lambda?: number;
+  };
+}
+
+/** Result from image classification */
+export interface ClassifyImageResult {
+  type: ImageContentType;
+  features: ImageFeatures;
+}
+
+/** CV Worker response */
+export type CvWorkerResponse =
+  | { id: string; type: 'detect-bg-colors'; result: BgColorResult }
+  | { id: string; type: 'watermark-detect'; result: WatermarkResult }
+  | { id: string; type: 'watermark-detect-dalle'; result: WatermarkResult }
+  | { id: string; type: 'sparkle-detect'; result: WatermarkResult }
+  | { id: string; type: 'alpha-refine'; result: Uint8Array }
+  | { id: string; type: 'classify-image'; result: ClassifyImageResult }
+  | { id: string; type: 'signature-threshold'; result: Uint8Array }
+  | { id: string; type: 'foreground-estimate'; result: Uint8ClampedArray }
+  | { id: string; type: 'error'; error: string };
+
+/** ======== ML Worker Messages ======== */
+
+export type ModelId = 'briaai/RMBG-1.4';
+
+export const MODEL_OPTIONS: { id: ModelId; label: string; description: string }[] = [
+  {
+    id: 'briaai/RMBG-1.4',
+    label: 'RMBG 1.4',
+    description: 'Best for illustrations, icons, and AI art',
+  },
+];
+
+export type MlWorkerRequest = MlLoadModelRequest | MlSegmentRequest;
+
+export interface MlLoadModelRequest {
+  id: string;
+  type: 'load-model';
+  modelId?: ModelId;
+}
+
+export interface MlRefineOptions {
+  spatialPasses: number;
+  spatialRadius: number;
+  morphOpenRadius: number;
+  clusterRatio: number;
+  minClusterSize: number;
+}
+
+export interface MlSegmentRequest {
+  id: string;
+  type: 'segment';
+  modelId?: ModelId;
+  threshold?: number;
+  refine?: MlRefineOptions;
+  payload: {
+    pixels: Uint8ClampedArray;
+    width: number;
+    height: number;
+  };
+}
+
+export interface WarmupDiagnostic {
+  status: 'ok' | 'error' | 'timeout';
+  elapsedMs: number;
+  errorName?: string;
+  errorMessage?: string;
+  errorStack?: string;
+  userAgent?: string;
+  hardwareConcurrency?: number;
+  device: 'webgpu' | 'wasm';
+}
+
+export type MlWorkerResponse =
+  | { id: string; type: 'model-progress'; progress: number }
+  | { id: string; type: 'model-ready'; device: 'webgpu' | 'wasm' }
+  | { id: string; type: 'segment-result'; result: Uint8Array }
+  | { id: string; type: 'error'; error: string }
+  | { id: string; type: 'warmup-diagnostic'; diagnostic: WarmupDiagnostic };
+
+/** ======== Inpaint Worker Messages ======== */
+
+export type InpaintWorkerRequest = InpaintRunRequest | InpaintDisposeRequest;
+
+export interface InpaintRunRequest {
+  id: string;
+  type: 'inpaint';
+  payload: {
+    pixels: Uint8ClampedArray;
+    width: number;
+    height: number;
+    mask: Uint8Array;
+  };
+}
+
+export interface InpaintDisposeRequest {
+  id: string;
+  type: 'dispose';
+}
+
+export type InpaintWorkerResponse =
+  | { id: string; type: 'inpaint-progress'; stage: string }
+  | { id: string; type: 'inpaint-result'; result: Uint8ClampedArray }
+  | { id: string; type: 'disposed' }
+  | { id: string; type: 'error'; error: string };
+
+/** ======== Lama (ONNX content-aware inpainting) Worker Messages ======== */
+
+export type LamaWorkerRequest = LamaLoadModelRequest | LamaRunRequest | LamaDisposeRequest;
+
+export interface LamaLoadModelRequest {
+  id: string;
+  type: 'lama-load-model';
+}
+
+export interface LamaRunRequest {
+  id: string;
+  type: 'lama-inpaint';
+  payload: {
+    pixels: Uint8ClampedArray;
+    width: number;
+    height: number;
+    mask: Uint8Array;
+  };
+}
+
+export interface LamaDisposeRequest {
+  id: string;
+  type: 'lama-dispose';
+}
+
+export type LamaWorkerResponse =
+  | { id: string; type: 'lama-model-progress'; progress: number }
+  | { id: string; type: 'lama-model-ready' }
+  | { id: string; type: 'lama-inpaint-progress'; stage: string }
+  | { id: string; type: 'lama-inpaint-result'; result: Uint8ClampedArray }
+  | { id: string; type: 'lama-disposed' }
+  | { id: string; type: 'error'; error: string };
+
+/** ======== SAM (MobileSAM interactive segmentation) Worker Messages ======== */
+
+export type SamWorkerRequest =
+  SamLoadRequest | SamEncodeRequest | SamDecodeRequest | SamDisposeRequest;
+
+export interface SamLoadRequest {
+  id: string;
+  type: 'sam-load';
+}
+
+export interface SamEncodeRequest {
+  id: string;
+  type: 'sam-encode';
+  payload: {
+    pixels: Uint8ClampedArray;
+    width: number;
+    height: number;
+  };
+}
+
+export interface SamDecodeRequest {
+  id: string;
+  type: 'sam-decode';
+  payload: {
+    /** Click coordinates in original image space. */
+    points: Array<{ x: number; y: number }>;
+    /** 1 = foreground (include), 0 = background (exclude). */
+    labels: number[];
+    /** Original image dimensions the encoder processed. */
+    width: number;
+    height: number;
+  };
+}
+
+export interface SamDisposeRequest {
+  id: string;
+  type: 'sam-dispose';
+}
+
+export type SamWorkerResponse =
+  | { id: string; type: 'sam-load-progress'; progress: number; stage: 'encoder' | 'decoder' }
+  | { id: string; type: 'sam-ready' }
+  | { id: string; type: 'sam-encoded' }
+  | { id: string; type: 'sam-mask'; mask: Uint8Array; width: number; height: number }
+  | { id: string; type: 'sam-disposed' }
+  | { id: string; type: 'error'; error: string };

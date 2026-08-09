@@ -1,0 +1,64 @@
+schema: spec-driven
+
+context: |
+  Vanilla TypeScript + Web Components, no framework. Build: Vite 8.
+  ML pipeline: Transformers.js + onnxruntime-web (RMBG-1.4, MobileSAM, LaMa).
+  Heavy work runs in Web Workers (cv, ml, sam, lama, inpaint).
+  Components in src/components/ar-*.ts (Lit-style custom elements).
+  Pipeline orchestration in src/pipeline/ and src/controllers/.
+  Pure CV algorithms isolated in src/workers/cv/ (Telea, Otsu, alpha matting, etc.).
+  Tests: Vitest (happy-dom) + Playwright e2e.
+  100% client-side. Zero uploads. License: GPL-3.0-only.
+
+strict_tdd: true
+
+testing:
+  test_runner:
+    command: "npm test"
+    framework: vitest
+  layers:
+    unit:
+      available: true
+      tool: vitest
+    integration:
+      available: true
+      tool: vitest + happy-dom
+    e2e:
+      available: true
+      tool: playwright
+  coverage:
+    available: true
+    command: "npx vitest run --coverage"
+  quality:
+    linter:
+      available: true
+      command: "npm run lint"
+    type_checker:
+      available: true
+      command: "npm run typecheck"
+    formatter:
+      available: true
+      command: "npm run format:check"
+
+rules:
+  proposal:
+    - Include rollback plan for risky changes
+    - Identify affected modules/packages
+  specs:
+    - Use Given/When/Then format for scenarios
+    - Use RFC 2119 keywords (MUST, SHALL, SHOULD, MAY)
+  design:
+    - Include sequence diagrams for complex flows
+    - Document architecture decisions with rationale
+  tasks:
+    - Group tasks by phase (infrastructure, implementation, testing)
+    - Use hierarchical numbering (1.1, 1.2, etc.)
+    - Keep tasks small enough to complete in one session
+  apply:
+    - Follow existing code patterns and conventions
+    - Load relevant coding skills for the project stack
+  verify:
+    - Run tests if test infrastructure exists
+    - Compare implementation against every spec scenario
+  archive:
+    - Warn before merging destructive deltas (large removals)
