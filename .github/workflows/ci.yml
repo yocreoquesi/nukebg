@@ -69,6 +69,28 @@ jobs:
           grep -q 'application/ld+json' dist/index.html || (echo 'JSON-LD missing from build output' && exit 1)
           test -d dist/assets || (echo 'dist/assets missing' && exit 1)
 
+      # Cloudflare Pages rejects any single file over 25 MiB, and it rejects it
+      # at deploy time — after the build has already succeeded. The ONNX Runtime
+      # WASM assets sit close to that ceiling (largest is ~23.9 MiB today), so an
+      # ORT bump can cross it with no other visible symptom.
+      #
+      # Aug 9 2026: onnxruntime-web floated 1.24.3 -> 1.27.0 and emitted a
+      # 25.6 MiB ort-wasm-simd-threaded.jsep. Every CI job stayed green and only
+      # the Pages deploy failed. This step moves that failure back into CI.
+      - name: Verify no asset exceeds the Cloudflare Pages 25 MiB limit
+        run: |
+          LIMIT=$((25 * 1024 * 1024))
+          echo "Largest built assets:"
+          find dist -type f -printf '%s\t%p\n' | sort -rn | head -5 \
+            | awk -F'\t' '{ printf "  %7.2f MiB  %s\n", $1/1048576, $2 }'
+          OVER=$(find dist -type f -size +${LIMIT}c -printf '%s\t%p\n' || true)
+          if [ -n "$OVER" ]; then
+            echo "$OVER" | awk -F'\t' \
+              '{ printf "::error::%s is %.2f MiB, over the Cloudflare Pages 25 MiB per-file limit\n", $2, $1/1048576 }'
+            exit 1
+          fi
+          echo "OK: every asset is under 25 MiB."
+
   e2e:
     name: Playwright pipeline e2e
     runs-on: ubuntu-latest
@@ -88,6 +110,7 @@ jobs:
         run: npx playwright install --with-deps chromium
 
       - name: Run Playwright (Chromium)
+        working-directory: packages/nukebg-app
         run: npx playwright test --project=chromium
 
       - name: Upload trace on failure
@@ -131,6 +154,7 @@ jobs:
         run: npx playwright install --with-deps webkit
 
       - name: Run Playwright (${{ matrix.project }})
+        working-directory: packages/nukebg-app
         run: npx playwright test --project=${{ matrix.project }}
 
       - name: Upload trace on failure

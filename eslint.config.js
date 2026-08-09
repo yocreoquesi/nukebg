@@ -15,29 +15,35 @@ import noUnsanitized from 'eslint-plugin-no-unsanitized';
 export default tseslint.config(
   {
     ignores: [
-      'dist/**',
-      'coverage/**',
-      '.halo-check/**',
-      'test-results/**',
-      'playwright-report/**',
-      'node_modules/**',
-      'public/service-worker.js',
+      // Build output and dependencies, at the root and in every package.
+      '**/dist/**',
+      '**/node_modules/**',
+      'packages/nukebg-app/coverage/**',
+      'packages/nukebg-app/.halo-check/**',
+      'packages/nukebg-app/test-results/**',
+      'packages/nukebg-app/playwright-report/**',
+      // Hand-written browser scripts served verbatim — not part of the
+      // TypeScript build, and they run in a service-worker/page context
+      // this config does not model.
+      'packages/nukebg-app/public/**',
       // i18n/index.ts has hand-maintained \uXXXX escapes and a giant
       // translation dictionary — let the key-parity test guard it
       // instead of linting.
-      'src/i18n/index.ts',
-      'scripts/**',
-      'e2e/**',
+      'packages/nukebg-app/src/i18n/index.ts',
+      // Build/maintenance scripts in any package: plain .mjs run by hand
+      // or by CI, outside the typed source graph.
+      'packages/*/scripts/**',
+      'packages/nukebg-app/e2e/**',
     ],
   },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {
-    plugins: { 'no-unsanitized': noUnsanitized },
+    // Baseline that applies to every package. Runtime-specific globals and
+    // the DOM-only innerHTML policy are layered on below, per package.
     languageOptions: {
       ecmaVersion: 2022,
       sourceType: 'module',
-      globals: { ...globals.browser, ...globals.worker },
     },
     rules: {
       // TS compiler already enforces noUnusedLocals / noUnusedParameters.
@@ -61,7 +67,18 @@ export default tseslint.config(
       'prefer-const': 'error',
       // No var declarations.
       'no-var': 'error',
-
+    },
+  },
+  {
+    // Browser app: DOM + Worker globals, and the only place the innerHTML
+    // policy applies. nukebg-core and nukebg-cli have no DOM surface, so
+    // loading the plugin there would be dead weight.
+    files: ['packages/nukebg-app/**/*.ts'],
+    plugins: { 'no-unsanitized': noUnsanitized },
+    languageOptions: {
+      globals: { ...globals.browser, ...globals.worker },
+    },
+    rules: {
       // Defense-in-depth against XSS from `innerHTML` / `outerHTML`. The
       // current codebase is safe (audit on PR #257 confirmed every site
       // uses static templates, trusted i18n via `t()`, or internal
@@ -90,8 +107,17 @@ export default tseslint.config(
     },
   },
   {
+    // Runtime-agnostic core and the Node CLI. Node globals only — and
+    // deliberately no `no-unsanitized`, since neither package touches the
+    // DOM (see the app block above).
+    files: ['packages/nukebg-core/**/*.ts', 'packages/nukebg-cli/**/*.ts'],
+    languageOptions: {
+      globals: { ...globals.node },
+    },
+  },
+  {
     // Tests get the happy-dom + vitest globals.
-    files: ['tests/**/*.ts'],
+    files: ['packages/*/tests/**/*.ts'],
     languageOptions: {
       globals: { ...globals.node, ...globals.browser },
     },
