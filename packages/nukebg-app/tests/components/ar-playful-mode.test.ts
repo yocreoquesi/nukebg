@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { readArAppSource } from '../helpers.js';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
@@ -15,7 +16,10 @@ import { resolve } from 'node:path';
  */
 
 const ROOT = resolve(__dirname, '..', '..');
-const APP = readFileSync(resolve(ROOT, 'src/components/ar-app.ts'), 'utf8');
+// Reads all three ar-app files: the .crt-word-flicker rule this guards would
+// now land in ar-app.styles.ts, so scanning ar-app.ts alone made the
+// assertion unfalsifiable.
+const APP = readArAppSource();
 const VIEWER = readFileSync(resolve(ROOT, 'src/components/ar-viewer.ts'), 'utf8');
 const HTML = readFileSync(resolve(ROOT, 'index.html'), 'utf8');
 const CSS = readFileSync(resolve(ROOT, 'src/styles/main.css'), 'utf8');

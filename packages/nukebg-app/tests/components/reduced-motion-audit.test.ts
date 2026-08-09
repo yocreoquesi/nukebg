@@ -12,6 +12,12 @@ import { resolve } from 'node:path';
 const ROOT = resolve(__dirname, '..', '..');
 const COMPONENTS = [
   'ar-app.ts',
+  // ar-app's @keyframes (marquee-scroll, smoke-rise, cmd-pulse) moved here in
+  // the styles split. Without this entry the audit finds no @keyframes for
+  // ar-app, early-returns, and passes vacuously — issue #35's guard would stop
+  // guarding anything. Verified: deleting the reduce block fails this with the
+  // entry, and passes without it.
+  'ar-app.styles.ts',
   'ar-editor.ts',
   'ar-editor-advanced.ts',
   'ar-dropzone.ts',

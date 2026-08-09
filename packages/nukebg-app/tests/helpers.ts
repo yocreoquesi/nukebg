@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 /**
  * Test helpers: utility functions for generating synthetic images in tests.
  */
@@ -93,4 +95,29 @@ export function countBg(mask: Uint8Array): number {
  */
 export function countFg(mask: Uint8Array): number {
   return mask.length - countBg(mask);
+}
+
+// ---------------------------------------------------------------------------
+// Source-level component readers
+// ---------------------------------------------------------------------------
+
+/**
+ * ar-app's full source, across the three files it was split into.
+ *
+ * ar-app is too heavy to mount in happy-dom, so several suites assert against
+ * its source as text. After the styles/template split those assertions would
+ * silently stop matching anything if they kept reading ar-app.ts alone — the
+ * CSS and markup they check now live in siblings. Three suites were widened by
+ * hand and three were missed, which is the argument for this helper existing:
+ * the next split only has to be handled once.
+ */
+export function readArAppSource(): string {
+  const root = resolve(__dirname, '..');
+  return [
+    'src/components/ar-app.ts',
+    'src/components/ar-app.styles.ts',
+    'src/components/ar-app.template.ts',
+  ]
+    .map((rel) => readFileSync(resolve(root, rel), 'utf8'))
+    .join('\n');
 }

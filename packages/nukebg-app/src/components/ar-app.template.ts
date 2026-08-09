@@ -5,10 +5,18 @@
  * Returns the full shadow HTML string with styles embedded inside a <style>
  * tag, preserving the original injection mechanism (not adoptedStyleSheets).
  *
- * The `no-unsanitized/property` lint rule is enforced at the call site in
- * ar-app.ts (the innerHTML assignment), not here. All dynamic interpolations
- * are either AR_APP_STYLES (a static project-owned constant) or t(...)
- * (the trusted i18n helper). No user input is interpolated.
+ * SECURITY — read before adding an interpolation.
+ *
+ * The `no-unsanitized/property` rule is NOT enforced anywhere on this file. It
+ * is *suppressed* at the call site: ar-app.ts:151 carries an
+ * `// eslint-disable-next-line no-unsanitized/property` above the innerHTML
+ * assignment. So nothing here is lint-checked, and a new `${...}` will not be
+ * caught by CI.
+ *
+ * Every interpolation in this file is hand-audited and must stay either
+ * AR_APP_STYLES (a static project-owned constant) or `t(...)` (the trusted
+ * i18n helper). Never a filename, a fetched response, or anything else a user
+ * controls — that is an XSS, and the linter will not stop you.
  */
 import { AR_APP_STYLES } from './ar-app.styles';
 import { t } from '../i18n';
