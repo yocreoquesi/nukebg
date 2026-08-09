@@ -10,6 +10,193 @@ Unreleased entries accumulate on the `dev` branch. When we cut a release we copy
 
 ## [Unreleased]
 
+### Changed
+
+- **Classifier collapsed from 4 to 3 content types.** Removed `ILLUSTRATION`
+  from `ImageContentType`. Audit confirmed the label had zero behavioural
+  impact: `finalize-result.ts` treated it identically to `PHOTO` and no
+  other module branched on it. The remaining classes — `PHOTO`,
+  `SIGNATURE`, `ICON` — each now correspond to a distinct pipeline path.
+  Illustration-style content (flat shading, limited palette) still works
+  end-to-end; it just falls through to the PHOTO path. TypeScript union
+  narrowing prevents accidental re-introduction.
+- **SIGNATURE classifier tightened (asymmetric calibration).** Added
+  `SIGNATURE_UNIQUE_COLORS_MAX = 200` as a fifth gate on the SIGNATURE
+  branch. Photographic subjects on near-white backgrounds (e.g. a
+  desaturated product shot) used to satisfy the four pre-existing
+  thresholds because the white background pulled the saturation mean
+  below 0.08; the new gate filters them out by their unique-color count.
+  Calibration is intentionally asymmetric — signatures are niche, so we
+  prefer to misclassify a noisy scanned signature as PHOTO over admitting
+  a non-signature that would be corrupted by the threshold-based path.
+- **Cmdbar verb is now `nuke` instead of `nukea`.** The hardcoded
+  template literal read `nukea` regardless of UI language; replaced
+  with `nuke` so the prompt reads naturally in any locale.
+
+### Fixed
+
+- **Editor no longer flashes during reprocessing.** When a user clicked
+  _Edit_ → _Process another_ → pasted a new image, the editor stayed
+  visible during the entire pipeline run. `resetToIdle()` did not hide
+  `#editor-section`, and the existing hide at the end of `processImage()`
+  only fired after success. Editor visibility is now centralized: hidden
+  on processing entry and on idle reset, visible only after a successful
+  run when the user opens it via the Edit button.
+
+## [2.12.0] — 2026-04-30
+
+Minor release. Headline feature is **autocrop on export** — the
+downloaded PNG / WebP is now sized to the subject bbox instead of
+the full original canvas. Also lands the cmdbar Cancel button
+removal that was queued for v2.11.3, plus a stack of pipeline
+refactors that don't change output but make the working→export
+chain easier to reason about.
+
+### Added
+
+- **Autocrop on export.** After background removal the result no
+  longer ships with the full original canvas size. The downloaded
+  file is tightly cropped to the non-transparent bbox of the
+  subject — Slack-emote sized instead of the input's 4K canvas.
+  The before/after slider still aligns with the original (canvases
+  share dimensions) but the resolution label and downloaded file
+  reflect the cropped size. Edge cases handled: all-transparent
+  results pass through unchanged; subjects that touch the canvas
+  edges produce a no-op crop. Closes #247.
+
+### Changed
+
+- **`finalizePipelineResult` collapses the working→export chain.**
+  The single function now owns upscale + alpha-snap + topology
+  cleanup, replacing the inline chain that used to live in two
+  different callers. Output bit-for-bit identical.
+- **`ImageProcessor` seam between components and orchestrator.**
+  The old direct-orchestrator-import pattern from `ar-app` and
+  `ar-batch` collapses into a single seam. Easier to mock in
+  tests, easier to swap implementations later.
+- **Tier-aware precision via `getRecommendedPrecision()`.** The
+  pipeline picks fp16 / fp32 based on device tier instead of the
+  hardcoded fp32 fallback. Faster on capable mobiles without
+  regressing low-end devices.
+- **`WorkerChannel` extracted for worker request lifecycle.**
+  Decouples request/response correlation from the orchestrator;
+  cancel + timeout semantics centralised.
+- **`refine` single-product loader factory collapsed.** One factory
+  function instead of two near-duplicate ones.
+
+### Removed
+
+- **`cmdbar` Cancel button.** Kept failing user expectations —
+  the cancel-on-drop semantics in the orchestrator + the editor
+  Cancel buttons cover every flow that mattered. Was queued for
+  v2.11.3 (PR #246, superseded by this release).
+
+## [2.11.2] — 2026-04-29
+
+Patch release. Fixes the cancel button to actually behave like a cancel
+(hard reset back to the dropzone, image purged from memory, model kept
+cached) and moves the cmdbar below the image so it stops covering the
+result on completion / cancel.
+
+### Fixed
+
+- **Cancel now hard-resets to landing (#243).** Clicking Cancel during
+  a run terminates every worker (`cv`, `ml`, `inpaint`, `lama`) and
+  returns the UI to the dropzone with `currentImageData` /
+  `lastResultImageData` / `preEditResult` / `cachedEditResult` nulled
+  and the download component reset. The pipeline orchestrator stays
+  alive so the cached RMBG model survives — the next image drop
+  doesn't pay the model load again. Implemented by branching on the
+  `AbortController` reason inside `processImage()`'s catch: only
+  `'user cancelled'` triggers `resetToIdle()`; `'new image dropped'`
+  / `'batch aborted'` / timeout aborts fall through to the silent
+  return so the new run that follows can take over the UI.
+
+### Changed
+
+- **Cmdbar moved below the viewer (#243).** The
+  `$ nukea file.png · WxH · KB · ready` strip used to render above
+  the image and overlapped the result on completion / cancel. Now it
+  sits below `.ws-result-grid`, same `role="status"` /
+  `aria-live="polite"` region, only DOM order changed. The
+  test that asserted the bar sits BEFORE `<ar-viewer>` flipped to
+  assert AFTER, with a comment recording why.
+
+### Tooling / CI
+
+- CSP inline-script hash refreshed in `public/_headers` and
+  `infra/nginx.conf` (the version bump invalidated the previous
+  v2.11.1 hash on the JSON-LD block).
+
+### PRs
+
+- #243 — cancel hard-resets to landing + cmdbar below viewer.
+
+## [2.11.1] — 2026-04-29
+
+Patch release. Restores the watermark/sparkle removal pipeline to the
+proven 984b578b deploy quality (visible Gemini ✦ glyph cleanly removed,
+no transparency holes between fingers when the glyph straddles a hand)
+and adds three small UI papercuts that surfaced during the same testing
+pass.
+
+### Pipeline
+
+- **Sparkle/watermark removal restored to 984b578b quality (#240).**
+  PR #223 retired the legacy color-deviation `watermarkDetect` to fix
+  motostest false positives; that retirement also lost the cluster-
+  centroid mask that produced the clean removal on real Gemini ✦
+  glyphs. PR #225 / PR #238 were band-aids over the post-#223 hole and
+  never matched the legacy quality. The legacy detector is back, gated
+  by the shape detector's strict G1-G6 (4-arm symmetry, narrow-arm
+  isolation, etc.) so the false-positive immunity that motivated #223
+  is preserved without sacrificing mask quality. Closes #239.
+
+### Changed
+
+- **Status panel always visible (#241).** The `[STATUS]` line, the
+  limitations `<details>`, the honesty disclaimer and the Ko-fi pitch
+  used to live inside `<section.hero>` and disappear the moment a file
+  was dropped. Lifted into a sibling `<aside class="status-panel">`
+  placed below the workspace so it follows the current image at every
+  stage (landing, processing, result). Hidden only while the advanced
+  editor is open (the user explicitly does not want it competing with
+  the editing surface).
+- **Advanced editor button label tightened to "Editor" (#241).** The
+  button used to carry the full sentence "¿No te convence el resultado?
+  Abre el editor avanzado". Split: prompt becomes a plain `<p>` above
+  the button, the button itself is the tight word "Editor". New i18n
+  key `advanced.btn` shipped across all six locales (en/es/fr/de/pt/zh).
+
+### Fixed
+
+- **`Eliminando fondo [ML]` no longer surfaces before its stage runs
+  (#240).** `ar-progress.reset()` initialised every stage with
+  `status='pending'` and the render filter only hid the inpaint row
+  when skipped — so the queued ML-segmentation label appeared with an
+  empty bordered icon mid-pipeline. Pending rows are now filtered out
+  of the render entirely; stages only appear once they are running,
+  done, skipped, or errored.
+- **Per-stage 3px progress bar removed (#240).** The bar duplicated the
+  textual percentage already shown in the stage message
+  ("Loading AI model... 45%") and read as visual noise. Drop the
+  `.progress-bar` / `.progress-fill` / `@keyframes pulse` /
+  `isParsing` branch.
+
+### Tooling / CI
+
+- Refreshed the iphone landing visual baseline to reflect the status
+  panel relocation (chromium / webkit baselines unchanged — the moved
+  content sits below their fold).
+
+### PRs
+
+- #238 — peak-relocated flood-fill mask (subsequently superseded by
+  the rollback in #240, which restores the legacy approach).
+- #240 — restore 984b578b watermark/sparkle pipeline + shape-gated
+  legacy + ar-progress UI cleanup.
+- #241 — persistent status panel + Editor button rename.
+
 ## [2.11.0] — 2026-04-29
 
 Minor release. Mobile UX overhaul for the advanced editor plus a
@@ -768,4 +955,6 @@ section, keep only the relevant subsections, and empty `[Unreleased]`:
 ### Documentation
 ```
 
-[Unreleased]: https://github.com/yocreoquesi/nukebg/compare/main...dev
+[Unreleased]: https://github.com/yocreoquesi/nukebg/compare/v2.11.2...dev
+[2.11.2]: https://github.com/yocreoquesi/nukebg/compare/v2.11.1...v2.11.2
+[2.11.1]: https://github.com/yocreoquesi/nukebg/compare/v2.11.0...v2.11.1

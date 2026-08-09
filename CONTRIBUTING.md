@@ -58,6 +58,48 @@ $ npm run build
 
 ---
 
+## > workspaces
+
+This repo is an **npm workspaces monorepo** with three packages:
+`nukebg-app` (this browser app), `nukebg-core` (runtime-agnostic pipeline),
+and `nukebg-cli` (Node CLI). See the [root README's monorepo map](README.md)
+for what each package is.
+
+### Root-level commands (run from the repo root)
+
+```bash
+npm install              # installs all three workspaces' deps in one go
+npm test                 # runs the Vitest project suite for all packages
+npm run typecheck        # tsc -b across all package project references
+npm run lint             # lint (currently scoped to nukebg-app)
+npm run build            # build all packages
+```
+
+### Per-package commands
+
+Target a single workspace with `-w <package-name>`:
+
+```bash
+npm test -w nukebg-app     # or nukebg-core / nukebg-cli
+npm run typecheck -w nukebg-cli
+npm run build -w nukebg-core
+npm run dev -w nukebg-app  # Vite dev server for the browser app specifically
+```
+
+Use per-package commands when iterating on one package — they're faster than
+re-running the whole monorepo suite. Run the root-level `npm test` before
+opening a PR to make sure nothing else broke.
+
+### Strict TDD
+
+This project follows **strict TDD**: write a failing test before writing the
+implementation (red -> green -> refactor). This applies to `nukebg-core` and
+`nukebg-cli` particularly — both are libraries where contract tests are the
+primary spec. For the browser app, existing conventions in the `> tests`
+section below apply.
+
+---
+
 ## > project_structure
 
 ```
@@ -185,7 +227,7 @@ The `Typecheck + tests` job in `.github/workflows/ci.yml` runs:
 2. `npm test` (vitest, ~600 source-invariant tests)
 3. `npm run build` — same command Cloudflare Pages runs on every deploy
 
-If `Typecheck + tests` is red, the deploy is red too — fix before merging. The Lint + format job is non-blocking today (`continue-on-error: true`) while the codebase finishes migrating to the strict ESLint + Prettier config; flip that flag once the formatter is fully run.
+If `Typecheck + tests` is red, the deploy is red too — fix before merging. `Lint + format` is blocking as well: it was flipped to `continue-on-error: false` in #134 once the one-shot Prettier sweep landed. ESLint covers all three workspace packages; Prettier's `--check` still only covers `nukebg-app`.
 
 ### Branch protection (recommended on `main`)
 
@@ -209,7 +251,13 @@ issues #76 and #77 for the underlying UX work.
 
 ## > commits
 
-Format: `type: short description`
+Format: `type: short description` (conventional-commits style — see
+[conventionalcommits.org](https://www.conventionalcommits.org/) for the
+general convention this follows).
+
+Do **not** add AI attribution (e.g. "Co-Authored-By: Claude" or similar) to
+commit messages, regardless of what tooling was used to help write the
+change. Commit messages describe the change, not the tooling.
 
 ### Types
 
@@ -262,6 +310,25 @@ infra: add CI workflow with GitHub Actions
 
 - All magic numbers and algorithm thresholds go in `src/pipeline/constants.ts`.
 - Never hardcode values directly in algorithm modules.
+
+### `innerHTML` policy
+
+NukeBG uses `.innerHTML =` in many places to build Web Component shadow DOM. The audit on PR #257 confirmed every existing site is safe — they fall into three trusted categories:
+
+1. **Static templates** — pure markup with at most `${t(...)}` interpolations from `src/i18n/index.ts` (the i18n trust boundary).
+2. **Internal numeric / enum state** — values like `brushSize: number` or `tool: 'erase' | 'refine'` that never carry user-supplied strings.
+3. **Roundtrip restores** — `el.innerHTML = saved`, where `saved` was previously read from `el.innerHTML` of the same element.
+
+The `no-unsanitized/property` ESLint rule (`eslint-plugin-no-unsanitized`) enforces this contract on every new assignment. The plugin's `escape.methods: ['t']` config recognises the i18n translator as a trusted source — `el.innerHTML = t('key')` and `\`...\${t('key')}...\`` pass without ceremony. Any other dynamic input (user filenames, pasted text, API responses) MUST go through `textContent` or DOM APIs (`createElement`, `appendChild`, `setAttribute`).
+
+If a new site really needs `innerHTML` with a different trusted source (e.g. a hand-authored CSS string, a `buildGuide()` helper that composes only `t()` outputs), add an inline disable with a short reason:
+
+```ts
+// eslint-disable-next-line no-unsanitized/property -- <why this input is trusted>
+el.innerHTML = composedSafeMarkup;
+```
+
+The reason must name the trust boundary — "static template", "trusted i18n", "internal numeric state", "roundtrip of own DOM" — not the symptom ("works fine"). Drive-by disables without justification will be rejected.
 
 ---
 

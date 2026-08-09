@@ -18,7 +18,7 @@ jobs:
     name: npm audit
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - uses: actions/setup-node@v6
         with:
@@ -45,7 +45,7 @@ jobs:
       matrix:
         language: ['javascript-typescript']
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v4
@@ -68,12 +68,15 @@ jobs:
       contents: read
       security-events: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Run OSV-Scanner
-        uses: google/osv-scanner-action/osv-scanner-action@v2.0.2
+        uses: google/osv-scanner-action/osv-scanner-action@v2.3.5
         with:
+          # `--skip-git` was removed in osv-scanner v2.x (git-history
+          # scanning is no longer the default and is controlled via a
+          # different mechanism). Action v2.3.5 was bumped in #253; this
+          # restores compatibility without losing dependency coverage.
           scan-args: |-
             --recursive
-            --skip-git
             ./

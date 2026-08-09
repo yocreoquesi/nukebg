@@ -4,6 +4,8 @@ node_modules/
 # Build output
 dist/
 test-output/
+packages/*/dist/
+*.tsbuildinfo
 
 # Environment
 .env
@@ -42,3 +44,12 @@ test-results/
 
 .gstack/
 .halo-check/
+
+# Skill registry tooling cache
+.atl/
+
+# Dev scratch / local-only artifacts
+.dev-now.png
+
+# Personal e2e experiment — references a selfie outside the repo, would fail in CI
+packages/nukebg-app/e2e/selfie-halo-capture.spec.ts
