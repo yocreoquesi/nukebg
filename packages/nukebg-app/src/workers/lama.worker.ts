@@ -171,16 +171,18 @@ async function runInpaint(
   const cropRgba = bilinearResizeRGBA(pixels, width, rect, inputSize);
   const cropMask = nearestResizeMask(mask, width, rect, inputSize);
 
-  const imageTensor = new ort.Tensor(
-    'float32',
-    packRgbaToChw(cropRgba, inputSize, inputSize),
-    [1, 3, inputSize, inputSize],
-  );
-  const maskTensor = new ort.Tensor(
-    'float32',
-    packMaskToChw(cropMask, inputSize, inputSize),
-    [1, 1, inputSize, inputSize],
-  );
+  const imageTensor = new ort.Tensor('float32', packRgbaToChw(cropRgba, inputSize, inputSize), [
+    1,
+    3,
+    inputSize,
+    inputSize,
+  ]);
+  const maskTensor = new ort.Tensor('float32', packMaskToChw(cropMask, inputSize, inputSize), [
+    1,
+    1,
+    inputSize,
+    inputSize,
+  ]);
 
   self.postMessage({
     id,
@@ -202,7 +204,11 @@ async function runInpaint(
     stage: 'compositing',
   } satisfies LamaWorkerResponse);
 
-  const inpaintedCropRgba = unpackChwToRgba(outputTensor.data as Float32Array, inputSize, inputSize);
+  const inpaintedCropRgba = unpackChwToRgba(
+    outputTensor.data as Float32Array,
+    inputSize,
+    inputSize,
+  );
   const full = spliceLamaOutput(pixels, width, height, inpaintedCropRgba, inputSize, rect);
 
   self.postMessage({ id, type: 'lama-inpaint-result', result: full } satisfies LamaWorkerResponse, [
