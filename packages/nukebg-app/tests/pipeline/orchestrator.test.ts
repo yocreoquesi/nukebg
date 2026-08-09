@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { CV_PARAMS } from '../../src/pipeline/constants';
+import { CV_PARAMS } from 'nukebg-core';
 
 /**
  * Pipeline orchestrator tests.
@@ -17,12 +17,12 @@ import { CV_PARAMS } from '../../src/pipeline/constants';
  */
 
 // Import CV functions directly (without workers)
-import { detectBgColors } from '../../src/workers/cv/detect-bg-colors';
-import { detectCheckerGrid } from '../../src/workers/cv/detect-checker-grid';
-import { gridFloodFill } from '../../src/workers/cv/grid-flood-fill';
-import { simpleFloodFill } from '../../src/workers/cv/simple-flood-fill';
-import { subjectExclusion } from '../../src/workers/cv/subject-exclusion';
-import { watermarkDetect } from '../../src/workers/cv/watermark-detect';
+import { detectBgColors } from 'nukebg-core/cv/detect-bg-colors';
+import { detectCheckerGrid } from 'nukebg-core/cv/detect-checker-grid';
+import { gridFloodFill } from 'nukebg-core/cv/grid-flood-fill';
+import { simpleFloodFill } from 'nukebg-core/cv/simple-flood-fill';
+import { subjectExclusion } from 'nukebg-core/cv/subject-exclusion';
+import { watermarkDetect } from 'nukebg-core/cv/watermark-detect';
 import { solidImage, checkerboardImage, paintRect, countBg } from '../helpers';
 
 /**

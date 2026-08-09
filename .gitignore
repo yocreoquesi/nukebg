@@ -5,6 +5,7 @@ node_modules/
 dist/
 test-output/
 packages/*/dist/
+*.tsbuildinfo
 
 # Environment
 .env

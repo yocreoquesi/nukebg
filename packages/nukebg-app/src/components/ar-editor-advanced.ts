@@ -29,12 +29,12 @@
  */
 
 import { createRmbg14Loader, type Rmbg14Loader } from '../refine/loaders/rmbg14';
-import { refineEdges } from '../pipeline/finalize';
+import { refineEdges } from 'nukebg-core/pipeline/finalize';
 import { SamRefiner } from '../controllers/sam-refiner';
 import { processRoi } from '../refine/roi-process';
 import { rasterizePolygon } from '../refine/roi-process';
-import { patchMatchInpaint } from '../workers/cv/patchmatch-inpaint';
-import { PATCHMATCH_PARAMS } from '../pipeline/constants';
+import { patchMatchInpaint } from 'nukebg-core/inpaint/patch-match';
+import { PATCHMATCH_PARAMS } from 'nukebg-core';
 import { t } from '../i18n';
 import { type Point } from './lasso-simplify';
 import { LassoModel } from '../lib/lasso-model';

@@ -15,13 +15,13 @@
  */
 import * as ort from 'onnxruntime-web';
 import type { LamaWorkerRequest, LamaWorkerResponse } from '../types/worker-messages';
-import { LAMA_PARAMS } from '../pipeline/constants';
+import { LAMA_PARAMS, packRgbaToChw, packMaskToChw, unpackChwToRgba } from 'nukebg-core';
 import {
   bilinearResizeRGBA,
   computeLamaCropRect,
   nearestResizeMask,
   spliceLamaOutput,
-} from './cv/lama-crop';
+} from 'nukebg-core/cv/lama-crop';
 
 // Point ORT at the JSDelivr CDN for its WASM runtime (ort-wasm-*.wasm +
 // ort-wasm-*.mjs). Vite's dev server refuses to serve .mjs files out of
@@ -132,40 +132,9 @@ async function loadModel(id: string): Promise<ort.InferenceSession> {
   }
 }
 
-/** Convert a 512×512 RGBA crop to the model's image tensor (NCHW, RGB, /255). */
-function rgbaToImageTensor(rgba: Uint8ClampedArray, size: number): ort.Tensor {
-  const plane = size * size;
-  const data = new Float32Array(3 * plane);
-  for (let i = 0; i < plane; i++) {
-    data[i] = rgba[i * 4] / 255; // R
-    data[plane + i] = rgba[i * 4 + 1] / 255; // G
-    data[2 * plane + i] = rgba[i * 4 + 2] / 255; // B
-  }
-  return new ort.Tensor('float32', data, [1, 3, size, size]);
-}
-
-/** Convert a 512×512 binary mask (0/1) to the model's mask tensor (NCHW, float32). */
-function maskToTensor(mask: Uint8Array, size: number): ort.Tensor {
-  const data = new Float32Array(size * size);
-  for (let i = 0; i < data.length; i++) {
-    data[i] = mask[i] ? 1 : 0;
-  }
-  return new ort.Tensor('float32', data, [1, 1, size, size]);
-}
-
-/** Convert the model output tensor back to a 512×512 RGBA buffer. */
-function imageTensorToRgba(tensor: ort.Tensor, size: number): Uint8ClampedArray {
-  const data = tensor.data as Float32Array;
-  const plane = size * size;
-  const rgba = new Uint8ClampedArray(size * size * 4);
-  for (let i = 0; i < plane; i++) {
-    rgba[i * 4] = data[i]; // R
-    rgba[i * 4 + 1] = data[plane + i]; // G
-    rgba[i * 4 + 2] = data[2 * plane + i]; // B
-    rgba[i * 4 + 3] = 255;
-  }
-  return rgba;
-}
+// Tensor pack/unpack is the shared PURE NCHW math from nukebg-core
+// (`packRgbaToChw`/`packMaskToChw`/`unpackChwToRgba`); only the
+// `onnxruntime-web` `ort.Tensor` wrap is runtime-specific and stays here.
 
 async function runInpaint(
   id: string,
@@ -202,8 +171,18 @@ async function runInpaint(
   const cropRgba = bilinearResizeRGBA(pixels, width, rect, inputSize);
   const cropMask = nearestResizeMask(mask, width, rect, inputSize);
 
-  const imageTensor = rgbaToImageTensor(cropRgba, inputSize);
-  const maskTensor = maskToTensor(cropMask, inputSize);
+  const imageTensor = new ort.Tensor('float32', packRgbaToChw(cropRgba, inputSize, inputSize), [
+    1,
+    3,
+    inputSize,
+    inputSize,
+  ]);
+  const maskTensor = new ort.Tensor('float32', packMaskToChw(cropMask, inputSize, inputSize), [
+    1,
+    1,
+    inputSize,
+    inputSize,
+  ]);
 
   self.postMessage({
     id,
@@ -225,7 +204,11 @@ async function runInpaint(
     stage: 'compositing',
   } satisfies LamaWorkerResponse);
 
-  const inpaintedCropRgba = imageTensorToRgba(outputTensor, inputSize);
+  const inpaintedCropRgba = unpackChwToRgba(
+    outputTensor.data as Float32Array,
+    inputSize,
+    inputSize,
+  );
   const full = spliceLamaOutput(pixels, width, height, inpaintedCropRgba, inputSize, rect);
 
   self.postMessage({ id, type: 'lama-inpaint-result', result: full } satisfies LamaWorkerResponse, [

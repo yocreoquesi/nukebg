@@ -8,7 +8,7 @@
  * - Works with typical watermark masks (small, in corners)
  */
 import { describe, it, expect } from 'vitest';
-import { inpaintTelea } from '../../src/workers/cv/inpaint-telea';
+import { inpaintTelea } from 'nukebg-core/cv/inpaint-telea';
 
 /** Crear imagen sintetica de un solo color */
 function solidImage(w: number, h: number, r: number, g: number, b: number): Uint8ClampedArray {

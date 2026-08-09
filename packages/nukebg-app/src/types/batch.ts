@@ -1,4 +1,5 @@
-import type { PipelineResult, PipelineStage, StageStatus } from './pipeline';
+import type { PipelineResult } from 'nukebg-core';
+import type { PipelineStage, StageStatus } from './pipeline';
 
 /** Per-item state in a batch-processing run. */
 export type BatchItemState = 'pending' | 'processing' | 'done' | 'failed' | 'discarded';

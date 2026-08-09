@@ -10,7 +10,7 @@ import type {
   ModelId,
   WarmupDiagnostic,
 } from '../types/worker-messages';
-import { REFINE_PARAMS, RMBG_PARAMS } from '../pipeline/constants';
+import { refineMask, RMBG_PARAMS } from 'nukebg-core';
 
 const DEFAULT_MODEL: ModelId = 'briaai/RMBG-1.4';
 
@@ -100,213 +100,6 @@ async function detectDevice(): Promise<'webgpu' | 'wasm'> {
   // NetworkError on some browsers when loading the WebGPU runtime.
   // Re-enable when Transformers.js WebGPU support is stable.
   return 'wasm';
-}
-
-/**
- * Spatial context edge refinement.
- * Removes isolated semi-transparent residue pixels while preserving
- * the subject's outline. Works by checking each edge pixel's neighborhood:
- * - If mostly surrounded by transparent → it's residue → remove
- * - If mostly surrounded by opaque → it's part of the subject → keep
- * This doesn't depend on color, so it works when subject outline
- * matches background color (e.g., dark outline on dark checkerboard).
- */
-function refineEdges(
-  alpha: Uint8Array,
-  _pixels: Uint8ClampedArray,
-  w: number,
-  h: number,
-  opts?: MlRefineOptions,
-): Uint8Array {
-  const spatialPasses = opts?.spatialPasses ?? 1;
-  const spatialRadius = opts?.spatialRadius ?? REFINE_PARAMS.SPATIAL_RADIUS;
-  const morphRadius = opts?.morphOpenRadius ?? REFINE_PARAMS.MORPH_OPEN_RADIUS;
-  const minCluster = opts?.minClusterSize ?? REFINE_PARAMS.MIN_CLUSTER_SIZE;
-
-  let result = new Uint8Array(alpha);
-
-  // Spatial context passes (catches edge residue areas)
-  for (let i = 0; i < spatialPasses; i++) {
-    result = new Uint8Array(spatialPass(result, w, h, spatialRadius));
-  }
-
-  // Morphological opening (erode + dilate) to clean orphan contour pixels
-  if (morphRadius > 0) {
-    result = new Uint8Array(morphOpen(result, w, h, morphRadius));
-  }
-
-  // Remove isolated opaque clusters not connected to main subject
-  result = new Uint8Array(removeSmallClusters(result, w, h, minCluster, opts?.clusterRatio));
-
-  return result;
-}
-
-/** Single spatial refinement pass at given radius */
-function spatialPass(alpha: Uint8Array, w: number, h: number, radius: number): Uint8Array {
-  const result = new Uint8Array(alpha);
-
-  for (let y = 0; y < h; y++) {
-    for (let x = 0; x < w; x++) {
-      const a = alpha[y * w + x];
-      if (a < 1 || a > 240) continue;
-
-      let opaqueCount = 0;
-      let transparentCount = 0;
-      let totalCount = 0;
-
-      for (let dy = -radius; dy <= radius; dy++) {
-        for (let dx = -radius; dx <= radius; dx++) {
-          if (dy === 0 && dx === 0) continue;
-          const ny = y + dy;
-          const nx = x + dx;
-          if (ny < 0 || ny >= h || nx < 0 || nx >= w) continue;
-          totalCount++;
-          const na = alpha[ny * w + nx];
-          if (na > 200) opaqueCount++;
-          else if (na < 30) transparentCount++;
-        }
-      }
-
-      if (totalCount === 0) continue;
-
-      const transparentRatio = transparentCount / totalCount;
-      const opaqueRatio = opaqueCount / totalCount;
-
-      if (transparentRatio > 0.6) {
-        result[y * w + x] = 0;
-      } else if (opaqueRatio > 0.5) {
-        result[y * w + x] = Math.min(255, Math.round(a * 1.3));
-      }
-    }
-  }
-
-  return result;
-}
-
-/**
- * Morphological opening (erode then dilate) on binary alpha mask.
- * Erode removes thin protrusions and orphan edge pixels.
- * Dilate restores the main shape to its original size.
- */
-function morphOpen(alpha: Uint8Array, w: number, h: number, radius: number): Uint8Array {
-  const threshold = 128;
-
-  // Erode: pixel is opaque only if ALL neighbors within radius are opaque
-  const eroded = new Uint8Array(w * h);
-  for (let y = 0; y < h; y++) {
-    for (let x = 0; x < w; x++) {
-      if (alpha[y * w + x] < threshold) continue;
-      let allOpaque = true;
-      outer: for (let dy = -radius; dy <= radius; dy++) {
-        for (let dx = -radius; dx <= radius; dx++) {
-          const ny = y + dy;
-          const nx = x + dx;
-          if (ny < 0 || ny >= h || nx < 0 || nx >= w) {
-            allOpaque = false;
-            break outer;
-          }
-          if (alpha[ny * w + nx] < threshold) {
-            allOpaque = false;
-            break outer;
-          }
-        }
-      }
-      if (allOpaque) eroded[y * w + x] = alpha[y * w + x];
-    }
-  }
-
-  // Dilate: pixel is opaque if ANY neighbor within radius is opaque in eroded
-  const result = new Uint8Array(w * h);
-  for (let y = 0; y < h; y++) {
-    for (let x = 0; x < w; x++) {
-      // Keep original alpha if already opaque in eroded
-      if (eroded[y * w + x] >= threshold) {
-        result[y * w + x] = alpha[y * w + x];
-        continue;
-      }
-      // Check if any neighbor in eroded is opaque → restore original alpha
-      let hasOpaqueNeighbor = false;
-      for (let dy = -radius; dy <= radius && !hasOpaqueNeighbor; dy++) {
-        for (let dx = -radius; dx <= radius && !hasOpaqueNeighbor; dx++) {
-          const ny = y + dy;
-          const nx = x + dx;
-          if (ny >= 0 && ny < h && nx >= 0 && nx < w && eroded[ny * w + nx] >= threshold) {
-            hasOpaqueNeighbor = true;
-          }
-        }
-      }
-      result[y * w + x] = hasOpaqueNeighbor ? alpha[y * w + x] : 0;
-    }
-  }
-
-  return result;
-}
-
-/** Remove small opaque clusters not connected to the main subject */
-function removeSmallClusters(
-  alpha: Uint8Array,
-  w: number,
-  h: number,
-  minSize: number,
-  clusterRatio?: number,
-): Uint8Array {
-  const result = new Uint8Array(alpha);
-  const visited = new Uint8Array(w * h);
-
-  // Find all connected components of opaque pixels (alpha > 30)
-  const components: { indices: number[]; size: number }[] = [];
-
-  for (let i = 0; i < w * h; i++) {
-    if (alpha[i] <= 30 || visited[i]) continue;
-
-    // BFS flood-fill to find connected component (FIFO via head pointer)
-    const indices: number[] = [];
-    const queue = [i];
-    let head = 0;
-    visited[i] = 1;
-
-    while (head < queue.length) {
-      const idx = queue[head++];
-      indices.push(idx);
-      const cx = idx % w;
-      const cy = (idx - cx) / w;
-
-      for (const [dx, dy] of [
-        [-1, 0],
-        [1, 0],
-        [0, -1],
-        [0, 1],
-      ]) {
-        const nx = cx + dx;
-        const ny = cy + dy;
-        if (nx < 0 || nx >= w || ny < 0 || ny >= h) continue;
-        const ni = ny * w + nx;
-        if (!visited[ni] && alpha[ni] > 30) {
-          visited[ni] = 1;
-          queue.push(ni);
-        }
-      }
-    }
-
-    components.push({ indices, size: indices.length });
-  }
-
-  // Find the largest component (= the subject)
-  if (components.length === 0) return result;
-  const maxSize = Math.max(...components.map((c) => c.size));
-
-  // Remove components smaller than CLUSTER_RATIO of the main subject OR below absolute minSize
-  const ratio = clusterRatio ?? REFINE_PARAMS.CLUSTER_RATIO;
-  const relativeMin = Math.max(minSize, Math.round(maxSize * ratio));
-  for (const comp of components) {
-    if (comp.size < relativeMin && comp.size < maxSize) {
-      for (const idx of comp.indices) {
-        result[idx] = 0;
-      }
-    }
-  }
-
-  return result;
 }
 
 const progressCb = (id: string) => (progress: { status: string; progress?: number }) => {
@@ -540,7 +333,11 @@ async function segment(
   // The model produces smooth edges (1-2% edge pixels) that look natural.
   // Binarization was creating artificial contour lines.
   // Light edge cleanup: remove isolated residue pixels only.
-  const alphaMask = refineEdges(rawAlpha, pixels, width, height, refineOpts);
+  // Core owns the refinement chain (spatial passes -> morphological opening
+  // -> small-cluster removal). It used to live here as private helpers, which
+  // is why the Node runner had nothing to call and silently skipped it —
+  // see issue #327.
+  const alphaMask = refineMask(rawAlpha, width, height, refineOpts);
 
   self.postMessage({ id, type: 'segment-result', result: alphaMask }, [alphaMask.buffer]);
 }

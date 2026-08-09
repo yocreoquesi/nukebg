@@ -84,26 +84,26 @@ nukebg --help               — print usage and exit 0
 
 ---
 
-### REQ-CLI-INVOCATION-4: Stdin input
+### REQ-CLI-INVOCATION-4: Stdin/stdout streaming — DEFERRED to v1.1
 
-**Statement**: When `<input>` is `-`, the CLI MUST read image bytes from stdin. The format MUST be detected by magic bytes on the first bytes read. Stdin input MUST be fully buffered before processing begins. If stdin is empty or produces no recognizable image bytes, the CLI MUST exit 65 (`EX_DATAERR`).
+**Status**: DEFERRED to v1.1 (see design §H.5). v1 supports file paths only for `<input>` and `--output`; `nukebg -` (stdin) and `-o -` (stdout) are not implemented in v1. Rationale (design §H.5): stdin `-` requires buffering the full input before sharp can decode, and `-o -` collides with `--json` on stdout — both add contract complexity for a purely additive feature that is safe to ship later. This amendment reconciles the acceptance contract with the design decision that was already made; it was recorded during `sdd-verify` (finding C2).
 
-**Note**: v1 supports stdin input (`nukebg -`). Streaming partial reads mid-pipeline are deferred to v1.1.
+**v1 behavior**: When `<input>` is `-` (or `--output` is `-`), the CLI treats it as a literal file path and fails with a normal path error. The scenarios below are the v1.1 acceptance target, retained here for traceability.
 
-#### Scenario: Piped PNG via stdin
+#### Scenario (v1.1): Piped PNG via stdin
 
 - GIVEN a valid PNG is piped: `cat image.png | nukebg - -o result.png`
 - WHEN the CLI reads stdin to completion
 - THEN it detects PNG format, processes the image, writes `result.png`, and exits 0
 
-#### Scenario: Stdout output via `-o -`
+#### Scenario (v1.1): Stdout output via `-o -`
 
 - GIVEN the user runs `nukebg image.png -o -`
 - WHEN processing succeeds
 - THEN the PNG bytes of the result are written to stdout
 - AND no progress output is emitted to stdout (progress goes to stderr only)
 
-#### Scenario: Empty stdin
+#### Scenario (v1.1): Empty stdin
 
 - GIVEN nothing is piped: `echo -n "" | nukebg -`
 - WHEN the CLI reads stdin
@@ -177,7 +177,7 @@ No other exit codes are permissible in v1. The CLI MUST NOT exit 0 if the output
 
 ### REQ-CLI-INVOCATION-7: Progress output
 
-**Statement**: Progress MUST be emitted to stderr only. Stdout is reserved exclusively for image bytes when `-o -` is used. In default mode, the CLI MUST emit at least one line per major stage (decode, watermark, RMBG, inpaint, finalize). `--quiet` suppresses all progress. `--verbose` adds timing information per stage. `--json` is deferred to v1.1.
+**Statement**: Progress MUST be emitted to stderr only (stdout is reserved for image bytes when the v1.1 `-o -` streaming lands). In default mode, the CLI MUST emit human-readable progress to stderr covering the major phases of a run (reading input, loading models, running the pipeline, encoding output). `--quiet` suppresses all progress. `--verbose` adds per-stage timing information. **Deferred to v1.1**: structured one-event-per-stage output (decode/watermark/RMBG/inpaint/finalize) is provided by the `--json` event stream, which is itself deferred to v1.1; v1 emits coarse phase lines only. (Reconciled during `sdd-verify`, finding W3.)
 
 #### Scenario: Quiet mode produces no output on success
 

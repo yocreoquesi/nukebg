@@ -16,7 +16,7 @@
  */
 
 import { getCapability, type CapabilityTier } from './capability-detector';
-import type { PrecisionMode } from '../pipeline/constants';
+import type { PrecisionMode, PipelinePrecision } from 'nukebg-core';
 
 /**
  * Map a capability tier to the precision mode that strikes the right
@@ -47,4 +47,29 @@ export function getPrecisionForTier(tier: CapabilityTier): PrecisionMode {
  */
 export function getRecommendedPrecision(): PrecisionMode {
   return getPrecisionForTier(getCapability().tier);
+}
+
+/**
+ * Map an internal PrecisionMode to the public PipelinePrecision type.
+ * Used when calling WorkerPipelineRunner.run() which expects PipelineOptions.precision.
+ */
+export function precisionModeToPipelinePrecision(mode: PrecisionMode): PipelinePrecision {
+  switch (mode) {
+    case 'low-power':
+      return 'low';
+    case 'high-power':
+      return 'high';
+    case 'full-nuke':
+      return 'ultra';
+    default:
+      return 'normal';
+  }
+}
+
+/**
+ * Convenience: returns the recommended precision as PipelinePrecision
+ * for use with PipelineOptions in WorkerPipelineRunner.run().
+ */
+export function getRecommendedPipelinePrecision(): PipelinePrecision {
+  return precisionModeToPipelinePrecision(getRecommendedPrecision());
 }

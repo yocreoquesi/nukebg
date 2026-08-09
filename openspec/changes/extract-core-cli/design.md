@@ -912,8 +912,9 @@ Rejected: `cac` is leaner (~10KB) but lacks subcommand niceties. Rolling our own
 // packages/nukebg-cli/src/util/exit-codes.ts
 export const ExitCode = Object.freeze({
   OK: 0,
-  USER_ERROR: 64,           // bad CLI args, invalid input path, malformed flag
+  USER_ERROR: 64,           // bad CLI args, malformed/unrecognized flag
   INPUT_DECODE_FAILED: 65,  // sharp could not decode (corrupt/unsupported file)
+  NO_INPUT: 66,             // input file not found (EX_NOINPUT) — added during sdd-verify (W6) to match cli-invocation.md REQ-2/6
   PIPELINE_FAILED: 70,      // CV/ML stage threw a non-recoverable error
   MODEL_DOWNLOAD_FAILED: 74,// network/integrity failure on RMBG or LaMa load
   IO_ERROR: 75,             // fs read/write failure (permission denied, ENOSPC)

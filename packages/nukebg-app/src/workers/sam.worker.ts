@@ -13,7 +13,7 @@
  */
 import * as ort from 'onnxruntime-web';
 import type { SamWorkerRequest, SamWorkerResponse } from '../types/worker-messages';
-import { MOBILESAM_PARAMS } from '../pipeline/constants';
+import { MOBILESAM_PARAMS } from 'nukebg-core';
 const SAM_PARAMS = {
   INPUT_SIZE: 1024,
   MASK_SIZE: 256,

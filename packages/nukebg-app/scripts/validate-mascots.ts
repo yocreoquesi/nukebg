@@ -13,15 +13,15 @@ import { existsSync, mkdirSync } from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
-import { detectBgColors } from '../src/workers/cv/detect-bg-colors';
-import { detectCheckerGrid } from '../src/workers/cv/detect-checker-grid';
+import { detectBgColors } from 'nukebg-core/cv/detect-bg-colors';
+import { detectCheckerGrid } from 'nukebg-core/cv/detect-checker-grid';
 import { gridFloodFill } from '../src/workers/cv/grid-flood-fill';
 import { subjectExclusion } from '../src/workers/cv/subject-exclusion';
 import { simpleFloodFill } from '../src/workers/cv/simple-flood-fill';
-import { watermarkDetect } from '../src/workers/cv/watermark-detect';
+import { watermarkDetect } from 'nukebg-core/cv/watermark-detect';
 import { shadowCleanup } from '../src/workers/cv/shadow-cleanup';
 import { alphaRefine } from '../src/workers/cv/alpha-refine';
-import { CV_PARAMS } from '../src/pipeline/constants';
+import { CV_PARAMS } from 'nukebg-core';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const OUT_DIR = path.join(__dirname, '..', 'test-output', 'mascot-validation');

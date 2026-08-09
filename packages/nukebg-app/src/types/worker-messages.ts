@@ -1,5 +1,5 @@
 import type { BgColorResult, WatermarkResult, ImageContentType } from './pipeline';
-import type { ImageFeatures } from '../workers/cv/classify-image';
+import type { ImageFeatures } from 'nukebg-core/cv/classify-image';
 
 /** ======== CV Worker Messages ======== */
 

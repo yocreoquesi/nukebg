@@ -1,20 +1,47 @@
 {
   "name": "nukebg-core",
   "version": "0.1.0",
+  "private": false,
   "type": "module",
   "license": "GPL-3.0-only",
   "description": "Pure CV+ML pipeline for nukebg — runtime-agnostic background removal, watermark detection, and inpainting.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yocreoquesi/nukebg.git",
+    "directory": "packages/nukebg-core"
+  },
+  "bugs": {
+    "url": "https://github.com/yocreoquesi/nukebg/issues"
+  },
+  "homepage": "https://github.com/yocreoquesi/nukebg/tree/main/packages/nukebg-core#readme",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
+    },
+    "./cv/*": {
+      "types": "./dist/cv/*.d.ts",
+      "import": "./dist/cv/*.js"
+    },
+    "./pipeline/*": {
+      "types": "./dist/pipeline/*.d.ts",
+      "import": "./dist/pipeline/*.js"
+    },
+    "./inpaint/*": {
+      "types": "./dist/inpaint/*.d.ts",
+      "import": "./dist/inpaint/*.js"
     }
   },
-  "files": ["dist", "README.md", "LICENSE"],
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
     "build": "tsc -b",
+    "typecheck": "tsc -b && tsc -p tsconfig.test.json",
     "test": "vitest run --passWithNoTests"
   },
   "dependencies": {},

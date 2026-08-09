@@ -58,6 +58,48 @@ $ npm run build
 
 ---
 
+## > workspaces
+
+This repo is an **npm workspaces monorepo** with three packages:
+`nukebg-app` (this browser app), `nukebg-core` (runtime-agnostic pipeline),
+and `nukebg-cli` (Node CLI). See the [root README's monorepo map](README.md)
+for what each package is.
+
+### Root-level commands (run from the repo root)
+
+```bash
+npm install              # installs all three workspaces' deps in one go
+npm test                 # runs the Vitest project suite for all packages
+npm run typecheck        # tsc -b across all package project references
+npm run lint             # lint (currently scoped to nukebg-app)
+npm run build            # build all packages
+```
+
+### Per-package commands
+
+Target a single workspace with `-w <package-name>`:
+
+```bash
+npm test -w nukebg-app     # or nukebg-core / nukebg-cli
+npm run typecheck -w nukebg-cli
+npm run build -w nukebg-core
+npm run dev -w nukebg-app  # Vite dev server for the browser app specifically
+```
+
+Use per-package commands when iterating on one package — they're faster than
+re-running the whole monorepo suite. Run the root-level `npm test` before
+opening a PR to make sure nothing else broke.
+
+### Strict TDD
+
+This project follows **strict TDD**: write a failing test before writing the
+implementation (red -> green -> refactor). This applies to `nukebg-core` and
+`nukebg-cli` particularly — both are libraries where contract tests are the
+primary spec. For the browser app, existing conventions in the `> tests`
+section below apply.
+
+---
+
 ## > project_structure
 
 ```
@@ -185,7 +227,7 @@ The `Typecheck + tests` job in `.github/workflows/ci.yml` runs:
 2. `npm test` (vitest, ~600 source-invariant tests)
 3. `npm run build` — same command Cloudflare Pages runs on every deploy
 
-If `Typecheck + tests` is red, the deploy is red too — fix before merging. The Lint + format job is non-blocking today (`continue-on-error: true`) while the codebase finishes migrating to the strict ESLint + Prettier config; flip that flag once the formatter is fully run.
+If `Typecheck + tests` is red, the deploy is red too — fix before merging. `Lint + format` is blocking as well: it was flipped to `continue-on-error: false` in #134 once the one-shot Prettier sweep landed. ESLint covers all three workspace packages; Prettier's `--check` still only covers `nukebg-app`.
 
 ### Branch protection (recommended on `main`)
 
@@ -209,7 +251,13 @@ issues #76 and #77 for the underlying UX work.
 
 ## > commits
 
-Format: `type: short description`
+Format: `type: short description` (conventional-commits style — see
+[conventionalcommits.org](https://www.conventionalcommits.org/) for the
+general convention this follows).
+
+Do **not** add AI attribution (e.g. "Co-Authored-By: Claude" or similar) to
+commit messages, regardless of what tooling was used to help write the
+change. Commit messages describe the change, not the tooling.
 
 ### Types
 
