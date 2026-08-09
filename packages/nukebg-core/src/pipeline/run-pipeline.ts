@@ -28,13 +28,50 @@ import {
   PRECISION_PROFILES,
   INPAINT_PARAMS,
   IMAGE_CLASSIFY_PARAMS,
+  PIPELINE_TIMEOUTS,
 } from './constants.js';
 import type { PrecisionMode } from './constants.js';
-import { PipelineAbortError, RmbgError, LamaError } from './errors.js';
+import {
+  PipelineAbortError,
+  PipelineTimeoutError,
+  RmbgError,
+  LamaError,
+} from './errors.js';
 
 // ---------------------------------------------------------------------------
 // Public types
 // ---------------------------------------------------------------------------
+
+/**
+ * Reject with `PipelineTimeoutError` if `work` has not settled within
+ * `timeoutMs`.
+ *
+ * This bounds the *wait*, not the work: the underlying promise keeps running.
+ * That is enough for the failure this guards — a stalled model fetch — because
+ * the host exits after mapping the error. It cannot help with synchronous CV,
+ * which blocks the event loop and never yields to the timer at all.
+ *
+ * `Infinity` opts out, so a caller can disable a budget without special-casing.
+ */
+async function withDeadline<T>(
+  work: Promise<T>,
+  timeoutMs: number,
+  stage: string,
+): Promise<T> {
+  if (!Number.isFinite(timeoutMs) || timeoutMs <= 0) return work;
+
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      work,
+      new Promise<never>((_resolve, reject) => {
+        timer = setTimeout(() => reject(new PipelineTimeoutError(stage, timeoutMs)), timeoutMs);
+      }),
+    ]);
+  } finally {
+    if (timer !== undefined) clearTimeout(timer);
+  }
+}
 
 /**
  * The two runner implementations injected by the caller.
@@ -232,7 +269,14 @@ export async function runPipeline(
     skipWatermark = false,
     signal,
     onStage,
+    timeouts,
   } = options;
+
+  const budget = {
+    rmbg: timeouts?.RMBG_MS ?? PIPELINE_TIMEOUTS.RMBG_MS,
+    lama: timeouts?.LAMA_MS ?? PIPELINE_TIMEOUTS.LAMA_MS,
+    wallClock: timeouts?.WALL_CLOCK_MS ?? PIPELINE_TIMEOUTS.WALL_CLOCK_MS,
+  };
 
   // Helper: emit a stage event (no-op when onStage is not provided)
   const emit = (
@@ -243,10 +287,19 @@ export async function runPipeline(
     onStage?.(message !== undefined ? { stage, status, message } : { stage, status });
   };
 
-  // Check abort at each major boundary
+  // Check abort — and the wall-clock budget — at each major boundary.
+  // Coarse by construction: it can only fire between stages, never inside a
+  // long synchronous CV loop.
+  const startedAt = performance.now();
   const checkAbort = (): void => {
     if (signal?.aborted) {
       throw new PipelineAbortError('aborted');
+    }
+    if (
+      Number.isFinite(budget.wallClock) &&
+      performance.now() - startedAt > budget.wallClock
+    ) {
+      throw new PipelineTimeoutError('wall-clock', budget.wallClock);
     }
   };
 
@@ -345,13 +398,18 @@ export async function runPipeline(
       if (router.useLama && runners.lama) {
         emit('inpaint', 'running', 'Reconstructing zone [AI]...');
         try {
-          inpainted = await runners.lama.inpaint(
-            createImageDataLike(originalPixels, width, height),
-            dilated,
-            signal !== undefined ? { signal } : {},
+          inpainted = await withDeadline(
+            runners.lama.inpaint(
+              createImageDataLike(originalPixels, width, height),
+              dilated,
+              signal !== undefined ? { signal } : {},
+            ),
+            budget.lama,
+            'LaMa inpaint',
           );
         } catch (err: unknown) {
           if (err instanceof PipelineAbortError) throw err;
+          if (err instanceof PipelineTimeoutError) throw err;
           throw new LamaError('LaMa inpaint failed', { cause: err });
         }
         // Deliberately NOT disposing the runner here. `runners.lama` is
@@ -413,7 +471,8 @@ export async function runPipeline(
 
   let mlAlpha: Uint8Array;
   try {
-    mlAlpha = await runners.rmbg.segment(
+    mlAlpha = await withDeadline(
+      runners.rmbg.segment(
       createImageDataLike(originalPixels, width, height),
       {
         threshold,
@@ -428,9 +487,13 @@ export async function runPipeline(
         onProgress: (pct) =>
           emit('ml-segmentation', 'running', `Loading AI model... ${pct}%`),
       },
+      ),
+      budget.rmbg,
+      'RMBG segmentation',
     );
   } catch (err: unknown) {
     if (err instanceof PipelineAbortError) throw err;
+    if (err instanceof PipelineTimeoutError) throw err;
     throw new RmbgError('RMBG segmentation failed', { cause: err });
   }
 

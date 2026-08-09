@@ -69,3 +69,27 @@ export class PipelineAbortError extends NukebgError {
     Object.setPrototypeOf(this, new.target.prototype);
   }
 }
+
+/**
+ * Thrown when a stage, or the run as a whole, exceeds its time budget.
+ *
+ * Distinct from `PipelineAbortError`: an abort is the caller changing its
+ * mind, a timeout is the pipeline failing to make progress. Callers branch on
+ * them differently — a timeout is worth retrying, a user abort is not.
+ *
+ * code: "PIPELINE_TIMEOUT".
+ */
+export class PipelineTimeoutError extends NukebgError {
+  /** Which budget was exceeded — a stage name, or "wall-clock". */
+  readonly stage: string;
+  /** The budget in milliseconds that was exceeded. */
+  readonly timeoutMs: number;
+
+  constructor(stage: string, timeoutMs: number, opts?: { cause?: unknown }) {
+    super(`${stage} exceeded its ${timeoutMs}ms budget`, 'PIPELINE_TIMEOUT', opts);
+    this.name = 'PipelineTimeoutError';
+    this.stage = stage;
+    this.timeoutMs = timeoutMs;
+    Object.setPrototypeOf(this, new.target.prototype);
+  }
+}

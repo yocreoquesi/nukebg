@@ -378,3 +378,35 @@ export const RMBG_PARAMS = {
   /** Cache name used by @huggingface/transformers v3 in the browser. */
   CACHE_NAME: 'transformers-cache',
 } as const;
+
+/**
+ * Time budgets for a pipeline run, in milliseconds.
+ *
+ * Carried over from the browser orchestrator, which had per-call worker
+ * timeouts plus a wall-clock safety net. The extraction to `nukebg-core`
+ * dropped all of them: nothing stopped a stalled model fetch from hanging a
+ * run forever (issue #328).
+ *
+ * Only the asynchronous stages can genuinely be bounded — a `Promise.race`
+ * cannot interrupt synchronous CV running on the same thread. Those are the
+ * stages where the observed hangs occur (model download and inference), so
+ * bounding them is what matters; `WALL_CLOCK` is checked at stage boundaries
+ * as a coarse backstop.
+ */
+export const PIPELINE_TIMEOUTS = {
+  /** RMBG segmentation. Generous: the first call downloads ~45MB. */
+  RMBG_MS: 300_000,
+  /** LaMa inpaint. First call downloads the ~90MB ONNX model. */
+  LAMA_MS: 300_000,
+  /**
+   * Whole-run cap, checked at stage boundaries. Generous because a cold run
+   * on a slow connection pays for both model downloads in sequence before any
+   * CPU work starts. If this fires, a per-stage budget already failed to
+   * catch something pathological.
+   */
+  WALL_CLOCK_MS: 20 * 60_000,
+} as const;
+
+export type PipelineTimeouts = {
+  -readonly [K in keyof typeof PIPELINE_TIMEOUTS]: number;
+};
