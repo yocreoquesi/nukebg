@@ -142,14 +142,14 @@ describe('ar-editor-advanced — preview confirm pair (#346)', () => {
   });
 
   it('Enter commits a pending preview and is inert otherwise', () => {
-    const handler = ED.match(/if \(e\.key === 'Enter'\) \{[\s\S]*?\n {8}\}/);
+    const handler = ED.match(/if \(e\.key === 'Enter'\) \{[\s\S]*?\r?\n {8}\}/);
     expect(handler).not.toBeNull();
     expect(handler![0]).toMatch(/if \(!this\.pendingPreview \|\| this\.busy\) return;/);
     expect(handler![0]).toMatch(/this\.applyPreview\(\)/);
   });
 
   it('Escape drops the preview BEFORE it clears the lasso', () => {
-    const esc = ED.match(/if \(e\.key === 'Escape'\) \{[\s\S]*?\n {10}return;\n {8}\}/);
+    const esc = ED.match(/if \(e\.key === 'Escape'\) \{[\s\S]*?\r?\n {10}return;\r?\n {8}\}/);
     expect(esc).not.toBeNull();
     const body = esc![0];
     const preview = body.indexOf('this.cancelPreview()');
@@ -196,18 +196,29 @@ describe('ar-editor-advanced — lasso actions are ranked (#346)', () => {
  */
 describe('ar-editor-advanced — brush shape reaches the pixels (#346)', () => {
   it('the stroke routine branches on shape for both eraser and brush', () => {
-    const fn = ED.match(/private applyStrokeSegment\([\s\S]*?\n {2}\}/);
+    const fn = ED.match(/private applyStrokeSegment\([\s\S]*?\r?\n {2}\}/);
     expect(fn).not.toBeNull();
     const body = fn![0];
     expect(body).toMatch(/const square = this\.brushShape === 'square';/);
-    // Eraser: butt caps and mitred joins, or the stroke rounds its own ends off.
-    expect(body).toMatch(/lineCap = square \? 'butt' : 'round'/);
-    expect(body).toMatch(/lineJoin = square \? 'miter' : 'round'/);
-    // Butt caps leave the ends open, so a single click must still stamp.
-    expect(body).toMatch(/fillRect\(fromX - r, fromY - r, r \* 2, r \* 2\)/);
+    // Square eraser stamps along the segment rather than stroking a
+    // line: a stroke is only 2r wide perpendicular to motion, so a
+    // diagonal drag would erase a narrower band than the cursor shows.
+    // Stamping also covers the single-click case, which butt caps did not.
+    expect(body).toMatch(/this\.stampAlong\(fromX, fromY, toX, toY, r,/);
+    expect(body).toMatch(/fillRect\(cx - r, cy - r, r \* 2, r \* 2\)/);
+    // Round eraser keeps the cheaper stroked path.
+    expect(body).toMatch(/lineCap = 'round'/);
     // Brush: clip to a rect instead of an arc.
     expect(body).toMatch(/wctx\.rect\(cx - r, cy - r, r \* 2, r \* 2\)/);
     expect(body).toMatch(/wctx\.arc\(cx, cy, r, 0, Math\.PI \* 2\)/);
+  });
+
+  it('brush and square eraser share one stepping routine', () => {
+    // Both must trace the same path density, and a single click has to
+    // produce one stamp rather than nothing.
+    expect(ED).toMatch(/private stampAlong\(/);
+    const fn = ED.match(/private stampAlong\([\s\S]*?\r?\n {2}\}/);
+    expect(fn![0]).toMatch(/const steps = Math\.max\(1, Math\.ceil\(dist \/ step\)\)/);
   });
 
   it('the on-canvas cursor shows the shape it will paint with', () => {

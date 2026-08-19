@@ -462,21 +462,32 @@ export class ArApp extends HTMLElement {
         btn?.removeAttribute('data-active');
         this.setEditorOpen(false);
 
-        // Same reasoning as the basic editor: skip topology cleanup so the
-        // user's lasso crops / restores survive the refinement pass.
-        const refined = toImageData(
-          await refineEdges(this.pipeline, imageData, { skipTopologyCleanup: true }),
-        );
-        // Same split as elsewhere: slider stays full-size for alignment;
-        // export + info label use the cropped subject bbox.
-        const exportImageData = toImageData(autoCropToSubject(refined));
-        const blob = await exportPng(exportImageData);
-        this.viewer.setResult(refined, blob, {
-          width: exportImageData.width,
-          height: exportImageData.height,
-        });
-        await this.download.setResult(exportImageData, this.currentFileName, 0, blob);
-        this.lastResultImageData = refined;
+        // Without this catch the rejection becomes an unhandledrejection
+        // and the editor leaves the user on a stale result with no
+        // signal — the editor has already closed by this point, so the
+        // viewer would keep showing the pre-edit image as if nothing
+        // had happened. Carried over from the ar:editor-done handler
+        // deleted in #353, which is why it reads familiar.
+        try {
+          // Same reasoning as the basic editor: skip topology cleanup so the
+          // user's lasso crops / restores survive the refinement pass.
+          const refined = toImageData(
+            await refineEdges(this.pipeline, imageData, { skipTopologyCleanup: true }),
+          );
+          // Same split as elsewhere: slider stays full-size for alignment;
+          // export + info label use the cropped subject bbox.
+          const exportImageData = toImageData(autoCropToSubject(refined));
+          const blob = await exportPng(exportImageData);
+          this.viewer.setResult(refined, blob, {
+            width: exportImageData.width,
+            height: exportImageData.height,
+          });
+          await this.download.setResult(exportImageData, this.currentFileName, 0, blob);
+          this.lastResultImageData = refined;
+        } catch (err) {
+          console.error('[NukeBG] Applying editor result failed:', err);
+          this.showErrorModal(err instanceof Error ? err.message : String(err));
+        }
       },
       { signal },
     );
@@ -497,6 +508,23 @@ export class ArApp extends HTMLElement {
    *  [STATUS] line / limitations / Ko-fi pitch competing for attention
    *  with the editing surface. Every code path that mutates the
    *  advanced editor's `active` attribute also calls this helper. */
+  /**
+   * Close the advanced editor and clear every piece of state that tracks
+   * it being open. Three things drift apart otherwise: the component's
+   * `active` attribute, `#advanced-cta[data-active]` (which flips the
+   * button into "close" mode) and `.editor-open` on the status panel.
+   *
+   * Replaces the `#editor-section` hide that #353 removed along with the
+   * component it pointed at — the guard itself was still needed.
+   */
+  private closeAdvancedEditor(): void {
+    const adv = this.shadowRoot?.querySelector('#editor-advanced') as HTMLElement | null;
+    adv?.removeAttribute('active');
+    const cta = this.shadowRoot?.querySelector('#advanced-cta') as HTMLElement | null;
+    cta?.removeAttribute('data-active');
+    this.setEditorOpen(false);
+  }
+
   private setEditorOpen(open: boolean): void {
     const panel = this.shadowRoot?.querySelector('#status-panel') as HTMLElement | null;
     if (!panel) return;
@@ -562,9 +590,11 @@ export class ArApp extends HTMLElement {
     const hero = this.shadowRoot!.querySelector('#hero')!;
     const workspace = this.shadowRoot!.querySelector('#workspace')!;
 
-    // Editor only visible after a successful processing run. Hide it
-    // here so a new run cannot inherit display:block from a previous
-    // edit that was still open when the user pasted a new image.
+    // Editor only visible after a successful processing run. Close it
+    // here so a new run cannot inherit an editor left open on the
+    // previous image — the paste handler lives on document and fires
+    // whatever is on screen.
+    this.closeAdvancedEditor();
 
     hero.classList.add('hidden');
     workspace.classList.add('visible');
@@ -946,6 +976,10 @@ export class ArApp extends HTMLElement {
     const single = root.querySelector('#single-file-workspace') as HTMLElement;
     const detailBar = root.querySelector('#batch-detail-bar') as HTMLElement;
     const failedBar = root.querySelector('#batch-failed-bar') as HTMLElement;
+
+    // Same guard as processImage(): returning to the landing must not
+    // leave an editor open behind the hero.
+    this.closeAdvancedEditor();
 
     workspace.classList.remove('visible');
     hero.classList.remove('hidden');
