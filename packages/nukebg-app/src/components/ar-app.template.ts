@@ -69,7 +69,6 @@ export function renderArAppTemplate(): string {
             </div>
             <div class="ws-action-col" id="ws-action-col">
               <ar-download></ar-download>
-              <button class="edit-btn" id="edit-btn" style="display:none">${t('edit.btn')}</button>
               <p class="advanced-prompt" id="advanced-prompt" style="display:none">${t('advanced.cta')}</p>
               <button class="advanced-cta" id="advanced-cta" style="display:none">${t('advanced.btn')}</button>
             </div>
@@ -92,7 +91,6 @@ export function renderArAppTemplate(): string {
               </span>
             </div>
           </div>
-          <ar-editor style="display:none" id="editor-section"></ar-editor>
           <ar-editor-advanced id="editor-advanced"></ar-editor-advanced>
           </div>
         </div>
