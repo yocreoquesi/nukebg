@@ -43,7 +43,7 @@ import { emit } from '../lib/event-bus';
 
 const PAD_RATIO = 0.25;
 const DEFAULT_BRUSH = 24;
-const MIN_BRUSH = 4;
+const MIN_BRUSH = 2;
 const MAX_BRUSH = 120;
 
 // Lasso tuning — all values are in image-space pixels so they scale
@@ -87,6 +87,12 @@ export class ArEditorAdvanced extends HTMLElement {
   private originalBacking: HTMLCanvasElement | null = null;
 
   private tool: Tool = 'eraser';
+  /**
+   * Brush/eraser footprint. Ported from ar-editor.ts (#346) so the
+   * surviving editor keeps the square option before the other one is
+   * deleted — otherwise convergence would quietly drop a feature.
+   */
+  private brushShape: 'circle' | 'square' = 'circle';
   private brushRadius = DEFAULT_BRUSH;
 
   private padX = 0;
@@ -590,7 +596,8 @@ export class ArEditorAdvanced extends HTMLElement {
           align-items: center;
           gap: 4px 8px;
         }
-        .size-row.disabled {
+        .size-row.disabled,
+        #shape-row.disabled {
           opacity: 0.4;
           pointer-events: none;
         }
@@ -977,6 +984,13 @@ export class ArEditorAdvanced extends HTMLElement {
               <button type="button" class="tool-btn" id="tool-lasso">${t('advanced.toolLasso')}</button>
             </div>
           </div>
+          <div class="editor-rail-group" id="shape-row">
+            <span class="editor-rail-label">${t('editor.shape')}</span>
+            <div class="tool-group" role="group" aria-label="${t('editor.shape')}">
+              <button type="button" class="tool-btn active" id="shape-circle">${t('editor.eraserCircle')}</button>
+              <button type="button" class="tool-btn" id="shape-square">${t('editor.eraserSquare')}</button>
+            </div>
+          </div>
           <div class="editor-rail-group size-row" id="size-row">
             <label class="editor-rail-label" for="brush-size">${t('advanced.size')}</label>
             <input type="range" id="brush-size" min="${MIN_BRUSH}" max="${MAX_BRUSH}" step="1" value="${DEFAULT_BRUSH}">
@@ -1102,6 +1116,12 @@ export class ArEditorAdvanced extends HTMLElement {
     shadow
       .getElementById('tool-lasso')!
       .addEventListener('click', () => this.setTool('lasso'), { signal });
+    shadow
+      .getElementById('shape-circle')!
+      .addEventListener('click', () => this.setBrushShape('circle'), { signal });
+    shadow
+      .getElementById('shape-square')!
+      .addEventListener('click', () => this.setBrushShape('square'), { signal });
     shadow
       .getElementById('action-crop')!
       .addEventListener('click', () => this.previewAction('crop'), { signal });
@@ -1507,16 +1527,26 @@ export class ArEditorAdvanced extends HTMLElement {
     const wctx = this.working.getContext('2d')!;
     const r = this.brushRadius;
 
+    const square = this.brushShape === 'square';
+
     if (this.tool === 'eraser') {
       wctx.save();
       wctx.globalCompositeOperation = 'destination-out';
-      wctx.lineCap = 'round';
-      wctx.lineJoin = 'round';
+      // A square footprint needs butt caps and mitred joins, otherwise
+      // the stroke rounds itself back off at the ends.
+      wctx.lineCap = square ? 'butt' : 'round';
+      wctx.lineJoin = square ? 'miter' : 'round';
       wctx.lineWidth = r * 2;
       wctx.beginPath();
       wctx.moveTo(fromX, fromY);
       wctx.lineTo(toX, toY);
       wctx.stroke();
+      if (square) {
+        // Butt caps leave the two ends open; stamp them so a single
+        // click still erases a full square rather than nothing.
+        wctx.fillRect(fromX - r, fromY - r, r * 2, r * 2);
+        wctx.fillRect(toX - r, toY - r, r * 2, r * 2);
+      }
       wctx.restore();
       return;
     }
@@ -1533,7 +1563,11 @@ export class ArEditorAdvanced extends HTMLElement {
       const cy = fromY + dy * tfrac;
       wctx.save();
       wctx.beginPath();
-      wctx.arc(cx, cy, r, 0, Math.PI * 2);
+      if (square) {
+        wctx.rect(cx - r, cy - r, r * 2, r * 2);
+      } else {
+        wctx.arc(cx, cy, r, 0, Math.PI * 2);
+      }
       wctx.clip();
       wctx.drawImage(this.originalBacking, 0, 0);
       wctx.restore();
@@ -1733,6 +1767,12 @@ export class ArEditorAdvanced extends HTMLElement {
     this.redrawDisplay();
   }
 
+  private setBrushShape(shape: 'circle' | 'square'): void {
+    this.brushShape = shape;
+    this.syncToolUI();
+    this.redrawDisplay();
+  }
+
   private syncToolUI(): void {
     const brush = this.shadowRoot?.getElementById('tool-brush');
     const eraser = this.shadowRoot?.getElementById('tool-eraser');
@@ -1743,6 +1783,13 @@ export class ArEditorAdvanced extends HTMLElement {
     if (eraser) eraser.classList.toggle('active', this.tool === 'eraser');
     if (lasso) lasso.classList.toggle('active', this.tool === 'lasso');
     if (sizeRow) sizeRow.classList.toggle('disabled', this.tool === 'lasso');
+    // Shape follows the same rule as size: stays mounted, dims for lasso.
+    const shapeRow = this.shadowRoot?.getElementById('shape-row');
+    if (shapeRow) shapeRow.classList.toggle('disabled', this.tool === 'lasso');
+    const circle = this.shadowRoot?.getElementById('shape-circle');
+    const square = this.shadowRoot?.getElementById('shape-square');
+    if (circle) circle.classList.toggle('active', this.brushShape === 'circle');
+    if (square) square.classList.toggle('active', this.brushShape === 'square');
     if (hint && this.tool !== 'lasso') {
       hint.textContent = t('advanced.hint');
     }
@@ -1893,7 +1940,17 @@ export class ArEditorAdvanced extends HTMLElement {
     this.ctx.lineWidth = 2;
     this.ctx.setLineDash(this.tool === 'eraser' ? [6, 4] : []);
     this.ctx.beginPath();
-    this.ctx.arc(this.cursorCanvasX, this.cursorCanvasY, this.brushRadius, 0, Math.PI * 2);
+    if (this.brushShape === 'square') {
+      const d = this.brushRadius * 2;
+      this.ctx.rect(
+        this.cursorCanvasX - this.brushRadius,
+        this.cursorCanvasY - this.brushRadius,
+        d,
+        d,
+      );
+    } else {
+      this.ctx.arc(this.cursorCanvasX, this.cursorCanvasY, this.brushRadius, 0, Math.PI * 2);
+    }
     this.ctx.stroke();
     this.ctx.restore();
   }

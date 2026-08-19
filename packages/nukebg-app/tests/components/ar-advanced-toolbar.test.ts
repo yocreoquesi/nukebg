@@ -83,7 +83,7 @@ describe('ar-editor-advanced — editor shell (#346)', () => {
     // #77's no-layout-shift guarantee: switching to lasso must not
     // unmount the slider, only dim it.
     expect(ED).toMatch(/sizeRow\.classList\.toggle\('disabled', this\.tool === 'lasso'\)/);
-    expect(ED).toMatch(/\.size-row\.disabled \{[\s\S]*?pointer-events: none/);
+    expect(ED).toMatch(/\.size-row\.disabled[,\s][\s\S]*?pointer-events: none/);
   });
 
   it('uses the same grid ar-editor.ts defines, so both editors share one layout', () => {
@@ -181,5 +181,45 @@ describe('ar-editor-advanced — lasso actions are ranked (#346)', () => {
     expect(body.indexOf('action-sep')).toBeGreaterThan(body.indexOf('action-remove-watermark'));
     expect(body).toMatch(/class="action-btn lead"[^>]*id="action-refine"/);
     expect(body).toMatch(/class="action-btn danger"[^>]*id="action-erase-object"/);
+  });
+});
+
+/**
+ * #346 slice 5a — brush shape ported from ar-editor.ts.
+ *
+ * The UI-level toggle is covered behaviourally in ar-editor-advanced.test.ts.
+ * What that cannot reach is whether the paint routines actually honour the
+ * shape, which is the part that would make the port cosmetic if it broke.
+ */
+describe('ar-editor-advanced — brush shape reaches the pixels (#346)', () => {
+  it('the stroke routine branches on shape for both eraser and brush', () => {
+    const fn = ED.match(/private applyStrokeSegment\([\s\S]*?\n {2}\}/);
+    expect(fn).not.toBeNull();
+    const body = fn![0];
+    expect(body).toMatch(/const square = this\.brushShape === 'square';/);
+    // Eraser: butt caps and mitred joins, or the stroke rounds its own ends off.
+    expect(body).toMatch(/lineCap = square \? 'butt' : 'round'/);
+    expect(body).toMatch(/lineJoin = square \? 'miter' : 'round'/);
+    // Butt caps leave the ends open, so a single click must still stamp.
+    expect(body).toMatch(/fillRect\(fromX - r, fromY - r, r \* 2, r \* 2\)/);
+    // Brush: clip to a rect instead of an arc.
+    expect(body).toMatch(/wctx\.rect\(cx - r, cy - r, r \* 2, r \* 2\)/);
+    expect(body).toMatch(/wctx\.arc\(cx, cy, r, 0, Math\.PI \* 2\)/);
+  });
+
+  it('the on-canvas cursor shows the shape it will paint with', () => {
+    expect(ED).toMatch(/if \(this\.brushShape === 'square'\) \{[\s\S]*?this\.ctx\.rect\(/);
+  });
+
+  it('shape dims with size when lasso is active, rather than disappearing', () => {
+    expect(ED).toMatch(/shapeRow\.classList\.toggle\('disabled', this\.tool === 'lasso'\)/);
+    expect(ED).toMatch(/#shape-row\.disabled[\s\S]*?pointer-events: none/);
+  });
+
+  it('reuses the editor.* shape keys that already exist in all six locales', () => {
+    // Zero translation churn: ar-editor.ts already shipped these.
+    expect(ED).toMatch(/t\('editor\.shape'\)/);
+    expect(ED).toMatch(/t\('editor\.eraserCircle'\)/);
+    expect(ED).toMatch(/t\('editor\.eraserSquare'\)/);
   });
 });
