@@ -316,7 +316,7 @@ export class ArEditorAdvanced extends HTMLElement {
           margin-top: 12px;
           padding: 12px;
           border: 1px dashed var(--color-accent-primary, #00ff41);
-          border-radius: 4px;
+          border-radius: 0;
           background: rgba(var(--color-accent-rgb, 0, 255, 65), 0.04);
           font-family: 'JetBrains Mono', monospace;
           font-size: 12px;
@@ -346,7 +346,7 @@ export class ArEditorAdvanced extends HTMLElement {
           background: transparent;
           color: var(--color-accent-primary, #00ff41);
           border: 1px solid var(--color-accent-primary, #00ff41);
-          border-radius: 2px;
+          border-radius: 0;
           padding: 4px 10px;
           cursor: pointer;
           letter-spacing: 0.05em;
@@ -370,7 +370,7 @@ export class ArEditorAdvanced extends HTMLElement {
           background: transparent;
           color: var(--color-accent-primary, #00ff41);
           border: 1px solid var(--color-accent-primary, #00ff41);
-          border-radius: 50%;
+          border-radius: 0;
           width: 22px;
           height: 22px;
           padding: 0;
@@ -387,7 +387,7 @@ export class ArEditorAdvanced extends HTMLElement {
           margin-bottom: 8px;
           padding: 10px 12px;
           border: 1px solid rgba(var(--color-accent-rgb, 0, 255, 65), 0.35);
-          border-radius: 3px;
+          border-radius: 0;
           background: rgba(var(--color-accent-rgb, 0, 255, 65), 0.03);
           display: grid;
           grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -432,7 +432,7 @@ export class ArEditorAdvanced extends HTMLElement {
           padding: 1px 5px;
           border: 1px solid rgba(var(--color-accent-rgb, 0, 255, 65), 0.45);
           border-bottom-width: 2px;
-          border-radius: 3px;
+          border-radius: 0;
           background: rgba(0, 0, 0, 0.35);
           color: var(--color-text-secondary, #00dd44);
           font-family: inherit;
@@ -467,7 +467,7 @@ export class ArEditorAdvanced extends HTMLElement {
           margin-bottom: 8px;
           padding: 6px 8px;
           border: 1px solid rgba(var(--color-accent-rgb, 0, 255, 65), 0.25);
-          border-radius: 3px;
+          border-radius: 0;
         }
         .toolbar-row {
           display: flex;
@@ -490,7 +490,7 @@ export class ArEditorAdvanced extends HTMLElement {
         .tool-group {
           display: inline-flex;
           border: 1px solid var(--color-accent-primary, #00ff41);
-          border-radius: 2px;
+          border-radius: 0;
           overflow: hidden;
         }
         .tool-btn {
@@ -530,7 +530,7 @@ export class ArEditorAdvanced extends HTMLElement {
           background: transparent;
           color: var(--color-accent-primary, #00ff41);
           border: 1px solid var(--color-accent-primary, #00ff41);
-          border-radius: 2px;
+          border-radius: 0;
           padding: 4px 10px;
           cursor: pointer;
           letter-spacing: 0.05em;
@@ -658,7 +658,7 @@ export class ArEditorAdvanced extends HTMLElement {
         .zoom-group {
           display: inline-flex;
           border: 1px solid var(--color-accent-primary, #00ff41);
-          border-radius: 2px;
+          border-radius: 0;
           overflow: hidden;
           margin-left: auto;
         }
@@ -716,7 +716,7 @@ export class ArEditorAdvanced extends HTMLElement {
           background: var(--color-bg-elevated, #111111);
           color: var(--color-accent-primary, #00ff41);
           border: 1px solid var(--color-accent-primary, #00ff41);
-          border-radius: 2px;
+          border-radius: 0;
           padding: 5px 12px;
           cursor: pointer;
         }
