@@ -123,3 +123,53 @@ describe('Landing redesign — i18n invariants', () => {
     });
   }
 });
+
+/**
+ * #354 — the four blocks under the dropzone must not collapse back into
+ * one undifferentiated grey-green paragraph.
+ *
+ * #69 consolidated the [STATUS] line itself but left the copy around it
+ * at the same 12px tertiary as the status line, the Ko-fi pitch and the
+ * limitations body. This pins the ramp by role, not by decoration.
+ */
+describe('landing status area — ranked, not flat (#354)', () => {
+  /** Pull a single CSS rule body out of the concatenated app source. */
+  function rule(selector: string): string {
+    const at = APP.indexOf(`${selector} {`);
+    expect(at, `rule not found: ${selector}`).toBeGreaterThan(-1);
+    const end = APP.indexOf('}', at);
+    return APP.slice(at, end);
+  }
+
+  it('the disclaimer reads as body — it is the one that tells you what to do', () => {
+    expect(rule('.hero-disclaimer')).toMatch(/color: var\(--color-text-secondary/);
+  });
+
+  it('the Ko-fi pitch stays quiet and keeps its own spacing', () => {
+    const support = rule('.hero-support');
+    expect(support).toMatch(/color: var\(--color-text-tertiary/);
+    // Separated from the disclaimer so it reads as a different message
+    // rather than a fourth line of the same paragraph.
+    expect(support).toMatch(/margin: 14px 0 0/);
+  });
+
+  it('the two carry different colours — that is the whole point', () => {
+    // The regression this guards is re-merging them into one rule, or
+    // otherwise letting all four blocks land on the same token again.
+    // Asserting the colours DIFFER survives any refactor of how the
+    // rules are written.
+    const disclaimer = rule('.hero-disclaimer');
+    const support = rule('.hero-support');
+    const colourOf = (css: string) => css.match(/--color-text-[a-z]+/)?.[0];
+    expect(colourOf(disclaimer)).toBeDefined();
+    expect(colourOf(support)).toBeDefined();
+    expect(colourOf(disclaimer)).not.toBe(colourOf(support));
+  });
+
+  it('contrast is never lowered — tertiary keeps its WCAG-bumped value', () => {
+    // main.css raised tertiary to #00b34a deliberately for AA/AAA. The
+    // ramp must move text UP the scale, never dim it further.
+    expect(rule('.hero-support')).not.toContain('opacity');
+    expect(rule('.hero-disclaimer')).not.toContain('opacity');
+  });
+});

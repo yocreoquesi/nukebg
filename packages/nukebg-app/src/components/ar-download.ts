@@ -180,11 +180,17 @@ export class ArDownload extends HTMLElement {
           gap: 8px;
           align-items: center;
         }
+        /* #354 — "process another" carried the same 1px surface-border as
+           the WebP CTA, so an escape hatch read as a peer of a download.
+           It keeps its 44px touch target and its accent colour, but drops
+           the box: borderless, it stops competing with the two things
+           that actually produce a file. #72's bordered CTAs are
+           untouched. */
         .btn-secondary {
           background: transparent;
-          color: var(--color-accent-primary, #00ff41);
-          border: 1px solid var(--color-surface-border, #1a3a1a);
-          padding: 10px 20px;
+          color: var(--color-text-secondary, #00dd44);
+          border: 1px solid transparent;
+          padding: 10px 12px;
           border-radius: 0;
           font-family: 'JetBrains Mono', monospace;
           font-weight: 500;
@@ -192,11 +198,14 @@ export class ArDownload extends HTMLElement {
           text-transform: uppercase;
           letter-spacing: 0.05em;
           cursor: pointer;
-          transition: background 0.3s ease, box-shadow 0.3s ease;
+          transition: color 0.2s ease;
         }
-        .btn-secondary:hover {
-          background: var(--color-accent-muted, rgba(0, 255, 65, 0.05));
-          box-shadow: 0 0 8px var(--color-accent-glow, rgba(0, 255, 65, 0.15));
+        .btn-secondary:hover,
+        .btn-secondary:focus-visible {
+          color: var(--color-accent-primary, #00ff41);
+          text-decoration: underline;
+          text-underline-offset: 3px;
+          outline: none;
         }
         .btn-copy {
           background: transparent;
