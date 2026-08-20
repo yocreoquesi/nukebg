@@ -326,20 +326,6 @@ export class ArEditorAdvanced extends HTMLElement {
         @media (pointer: coarse) {
           :host([active]) { padding-bottom: 140px; }
         }
-        .header {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          gap: 8px;
-          margin-bottom: 8px;
-        }
-        .title {
-          color: var(--color-accent-primary, #00ff41);
-          font-weight: 600;
-          font-size: 11px;
-          text-transform: uppercase;
-          letter-spacing: 0.5px;
-        }
         .restore-btn {
           font-family: inherit;
           font-size: 11px;
@@ -358,11 +344,6 @@ export class ArEditorAdvanced extends HTMLElement {
           color: #000;
         }
         .restore-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-        .header-actions {
-          display: inline-flex;
-          align-items: center;
-          gap: 6px;
-        }
         .help-btn {
           font-family: inherit;
           font-size: 12px;
@@ -454,45 +435,133 @@ export class ArEditorAdvanced extends HTMLElement {
           .help-controls-desktop { display: none; }
           .help-controls-touch { display: block; }
         }
-        /* Toolbar splits into two rows (#77).
-           Row 1 (primary) carries tools + view controls and is always
-           present. Row 2 (contextual) carries the one group that
-           matches the current mode — size-row / lasso-actions /
-           preview-actions — and hides entirely when no child is
-           .visible, so the row doesn't leave a dead space. */
-        .toolbar {
+        /* Editor shell (#346). Replaces the two-row .toolbar from #77
+           with the regions ar-editor.ts already defines: a command bar
+           on top, then a rail | canvas | sidebar grid behind the 900 px
+           breakpoint. Same class names on purpose — both editors now
+           share one layout grammar instead of two.
+
+           One deliberate divergence from ar-editor.ts: that sidebar is
+           display:none below 900 px because it only duplicates the "?"
+           tooltip. This one carries restore / reprocess / help, so it
+           stays visible at every width and stacks under the canvas. */
+        .editor-cmd-bar {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+          padding: 8px 12px;
+          margin-bottom: 10px;
+          border: 1px solid var(--color-surface-border, #1a3a1a);
+          background: var(--color-bg-primary, #000);
+          font-size: 12px;
+          min-height: 40px;
+          flex-wrap: wrap;
+        }
+        .editor-cmd-left {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          color: var(--color-text-secondary, #00dd44);
+          min-width: 0;
+          flex: 1 1 auto;
+        }
+        .editor-cmd-prompt { color: var(--color-text-tertiary, #00b34a); }
+        .editor-cmd-action { color: var(--color-accent-primary, #00ff41); font-weight: 600; }
+        .editor-cmd-meta { color: var(--color-text-tertiary, #00b34a); }
+        .editor-cmd-right {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          flex-shrink: 0;
+          flex-wrap: wrap;
+        }
+        .editor-body {
+          display: grid;
+          grid-template-columns: 1fr;
+          gap: var(--space-3, 0.75rem);
+          align-items: start;
+        }
+        @media (min-width: 900px) {
+          .editor-body {
+            grid-template-columns: 200px minmax(0, 1fr) 260px;
+          }
+        }
+        .editor-rail {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 10px;
+          padding: 12px;
+          border: 1px solid var(--color-surface-border, #1a3a1a);
+          background: var(--color-bg-primary, #000);
+          align-content: start;
+        }
+        @media (min-width: 900px) {
+          .editor-rail {
+            flex-direction: column;
+            flex-wrap: nowrap;
+          }
+        }
+        .editor-rail-group {
           display: flex;
           flex-direction: column;
-          gap: 6px;
-          margin-bottom: 8px;
-          padding: 6px 8px;
-          border: 1px solid rgba(var(--color-accent-rgb, 0, 255, 65), 0.25);
-          border-radius: 0;
+          gap: 4px;
+          min-width: 0;
         }
-        .toolbar-row {
+        .editor-rail-label {
+          color: var(--color-text-tertiary, #00b34a);
+          font-size: 11px;
+          letter-spacing: 0.04em;
+          text-transform: uppercase;
+        }
+        .editor-canvas-col {
+          display: flex;
+          flex-direction: column;
+          min-width: 0;
+        }
+        .editor-sidebar {
+          display: flex;
+          flex-direction: column;
+          gap: var(--space-3, 0.75rem);
+          padding: 12px;
+          border: 1px solid var(--color-surface-border, #1a3a1a);
+          background: var(--color-bg-primary, #000);
+          font-size: 12px;
+          color: var(--color-text-secondary, #00dd44);
+        }
+        .editor-sidebar h4 {
+          margin: 0;
+          color: var(--color-accent-primary, #00ff41);
+          font-size: 12px;
+          font-weight: 600;
+          letter-spacing: 0.04em;
+          text-transform: uppercase;
+        }
+        /* Contextual strip directly under the canvas. Carries the lasso
+           group and the preview-confirm group, and collapses entirely
+           when neither child is .visible so it never leaves a dead
+           border — the behaviour .toolbar-row-contextual had. */
+        .editor-context {
           display: flex;
           gap: 10px;
           align-items: center;
           flex-wrap: wrap;
-        }
-        .toolbar-row-primary {
-          justify-content: space-between;
-        }
-        .toolbar-row-contextual {
-          padding-top: 6px;
+          margin-top: 8px;
+          padding-top: 8px;
           border-top: 1px dashed var(--color-surface-border, #1a3a1a);
         }
-        /* Hide the contextual row when none of its children are
-           .visible to avoid a lone dashed border. */
-        .toolbar-row-contextual:not(:has(> .visible)) {
+        .editor-context:not(:has(> .visible)) {
           display: none;
         }
         .tool-group {
-          display: inline-flex;
+          display: flex;
           border: 1px solid var(--color-accent-primary, #00ff41);
           border-radius: 0;
           overflow: hidden;
         }
+        /* Buttons share the rail width evenly — a 200 px column cannot
+           hold three inline-flex tool buttons without overflowing. */
+        .tool-group .tool-btn { flex: 1 1 0; min-width: 0; }
         .tool-btn {
           font-family: inherit;
           font-size: 11px;
@@ -509,10 +578,17 @@ export class ArEditorAdvanced extends HTMLElement {
           background: var(--color-accent-primary, #00ff41);
           color: #000;
         }
+        /* Label on its own line, slider and read-out sharing the next —
+           works in both rail orientations (column at ≥ 900 px, wrapped
+           row below) without needing a wrapper element. */
         .size-row {
-          display: inline-flex;
+          display: grid;
+          grid-template-columns: minmax(0, 1fr) auto;
+          grid-template-areas:
+            'label label'
+            'range value';
           align-items: center;
-          gap: 6px;
+          gap: 4px 8px;
         }
         .size-row.disabled {
           opacity: 0.4;
@@ -570,17 +646,15 @@ export class ArEditorAdvanced extends HTMLElement {
         .busy-indicator.hidden { display: none; }
         .cancel-action { margin-left: 2px; }
         .cancel-action.hidden { display: none; }
-        .size-row label {
-          font-size: 10px;
-          text-transform: uppercase;
-          letter-spacing: 0.05em;
-          color: var(--color-text-secondary, #999);
-        }
+        .size-row label { grid-area: label; }
         .size-row input[type="range"] {
+          grid-area: range;
           accent-color: var(--color-accent-primary, #00ff41);
-          width: 120px;
+          width: 100%;
+          min-width: 0;
         }
         .size-row .size-val {
+          grid-area: value;
           font-variant-numeric: tabular-nums;
           font-size: 11px;
           color: var(--color-text-secondary, #00dd44);
@@ -590,13 +664,9 @@ export class ArEditorAdvanced extends HTMLElement {
         .bg-options {
           display: flex;
           align-items: center;
+          flex-wrap: wrap;
           gap: 6px;
-          padding: 4px 0;
-        }
-        .bg-label {
-          font-size: 11px;
-          color: var(--color-text-tertiary, #00b34a);
-          margin-right: 2px;
+          padding: 2px 0;
         }
         .bg-btn {
           width: 18px; height: 18px;
@@ -688,11 +758,13 @@ export class ArEditorAdvanced extends HTMLElement {
           font-variant-numeric: tabular-nums;
           pointer-events: none;
         }
+        /* Footer strip. Undo / redo / cancel / apply moved up into the
+           command bar (#346), so this now carries only the live hint. */
         .controls {
           display: flex;
           gap: 8px;
           margin-top: 10px;
-          justify-content: flex-end;
+          justify-content: flex-start;
           flex-wrap: wrap;
         }
         .hint {
@@ -732,13 +804,19 @@ export class ArEditorAdvanced extends HTMLElement {
         }
 
         @media (pointer: coarse) {
-          /* Reserve space for the fixed bottom toolbar so .controls
-             (Apply / Cancel / Undo / Redo) can scroll into view above
-             it instead of being eaten by the fixed bar. */
+          /* Reserve space for the fixed bottom dock so the rest of the
+             editor can scroll into view above it instead of being eaten
+             by the fixed bar. */
           :host {
             padding-bottom: calc(160px + env(safe-area-inset-bottom, 0px));
           }
-          .toolbar {
+          /* The rail becomes the dock on touch. It carries the controls
+             that belong under a thumb — tool, size, background — which
+             is what the old fixed .toolbar held. The contextual lasso
+             and preview groups now sit in flow directly under the
+             canvas instead, next to the pixels they act on. Mobile gets
+             a fuller pass in #154. */
+          .editor-rail {
             position: fixed;
             bottom: 0;
             left: 0;
@@ -751,6 +829,7 @@ export class ArEditorAdvanced extends HTMLElement {
             border-top: 1px solid rgba(var(--color-accent-rgb, 0, 255, 65), 0.3);
             border-radius: 0;
             flex-direction: column;
+            flex-wrap: nowrap;
             align-items: stretch;
             backdrop-filter: blur(8px);
             -webkit-backdrop-filter: blur(8px);
@@ -767,11 +846,7 @@ export class ArEditorAdvanced extends HTMLElement {
             min-height: 44px;
             text-align: center;
           }
-          .size-row {
-            flex: 1 1 100%;
-            justify-content: center;
-          }
-          .size-row input[type="range"] { flex: 1; min-width: 0; }
+          .size-row { width: 100%; }
           .lasso-actions.visible {
             display: flex;
             flex-wrap: wrap;
@@ -794,14 +869,88 @@ export class ArEditorAdvanced extends HTMLElement {
           .canvas-wrap { max-height: calc(100vh - 200px); }
         }
       </style>
-      <div class="header">
-        <div class="title">${t('advanced.title')}</div>
-        <div class="header-actions">
-          <button type="button" class="help-btn" id="help-toggle" title="${t('advanced.help')}" aria-label="${t('advanced.help')}" aria-expanded="false">?</button>
-          <button type="button" class="restore-btn" id="reprocess" title="${t('advanced.reprocessHint')}">${t('advanced.reprocess')}</button>
-          <button type="button" class="restore-btn" id="restore-original" title="${t('advanced.restoreHint')}">${t('advanced.restore')}</button>
+      <!-- Command bar (#346). Live status on the left, session-level
+           verbs on the right. Zoom, undo/redo, cancel and apply were
+           scattered between the old .toolbar and .controls rows. -->
+      <div class="editor-cmd-bar">
+        <div class="editor-cmd-left">
+          <span class="editor-cmd-prompt">$</span>
+          <span class="editor-cmd-action" id="adv-cmd-action">edit --eraser</span>
+          <span class="editor-cmd-meta" id="adv-cmd-meta">&middot; size=${DEFAULT_BRUSH}</span>
+        </div>
+        <div class="editor-cmd-right">
+          <div class="zoom-group" role="group" aria-label="${t('advanced.zoom')}">
+            <button type="button" class="zoom-btn" id="zoom-out" title="${t('advanced.zoomOut')}" aria-label="${t('advanced.zoomOut')}">−</button>
+            <span class="zoom-display" id="zoom-display">100%</span>
+            <button type="button" class="zoom-btn" id="zoom-in" title="${t('advanced.zoomIn')}" aria-label="${t('advanced.zoomIn')}">+</button>
+            <button type="button" class="zoom-btn" id="zoom-fit" title="${t('advanced.zoomFit')}" aria-label="${t('advanced.zoomFit')}">⌂</button>
+          </div>
+          <button type="button" class="action secondary" id="undo" disabled>${t('advanced.undo')}</button>
+          <button type="button" class="action secondary" id="redo" disabled>${t('advanced.redo')}</button>
+          <button type="button" class="action secondary" id="cancel">${t('advanced.cancel')}</button>
+          <button type="button" class="action" id="done">${t('advanced.apply')}</button>
         </div>
       </div>
+      <div class="editor-body">
+        <!-- Left rail. The size slider stays mounted regardless of tool
+             so switching to lasso causes no layout shift (#77). -->
+        <aside class="editor-rail" aria-label="${t('advanced.helpTools')}">
+          <div class="editor-rail-group">
+            <span class="editor-rail-label">${t('advanced.helpTools')}</span>
+            <div class="tool-group" role="group" aria-label="Tools">
+              <button type="button" class="tool-btn" id="tool-brush">${t('advanced.toolBrush')}</button>
+              <button type="button" class="tool-btn active" id="tool-eraser">${t('advanced.toolEraser')}</button>
+              <button type="button" class="tool-btn" id="tool-lasso">${t('advanced.toolLasso')}</button>
+            </div>
+          </div>
+          <div class="editor-rail-group size-row" id="size-row">
+            <label class="editor-rail-label" for="brush-size">${t('advanced.size')}</label>
+            <input type="range" id="brush-size" min="${MIN_BRUSH}" max="${MAX_BRUSH}" step="1" value="${DEFAULT_BRUSH}">
+            <span class="size-val" id="brush-size-val">${DEFAULT_BRUSH}</span>
+          </div>
+          <div class="editor-rail-group">
+            <span class="editor-rail-label">${t('viewer.bg')}</span>
+            <div class="bg-options" role="group" aria-label="${t('viewer.bg')}">
+              <div class="bg-btn bg-checker active" data-bg="transparent" title="${t('bg.transparent')}"></div>
+              <div class="bg-btn bg-white" data-bg="white" title="${t('bg.white')}"></div>
+              <div class="bg-btn bg-black" data-bg="black" title="${t('bg.black')}"></div>
+              <div class="bg-btn" style="background:var(--color-preview-green)" data-bg="#00b140" title="${t('bg.green')}"></div>
+              <div class="bg-btn bg-red" data-bg="#ff4444" title="${t('bg.red')}"></div>
+            </div>
+          </div>
+        </aside>
+
+        <div class="editor-canvas-col">
+          <div class="canvas-wrap"><canvas tabindex="0" role="img"
+            aria-label="${t('advanced.canvasLabel')}"></canvas></div>
+          <!-- Contextual strip: lasso group or preview-confirm group.
+               Collapses when neither is .visible. -->
+          <div class="editor-context">
+            <div class="lasso-actions" id="lasso-actions" role="group" aria-label="Lasso actions">
+              <button type="button" class="action-btn" id="action-crop" title="${t('advanced.actionCropHint')}">${t('advanced.actionCrop')}</button>
+              <button type="button" class="action-btn" id="action-refine" title="${t('advanced.actionRefineHint')}">${t('advanced.actionRefine')}</button>
+              <button type="button" class="action-btn danger" id="action-erase-object" title="${t('advanced.actionEraseObjectHint')}">${t('advanced.actionEraseObject')}</button>
+              <button type="button" class="action-btn" id="action-remove-watermark" title="${t('advanced.actionRemoveWatermarkHint')}">${t('advanced.actionRemoveWatermark')}</button>
+              <span class="busy-indicator hidden" id="busy">${t('advanced.working')}</span>
+              <button type="button" class="action-btn cancel-action hidden" id="cancel-action">${t('advanced.cancelAction')}</button>
+            </div>
+            <div class="preview-actions" id="preview-actions" role="group" aria-label="Confirm preview">
+              <span class="preview-diff" id="preview-diff" aria-live="polite"></span>
+              <button type="button" class="action-btn confirm" id="action-apply-preview" title="${t('advanced.previewApplyHint')}">${t('advanced.previewApply')}</button>
+              <button type="button" class="action-btn" id="action-cancel-preview" title="${t('advanced.previewCancelHint')}">${t('advanced.previewCancel')}</button>
+            </div>
+          </div>
+        </div>
+
+        <aside class="editor-sidebar">
+          <div class="editor-rail-group">
+            <h4>${t('advanced.title')}</h4>
+            <button type="button" class="restore-btn" id="restore-original" title="${t('advanced.restoreHint')}">${t('advanced.restore')}</button>
+            <button type="button" class="restore-btn" id="reprocess" title="${t('advanced.reprocessHint')}">${t('advanced.reprocess')}</button>
+          </div>
+          <div class="editor-rail-group">
+            <button type="button" class="help-btn" id="help-toggle" title="${t('advanced.help')}" aria-label="${t('advanced.help')}" aria-expanded="false">?</button>
+          </div>
       <div class="help-panel hidden" id="help-panel" role="region" aria-label="${t('advanced.helpTitle')}">
         <div class="help-section">
           <h4>${t('advanced.helpTools')}</h4>
@@ -846,62 +995,10 @@ export class ArEditorAdvanced extends HTMLElement {
           </div>
         </div>
       </div>
-      <div class="toolbar">
-        <!-- Row 1: primary tools + brush/eraser size + view controls
-             (always visible). Slider stays mounted regardless of tool to
-             avoid a layout shift when switching to lasso (#77). -->
-        <div class="toolbar-row toolbar-row-primary">
-          <div class="tool-group" role="group" aria-label="Tools">
-            <button type="button" class="tool-btn" id="tool-brush">${t('advanced.toolBrush')}</button>
-            <button type="button" class="tool-btn active" id="tool-eraser">${t('advanced.toolEraser')}</button>
-            <button type="button" class="tool-btn" id="tool-lasso">${t('advanced.toolLasso')}</button>
-          </div>
-          <div class="size-row" id="size-row">
-            <label for="brush-size">${t('advanced.size')}</label>
-            <input type="range" id="brush-size" min="${MIN_BRUSH}" max="${MAX_BRUSH}" step="1" value="${DEFAULT_BRUSH}">
-            <span class="size-val" id="brush-size-val">${DEFAULT_BRUSH}</span>
-          </div>
-          <div class="zoom-group" role="group" aria-label="${t('advanced.zoom')}">
-            <button type="button" class="zoom-btn" id="zoom-out" title="${t('advanced.zoomOut')}" aria-label="${t('advanced.zoomOut')}">−</button>
-            <span class="zoom-display" id="zoom-display">100%</span>
-            <button type="button" class="zoom-btn" id="zoom-in" title="${t('advanced.zoomIn')}" aria-label="${t('advanced.zoomIn')}">+</button>
-            <button type="button" class="zoom-btn" id="zoom-fit" title="${t('advanced.zoomFit')}" aria-label="${t('advanced.zoomFit')}">⌂</button>
-          </div>
-        </div>
-        <!-- Row 2: contextual actions for lasso (lasso-actions or
-             preview-actions). Hidden entirely when neither is .visible. -->
-        <div class="toolbar-row toolbar-row-contextual">
-          <div class="lasso-actions" id="lasso-actions" role="group" aria-label="Lasso actions">
-            <button type="button" class="action-btn" id="action-crop" title="${t('advanced.actionCropHint')}">${t('advanced.actionCrop')}</button>
-            <button type="button" class="action-btn" id="action-refine" title="${t('advanced.actionRefineHint')}">${t('advanced.actionRefine')}</button>
-            <button type="button" class="action-btn danger" id="action-erase-object" title="${t('advanced.actionEraseObjectHint')}">${t('advanced.actionEraseObject')}</button>
-            <button type="button" class="action-btn" id="action-remove-watermark" title="${t('advanced.actionRemoveWatermarkHint')}">${t('advanced.actionRemoveWatermark')}</button>
-            <span class="busy-indicator hidden" id="busy">${t('advanced.working')}</span>
-            <button type="button" class="action-btn cancel-action hidden" id="cancel-action">${t('advanced.cancelAction')}</button>
-          </div>
-          <div class="preview-actions" id="preview-actions" role="group" aria-label="Confirm preview">
-            <span class="preview-diff" id="preview-diff" aria-live="polite"></span>
-            <button type="button" class="action-btn confirm" id="action-apply-preview" title="${t('advanced.previewApplyHint')}">${t('advanced.previewApply')}</button>
-            <button type="button" class="action-btn" id="action-cancel-preview" title="${t('advanced.previewCancelHint')}">${t('advanced.previewCancel')}</button>
-          </div>
-        </div>
+        </aside>
       </div>
-      <div class="bg-options" role="group" aria-label="${t('viewer.bg')}">
-        <span class="bg-label">${t('viewer.bg')}</span>
-        <div class="bg-btn bg-checker active" data-bg="transparent" title="${t('bg.transparent')}"></div>
-        <div class="bg-btn bg-white" data-bg="white" title="${t('bg.white')}"></div>
-        <div class="bg-btn bg-black" data-bg="black" title="${t('bg.black')}"></div>
-        <div class="bg-btn" style="background:var(--color-preview-green)" data-bg="#00b140" title="${t('bg.green')}"></div>
-        <div class="bg-btn bg-red" data-bg="#ff4444" title="${t('bg.red')}"></div>
-      </div>
-      <div class="canvas-wrap"><canvas tabindex="0" role="img"
-        aria-label="${t('advanced.canvasLabel')}"></canvas></div>
       <div class="controls">
         <span class="hint" id="hint">${t('advanced.hint')}</span>
-        <button type="button" class="action secondary" id="undo" disabled>${t('advanced.undo')}</button>
-        <button type="button" class="action secondary" id="redo" disabled>${t('advanced.redo')}</button>
-        <button type="button" class="action secondary" id="cancel">${t('advanced.cancel')}</button>
-        <button type="button" class="action" id="done">${t('advanced.apply')}</button>
       </div>
     `;
     this.canvas = shadow.querySelector('canvas')!;
@@ -1004,6 +1101,7 @@ export class ArEditorAdvanced extends HTMLElement {
       () => {
         this.brushRadius = parseInt(sizeInput.value, 10);
         sizeVal.textContent = String(this.brushRadius);
+        this.syncCmdBar();
         this.redrawDisplay();
       },
       { signal },
@@ -1300,6 +1398,7 @@ export class ArEditorAdvanced extends HTMLElement {
     const val = this.shadowRoot?.getElementById('brush-size-val');
     if (input) input.value = String(this.brushRadius);
     if (val) val.textContent = String(this.brushRadius);
+    this.syncCmdBar();
     this.redrawDisplay();
   }
 
@@ -1556,7 +1655,22 @@ export class ArEditorAdvanced extends HTMLElement {
     if (hint && this.tool !== 'lasso') {
       hint.textContent = t('advanced.hint');
     }
+    this.syncCmdBar();
     this.syncLassoActionsUI();
+  }
+
+  /**
+   * Keep the command-bar status line honest: it names the active tool
+   * and the current brush size, so the user can always read what Apply
+   * is about to commit. Mirrors ar-editor.ts's syncCmdBarMeta().
+   */
+  private syncCmdBar(): void {
+    const action = this.shadowRoot?.getElementById('adv-cmd-action');
+    const meta = this.shadowRoot?.getElementById('adv-cmd-meta');
+    if (action) action.textContent = `edit --${this.tool}`;
+    if (meta) {
+      meta.textContent = this.tool === 'lasso' ? '· lasso' : `· size=${this.brushRadius}`;
+    }
   }
 
   private syncLassoActionsUI(): void {
