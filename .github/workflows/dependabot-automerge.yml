@@ -1,13 +1,34 @@
 name: Dependabot auto-merge
 
-# Auto-merge Dependabot PRs that are patch + minor only and have CI green.
-# Closes #191. Major-version bumps still require manual review (the
-# `update-type` filter on the merge step rejects them).
+# Auto-merge Dependabot PRs that are patch + minor only. Closes #191.
+# Major-version bumps still require manual review (the `update-type` filter
+# on the merge step rejects them).
+#
+# THE "CI GREEN" PART IS NOT ENFORCED HERE. This file has no way to check it.
+# `gh pr merge --auto` defers to GitHub's native auto-merge, which waits only
+# for the checks that branch protection marks REQUIRED. Until 2026-08-20 the
+# repo had `allow_auto_merge=false` and `main` had no protection and no
+# rulesets at all, so there was nothing to wait for and `--auto` merged
+# immediately. #339 and #344 each landed on `main` with SIX failing checks
+# (Typecheck + tests, Build + test on all three OS, OSV-Scanner, npm audit).
+# #339 is the onnxruntime-node break that then sat on `main` for eleven days.
+#
+# What actually gates this now lives outside this file:
+#   - repo setting `allow_auto_merge=true`, so `--auto` genuinely queues
+#   - branch protection on `main` requiring `Lint + format` and
+#     `Typecheck + tests` (both from ci.yml, which has no `paths` filter so
+#     they report on every PR — cli.yml's `Build + test` legs are deliberately
+#     NOT required, because a paths-filtered check never reports on unrelated
+#     PRs and would block them forever)
+#
+# If those two are ever removed, this workflow silently goes back to merging
+# red. See #360 and .github/workflows/main-health.yml.
 #
 # We use `pull_request_target` so the workflow runs with the perms of the
 # *base* branch's workflow file, not the PR's. That means a malicious
 # dependency update can't escalate by editing this workflow inside the PR
-# itself — the version of this file on `dev` is what runs.
+# itself. Note the base branch is `main` (dependabot targets the default
+# branch), not `dev` as this comment previously claimed.
 
 on:
   pull_request_target:
