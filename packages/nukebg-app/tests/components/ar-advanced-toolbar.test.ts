@@ -16,6 +16,7 @@ import { resolve } from 'node:path';
 
 const ROOT = resolve(__dirname, '..', '..');
 const ED = readFileSync(resolve(ROOT, 'src/components/ar-editor-advanced.ts'), 'utf8');
+const APP = readFileSync(resolve(ROOT, 'src/components/ar-app.ts'), 'utf8');
 const EXISTS = (rel: string) => existsSync(resolve(ROOT, rel));
 
 describe('ar-editor-advanced — editor shell (#346)', () => {
@@ -235,5 +236,68 @@ describe('ar-editor-advanced — brush shape reaches the pixels (#346)', () => {
     expect(ED).toMatch(/t\('editor\.shape'\)/);
     expect(ED).toMatch(/t\('editor\.eraserCircle'\)/);
     expect(ED).toMatch(/t\('editor\.eraserSquare'\)/);
+  });
+});
+
+/**
+ * Guards for the second review pass on #347. Each of these closes a
+ * path where the failure is silent — no exception, no visible symptom,
+ * just wrong output or stale state.
+ */
+describe('ar-editor-advanced — silent-failure guards (#346)', () => {
+  it('commit() folds a staged preview instead of exporting without it', () => {
+    // pendingPreview is drawn only on the display canvas; applyPreview()
+    // is the sole path that folds it into `working`. Committing without
+    // that fold exports the image WITHOUT the change on screen.
+    const fn = ED.match(/private commit\(\): void \{[\s\S]*?\r?\n {2}\}/);
+    expect(fn).not.toBeNull();
+    const body = fn![0];
+    expect(body).toMatch(/if \(this\.pendingPreview\) this\.applyPreview\(\);/);
+    // The fold has to happen BEFORE the pixels are read out.
+    expect(body.indexOf('applyPreview')).toBeLessThan(body.indexOf('getImageData'));
+  });
+
+  it('close() aborts an in-flight action, not just the attribute', () => {
+    // A SAM run only exits through its AbortSignal. Closing without
+    // aborting lets it resolve later and write alpha sized for the
+    // previous image over a freshly loaded one.
+    const fn = ED.match(/\r?\n {2}close\(\): void \{[\s\S]*?\r?\n {2}\}/);
+    expect(fn).not.toBeNull();
+    expect(fn![0]).toMatch(/this\.cancelAction\(\)/);
+    expect(fn![0]).toMatch(/this\.pendingPreview = null/);
+    expect(fn![0]).toMatch(/this\.removeAttribute\('active'\)/);
+  });
+});
+
+describe('ar-app — editor teardown and staleness (#346)', () => {
+  it('closeAdvancedEditor delegates to the component close()', () => {
+    const fn = APP.match(/private closeAdvancedEditor\(\): void \{[\s\S]*?\r?\n {2}\}/);
+    expect(fn).not.toBeNull();
+    // Not removeAttribute: that leaves a running action alive.
+    expect(fn![0]).toMatch(/adv\?\.close\(\)/);
+    expect(fn![0]).toMatch(/removeAttribute\('data-active'\)/);
+    expect(fn![0]).toMatch(/this\.setEditorOpen\(false\)/);
+  });
+
+  it('every editor close goes through the helper', () => {
+    // closeBatchDetail used to hand-roll it and skipped data-active.
+    const strays = APP.split(/\r?\n/).filter((l) => l.includes("removeAttribute('active')"));
+    expect(strays).toEqual([]);
+  });
+
+  it('the editor-apply path is guarded against a newer run', () => {
+    const fn = APP.match(/\x27ar:advanced-done\x27,[\s\S]*?\r?\n {6}\},/);
+    expect(fn).not.toBeNull();
+    const body = fn![0];
+    expect(body).toMatch(/const token = \+\+this\.runToken;/);
+    // Checked after the awaits, in both the success and failure paths.
+    expect((body.match(/token !== this\.runToken/g) ?? []).length).toBeGreaterThanOrEqual(2);
+  });
+
+  it('an editor-apply failure does not offer a destructive Retry', () => {
+    // Retry re-runs the pipeline on the ORIGINAL upload, discarding the
+    // edit that just failed to apply.
+    expect(APP).toMatch(/private showErrorModal\(msg: string, allowRetry = true\): void/);
+    expect(APP).toMatch(/showErrorModal\([\s\S]{0,80}?, false\)/);
   });
 });

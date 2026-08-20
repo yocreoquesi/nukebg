@@ -177,6 +177,22 @@ export class ArEditorAdvanced extends HTMLElement {
     this.samRefiner.dispose();
   }
 
+  /**
+   * Close the editor from outside — used when a new image arrives while
+   * it is open.
+   *
+   * Removing the `active` attribute alone is not enough: a SAM refine or
+   * erase-object run only exits through its AbortSignal, so it would
+   * survive the close and later call applyAlphaDirectly() with alpha
+   * sized for the previous image, corrupting the reopened canvas and its
+   * undo stack. Aborting first is the whole point of this method.
+   */
+  close(): void {
+    this.cancelAction();
+    this.pendingPreview = null;
+    this.removeAttribute('active');
+  }
+
   setImage(current: ImageData, original: ImageData): void {
     this.current = current;
     this.original = original;
@@ -2515,6 +2531,12 @@ export class ArEditorAdvanced extends HTMLElement {
 
   private commit(): void {
     if (!this.working || !this.current) return;
+    // A staged preview lives only on the display canvas — redrawDisplay()
+    // paints its overlay, and applyPreview() is the sole path that folds
+    // it into `working`. Committing without this fold exports the image
+    // WITHOUT the change the user is looking at. Reachable by clicking
+    // Apply edits with a preview on screen, long before Enter existed.
+    if (this.pendingPreview) this.applyPreview();
     const out = this.working
       .getContext('2d')!
       .getImageData(0, 0, this.current.width, this.current.height);

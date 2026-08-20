@@ -44,6 +44,12 @@ export class ArApp extends HTMLElement {
    * worker CPU stops immediately instead of finishing a doomed run. */
   private processingAbortController: AbortController | null = null;
   private abortController: AbortController | null = null;
+  /**
+   * Bumped whenever a new image starts processing or an editor apply
+   * begins. Async handlers capture it before their first await and bail
+   * if it moved, so a slow finish cannot overwrite a newer run.
+   */
+  private runToken = 0;
   /** Owns PWA install button + guide wiring. Initialized in
    *  setupComponents() once the install-btn / install-guide nodes
    *  exist. See #47/Phase-1b. */
@@ -424,9 +430,9 @@ export class ArApp extends HTMLElement {
         if (!adv || !btn) return;
         const isOpen = adv.hasAttribute('active');
         if (isOpen) {
-          adv.removeAttribute('active');
-          btn.removeAttribute('data-active');
-          this.setEditorOpen(false);
+          // Through the helper so a running SAM action is aborted here
+          // too — this was the third place closing the editor by hand.
+          this.closeAdvancedEditor();
           return;
         }
         const current = this.lastResultImageData ?? this.currentImageData;
@@ -468,6 +474,11 @@ export class ArApp extends HTMLElement {
         // viewer would keep showing the pre-edit image as if nothing
         // had happened. Carried over from the ar:editor-done handler
         // deleted in #353, which is why it reads familiar.
+        // Refine + export are async. If the user drops or pastes a new
+        // image while they are in flight, this handler must not write the
+        // previous image's result over the new run — the viewer would
+        // show a stale edit while the progress bar runs a different file.
+        const token = ++this.runToken;
         try {
           // Same reasoning as the basic editor: skip topology cleanup so the
           // user's lasso crops / restores survive the refinement pass.
@@ -478,6 +489,7 @@ export class ArApp extends HTMLElement {
           // export + info label use the cropped subject bbox.
           const exportImageData = toImageData(autoCropToSubject(refined));
           const blob = await exportPng(exportImageData);
+          if (token !== this.runToken) return;
           this.viewer.setResult(refined, blob, {
             width: exportImageData.width,
             height: exportImageData.height,
@@ -485,8 +497,11 @@ export class ArApp extends HTMLElement {
           await this.download.setResult(exportImageData, this.currentFileName, 0, blob);
           this.lastResultImageData = refined;
         } catch (err) {
+          if (token !== this.runToken) return;
           console.error('[NukeBG] Applying editor result failed:', err);
-          this.showErrorModal(err instanceof Error ? err.message : String(err));
+          // No Retry: it re-runs the pipeline on the original upload and
+          // would discard the edit that just failed to apply.
+          this.showErrorModal(err instanceof Error ? err.message : String(err), false);
         }
       },
       { signal },
@@ -503,28 +518,33 @@ export class ArApp extends HTMLElement {
     if (prompt) prompt.style.display = show ? 'block' : 'none';
   }
 
-  /** Toggle the .editor-open class on the persistent status panel.
-   *  When the advanced editor is open, the user does not want the
-   *  [STATUS] line / limitations / Ko-fi pitch competing for attention
-   *  with the editing surface. Every code path that mutates the
-   *  advanced editor's `active` attribute also calls this helper. */
   /**
-   * Close the advanced editor and clear every piece of state that tracks
-   * it being open. Three things drift apart otherwise: the component's
-   * `active` attribute, `#advanced-cta[data-active]` (which flips the
-   * button into "close" mode) and `.editor-open` on the status panel.
+   * Close the advanced editor and clear the three pieces of state that
+   * track it being open, which otherwise drift apart: the component's
+   * `active` attribute, `#advanced-cta[data-active]` (which hides the
+   * CTA — see the rule in ar-app.styles.ts) and `.editor-open` on the
+   * status panel.
+   *
+   * Delegates to the component's own `close()` so an in-flight SAM
+   * action is aborted rather than left running against an image that is
+   * about to be replaced.
    *
    * Replaces the `#editor-section` hide that #353 removed along with the
    * component it pointed at — the guard itself was still needed.
    */
   private closeAdvancedEditor(): void {
-    const adv = this.shadowRoot?.querySelector('#editor-advanced') as HTMLElement | null;
-    adv?.removeAttribute('active');
+    const adv = this.shadowRoot?.querySelector('#editor-advanced') as ArEditorAdvanced | null;
+    adv?.close();
     const cta = this.shadowRoot?.querySelector('#advanced-cta') as HTMLElement | null;
     cta?.removeAttribute('data-active');
     this.setEditorOpen(false);
   }
 
+  /** Toggle the .editor-open class on the persistent status panel.
+   *  When the advanced editor is open, the user does not want the
+   *  [STATUS] line / limitations / Ko-fi pitch competing for attention
+   *  with the editing surface. Every code path that mutates the
+   *  advanced editor's `active` attribute also calls this helper. */
   private setEditorOpen(open: boolean): void {
     const panel = this.shadowRoot?.querySelector('#status-panel') as HTMLElement | null;
     if (!panel) return;
@@ -593,7 +613,9 @@ export class ArApp extends HTMLElement {
     // Editor only visible after a successful processing run. Close it
     // here so a new run cannot inherit an editor left open on the
     // previous image — the paste handler lives on document and fires
-    // whatever is on screen.
+    // whatever is on screen. Bumping the token first invalidates any
+    // editor-apply still awaiting its refine.
+    this.runToken++;
     this.closeAdvancedEditor();
 
     hero.classList.add('hidden');
@@ -753,7 +775,14 @@ export class ArApp extends HTMLElement {
    * meaningful if we still have the source image buffers — otherwise
    * the button hides itself and the user can only dismiss.
    */
-  private showErrorModal(msg: string): void {
+  /**
+   * @param allowRetry pass false when Retry would do the wrong thing.
+   * The modal's Retry re-runs the whole pipeline on the ORIGINAL upload,
+   * which is right for a pipeline failure and destructive after an
+   * editor apply — it would throw away the edit the user just spent
+   * minutes on.
+   */
+  private showErrorModal(msg: string, allowRetry = true): void {
     const modal = this.shadowRoot?.querySelector('#error-modal') as HTMLElement | null;
     const messageEl = this.shadowRoot?.querySelector('#error-modal-message');
     const retryBtn = this.shadowRoot?.querySelector(
@@ -761,7 +790,7 @@ export class ArApp extends HTMLElement {
     ) as HTMLButtonElement | null;
     if (!modal || !messageEl) return;
     messageEl.textContent = msg;
-    const canRetry = !!(this.currentImageData && this.currentOriginalImageData);
+    const canRetry = allowRetry && !!(this.currentImageData && this.currentOriginalImageData);
     if (retryBtn) retryBtn.hidden = !canRetry;
     modal.hidden = false;
     // Shift focus to the primary action so keyboard users can act
@@ -947,9 +976,9 @@ export class ArApp extends HTMLElement {
     this.currentImageData = null;
     this.currentOriginalImageData = null;
     this.setAdvancedBtnVisible(false);
-    const adv = this.shadowRoot!.querySelector('#editor-advanced') as HTMLElement | null;
-    adv?.removeAttribute('active');
-    this.setEditorOpen(false);
+    // Was hand-rolling the close and omitting the data-active clear —
+    // the exact three-way drift closeAdvancedEditor() exists to prevent.
+    this.closeAdvancedEditor();
     this.setBatchUiMode('grid');
   }
 
