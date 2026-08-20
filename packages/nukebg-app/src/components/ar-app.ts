@@ -8,7 +8,6 @@ import { renderArAppTemplate } from './ar-app.template';
 import type { ArViewer } from './ar-viewer';
 import type { ArProgress } from './ar-progress';
 import type { ArDownload } from './ar-download';
-import type { ArEditor } from './ar-editor';
 import type { ArDropzone } from './ar-dropzone';
 import type { ArBatchGrid } from './ar-batch-grid';
 import { BatchOrchestrator, type BatchStageCallback } from '../controllers/batch-orchestrator';
@@ -32,7 +31,6 @@ export class ArApp extends HTMLElement {
   private viewer!: ArViewer;
   private progress!: ArProgress;
   private download!: ArDownload;
-  private editor!: ArEditor;
   private dropzone!: ArDropzone;
   private currentFileName = 'image.png';
   private currentImageData: ImageData | null = null;
@@ -45,9 +43,13 @@ export class ArApp extends HTMLElement {
    * user drops a new image mid-process or navigates away, so in-flight
    * worker CPU stops immediately instead of finishing a doomed run. */
   private processingAbortController: AbortController | null = null;
-  private preEditResult: ImageData | null = null;
-  private cachedEditResult: ImageData | null = null;
   private abortController: AbortController | null = null;
+  /**
+   * Bumped whenever a new image starts processing or an editor apply
+   * begins. Async handlers capture it before their first await and bail
+   * if it moved, so a slow finish cannot overwrite a newer run.
+   */
+  private runToken = 0;
   /** Owns PWA install button + guide wiring. Initialized in
    *  setupComponents() once the install-btn / install-guide nodes
    *  exist. See #47/Phase-1b. */
@@ -156,7 +158,6 @@ export class ArApp extends HTMLElement {
     this.viewer = this.shadowRoot!.querySelector('ar-viewer')!;
     this.progress = this.shadowRoot!.querySelector('ar-progress')!;
     this.download = this.shadowRoot!.querySelector('ar-download')!;
-    this.editor = this.shadowRoot!.querySelector('ar-editor')!;
     this.dropzone = this.shadowRoot!.querySelector('ar-dropzone')! as ArDropzone;
     this.batchGrid = this.shadowRoot!.querySelector('#batch-grid') as ArBatchGrid;
 
@@ -238,8 +239,6 @@ export class ArApp extends HTMLElement {
     if (statusLimSum) statusLimSum.textContent = `# ${t('status.limitations')}`;
     const statusLimBody = root.querySelector('#status-limits-body');
     if (statusLimBody) statusLimBody.innerHTML = t('features.limitations');
-    const editBtn = root.querySelector('#edit-btn');
-    if (editBtn) editBtn.textContent = this.preEditResult ? t('edit.discard') : t('edit.btn');
     const advancedPrompt = root.querySelector('#advanced-prompt');
     if (advancedPrompt) advancedPrompt.textContent = t('advanced.cta');
     const advancedBtn = root.querySelector('#advanced-cta');
@@ -422,108 +421,6 @@ export class ArApp extends HTMLElement {
     // Limitations now live inside <details id="status-limits"> — native
     // disclosure widget handles open/close. No click wiring needed.
 
-    // Edit button - opens editor or discards edits
-    this.shadowRoot!.querySelector('#edit-btn')?.addEventListener(
-      'click',
-      async () => {
-        if (!this.lastResultImageData) return;
-
-        if (this.preEditResult) {
-          // Discard mode: restore pre-edit result, cache edit for instant re-apply
-          this.cachedEditResult = this.lastResultImageData;
-          this.lastResultImageData = this.preEditResult;
-          this.preEditResult = null;
-
-          // Same split as the main flow: slider keeps the full-size
-          // canvas (alignment with original); export + info label use
-          // the cropped subject bbox.
-          const exportImageData = toImageData(autoCropToSubject(this.lastResultImageData));
-          const blob = await exportPng(exportImageData);
-          const originalForViewer = this.currentOriginalImageData ?? this.currentImageData;
-          if (originalForViewer) this.viewer.setOriginal(originalForViewer, this.currentFileSize);
-          this.viewer.setResult(this.lastResultImageData, blob, {
-            width: exportImageData.width,
-            height: exportImageData.height,
-          });
-          await this.download.setResult(exportImageData, this.currentFileName, 0, blob);
-
-          // Switch button back to "Edit manually"
-          const editBtn = this.shadowRoot!.querySelector('#edit-btn') as HTMLElement;
-          if (editBtn) editBtn.textContent = t('edit.btn');
-        } else {
-          // Edit mode: open editor, pass cached edit result for instant toggle if available
-          const editorSection = this.shadowRoot!.querySelector('#editor-section') as HTMLElement;
-          editorSection.style.display = 'block';
-          this.editor.setImage(
-            this.cachedEditResult ?? this.lastResultImageData,
-            (this.currentOriginalImageData ?? this.currentImageData)!,
-          );
-          this.cachedEditResult = null;
-          (this.shadowRoot!.querySelector('#edit-btn') as HTMLElement).style.display = 'none';
-        }
-      },
-      { signal },
-    );
-
-    // Editor cancel - discard edits, close editor
-    on(
-      this.shadowRoot!,
-      'ar:editor-cancel',
-      () => {
-        (this.shadowRoot!.querySelector('#editor-section') as HTMLElement).style.display = 'none';
-        (this.shadowRoot!.querySelector('#edit-btn') as HTMLElement).style.display = 'block';
-      },
-      { signal },
-    );
-
-    // Editor done - update viewer and download with edited result
-    on(
-      this.shadowRoot!,
-      'ar:editor-done',
-      async ({ imageData: rawEdited }) => {
-        try {
-          // Refine: foreground decontamination + quintic alpha sharpening so manual
-          // brush strokes inherit the same studio-quality edge as the main pipeline.
-          // Topology cleanup is skipped — keepLargestComponent would discard manual
-          // restores that don't connect to the main subject body.
-          const editedData = toImageData(
-            await refineEdges(this.pipeline, rawEdited, { skipTopologyCleanup: true }),
-          );
-          // Crop for export; slider canvas keeps the full-size frame so
-          // the manual brush strokes still align with the original.
-          const exportImageData = toImageData(autoCropToSubject(editedData));
-          const blob = await exportPng(exportImageData);
-
-          // Save pre-edit for discard functionality
-          this.preEditResult = this.lastResultImageData;
-          this.cachedEditResult = editedData;
-          this.lastResultImageData = editedData;
-
-          // "Before" stays as the original input image; only "after" updates
-          this.viewer.setResult(editedData, blob, {
-            width: exportImageData.width,
-            height: exportImageData.height,
-          });
-          await this.download.setResult(exportImageData, this.currentFileName, 0, blob);
-
-          // Hide editor, show discard button
-          (this.shadowRoot!.querySelector('#editor-section') as HTMLElement).style.display = 'none';
-          const editBtn = this.shadowRoot!.querySelector('#edit-btn') as HTMLElement;
-          editBtn.style.display = 'block';
-          editBtn.textContent = t('edit.discard');
-        } catch (err) {
-          // refineEdges / exportPng / setResult can throw on malformed
-          // input or worker errors. Without this catch the rejection
-          // becomes an unhandledrejection and the editor leaves the user
-          // on a stale result with no signal that anything went wrong.
-          console.error('[NukeBG] Editor finalize failed:', err);
-          const msg = err instanceof Error ? err.message : String(err);
-          this.showErrorModal(msg);
-        }
-      },
-      { signal },
-    );
-
     // Advanced editor CTA toggle
     this.shadowRoot!.querySelector('#advanced-cta')?.addEventListener(
       'click',
@@ -533,9 +430,9 @@ export class ArApp extends HTMLElement {
         if (!adv || !btn) return;
         const isOpen = adv.hasAttribute('active');
         if (isOpen) {
-          adv.removeAttribute('active');
-          btn.removeAttribute('data-active');
-          this.setEditorOpen(false);
+          // Through the helper so a running SAM action is aborted here
+          // too — this was the third place closing the editor by hand.
+          this.closeAdvancedEditor();
           return;
         }
         const current = this.lastResultImageData ?? this.currentImageData;
@@ -571,38 +468,76 @@ export class ArApp extends HTMLElement {
         btn?.removeAttribute('data-active');
         this.setEditorOpen(false);
 
-        // Same reasoning as the basic editor: skip topology cleanup so the
-        // user's lasso crops / restores survive the refinement pass.
-        const refined = toImageData(
-          await refineEdges(this.pipeline, imageData, { skipTopologyCleanup: true }),
-        );
-        // Same split as elsewhere: slider stays full-size for alignment;
-        // export + info label use the cropped subject bbox.
-        const exportImageData = toImageData(autoCropToSubject(refined));
-        const blob = await exportPng(exportImageData);
-        this.viewer.setResult(refined, blob, {
-          width: exportImageData.width,
-          height: exportImageData.height,
-        });
-        await this.download.setResult(exportImageData, this.currentFileName, 0, blob);
-        this.lastResultImageData = refined;
+        // Without this catch the rejection becomes an unhandledrejection
+        // and the editor leaves the user on a stale result with no
+        // signal — the editor has already closed by this point, so the
+        // viewer would keep showing the pre-edit image as if nothing
+        // had happened. Carried over from the ar:editor-done handler
+        // deleted in #353, which is why it reads familiar.
+        // Refine + export are async. If the user drops or pastes a new
+        // image while they are in flight, this handler must not write the
+        // previous image's result over the new run — the viewer would
+        // show a stale edit while the progress bar runs a different file.
+        const token = ++this.runToken;
+        try {
+          // Same reasoning as the basic editor: skip topology cleanup so the
+          // user's lasso crops / restores survive the refinement pass.
+          const refined = toImageData(
+            await refineEdges(this.pipeline, imageData, { skipTopologyCleanup: true }),
+          );
+          // Same split as elsewhere: slider stays full-size for alignment;
+          // export + info label use the cropped subject bbox.
+          const exportImageData = toImageData(autoCropToSubject(refined));
+          const blob = await exportPng(exportImageData);
+          if (token !== this.runToken) return;
+          this.viewer.setResult(refined, blob, {
+            width: exportImageData.width,
+            height: exportImageData.height,
+          });
+          await this.download.setResult(exportImageData, this.currentFileName, 0, blob);
+          this.lastResultImageData = refined;
+        } catch (err) {
+          if (token !== this.runToken) return;
+          console.error('[NukeBG] Applying editor result failed:', err);
+          // No Retry: it re-runs the pipeline on the original upload and
+          // would discard the edit that just failed to apply.
+          this.showErrorModal(err instanceof Error ? err.message : String(err), false);
+        }
       },
       { signal },
     );
   }
 
-  // Advanced CTA replaces the edit-btn when visible. The Editor button
-  // and its #advanced-prompt sentence ("Not satisfied with the
-  // result?" / equivalent locale) appear together — the prompt lives
+  // The Editor button and its #advanced-prompt sentence appear
   // outside the button so the button label stays tight.
   private setAdvancedBtnVisible(show: boolean): void {
     const cta = this.shadowRoot?.querySelector('#advanced-cta') as HTMLElement | null;
     const prompt = this.shadowRoot?.querySelector('#advanced-prompt') as HTMLElement | null;
-    const editBtn = this.shadowRoot?.querySelector('#edit-btn') as HTMLElement | null;
     if (!cta) return;
     cta.style.display = show ? 'block' : 'none';
     if (prompt) prompt.style.display = show ? 'block' : 'none';
-    if (editBtn) editBtn.style.display = 'none';
+  }
+
+  /**
+   * Close the advanced editor and clear the three pieces of state that
+   * track it being open, which otherwise drift apart: the component's
+   * `active` attribute, `#advanced-cta[data-active]` (which hides the
+   * CTA — see the rule in ar-app.styles.ts) and `.editor-open` on the
+   * status panel.
+   *
+   * Delegates to the component's own `close()` so an in-flight SAM
+   * action is aborted rather than left running against an image that is
+   * about to be replaced.
+   *
+   * Replaces the `#editor-section` hide that #353 removed along with the
+   * component it pointed at — the guard itself was still needed.
+   */
+  private closeAdvancedEditor(): void {
+    const adv = this.shadowRoot?.querySelector('#editor-advanced') as ArEditorAdvanced | null;
+    adv?.close();
+    const cta = this.shadowRoot?.querySelector('#advanced-cta') as HTMLElement | null;
+    cta?.removeAttribute('data-active');
+    this.setEditorOpen(false);
   }
 
   /** Toggle the .editor-open class on the persistent status panel.
@@ -618,9 +553,6 @@ export class ArApp extends HTMLElement {
 
   /** Disable all workspace action buttons during processing */
   private disableWorkspaceButtons(): void {
-    const root = this.shadowRoot!;
-    const editBtn = root.querySelector('#edit-btn') as HTMLButtonElement | null;
-    if (editBtn) editBtn.disabled = true;
     // Buttons inside ar-download shadow DOM
     const downloadRoot = this.download.shadowRoot;
     if (downloadRoot) {
@@ -639,9 +571,6 @@ export class ArApp extends HTMLElement {
 
   /** Re-enable all workspace action buttons after processing */
   private enableWorkspaceButtons(): void {
-    const root = this.shadowRoot!;
-    const editBtn = root.querySelector('#edit-btn') as HTMLButtonElement | null;
-    if (editBtn) editBtn.disabled = false;
     // Buttons inside ar-download shadow DOM
     const downloadRoot = this.download.shadowRoot;
     if (downloadRoot) {
@@ -677,17 +606,17 @@ export class ArApp extends HTMLElement {
     this.currentOriginalImageData = originalImageData;
     this.currentFileSize = fileSize;
 
-    this.preEditResult = null;
-    this.cachedEditResult = null;
     this.lastResultImageData = null;
     const hero = this.shadowRoot!.querySelector('#hero')!;
     const workspace = this.shadowRoot!.querySelector('#workspace')!;
 
-    // Editor only visible after a successful processing run. Hide it
-    // here so a new run cannot inherit display:block from a previous
-    // edit that was still open when the user pasted a new image.
-    const editorSection = this.shadowRoot!.querySelector('#editor-section') as HTMLElement;
-    if (editorSection) editorSection.style.display = 'none';
+    // Editor only visible after a successful processing run. Close it
+    // here so a new run cannot inherit an editor left open on the
+    // previous image — the paste handler lives on document and fires
+    // whatever is on screen. Bumping the token first invalidates any
+    // editor-apply still awaiting its refine.
+    this.runToken++;
+    this.closeAdvancedEditor();
 
     hero.classList.add('hidden');
     workspace.classList.add('visible');
@@ -771,9 +700,6 @@ export class ArApp extends HTMLElement {
 
       this.lastResultImageData = finalImageData;
 
-      // Show edit button
-      const editBtn = this.shadowRoot!.querySelector('#edit-btn') as HTMLElement;
-      if (editBtn) editBtn.style.display = 'block';
       this.setAdvancedBtnVisible(true);
     } catch (err) {
       if (this.processingAborted) return;
@@ -849,7 +775,14 @@ export class ArApp extends HTMLElement {
    * meaningful if we still have the source image buffers — otherwise
    * the button hides itself and the user can only dismiss.
    */
-  private showErrorModal(msg: string): void {
+  /**
+   * @param allowRetry pass false when Retry would do the wrong thing.
+   * The modal's Retry re-runs the whole pipeline on the ORIGINAL upload,
+   * which is right for a pipeline failure and destructive after an
+   * editor apply — it would throw away the edit the user just spent
+   * minutes on.
+   */
+  private showErrorModal(msg: string, allowRetry = true): void {
     const modal = this.shadowRoot?.querySelector('#error-modal') as HTMLElement | null;
     const messageEl = this.shadowRoot?.querySelector('#error-modal-message');
     const retryBtn = this.shadowRoot?.querySelector(
@@ -857,7 +790,7 @@ export class ArApp extends HTMLElement {
     ) as HTMLButtonElement | null;
     if (!modal || !messageEl) return;
     messageEl.textContent = msg;
-    const canRetry = !!(this.currentImageData && this.currentOriginalImageData);
+    const canRetry = allowRetry && !!(this.currentImageData && this.currentOriginalImageData);
     if (retryBtn) retryBtn.hidden = !canRetry;
     modal.hidden = false;
     // Shift focus to the primary action so keyboard users can act
@@ -959,11 +892,7 @@ export class ArApp extends HTMLElement {
       this.viewer.clearResult();
       this.viewer.setOriginal(item.originalImageData, item.file.size);
       this.download.reset();
-      const editBtn = this.shadowRoot!.querySelector('#edit-btn') as HTMLElement;
-      if (editBtn) editBtn.style.display = 'none';
       this.setAdvancedBtnVisible(false);
-      const editorSection = this.shadowRoot!.querySelector('#editor-section') as HTMLElement;
-      if (editorSection) editorSection.style.display = 'none';
       return;
     }
 
@@ -994,8 +923,6 @@ export class ArApp extends HTMLElement {
           t('pipeline.error', { msg: item.errorMessage || 'Unknown error' }),
         );
       }
-      const editBtn = this.shadowRoot!.querySelector('#edit-btn') as HTMLElement;
-      if (editBtn) editBtn.style.display = 'none';
       this.setAdvancedBtnVisible(false);
       return;
     }
@@ -1039,29 +966,19 @@ export class ArApp extends HTMLElement {
         blob,
       );
       this.lastResultImageData = finalImageData;
-      const editBtn = this.shadowRoot!.querySelector('#edit-btn') as HTMLElement;
-      if (editBtn) editBtn.style.display = 'block';
       this.setAdvancedBtnVisible(true);
-      const editorSection = this.shadowRoot!.querySelector('#editor-section') as HTMLElement;
-      if (editorSection) editorSection.style.display = 'none';
     }
   }
 
   private closeBatchDetail(): void {
     this.batch.setDetailId(null);
-    this.preEditResult = null;
-    this.cachedEditResult = null;
     this.lastResultImageData = null;
     this.currentImageData = null;
     this.currentOriginalImageData = null;
-    const editorSection = this.shadowRoot!.querySelector('#editor-section') as HTMLElement;
-    if (editorSection) editorSection.style.display = 'none';
-    const editBtn = this.shadowRoot!.querySelector('#edit-btn') as HTMLElement;
-    if (editBtn) editBtn.style.display = 'none';
     this.setAdvancedBtnVisible(false);
-    const adv = this.shadowRoot!.querySelector('#editor-advanced') as HTMLElement | null;
-    adv?.removeAttribute('active');
-    this.setEditorOpen(false);
+    // Was hand-rolling the close and omitting the data-active clear —
+    // the exact three-way drift closeAdvancedEditor() exists to prevent.
+    this.closeAdvancedEditor();
     this.setBatchUiMode('grid');
   }
 
@@ -1089,6 +1006,10 @@ export class ArApp extends HTMLElement {
     const detailBar = root.querySelector('#batch-detail-bar') as HTMLElement;
     const failedBar = root.querySelector('#batch-failed-bar') as HTMLElement;
 
+    // Same guard as processImage(): returning to the landing must not
+    // leave an editor open behind the hero.
+    this.closeAdvancedEditor();
+
     workspace.classList.remove('visible');
     hero.classList.remove('hidden');
     if (dropzone) dropzone.style.display = '';
@@ -1096,12 +1017,8 @@ export class ArApp extends HTMLElement {
     if (single) single.style.display = 'flex';
     if (detailBar) detailBar.style.display = 'none';
     if (failedBar) failedBar.style.display = 'none';
-    const editorSection = root.querySelector('#editor-section') as HTMLElement | null;
-    if (editorSection) editorSection.style.display = 'none';
 
     this.download.reset();
-    this.preEditResult = null;
-    this.cachedEditResult = null;
     this.lastResultImageData = null;
     this.currentImageData = null;
     this.currentOriginalImageData = null;
