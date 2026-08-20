@@ -20,6 +20,15 @@ updates:
           - "patch"
           - "minor"
     ignore:
+      # onnxruntime-node ships a native library whose soname is shared
+      # with the copy @huggingface/transformers pins exactly. Any bump
+      # away from that pin installs two copies which collide at load
+      # time and the CLI stops working entirely. Happened twice: Aug 9
+      # and again via #339, which reached main. The version is not ours
+      # to choose — it follows transformers. See #360 and the guard in
+      # packages/nukebg-cli/tests/onnxruntime-single-runtime.test.ts.
+      # Run `npm run sync:onnx-pin` when transformers moves.
+      - dependency-name: "onnxruntime-node"
       # ONNX Runtime is pinned to a specific dev build on purpose
       # (RMBG-1.4 WASM compatibility). Migrate manually, not via Dependabot.
       - dependency-name: "onnxruntime-web"

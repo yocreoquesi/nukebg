@@ -20,6 +20,7 @@
     "test:e2e:iphone": "npm run test:e2e:iphone -w nukebg-app",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
+    "sync:onnx-pin": "node scripts/sync-onnx-pin.mjs",
     "format": "npm run format -w nukebg-app",
     "format:check": "npm run format:check -w nukebg-app"
   },
