@@ -192,14 +192,14 @@ describe('ArEditorAdvanced component (#131)', () => {
     expect(lasso.classList.contains('active')).toBe(false);
   });
 
-  it('renders the brush-size range slider with 2..120 bounds and a live value display', () => {
+  it('renders the brush-size range slider with 1..120 bounds and a live value display', () => {
     const slider = editor.shadowRoot!.querySelector('#brush-size') as HTMLInputElement;
     const valDisplay = editor.shadowRoot!.querySelector('#brush-size-val')!;
     expect(slider).not.toBeNull();
-    // Floor lowered 4 -> 2 in #346 so the fine brush ar-editor.ts offered
-    // survives the fork deletion.
+    // MIN_BRUSH is a RADIUS here; ar-editor.ts’s min="2" was a diameter.
+    // 1 is therefore the true equivalent of the brush that was deleted.
     expect(slider.type).toBe('range');
-    expect(slider.min).toBe('2');
+    expect(slider.min).toBe('1');
     expect(slider.max).toBe('120');
     expect(slider.value).toBe('24');
     expect(valDisplay.textContent).toBe('24');

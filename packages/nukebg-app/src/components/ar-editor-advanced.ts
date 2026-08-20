@@ -43,7 +43,7 @@ import { emit } from '../lib/event-bus';
 
 const PAD_RATIO = 0.25;
 const DEFAULT_BRUSH = 24;
-const MIN_BRUSH = 2;
+const MIN_BRUSH = 1;
 const MAX_BRUSH = 120;
 
 // Lasso tuning — all values are in image-space pixels so they scale
@@ -177,6 +177,22 @@ export class ArEditorAdvanced extends HTMLElement {
     this.samRefiner.dispose();
   }
 
+  /**
+   * Close the editor from outside — used when a new image arrives while
+   * it is open.
+   *
+   * Removing the `active` attribute alone is not enough: a SAM refine or
+   * erase-object run only exits through its AbortSignal, so it would
+   * survive the close and later call applyAlphaDirectly() with alpha
+   * sized for the previous image, corrupting the reopened canvas and its
+   * undo stack. Aborting first is the whole point of this method.
+   */
+  close(): void {
+    this.cancelAction();
+    this.pendingPreview = null;
+    this.removeAttribute('active');
+  }
+
   setImage(current: ImageData, original: ImageData): void {
     this.current = current;
     this.original = original;
@@ -269,6 +285,8 @@ export class ArEditorAdvanced extends HTMLElement {
       'tool-brush',
       'tool-eraser',
       'tool-lasso',
+      'shape-circle',
+      'shape-square',
       'restore-original',
       'reprocess',
       'cancel',
@@ -369,6 +387,21 @@ export class ArEditorAdvanced extends HTMLElement {
         .help-btn[aria-expanded="true"] {
           background: var(--color-accent-primary, #00ff41);
           color: #000;
+        }
+        /* The panel lives inside .editor-sidebar (a 260px track with
+           12px padding) since #350, so auto-fit at a 220px minimum no
+           longer fits and the nowrap shortcut rows pushed out of the
+           column. Scope the overrides so the pre-#350 rules still apply
+           anywhere else the panel is used. */
+        .editor-sidebar .help-panel {
+          grid-template-columns: minmax(0, 1fr);
+          max-width: 100%;
+        }
+        .editor-sidebar .help-section dl {
+          grid-template-columns: minmax(0, max-content) minmax(0, 1fr);
+        }
+        .editor-sidebar .help-section dt {
+          white-space: normal;
         }
         .help-panel {
           margin-bottom: 8px;
@@ -491,6 +524,15 @@ export class ArEditorAdvanced extends HTMLElement {
         @media (min-width: 900px) {
           .editor-body {
             grid-template-columns: 200px minmax(0, 1fr) 260px;
+          }
+        }
+        /* Coarse pointer docks the rail with position: fixed (see the
+           pointer: coarse block below), which takes it out of flow but
+           NOT out of the grid. Without this the 200px track survives as
+           an empty gutter on iPad landscape — 1024px wide and coarse. */
+        @media (min-width: 900px) and (pointer: coarse) {
+          .editor-body {
+            grid-template-columns: minmax(0, 1fr) 260px;
           }
         }
         .editor-rail {
@@ -1290,6 +1332,14 @@ export class ArEditorAdvanced extends HTMLElement {
         // and the convention every desktop editor shares. Inert when
         // nothing is previewing, so it never fires by accident.
         if (e.key === 'Enter') {
+          // Let a focused control act on its own activation first —
+          // otherwise tabbing to "Apply edits" and pressing Enter commits
+          // the preview instead, while Space still works. An
+          // inconsistently dead key is worse than no shortcut.
+          const focused = this.shadowRoot?.activeElement;
+          if (focused instanceof HTMLButtonElement || focused instanceof HTMLAnchorElement) {
+            return;
+          }
           if (!this.pendingPreview || this.busy) return;
           e.preventDefault();
           this.applyPreview();
@@ -1532,35 +1582,31 @@ export class ArEditorAdvanced extends HTMLElement {
     if (this.tool === 'eraser') {
       wctx.save();
       wctx.globalCompositeOperation = 'destination-out';
-      // A square footprint needs butt caps and mitred joins, otherwise
-      // the stroke rounds itself back off at the ends.
-      wctx.lineCap = square ? 'butt' : 'round';
-      wctx.lineJoin = square ? 'miter' : 'round';
-      wctx.lineWidth = r * 2;
-      wctx.beginPath();
-      wctx.moveTo(fromX, fromY);
-      wctx.lineTo(toX, toY);
-      wctx.stroke();
       if (square) {
-        // Butt caps leave the two ends open; stamp them so a single
-        // click still erases a full square rather than nothing.
-        wctx.fillRect(fromX - r, fromY - r, r * 2, r * 2);
-        wctx.fillRect(toX - r, toY - r, r * 2, r * 2);
+        // A stroked line is only `2r` wide perpendicular to motion, so on
+        // a diagonal drag it erases a narrower band than the square
+        // cursor promises. Stamping axis-aligned squares along the
+        // segment gives the true swept footprint, and covers the
+        // single-click case for free. Same stepping the brush uses.
+        this.stampAlong(fromX, fromY, toX, toY, r, (cx, cy) =>
+          wctx.fillRect(cx - r, cy - r, r * 2, r * 2),
+        );
+      } else {
+        wctx.lineCap = 'round';
+        wctx.lineJoin = 'round';
+        wctx.lineWidth = r * 2;
+        wctx.beginPath();
+        wctx.moveTo(fromX, fromY);
+        wctx.lineTo(toX, toY);
+        wctx.stroke();
       }
       wctx.restore();
       return;
     }
 
     if (this.tool !== 'brush' || !this.originalBacking) return;
-    const dx = toX - fromX;
-    const dy = toY - fromY;
-    const dist = Math.hypot(dx, dy);
-    const step = Math.max(1, r * 0.4);
-    const steps = Math.max(1, Math.ceil(dist / step));
-    for (let i = 0; i <= steps; i++) {
-      const tfrac = steps === 0 ? 0 : i / steps;
-      const cx = fromX + dx * tfrac;
-      const cy = fromY + dy * tfrac;
+    const backing = this.originalBacking;
+    this.stampAlong(fromX, fromY, toX, toY, r, (cx, cy) => {
       wctx.save();
       wctx.beginPath();
       if (square) {
@@ -1569,8 +1615,33 @@ export class ArEditorAdvanced extends HTMLElement {
         wctx.arc(cx, cy, r, 0, Math.PI * 2);
       }
       wctx.clip();
-      wctx.drawImage(this.originalBacking, 0, 0);
+      wctx.drawImage(backing, 0, 0);
       wctx.restore();
+    });
+  }
+
+  /**
+   * Walk a segment in steps small enough that consecutive stamps overlap,
+   * calling `stamp` at each centre. Shared by the brush and the square
+   * eraser so both trace the same path density; a single click yields one
+   * stamp rather than nothing.
+   */
+  private stampAlong(
+    fromX: number,
+    fromY: number,
+    toX: number,
+    toY: number,
+    r: number,
+    stamp: (cx: number, cy: number) => void,
+  ): void {
+    const dx = toX - fromX;
+    const dy = toY - fromY;
+    const dist = Math.hypot(dx, dy);
+    const step = Math.max(1, r * 0.4);
+    const steps = Math.max(1, Math.ceil(dist / step));
+    for (let i = 0; i <= steps; i++) {
+      const tfrac = i / steps;
+      stamp(fromX + dx * tfrac, fromY + dy * tfrac);
     }
   }
 
@@ -1821,13 +1892,19 @@ export class ArEditorAdvanced extends HTMLElement {
     const hasSelection = this.tool === 'lasso' && this.selectionMask !== null;
     const isPreviewing = this.pendingPreview !== null;
     row.classList.toggle('visible', (hasAnchors || hasSelection) && !isPreviewing);
-    row.querySelectorAll<HTMLButtonElement>('button.action-btn').forEach((b) => {
-      b.disabled = this.busy;
-    });
+    row
+      .querySelectorAll<HTMLButtonElement>('button.action-btn:not(.cancel-action)')
+      .forEach((b) => {
+        b.disabled = this.busy;
+      });
     if (busy) busy.classList.toggle('hidden', !this.busy);
     // Preview row: visible only while a preview is staged.
     previewRow.classList.toggle('visible', isPreviewing);
-    previewRow.querySelectorAll<HTMLButtonElement>('button.action-btn').forEach((b) => {
+    // Every button here, matched by tag rather than by class: #351
+    // renamed these from .action-btn to .key-btn and this guard silently
+    // stopped matching anything, leaving keep/discard live during a
+    // reprocess. Tag selector so a future rename cannot repeat it.
+    previewRow.querySelectorAll<HTMLButtonElement>('button').forEach((b) => {
       b.disabled = this.busy;
     });
     if (hint && this.tool === 'lasso' && !this.busy) {
@@ -2454,6 +2531,12 @@ export class ArEditorAdvanced extends HTMLElement {
 
   private commit(): void {
     if (!this.working || !this.current) return;
+    // A staged preview lives only on the display canvas — redrawDisplay()
+    // paints its overlay, and applyPreview() is the sole path that folds
+    // it into `working`. Committing without this fold exports the image
+    // WITHOUT the change the user is looking at. Reachable by clicking
+    // Apply edits with a preview on screen, long before Enter existed.
+    if (this.pendingPreview) this.applyPreview();
     const out = this.working
       .getContext('2d')!
       .getImageData(0, 0, this.current.width, this.current.height);
