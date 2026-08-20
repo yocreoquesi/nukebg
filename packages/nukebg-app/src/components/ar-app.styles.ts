@@ -377,9 +377,25 @@ export const AR_APP_STYLES: string = `
         /* Honesty + Ko-fi pitch under the status line. Same monospace
            voice, same tertiary tone as the limitations summary so they
            don't fight the dropzone for attention. */
-        .hero-disclaimer,
+        /* #354 — these two used to share one rule with the status line
+           and the limitations body: four separate messages at 12px
+           tertiary, indistinguishable at a glance.
+           The ramp is by role, not by decoration. The disclaimer is the
+           only actionable one — it tells you what to do when a result is
+           wrong — so it reads as body. The Ko-fi pitch is the least
+           urgent, stays at tertiary, and gains space so it registers as a
+           different kind of message rather than a fourth line of the
+           same paragraph. Both use existing tokens; no contrast is
+           lowered, and the disclaimer's goes up. */
+        .hero-disclaimer {
+          margin: 10px 0 0;
+          font-family: 'JetBrains Mono', monospace;
+          font-size: 12px;
+          line-height: 1.55;
+          color: var(--color-text-secondary, #00dd44);
+        }
         .hero-support {
-          margin: 6px 0 0;
+          margin: 14px 0 0;
           font-family: 'JetBrains Mono', monospace;
           font-size: 12px;
           line-height: 1.55;

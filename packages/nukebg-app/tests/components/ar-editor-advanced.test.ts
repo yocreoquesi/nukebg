@@ -192,12 +192,14 @@ describe('ArEditorAdvanced component (#131)', () => {
     expect(lasso.classList.contains('active')).toBe(false);
   });
 
-  it('renders the brush-size range slider with 4..120 bounds and a live value display', () => {
+  it('renders the brush-size range slider with 1..120 bounds and a live value display', () => {
     const slider = editor.shadowRoot!.querySelector('#brush-size') as HTMLInputElement;
     const valDisplay = editor.shadowRoot!.querySelector('#brush-size-val')!;
     expect(slider).not.toBeNull();
+    // MIN_BRUSH is a RADIUS here; ar-editor.ts’s min="2" was a diameter.
+    // 1 is therefore the true equivalent of the brush that was deleted.
     expect(slider.type).toBe('range');
-    expect(slider.min).toBe('4');
+    expect(slider.min).toBe('1');
     expect(slider.max).toBe('120');
     expect(slider.value).toBe('24');
     expect(valDisplay.textContent).toBe('24');
@@ -303,7 +305,9 @@ describe('ArEditorAdvanced component (#131)', () => {
   describe('tool selection', () => {
     function getActiveTool(): string | null {
       const root = editor.shadowRoot!;
-      const active = root.querySelector('.tool-btn.active') as HTMLButtonElement | null;
+      const active = root.querySelector(
+        '[aria-label="Tools"] .tool-btn.active',
+      ) as HTMLButtonElement | null;
       return active?.id ?? null;
     }
 
@@ -330,6 +334,41 @@ describe('ArEditorAdvanced component (#131)', () => {
 
   // ─── Brush size slider ───────────────────────────────────────────────────
 
+  // Ported from ar-editor.ts in #346. Without this the fork deletion
+  // would have silently dropped the square brush footprint.
+  describe('brush shape', () => {
+    function activeShape(): string | null {
+      const root = editor.shadowRoot!;
+      const shapeGroup = root.querySelector('#shape-row');
+      const active = shapeGroup?.querySelector('.tool-btn.active') as HTMLButtonElement | null;
+      return active?.id ?? null;
+    }
+
+    it('offers circle and square, with circle selected by default', () => {
+      const root = editor.shadowRoot!;
+      expect(root.querySelector('#shape-circle')).not.toBeNull();
+      expect(root.querySelector('#shape-square')).not.toBeNull();
+      expect(activeShape()).toBe('shape-circle');
+    });
+
+    it('clicking square moves the active class, and back again', () => {
+      const root = editor.shadowRoot!;
+      (root.querySelector('#shape-square') as HTMLButtonElement).click();
+      expect(activeShape()).toBe('shape-square');
+      (root.querySelector('#shape-circle') as HTMLButtonElement).click();
+      expect(activeShape()).toBe('shape-circle');
+    });
+
+    it('changing shape leaves the active tool alone', () => {
+      const root = editor.shadowRoot!;
+      (root.querySelector('#tool-brush') as HTMLButtonElement).click();
+      (root.querySelector('#shape-square') as HTMLButtonElement).click();
+      const activeTool = root.querySelector(
+        '[aria-label="Tools"] .tool-btn.active',
+      ) as HTMLButtonElement | null;
+      expect(activeTool?.id).toBe('tool-brush');
+    });
+  });
   describe('brush-size slider', () => {
     it('updates the value display when the slider input fires', () => {
       const slider = editor.shadowRoot!.querySelector('#brush-size') as HTMLInputElement;

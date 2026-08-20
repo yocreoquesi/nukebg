@@ -1,0 +1,72 @@
+name: Refresh visual baselines
+
+# Landing baselines in e2e/visual-landing.spec.ts-snapshots/ are committed
+# with a -linux suffix because CI generates them on ubuntu. Running
+# `--update-snapshots` on a Windows or macOS checkout writes -win32/-darwin
+# files instead and leaves the real baselines stale, so the only correct way
+# to refresh them is on Linux.
+#
+# Run this manually against the branch carrying the intentional UI change,
+# then download the artifact and commit the PNGs. Nothing is pushed from
+# here on purpose: a baseline refresh should be a reviewed commit, not a
+# silent one, or a visual regression can launder itself into main.
+
+on:
+  workflow_dispatch:
+    inputs:
+      project:
+        description: 'Playwright project to refresh'
+        required: true
+        default: all
+        type: choice
+        options:
+          - all
+          - chromium
+          - webkit
+          - iphone
+
+permissions:
+  contents: read
+
+jobs:
+  refresh:
+    name: Regenerate baselines on Linux
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium webkit
+
+      - name: Regenerate
+        working-directory: packages/nukebg-app
+        run: |
+          set -e
+          if [ "${{ inputs.project }}" = "all" ]; then
+            for p in chromium webkit iphone; do
+              echo "::group::$p"
+              npx playwright test visual-landing --project="$p" --update-snapshots
+              echo "::endgroup::"
+            done
+          else
+            npx playwright test visual-landing --project="${{ inputs.project }}" --update-snapshots
+          fi
+
+      - name: Show what changed
+        working-directory: packages/nukebg-app
+        run: git status --porcelain e2e/
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: visual-baselines
+          path: packages/nukebg-app/e2e/visual-landing.spec.ts-snapshots/
+          retention-days: 7
+          if-no-files-found: error
