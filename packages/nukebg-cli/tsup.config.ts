@@ -24,7 +24,12 @@ export default defineConfig({
   // worker-pipeline-runner.ts resolves it as a sibling of the bundle.
   entry: { cli: 'src/cli.ts', 'pipeline.worker': 'src/runners/pipeline.worker.ts' },
   format: ['esm'],
-  target: 'node20',
+  // node22, not node20: commander 15 is ESM-only and declares
+  // `engines.node >= 22.12.0`. The CLI's own floor moved to match — see
+  // package.json `engines` and REQ-DIST-3. Keep the two in step; a target
+  // below the engines floor silently down-levels for a runtime we no
+  // longer claim to support.
+  target: 'node22',
   platform: 'node',
   outDir: 'dist',
   clean: true,

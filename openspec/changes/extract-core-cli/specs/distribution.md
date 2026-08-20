@@ -69,7 +69,7 @@ The root `package.json` MUST declare `"workspaces": ["packages/*"]`. Each packag
 - `"bin": { "nukebg": "./dist/cli.js" }`.
 - `"dependencies"` includes `nukebg-core` (workspace reference), `onnxruntime-node`, `@huggingface/transformers`, `sharp`, `commander`, and `env-paths`.
 - MUST NOT depend on `onnxruntime-web`.
-- `"engines": { "node": ">=20.0.0" }`.
+- `"engines": { "node": ">=22.12.0" }`.
 
 #### Scenario: Binary is executable after global install
 
