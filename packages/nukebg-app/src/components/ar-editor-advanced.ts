@@ -320,7 +320,7 @@ export class ArEditorAdvanced extends HTMLElement {
           background: rgba(var(--color-accent-rgb, 0, 255, 65), 0.04);
           font-family: 'JetBrains Mono', monospace;
           font-size: 12px;
-          color: var(--color-text, #ddd);
+          color: var(--color-text-secondary, #00dd44);
         }
         :host([active]) { display: block; }
         @media (pointer: coarse) {
@@ -418,7 +418,7 @@ export class ArEditorAdvanced extends HTMLElement {
         }
         .help-section dt {
           font-size: 11px;
-          color: var(--color-text, #ddd);
+          color: var(--color-text-secondary, #00dd44);
           white-space: nowrap;
         }
         .help-section dd {
@@ -434,7 +434,7 @@ export class ArEditorAdvanced extends HTMLElement {
           border-bottom-width: 2px;
           border-radius: 3px;
           background: rgba(0, 0, 0, 0.35);
-          color: var(--color-text, #ddd);
+          color: var(--color-text-secondary, #00dd44);
           font-family: inherit;
           font-size: 10px;
           line-height: 1;
@@ -540,15 +540,15 @@ export class ArEditorAdvanced extends HTMLElement {
         .action-btn:hover:not(:disabled) { background: var(--color-accent-primary, #00ff41); color: #000; }
         .action-btn:disabled { opacity: 0.4; cursor: not-allowed; }
         .action-btn.danger {
-          color: #ff6d6d;
-          border-color: #ff6d6d;
+          color: var(--color-error, #ff3131);
+          border-color: var(--color-error, #ff3131);
         }
-        .action-btn.danger:hover:not(:disabled) { background: #ff6d6d; color: #000; }
+        .action-btn.danger:hover:not(:disabled) { background: var(--color-error, #ff3131); color: #000; }
         .action-btn.confirm {
-          color: #7bd37b;
-          border-color: #7bd37b;
+          color: var(--color-accent-primary, #00ff41);
+          border-color: var(--color-accent-primary, #00ff41);
         }
-        .action-btn.confirm:hover:not(:disabled) { background: #7bd37b; color: #000; }
+        .action-btn.confirm:hover:not(:disabled) { background: var(--color-accent-primary, #00ff41); color: #000; }
         .preview-diff {
           font-family: 'JetBrains Mono', monospace;
           font-size: 11px;
@@ -583,7 +583,7 @@ export class ArEditorAdvanced extends HTMLElement {
         .size-row .size-val {
           font-variant-numeric: tabular-nums;
           font-size: 11px;
-          color: var(--color-text, #ddd);
+          color: var(--color-text-secondary, #00dd44);
           min-width: 28px;
           text-align: right;
         }
@@ -595,7 +595,7 @@ export class ArEditorAdvanced extends HTMLElement {
         }
         .bg-label {
           font-size: 11px;
-          color: var(--color-text-muted, #888);
+          color: var(--color-text-tertiary, #00b34a);
           margin-right: 2px;
         }
         .bg-btn {
@@ -680,7 +680,7 @@ export class ArEditorAdvanced extends HTMLElement {
           font-family: inherit;
           font-size: 11px;
           background: transparent;
-          color: var(--color-text, #ddd);
+          color: var(--color-text-secondary, #00dd44);
           border: none;
           padding: 4px 8px;
           min-width: 44px;
@@ -713,7 +713,7 @@ export class ArEditorAdvanced extends HTMLElement {
         button.action {
           font-family: inherit;
           font-size: 12px;
-          background: var(--color-bg, #111);
+          background: var(--color-bg-elevated, #111111);
           color: var(--color-accent-primary, #00ff41);
           border: 1px solid var(--color-accent-primary, #00ff41);
           border-radius: 2px;
@@ -722,7 +722,7 @@ export class ArEditorAdvanced extends HTMLElement {
         }
         button.action:hover:not(:disabled) { background: var(--color-accent-primary, #00ff41); color: #000; }
         button.action:disabled { opacity: 0.4; cursor: not-allowed; }
-        button.action.secondary { color: var(--color-text-secondary, #999); border-color: var(--color-border, #444); }
+        button.action.secondary { color: var(--color-text-secondary, #999); border-color: var(--color-surface-border, #1a3a1a); }
 
         /* #35 — honor prefers-reduced-motion on any JS/CSS anim that
            ar-editor-advanced owns. Keeps hint-pulse from firing for
