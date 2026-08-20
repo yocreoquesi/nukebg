@@ -12,6 +12,23 @@ Unreleased entries accumulate on the `dev` branch. When we cut a release we copy
 
 ### Changed
 
+- **`nukebg-cli` now requires Node.js 22.12 or newer** (was 20). Raised to
+  take `commander` 15, which is ESM-only and declares
+  `engines.node >= 22.12.0`. Node 20 reached end of life in April 2026, and
+  neither `nukebg-cli` nor `nukebg-core` has been published to npm yet, so
+  this breaks no installed consumer — before first publish is the cheapest
+  moment to move a floor. `tsup` `target` moved to `node22` in step.
+  The floor for the repo root, `nukebg-app` and `nukebg-core` stays at
+  `>=20.0.0`: the CLI is the only package that needs 22, and forcing
+  browser-app contributors up for a dependency they never load was the
+  original reason the floor sat at 20.
+- **`commander` 12.1.0 to 15.0.0.** The one user-visible change arrives with
+  13: excess command-arguments now error instead of being ignored, so
+  `nukebg a.png b.png` is rejected rather than silently dropping the second
+  path. The rest are inert here — the short flags are all single-character,
+  `storeOptionsAsProperties` is unused, and `--no-watermark` / `--no-auto-crop`
+  are lone negatives, so 15's change to implicit negation defaults does not
+  apply.
 - **Classifier collapsed from 4 to 3 content types.** Removed `ILLUSTRATION`
   from `ImageContentType`. Audit confirmed the label had zero behavioural
   impact: `finalize-result.ts` treated it identically to `PHOTO` and no

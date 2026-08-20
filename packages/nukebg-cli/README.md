@@ -23,7 +23,7 @@ image is processed. See [License gate](#license-gate) below.
 npm install -g nukebg-cli
 ```
 
-Requires Node.js 20 or newer. Installs the `nukebg` binary.
+Requires Node.js 22.12 or newer. Installs the `nukebg` binary.
 
 ## Usage
 
