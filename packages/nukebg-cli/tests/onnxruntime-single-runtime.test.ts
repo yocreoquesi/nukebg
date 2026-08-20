@@ -36,6 +36,8 @@ describe('onnxruntime-node resolves to a single copy', () => {
 
   it('the lockfile contains exactly one onnxruntime-node resolution', () => {
     const described = copies.map(([path, e]) => `${e.version} @ ${path}`);
+    // Two copies means the specs drifted apart; the sibling assertion
+    // below names which. Both are repaired by `npm run sync:onnx-pin`.
     expect(copies.length, `found:\n  ${described.join('\n  ')}`).toBe(1);
   });
 
@@ -59,7 +61,8 @@ describe('onnxruntime-node resolves to a single copy', () => {
     expect(direct).toMatch(/^\d+\.\d+\.\d+$/);
     expect(
       direct,
-      `nukebg-cli pins ${direct}, @huggingface/transformers pins ${transformersPin}`,
+      `nukebg-cli pins ${direct}, @huggingface/transformers pins ${transformersPin}.\n` +
+        `Fix with: npm run sync:onnx-pin && npm install`,
     ).toBe(transformersPin);
   });
 });
