@@ -148,7 +148,6 @@ import '../../src/components/ar-dropzone';
 import '../../src/components/ar-viewer';
 import '../../src/components/ar-progress';
 import '../../src/components/ar-download';
-import '../../src/components/ar-editor';
 import '../../src/components/ar-editor-advanced';
 import '../../src/components/ar-batch-grid';
 import '../../src/components/ar-batch-item';

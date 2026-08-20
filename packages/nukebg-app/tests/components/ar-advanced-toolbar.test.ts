@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { readFileSync } from 'node:fs';
+import { readFileSync, existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 /**
@@ -16,7 +16,7 @@ import { resolve } from 'node:path';
 
 const ROOT = resolve(__dirname, '..', '..');
 const ED = readFileSync(resolve(ROOT, 'src/components/ar-editor-advanced.ts'), 'utf8');
-const SIMPLE = readFileSync(resolve(ROOT, 'src/components/ar-editor.ts'), 'utf8');
+const EXISTS = (rel: string) => existsSync(resolve(ROOT, rel));
 
 describe('ar-editor-advanced — editor shell (#346)', () => {
   it('renders a command bar carrying zoom, undo/redo and the session verbs', () => {
@@ -86,10 +86,13 @@ describe('ar-editor-advanced — editor shell (#346)', () => {
     expect(ED).toMatch(/\.size-row\.disabled[,\s][\s\S]*?pointer-events: none/);
   });
 
-  it('uses the same grid ar-editor.ts defines, so both editors share one layout', () => {
-    const grid = /grid-template-columns: 200px minmax\(0, 1fr\) 260px/;
-    expect(ED).toMatch(grid);
-    expect(SIMPLE).toMatch(grid);
+  it('keeps the shell grid, and the forked editor is gone (#346)', () => {
+    expect(ED).toMatch(/grid-template-columns: 200px minmax\(0, 1fr\) 260px/);
+    // ar-editor.ts was unreachable in the shipped app — ar-app.ts showed
+    // #edit-btn and then setAdvancedBtnVisible() hid it again on the very
+    // next line. Deleting it removed ~1300 lines nobody could open.
+    expect(EXISTS('src/components/ar-editor.ts')).toBe(false);
+    expect(ED).not.toMatch(/from '\.\/ar-editor'/);
   });
 
   it('the two-row toolbar from #77 is fully gone', () => {
