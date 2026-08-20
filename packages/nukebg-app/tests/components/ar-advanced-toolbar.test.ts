@@ -109,3 +109,77 @@ describe('ar-editor-advanced — editor shell (#346)', () => {
     );
   });
 });
+
+/**
+ * #346 slice 4 — the preview confirm pair, and the keys that drive it.
+ *
+ * The defect being closed: two controls labelled Apply could be on
+ * screen at once, one committing a previewed lasso operation and one
+ * committing the whole session. The fix is shape, not just wording —
+ * keycaps next to plain buttons — plus Enter and Escape actually doing
+ * the two things.
+ */
+describe('ar-editor-advanced — preview confirm pair (#346)', () => {
+  it('renders the confirm pair as keycaps, not as peer word buttons', () => {
+    const row = ED.match(/id="preview-actions"[\s\S]*?<\/div>/);
+    expect(row).not.toBeNull();
+    expect(row![0]).toMatch(/class="key-btn confirm"[^>]*id="action-apply-preview"/);
+    expect(row![0]).toMatch(/class="key-btn danger"[^>]*id="action-cancel-preview"/);
+    // The keycap glyph is what separates them from the session buttons
+    // before anything is read.
+    expect(row![0]).toMatch(/<kbd aria-hidden="true">&crarr;<\/kbd>/);
+    expect(row![0]).toMatch(/<kbd aria-hidden="true">esc<\/kbd>/);
+    // They must not reuse .action-btn, whose uppercase transform and
+    // solid hover would make them look like the lasso actions again.
+    expect(row![0]).not.toMatch(/class="action-btn[^"]*"[^>]*id="action-apply-preview"/);
+  });
+
+  it('keeps the pair tappable on touch — a keyboard-only answer would be worse', () => {
+    expect(ED).toMatch(/@media \(pointer: coarse\) \{[\s\S]*?\.key-btn \{[\s\S]*?min-height: 44px/);
+  });
+
+  it('Enter commits a pending preview and is inert otherwise', () => {
+    const handler = ED.match(/if \(e\.key === 'Enter'\) \{[\s\S]*?\n {8}\}/);
+    expect(handler).not.toBeNull();
+    expect(handler![0]).toMatch(/if \(!this\.pendingPreview \|\| this\.busy\) return;/);
+    expect(handler![0]).toMatch(/this\.applyPreview\(\)/);
+  });
+
+  it('Escape drops the preview BEFORE it clears the lasso', () => {
+    const esc = ED.match(/if \(e\.key === 'Escape'\) \{[\s\S]*?\n {10}return;\n {8}\}/);
+    expect(esc).not.toBeNull();
+    const body = esc![0];
+    const preview = body.indexOf('this.cancelPreview()');
+    const clear = body.indexOf('this.clearLasso()');
+    expect(preview).toBeGreaterThan(-1);
+    expect(clear).toBeGreaterThan(-1);
+    // Order is the invariant: one Escape drops the previewed change and
+    // leaves the selection standing, a second Escape clears it. Swapping
+    // these silently destroys the user's lasso on the first press.
+    expect(preview).toBeLessThan(clear);
+    // And the busy branch still wins over both.
+    expect(body.indexOf('this.cancelAction()')).toBeLessThan(preview);
+  });
+});
+
+describe('ar-editor-advanced — lasso actions are ranked (#346)', () => {
+  it('leads with Refine and fences Erase object behind a separator', () => {
+    const row = ED.match(/id="lasso-actions"[\s\S]*?id="cancel-action"/);
+    expect(row).not.toBeNull();
+    const body = row![0];
+    const order = [
+      'action-refine',
+      'action-crop',
+      'action-remove-watermark',
+      'action-erase-object',
+    ];
+    const positions = order.map((id) => body.indexOf(id));
+    expect(positions.every((p) => p > -1)).toBe(true);
+    expect(positions).toEqual([...positions].sort((a, b) => a - b));
+    // The destructive one sits after the rule, not among the others.
+    expect(body.indexOf('action-sep')).toBeLessThan(body.indexOf('action-erase-object'));
+    expect(body.indexOf('action-sep')).toBeGreaterThan(body.indexOf('action-remove-watermark'));
+    expect(body).toMatch(/class="action-btn lead"[^>]*id="action-refine"/);
+    expect(body).toMatch(/class="action-btn danger"[^>]*id="action-erase-object"/);
+  });
+});

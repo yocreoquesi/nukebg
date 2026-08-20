@@ -615,6 +615,20 @@ export class ArEditorAdvanced extends HTMLElement {
         }
         .action-btn:hover:not(:disabled) { background: var(--color-accent-primary, #00ff41); color: #000; }
         .action-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+        /* Four identical buttons made every lasso action look equally
+           safe. Refine leads because it is the common one; erase-object
+           is fenced off behind a rule because it is the destructive one. */
+        .action-btn.lead {
+          border-color: var(--color-accent-primary, #00ff41);
+          background: rgba(var(--color-accent-rgb, 0, 255, 65), 0.06);
+        }
+        .action-sep {
+          width: 1px;
+          align-self: stretch;
+          min-height: 20px;
+          background: var(--color-surface-border, #1a3a1a);
+          margin: 0 2px;
+        }
         .action-btn.danger {
           color: var(--color-error, #ff3131);
           border-color: var(--color-error, #ff3131);
@@ -631,6 +645,66 @@ export class ArEditorAdvanced extends HTMLElement {
           color: var(--color-text-tertiary, #00b34a);
           margin-right: 6px;
           white-space: nowrap;
+        }
+        /* Preview confirm pair (#346). The failure mode was two buttons
+           that LOOK alike, not two words that read alike — so these are
+           keycaps, separated from the session buttons by shape before
+           anything is read. Enter and Escape drive the same two paths.
+           The kbd recipe is the one already in .help-section kbd and
+           main.css .kbd-overlay-list kbd, so no new vocabulary. */
+        .key-btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 7px;
+          min-height: 30px;
+          padding: 0 10px 0 6px;
+          background: transparent;
+          border: 1px dashed var(--color-surface-border, #1a3a1a);
+          border-radius: 0;
+          color: var(--color-text-secondary, #00dd44);
+          font-family: inherit;
+          font-size: 11px;
+          letter-spacing: 0.04em;
+          cursor: pointer;
+          white-space: nowrap;
+          transition: border-color 0.15s ease, color 0.15s ease;
+        }
+        .key-btn kbd {
+          display: inline-block;
+          padding: 1px 6px;
+          border: 1px solid currentColor;
+          border-bottom-width: 2px;
+          border-radius: 0;
+          background: rgba(0, 0, 0, 0.35);
+          color: inherit;
+          font-family: inherit;
+          font-size: 10px;
+          line-height: 1.3;
+          opacity: 0.9;
+        }
+        .key-btn.confirm {
+          border-color: rgba(var(--color-accent-rgb, 0, 255, 65), 0.5);
+          color: var(--color-accent-primary, #00ff41);
+        }
+        .key-btn.danger {
+          border-color: rgba(255, 49, 49, 0.45);
+          color: var(--color-error, #ff3131);
+        }
+        .key-btn:hover:not(:disabled),
+        .key-btn:focus-visible {
+          border-style: solid;
+          outline: none;
+        }
+        .key-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+        /* On touch there is no Enter or Escape, so these must stay real
+           44px targets — a keyboard-only answer would be worse than the
+           plain-word buttons it replaces. */
+        @media (pointer: coarse) {
+          .key-btn {
+            min-height: 44px;
+            flex: 1 1 auto;
+            justify-content: center;
+          }
         }
         .preview-actions {
           display: none;
@@ -927,17 +1001,18 @@ export class ArEditorAdvanced extends HTMLElement {
                Collapses when neither is .visible. -->
           <div class="editor-context">
             <div class="lasso-actions" id="lasso-actions" role="group" aria-label="Lasso actions">
+              <button type="button" class="action-btn lead" id="action-refine" title="${t('advanced.actionRefineHint')}">${t('advanced.actionRefine')}</button>
               <button type="button" class="action-btn" id="action-crop" title="${t('advanced.actionCropHint')}">${t('advanced.actionCrop')}</button>
-              <button type="button" class="action-btn" id="action-refine" title="${t('advanced.actionRefineHint')}">${t('advanced.actionRefine')}</button>
-              <button type="button" class="action-btn danger" id="action-erase-object" title="${t('advanced.actionEraseObjectHint')}">${t('advanced.actionEraseObject')}</button>
               <button type="button" class="action-btn" id="action-remove-watermark" title="${t('advanced.actionRemoveWatermarkHint')}">${t('advanced.actionRemoveWatermark')}</button>
+              <span class="action-sep" aria-hidden="true"></span>
+              <button type="button" class="action-btn danger" id="action-erase-object" title="${t('advanced.actionEraseObjectHint')}">${t('advanced.actionEraseObject')}</button>
               <span class="busy-indicator hidden" id="busy">${t('advanced.working')}</span>
               <button type="button" class="action-btn cancel-action hidden" id="cancel-action">${t('advanced.cancelAction')}</button>
             </div>
             <div class="preview-actions" id="preview-actions" role="group" aria-label="Confirm preview">
               <span class="preview-diff" id="preview-diff" aria-live="polite"></span>
-              <button type="button" class="action-btn confirm" id="action-apply-preview" title="${t('advanced.previewApplyHint')}">${t('advanced.previewApply')}</button>
-              <button type="button" class="action-btn" id="action-cancel-preview" title="${t('advanced.previewCancelHint')}">${t('advanced.previewCancel')}</button>
+              <button type="button" class="key-btn confirm" id="action-apply-preview" title="${t('advanced.previewApplyHint')}"><kbd aria-hidden="true">&crarr;</kbd>${t('advanced.previewApply')}</button>
+              <button type="button" class="key-btn danger" id="action-cancel-preview" title="${t('advanced.previewCancelHint')}"><kbd aria-hidden="true">esc</kbd>${t('advanced.previewCancel')}</button>
             </div>
           </div>
         </div>
@@ -1173,6 +1248,13 @@ export class ArEditorAdvanced extends HTMLElement {
             this.cancelAction();
             return;
           }
+          // A pending preview is the next layer down: Escape drops the
+          // previewed change and leaves the lasso standing, so another
+          // action can be tried. Only a second Escape clears the lasso.
+          if (this.pendingPreview) {
+            this.cancelPreview();
+            return;
+          }
           if (this.lasso.getAnchors() || this.lasso.getRawPath()) {
             this.clearLasso();
             this.redrawDisplay();
@@ -1182,6 +1264,15 @@ export class ArEditorAdvanced extends HTMLElement {
             this.syncLassoActionsUI();
             this.redrawDisplay();
           }
+          return;
+        }
+        // Enter commits a pending preview — the counterpart to Escape,
+        // and the convention every desktop editor shares. Inert when
+        // nothing is previewing, so it never fires by accident.
+        if (e.key === 'Enter') {
+          if (!this.pendingPreview || this.busy) return;
+          e.preventDefault();
+          this.applyPreview();
           return;
         }
         if (e.key === '0' || e.key === 'Home') {
