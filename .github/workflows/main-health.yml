@@ -1,0 +1,141 @@
+name: Main health
+
+# #360 item 3 — main carried a broken onnxruntime-node for eleven days
+# (2026-08-10 .. 2026-08-20) with no CI run on the branch at all.
+#
+# The cause is NOT a missing `push` trigger: ci.yml and cli.yml both list
+# `push: branches: [main, dev]`. It is that dependabot-automerge.yml merges
+# with `gh pr merge --auto` authenticated as `secrets.GITHUB_TOKEN`, and
+# GitHub does not start workflow runs for events created by the default
+# token. Compare the merges that landed on main:
+#
+#   #339 (the break)  merged_by github-actions[bot]  -> no CI run
+#   #344              merged_by github-actions[bot]  -> no CI run
+#   #358              merged_by yocreoquesi          -> CI ran
+#   #359              merged_by yocreoquesi          -> CI ran
+#
+# So every dependabot auto-merge reaches main unverified by construction.
+# `schedule` events are not suppressed that way, which is why security.yml's
+# weekly cron was the ONLY workflow that ran on the broken commit — and it
+# went red, and nobody read it. A red run is not a signal. This workflow
+# opens an issue, so the failure reaches notifications instead of dying in
+# the Actions tab.
+#
+# The root-cause fix is to give the auto-merge step a GitHub App token so
+# the resulting push triggers CI normally. That needs a secret this
+# workflow cannot create; until then, this is the backstop.
+
+on:
+  schedule:
+    # Daily 07:00 UTC. Dependabot's window is ~06:10 UTC (the merge
+    # timestamps on #339 and #344), so this lands after the day's
+    # auto-merges rather than before them.
+    - cron: '0 7 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: main-health
+  cancel-in-progress: false
+
+jobs:
+  health:
+    name: main is installable and green
+    # Linux only, deliberately. The failure this exists to catch is the
+    # `libonnxruntime.so.1: version VERS_1.21.0 not found` soname collision,
+    # a Linux-specific manifestation, and a cheap job people trust beats a
+    # full matrix that cries wolf. The cross-platform matrix still runs
+    # per-PR in cli.yml.
+    #
+    # Playwright is excluded for the same reason: its jobs stall for hours
+    # on this repo's runners, and a heartbeat that flakes is a heartbeat
+    # nobody reads.
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: main
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Runs before the tests so a red run names the cause in its first
+      # failing step rather than in a test assertion.
+      - name: ONNX pin matches transformers
+        run: npm run sync:onnx-pin -- --check
+
+      # Order matters and mirrors cli.yml: tsup externalises nukebg-core, so
+      # the emitted worker imports nukebg-core/dist at runtime.
+      - name: Build nukebg-core
+        run: npm run build -w nukebg-core
+
+      - name: Build nukebg-cli
+        run: npm run build -w nukebg-cli
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      # Includes tests/onnxruntime-single-runtime.test.ts, the guard that
+      # caught this class of break both times it happened.
+      - name: Tests
+        run: npm test
+
+  report:
+    name: Report
+    needs: health
+    if: always()
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      # One issue, reused. A fresh issue per failing day would reproduce the
+      # alarm fatigue this is meant to cure.
+      - name: Open, update or close the tracking issue
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          RESULT: ${{ needs.health.result }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -euo pipefail
+
+          existing="$(gh issue list --repo "$REPO" --state open \
+            --label 'ci:main-red' --limit 1 --json number --jq '.[0].number // ""')"
+
+          if [ "$RESULT" = "success" ]; then
+            if [ -n "$existing" ]; then
+              gh issue comment "$existing" --repo "$REPO" \
+                --body "main is green again as of $RUN_URL — closing."
+              gh issue close "$existing" --repo "$REPO"
+            fi
+            exit 0
+          fi
+
+          if [ -n "$existing" ]; then
+            gh issue comment "$existing" --repo "$REPO" --body "Still red: $RUN_URL"
+            exit 0
+          fi
+
+          cat > /tmp/main-red.md <<MSG
+          The scheduled health check on \`main\` failed: $RUN_URL
+
+          This runs daily because dependabot auto-merges land on \`main\`
+          without triggering CI — see the header of
+          \`.github/workflows/main-health.yml\` and #360 for why.
+
+          Check the ONNX pin first: \`npm run sync:onnx-pin -- --check\`.
+          MSG
+
+          gh issue create --repo "$REPO" \
+            --title 'main is red — scheduled health check failed' \
+            --label 'ci:main-red' \
+            --body-file /tmp/main-red.md
