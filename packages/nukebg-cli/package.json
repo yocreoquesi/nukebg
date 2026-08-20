@@ -29,7 +29,7 @@
   },
   "dependencies": {
     "@huggingface/transformers": "^3.8.1",
-    "commander": "^12.1.0",
+    "commander": "^14.0.3",
     "env-paths": "^4.0.0",
     "nukebg-core": "0.1.0",
     "onnxruntime-node": "1.21.0",
