@@ -28,10 +28,10 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.62.1",
-    "happy-dom": "^20.11.12",
+    "happy-dom": "^20.14.0",
     "prettier": "^3.9.6",
     "sharp": "^0.35.4",
-    "tsx": "^4.23.12",
+    "tsx": "^4.23.13",
     "typescript": "^6.0.3",
     "vite": "^8.2.2",
     "vitest": "^4.1.11"
