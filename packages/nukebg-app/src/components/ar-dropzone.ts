@@ -7,6 +7,23 @@ export class ArDropzone extends HTMLElement {
   private fileInput!: HTMLInputElement;
   private dropArea!: HTMLDivElement;
   private abortController: AbortController | null = null;
+  /**
+   * Single source of truth for the enabled/disabled state (bug fix: the
+   * old `setEnabled()` only toggled a CSS class, whose only real effect is
+   * `pointer-events: none` — that blocks mouse clicks but does nothing for
+   * keyboard activation, so Enter/Space still reached fileInput.click()).
+   *
+   * Gates the paths that OPEN the file picker (click, keydown) and
+   * `paste`. It deliberately does NOT gate `change` or `drop`: once the
+   * user has committed a file, discarding it silently is worse than
+   * starting slightly early, and the in-flight load dedupe in ml.worker
+   * makes starting early safe.
+   */
+  private enabled = true;
+  /** Original tabindex value, restored by setEnabled(true) after the
+   *  disabled state forces tabindex="-1" to keep the drop area out of
+   *  the tab order while it can't do anything. */
+  private originalTabIndex = '0';
 
   constructor() {
     super();
@@ -297,6 +314,9 @@ export class ArDropzone extends HTMLElement {
 
     this.dropArea = this.shadowRoot!.querySelector('.dropzone')!;
     this.fileInput = this.shadowRoot!.querySelector('input[type="file"]')!;
+    // Capture the markup's real default tabindex so setEnabled(true) can
+    // restore it exactly, instead of hardcoding "0".
+    this.originalTabIndex = this.dropArea.getAttribute('tabindex') ?? '0';
   }
 
   private updateTexts(): void {
@@ -325,18 +345,30 @@ export class ArDropzone extends HTMLElement {
     // one of the source options on mobile, so a dedicated camera CTA
     // is unnecessary (#146).
     this.dropArea.addEventListener('click', () => {
+      if (!this.enabled) return;
       this.fileInput.click();
     });
 
-    // Keyboard support
+    // Keyboard support. `pointer-events: none` (the disabled visual state)
+    // has no effect on keyboard activation, so this needs its own guard —
+    // without it, Enter/Space could still open the file picker while the
+    // dropzone was supposed to be disabled.
     this.dropArea.addEventListener('keydown', (e) => {
+      if (!this.enabled) return;
       if (e.key === 'Enter' || e.key === ' ') {
         e.preventDefault();
         this.fileInput.click();
       }
     });
 
-    // File input change
+    // File input change. Deliberately NOT gated on `enabled`: by the time
+    // this fires the user has already chosen a file, and silently
+    // discarding it is a worse failure than processing it slightly early
+    // — the picker just closes and nothing happens, with no way to tell
+    // why. Starting early is safe because loadModel() dedupes in-flight
+    // loads, so a file arriving mid-preload joins the download already
+    // running instead of starting a second one. setEnabled() gates the
+    // paths that OPEN the picker, not the file that comes back from it.
     this.fileInput.addEventListener('change', () => {
       if (this.fileInput.files && this.fileInput.files.length > 0) {
         this.handleFiles(this.fileInput.files);
@@ -351,6 +383,9 @@ export class ArDropzone extends HTMLElement {
     this.dropArea.addEventListener('dragleave', () => {
       this.dropArea.classList.remove('dragover');
     });
+    // `drop` is ungated for the same reason as `change`: the user has
+    // already committed the file by releasing it here, so refusing it
+    // would just look broken.
     this.dropArea.addEventListener('drop', (e) => {
       e.preventDefault();
       this.dropArea.classList.remove('dragover');
@@ -362,7 +397,7 @@ export class ArDropzone extends HTMLElement {
     document.addEventListener(
       'paste',
       (e: ClipboardEvent) => {
-        if (this.dropArea.classList.contains('dropzone-disabled')) return;
+        if (!this.enabled) return;
         const items = e.clipboardData?.items;
         if (!items) return;
         for (const item of items) {
@@ -382,13 +417,30 @@ export class ArDropzone extends HTMLElement {
     this.abortController = null;
   }
 
-  /** Enable or disable the dropzone (used to block interaction until model is ready) */
+  /**
+   * Enable or disable the dropzone (used to block interaction until model
+   * is ready). `this.enabled` gates the paths that OPEN the file picker
+   * (click, keydown) plus `paste`; the CSS class stays for the visual
+   * state, and `aria-disabled` + `tabindex` keep the disabled state
+   * honest to assistive tech instead of only visual/pointer-based.
+   *
+   * `change` and `drop` are intentionally NOT gated — see those handlers.
+   */
   setEnabled(enabled: boolean): void {
+    // Assign BEFORE the render guard below: the flag is the real gate for
+    // every entry point, so it must hold even if this lands before the
+    // shadow DOM exists. Returning early without it would leave a
+    // pre-render setEnabled(false) silently enabled once we render.
+    this.enabled = enabled;
     if (!this.dropArea) return;
     if (enabled) {
       this.dropArea.classList.remove('dropzone-disabled');
+      this.dropArea.setAttribute('aria-disabled', 'false');
+      this.dropArea.setAttribute('tabindex', this.originalTabIndex);
     } else {
       this.dropArea.classList.add('dropzone-disabled');
+      this.dropArea.setAttribute('aria-disabled', 'true');
+      this.dropArea.setAttribute('tabindex', '-1');
     }
   }
 

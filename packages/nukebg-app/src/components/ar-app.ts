@@ -316,17 +316,26 @@ export class ArApp extends HTMLElement {
       '#error-modal-dismiss',
     ) as HTMLButtonElement | null;
     const backdrop = this.shadowRoot!.querySelector('#error-modal-backdrop') as HTMLElement | null;
-    retryBtn?.addEventListener('click', () => this.retryFromError());
-    dismissBtn?.addEventListener('click', () => this.hideErrorModal());
-    backdrop?.addEventListener('click', () => this.hideErrorModal());
-    window.addEventListener('keydown', (e) => {
-      if (e.key !== 'Escape') return;
-      const modal = this.shadowRoot?.querySelector('#error-modal') as HTMLElement | null;
-      if (modal && !modal.hasAttribute('hidden')) {
-        e.preventDefault();
-        this.hideErrorModal();
-      }
-    });
+    retryBtn?.addEventListener('click', () => this.retryFromError(), { signal });
+    dismissBtn?.addEventListener('click', () => this.hideErrorModal(), { signal });
+    backdrop?.addEventListener('click', () => this.hideErrorModal(), { signal });
+    // `window` outlives this component, so without `{ signal }` this
+    // handler would survive disconnectedCallback() and keep a live
+    // reference to the (by then detached) shadow root — a genuine leak,
+    // unlike the three listeners above which are on elements that get
+    // garbage-collected with the shadow root anyway.
+    window.addEventListener(
+      'keydown',
+      (e) => {
+        if (e.key !== 'Escape') return;
+        const modal = this.shadowRoot?.querySelector('#error-modal') as HTMLElement | null;
+        if (modal && !modal.hasAttribute('hidden')) {
+          e.preventDefault();
+          this.hideErrorModal();
+        }
+      },
+      { signal },
+    );
 
     // PWA install button + guide — controller owns the wiring and uses
     // the same AbortSignal so cleanup is automatic on disconnect.
