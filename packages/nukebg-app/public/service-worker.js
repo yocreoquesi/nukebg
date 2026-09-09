@@ -5,6 +5,11 @@ const CACHE_VERSION = 'nukebg-v5';
 const EXCLUDED_PATTERNS = [
   'huggingface.co',
   'cdn-lfs',
+  // HF migrated LFS/Xet weights to *.cdn.hf.co and *.xethub.hf.co.
+  // These must never be intercepted: they are large, opaque, and
+  // redirect to signed URLs that must not be cached or replayed.
+  'cdn.hf.co',
+  'xethub',
   'cdn.jsdelivr.net',
 ];
 
