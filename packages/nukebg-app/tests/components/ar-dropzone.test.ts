@@ -128,6 +128,101 @@ describe('ArDropzone component (#131)', () => {
       dropzone.setEnabled(true);
       expect(dz.classList.contains('dropzone-disabled')).toBe(false);
     });
+
+    it('sets aria-disabled and drops the drop area out of the tab order while disabled, restoring the original tabindex on re-enable', () => {
+      const dz = dropzone.shadowRoot!.querySelector('.dropzone')!;
+      const originalTabIndex = dz.getAttribute('tabindex');
+
+      dropzone.setEnabled(false);
+      expect(dz.getAttribute('aria-disabled')).toBe('true');
+      expect(dz.getAttribute('tabindex')).toBe('-1');
+
+      dropzone.setEnabled(true);
+      expect(dz.getAttribute('aria-disabled')).toBe('false');
+      expect(dz.getAttribute('tabindex')).toBe(originalTabIndex);
+    });
+
+    /**
+     * Regression test (bug: setEnabled(false) only toggled the CSS class,
+     * whose only real effect is `pointer-events: none`). That blocks mouse
+     * clicks, but does nothing for:
+     *  - keyboard activation (pointer-events has no effect on keydown),
+     *  - the fileInput `change` event (can fire without ever going through
+     *    `dropArea.click()` — assistive tech, programmatic assignment),
+     *  - `drop`, which previously checked nothing at all.
+     * Each path below must be a no-op while disabled, and must work again
+     * once re-enabled.
+     */
+    describe('blocks every entry point while disabled, restores them on re-enable', () => {
+      it('keyboard (Enter/Space) does not open the file picker while disabled, and does again once re-enabled', () => {
+        const dz = dropzone.shadowRoot!.querySelector('.dropzone') as HTMLElement;
+        const input = dropzone.shadowRoot!.querySelector('input[type="file"]') as HTMLInputElement;
+        const spy = vi.spyOn(input, 'click').mockImplementation(() => {});
+
+        dropzone.setEnabled(false);
+        dz.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+        dz.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', bubbles: true }));
+        expect(spy).not.toHaveBeenCalled();
+
+        dropzone.setEnabled(true);
+        dz.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+        expect(spy).toHaveBeenCalledTimes(1);
+      });
+
+      it('the fileInput change event does not dispatch ar:image-loaded while disabled, and does again once re-enabled', async () => {
+        const input = dropzone.shadowRoot!.querySelector('input[type="file"]') as HTMLInputElement;
+        const dispatched = vi.fn();
+        dropzone.addEventListener('ar:image-loaded', dispatched);
+
+        dropzone.setEnabled(false);
+        const fileWhileDisabled = makePngFile('while-disabled.png');
+        Object.defineProperty(input, 'files', {
+          value: makeFileList([fileWhileDisabled]),
+          configurable: true,
+        });
+        input.dispatchEvent(new Event('change', { bubbles: true }));
+        await Promise.resolve();
+        await Promise.resolve();
+        expect(dispatched).not.toHaveBeenCalled();
+
+        dropzone.setEnabled(true);
+        const fileWhileEnabled = makePngFile('while-enabled.png');
+        Object.defineProperty(input, 'files', {
+          value: makeFileList([fileWhileEnabled]),
+          configurable: true,
+        });
+        input.dispatchEvent(new Event('change', { bubbles: true }));
+        await Promise.resolve();
+        await Promise.resolve();
+        expect(dispatched).toHaveBeenCalledTimes(1);
+      });
+
+      it('drop does not dispatch ar:image-loaded while disabled, and does again once re-enabled', async () => {
+        const dz = dropzone.shadowRoot!.querySelector('.dropzone') as HTMLElement;
+        const dispatched = vi.fn();
+        dropzone.addEventListener('ar:image-loaded', dispatched);
+
+        dropzone.setEnabled(false);
+        const evDisabled = new DragEvent('drop', { bubbles: true });
+        Object.defineProperty(evDisabled, 'dataTransfer', {
+          value: { files: makeFileList([makePngFile('while-disabled.png')]) },
+        });
+        dz.dispatchEvent(evDisabled);
+        await Promise.resolve();
+        await Promise.resolve();
+        expect(dispatched).not.toHaveBeenCalled();
+
+        dropzone.setEnabled(true);
+        const evEnabled = new DragEvent('drop', { bubbles: true });
+        Object.defineProperty(evEnabled, 'dataTransfer', {
+          value: { files: makeFileList([makePngFile('while-enabled.png')]) },
+        });
+        dz.dispatchEvent(evEnabled);
+        await Promise.resolve();
+        await Promise.resolve();
+        expect(dispatched).toHaveBeenCalledTimes(1);
+      });
+    });
   });
 
   // ─── setLoadingState ──────────────────────────────────────────────────────

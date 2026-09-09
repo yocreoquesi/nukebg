@@ -11,6 +11,7 @@ import type {
   WarmupDiagnostic,
 } from '../types/worker-messages';
 import { refineMask, RMBG_PARAMS } from 'nukebg-core';
+import { AsyncCallDedupe } from '../lib/async-call-dedupe';
 
 const DEFAULT_MODEL: ModelId = 'briaai/RMBG-1.4';
 
@@ -89,6 +90,11 @@ interface SegmenterEntry {
 
 /** Cache segmenters by model ID so switching is instant after first load */
 const segmenters = new Map<string, SegmenterEntry>();
+/**
+ * In-flight load dedupe, keyed by modelId. See `AsyncCallDedupe` doc and
+ * the `loadModel()` comment below for the race this closes.
+ */
+const modelLoads = new AsyncCallDedupe<void>();
 let currentModelId: ModelId = DEFAULT_MODEL;
 let RawImageClass:
   (new (data: Uint8ClampedArray, w: number, h: number, channels: number) => unknown) | null = null;
@@ -115,22 +121,28 @@ const progressCb = (id: string) => (progress: { status: string; progress?: numbe
   }
 };
 
-async function loadModel(
+/**
+ * Performs the actual model load: evicts any other cached model, downloads
+ * and instantiates the pipeline, verifies its integrity, and runs the WASM
+ * warmup pass. This is the expensive part `loadModel()` dedupes via
+ * `modelLoads` — it only ever runs ONCE per modelId at a time, so the
+ * eviction loop and the `transformers.pipeline()` download both run
+ * exactly once per actual load, never once per concurrent caller.
+ *
+ * `id` is the request id of whichever caller happened to be the one that
+ * triggered this particular load. It is used only for the progress
+ * postMessages that fire WHILE the load is in flight (5%, 10%, 96%,
+ * warmup-diagnostic) — best-effort UI feedback for that one caller. A
+ * second caller that joins an in-flight load (see `loadModel()`) simply
+ * won't see these intermediate messages, since it isn't the one this `id`
+ * belongs to. Final completion (progress 100 + model-ready) is sent by
+ * EVERY caller separately in `loadModel()`, each using its own `id`.
+ */
+async function performModelLoad(
   id: string,
-  modelId: ModelId = DEFAULT_MODEL,
-  emitReady = true,
+  modelId: ModelId,
+  device: 'webgpu' | 'wasm',
 ): Promise<void> {
-  const device = await detectDevice();
-
-  if (segmenters.has(modelId)) {
-    currentModelId = modelId;
-    if (emitReady) {
-      self.postMessage({ id, type: 'model-progress', progress: 100 });
-      self.postMessage({ id, type: 'model-ready', device });
-    }
-    return;
-  }
-
   // Free previous model to avoid OOM - WASM can't hold multiple models
   for (const [key, entry] of segmenters) {
     if (key !== modelId) {
@@ -226,6 +238,47 @@ async function loadModel(
     };
   }
   self.postMessage({ id, type: 'warmup-diagnostic', diagnostic: warmupDiagnostic });
+}
+
+async function loadModel(
+  id: string,
+  modelId: ModelId = DEFAULT_MODEL,
+  emitReady = true,
+): Promise<void> {
+  const device = await detectDevice();
+
+  if (segmenters.has(modelId)) {
+    currentModelId = modelId;
+    if (emitReady) {
+      self.postMessage({ id, type: 'model-progress', progress: 100 });
+      self.postMessage({ id, type: 'model-ready', device });
+    }
+    return;
+  }
+
+  // In-flight dedupe: loadModel() can be entered twice for the same
+  // modelId before the first call has populated `segmenters` — e.g. the
+  // explicit preload() ar-app.ts fires on page load races the auto-load
+  // segment() performs when a model isn't loaded yet (see the
+  // `_autoload_` comment there). Without this, both callers would pass
+  // the `segmenters.has()` guard above and each start an independent
+  // `transformers.pipeline()` call: a second ~45MB download and a second
+  // WASM session in the same worker.
+  //
+  // `modelLoads.run()` ensures only the initiating caller actually
+  // executes `performModelLoad()`; every other concurrent caller for the
+  // same modelId awaits that SAME promise instead of starting a new load.
+  // The entry is cleared on both success and failure, so a failed load
+  // can be retried by the next call rather than permanently caching a
+  // rejected promise.
+  //
+  // Once the (possibly shared) load settles, EVERY caller — initiator and
+  // joiners alike — still runs its own emitReady block below using ITS
+  // OWN `id`, never the initiator's. That matters because a stray
+  // model-ready with the wrong id could wrongly resolve some other
+  // pending segment() request (see the WorkerChannel routing + the
+  // `_autoload_` comment in segment() for that failure mode).
+  await modelLoads.run(modelId, () => performModelLoad(id, modelId, device));
 
   currentModelId = modelId;
 

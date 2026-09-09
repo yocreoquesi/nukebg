@@ -7,6 +7,20 @@ export class ArDropzone extends HTMLElement {
   private fileInput!: HTMLInputElement;
   private dropArea!: HTMLDivElement;
   private abortController: AbortController | null = null;
+  /**
+   * Single source of truth for the enabled/disabled state (bug fix: the
+   * old `setEnabled()` only toggled a CSS class, whose only real effect is
+   * `pointer-events: none` — that blocks mouse clicks but does nothing
+   * for the keyboard (Enter/Space -> fileInput.click()), the fileInput
+   * `change` event (can fire from assistive tech or a programmatic file
+   * assignment), or `drop`. Every entry point that can start work now
+   * checks this flag directly instead of relying on pointer-events.
+   */
+  private enabled = true;
+  /** Original tabindex value, restored by setEnabled(true) after the
+   *  disabled state forces tabindex="-1" to keep the drop area out of
+   *  the tab order while it can't do anything. */
+  private originalTabIndex = '0';
 
   constructor() {
     super();
@@ -297,6 +311,9 @@ export class ArDropzone extends HTMLElement {
 
     this.dropArea = this.shadowRoot!.querySelector('.dropzone')!;
     this.fileInput = this.shadowRoot!.querySelector('input[type="file"]')!;
+    // Capture the markup's real default tabindex so setEnabled(true) can
+    // restore it exactly, instead of hardcoding "0".
+    this.originalTabIndex = this.dropArea.getAttribute('tabindex') ?? '0';
   }
 
   private updateTexts(): void {
@@ -325,19 +342,27 @@ export class ArDropzone extends HTMLElement {
     // one of the source options on mobile, so a dedicated camera CTA
     // is unnecessary (#146).
     this.dropArea.addEventListener('click', () => {
+      if (!this.enabled) return;
       this.fileInput.click();
     });
 
-    // Keyboard support
+    // Keyboard support. `pointer-events: none` (the disabled visual state)
+    // has no effect on keyboard activation, so this needs its own guard —
+    // without it, Enter/Space could still open the file picker while the
+    // dropzone was supposed to be disabled.
     this.dropArea.addEventListener('keydown', (e) => {
+      if (!this.enabled) return;
       if (e.key === 'Enter' || e.key === ' ') {
         e.preventDefault();
         this.fileInput.click();
       }
     });
 
-    // File input change
+    // File input change. Guarded independently of the click path above:
+    // this can also fire from assistive tech or a programmatic file
+    // assignment, neither of which goes through `dropArea.click()`.
     this.fileInput.addEventListener('change', () => {
+      if (!this.enabled) return;
       if (this.fileInput.files && this.fileInput.files.length > 0) {
         this.handleFiles(this.fileInput.files);
       }
@@ -351,9 +376,14 @@ export class ArDropzone extends HTMLElement {
     this.dropArea.addEventListener('dragleave', () => {
       this.dropArea.classList.remove('dragover');
     });
+    // `drop` previously checked nothing at all — pointer-events blocks the
+    // drag gesture from the mouse in most browsers, but that's incidental,
+    // not a real guard, so it needs the same explicit check as every
+    // other entry point.
     this.dropArea.addEventListener('drop', (e) => {
       e.preventDefault();
       this.dropArea.classList.remove('dragover');
+      if (!this.enabled) return;
       const files = e.dataTransfer?.files;
       if (files && files.length > 0) this.handleFiles(files);
     });
@@ -362,7 +392,7 @@ export class ArDropzone extends HTMLElement {
     document.addEventListener(
       'paste',
       (e: ClipboardEvent) => {
-        if (this.dropArea.classList.contains('dropzone-disabled')) return;
+        if (!this.enabled) return;
         const items = e.clipboardData?.items;
         if (!items) return;
         for (const item of items) {
@@ -382,13 +412,28 @@ export class ArDropzone extends HTMLElement {
     this.abortController = null;
   }
 
-  /** Enable or disable the dropzone (used to block interaction until model is ready) */
+  /**
+   * Enable or disable the dropzone (used to block interaction until model
+   * is ready). `this.enabled` is the real guard checked by every entry
+   * point (click, keydown, change, drop, paste); the CSS class stays for
+   * the visual state, and `aria-disabled` + `tabindex` keep the disabled
+   * state honest to assistive tech instead of only visual/pointer-based.
+   */
   setEnabled(enabled: boolean): void {
+    // Assign BEFORE the render guard below: the flag is the real gate for
+    // every entry point, so it must hold even if this lands before the
+    // shadow DOM exists. Returning early without it would leave a
+    // pre-render setEnabled(false) silently enabled once we render.
+    this.enabled = enabled;
     if (!this.dropArea) return;
     if (enabled) {
       this.dropArea.classList.remove('dropzone-disabled');
+      this.dropArea.setAttribute('aria-disabled', 'false');
+      this.dropArea.setAttribute('tabindex', this.originalTabIndex);
     } else {
       this.dropArea.classList.add('dropzone-disabled');
+      this.dropArea.setAttribute('aria-disabled', 'true');
+      this.dropArea.setAttribute('tabindex', '-1');
     }
   }
 

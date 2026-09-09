@@ -191,11 +191,17 @@ export class WorkerPipelineRunner implements PipelineRunner {
    * Called from `run()` when the provided AbortSignal fires, or
    * directly by callers who want to tear down.
    *
-   * NOTE: ml worker termination drops the loaded RMBG session — the
-   * next segment call re-loads it from the Service Worker cache (fast,
-   * not a fresh network download). This is the correct trade-off: a
-   * user who aborts expects CPU to stop NOW, not finish the current
-   * 45s spatial pass.
+   * NOTE: ml worker termination drops the loaded RMBG session — the next
+   * segment call has to fully re-download and re-instantiate it, NOT a
+   * fast Service Worker cache hit. Two reasons: (1) service-worker.js's
+   * `EXCLUDED_PATTERNS` explicitly excludes `huggingface.co` / `cdn-lfs`
+   * from any Service Worker handling, so the SW never intercepts these
+   * requests at all; (2) transformers.js only writes into the Cache API
+   * (`transformers-cache`) AFTER a download completes successfully, so a
+   * worker terminated mid-download leaves nothing cached to hit. This is
+   * still the correct trade-off: a user who aborts expects CPU to stop
+   * NOW, not finish the current 45s spatial pass — the next load just
+   * costs a full re-download, same as the very first load.
    */
   abort(reason = 'aborted'): void {
     const err = new PipelineAbortError(reason);
