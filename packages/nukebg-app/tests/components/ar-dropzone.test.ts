@@ -145,15 +145,14 @@ describe('ArDropzone component (#131)', () => {
     /**
      * Regression test (bug: setEnabled(false) only toggled the CSS class,
      * whose only real effect is `pointer-events: none`). That blocks mouse
-     * clicks, but does nothing for:
-     *  - keyboard activation (pointer-events has no effect on keydown),
-     *  - the fileInput `change` event (can fire without ever going through
-     *    `dropArea.click()` — assistive tech, programmatic assignment),
-     *  - `drop`, which previously checked nothing at all.
-     * Each path below must be a no-op while disabled, and must work again
-     * once re-enabled.
+     * clicks but does nothing for keyboard activation, so Enter/Space
+     * could still open the file picker while the dropzone was meant to be
+     * disabled.
+     *
+     * The guard deliberately stops at the paths that OPEN the picker. See
+     * the two tests below for why `change` and `drop` must NOT be gated.
      */
-    describe('blocks every entry point while disabled, restores them on re-enable', () => {
+    describe('blocks the paths that open the file picker while disabled', () => {
       it('keyboard (Enter/Space) does not open the file picker while disabled, and does again once re-enabled', () => {
         const dz = dropzone.shadowRoot!.querySelector('.dropzone') as HTMLElement;
         const input = dropzone.shadowRoot!.querySelector('input[type="file"]') as HTMLInputElement;
@@ -168,27 +167,34 @@ describe('ArDropzone component (#131)', () => {
         dz.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
         expect(spy).toHaveBeenCalledTimes(1);
       });
+    });
 
-      it('the fileInput change event does not dispatch ar:image-loaded while disabled, and does again once re-enabled', async () => {
+    /**
+     * The other half of the contract, and the more important half.
+     *
+     * Once a file has actually been chosen or dropped, it must be honoured
+     * even if the model is still preloading. Discarding it silently is a
+     * worse failure than starting slightly early: the picker just closes
+     * and nothing happens, with nothing on screen explaining why.
+     *
+     * Starting early is safe because `loadModel()` dedupes in-flight loads
+     * (see async-call-dedupe), so a file arriving mid-preload joins the
+     * download already running rather than starting a second one.
+     *
+     * This is also the contract the Playwright suites depend on:
+     * `setInputFiles()` writes straight to the input and fires `change`
+     * without ever going through `dropArea.click()`, right after
+     * `networkidle` — i.e. typically before the preload has resolved.
+     */
+    describe('honours a file the user already committed, even while disabled', () => {
+      it('the fileInput change event still dispatches ar:image-loaded while disabled', async () => {
         const input = dropzone.shadowRoot!.querySelector('input[type="file"]') as HTMLInputElement;
         const dispatched = vi.fn();
         dropzone.addEventListener('ar:image-loaded', dispatched);
 
         dropzone.setEnabled(false);
-        const fileWhileDisabled = makePngFile('while-disabled.png');
         Object.defineProperty(input, 'files', {
-          value: makeFileList([fileWhileDisabled]),
-          configurable: true,
-        });
-        input.dispatchEvent(new Event('change', { bubbles: true }));
-        await Promise.resolve();
-        await Promise.resolve();
-        expect(dispatched).not.toHaveBeenCalled();
-
-        dropzone.setEnabled(true);
-        const fileWhileEnabled = makePngFile('while-enabled.png');
-        Object.defineProperty(input, 'files', {
-          value: makeFileList([fileWhileEnabled]),
+          value: makeFileList([makePngFile('while-disabled.png')]),
           configurable: true,
         });
         input.dispatchEvent(new Event('change', { bubbles: true }));
@@ -197,27 +203,17 @@ describe('ArDropzone component (#131)', () => {
         expect(dispatched).toHaveBeenCalledTimes(1);
       });
 
-      it('drop does not dispatch ar:image-loaded while disabled, and does again once re-enabled', async () => {
+      it('drop still dispatches ar:image-loaded while disabled', async () => {
         const dz = dropzone.shadowRoot!.querySelector('.dropzone') as HTMLElement;
         const dispatched = vi.fn();
         dropzone.addEventListener('ar:image-loaded', dispatched);
 
         dropzone.setEnabled(false);
-        const evDisabled = new DragEvent('drop', { bubbles: true });
-        Object.defineProperty(evDisabled, 'dataTransfer', {
+        const ev = new DragEvent('drop', { bubbles: true });
+        Object.defineProperty(ev, 'dataTransfer', {
           value: { files: makeFileList([makePngFile('while-disabled.png')]) },
         });
-        dz.dispatchEvent(evDisabled);
-        await Promise.resolve();
-        await Promise.resolve();
-        expect(dispatched).not.toHaveBeenCalled();
-
-        dropzone.setEnabled(true);
-        const evEnabled = new DragEvent('drop', { bubbles: true });
-        Object.defineProperty(evEnabled, 'dataTransfer', {
-          value: { files: makeFileList([makePngFile('while-enabled.png')]) },
-        });
-        dz.dispatchEvent(evEnabled);
+        dz.dispatchEvent(ev);
         await Promise.resolve();
         await Promise.resolve();
         expect(dispatched).toHaveBeenCalledTimes(1);

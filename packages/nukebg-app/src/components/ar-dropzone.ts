@@ -10,11 +10,14 @@ export class ArDropzone extends HTMLElement {
   /**
    * Single source of truth for the enabled/disabled state (bug fix: the
    * old `setEnabled()` only toggled a CSS class, whose only real effect is
-   * `pointer-events: none` — that blocks mouse clicks but does nothing
-   * for the keyboard (Enter/Space -> fileInput.click()), the fileInput
-   * `change` event (can fire from assistive tech or a programmatic file
-   * assignment), or `drop`. Every entry point that can start work now
-   * checks this flag directly instead of relying on pointer-events.
+   * `pointer-events: none` — that blocks mouse clicks but does nothing for
+   * keyboard activation, so Enter/Space still reached fileInput.click()).
+   *
+   * Gates the paths that OPEN the file picker (click, keydown) and
+   * `paste`. It deliberately does NOT gate `change` or `drop`: once the
+   * user has committed a file, discarding it silently is worse than
+   * starting slightly early, and the in-flight load dedupe in ml.worker
+   * makes starting early safe.
    */
   private enabled = true;
   /** Original tabindex value, restored by setEnabled(true) after the
@@ -358,11 +361,15 @@ export class ArDropzone extends HTMLElement {
       }
     });
 
-    // File input change. Guarded independently of the click path above:
-    // this can also fire from assistive tech or a programmatic file
-    // assignment, neither of which goes through `dropArea.click()`.
+    // File input change. Deliberately NOT gated on `enabled`: by the time
+    // this fires the user has already chosen a file, and silently
+    // discarding it is a worse failure than processing it slightly early
+    // — the picker just closes and nothing happens, with no way to tell
+    // why. Starting early is safe because loadModel() dedupes in-flight
+    // loads, so a file arriving mid-preload joins the download already
+    // running instead of starting a second one. setEnabled() gates the
+    // paths that OPEN the picker, not the file that comes back from it.
     this.fileInput.addEventListener('change', () => {
-      if (!this.enabled) return;
       if (this.fileInput.files && this.fileInput.files.length > 0) {
         this.handleFiles(this.fileInput.files);
       }
@@ -376,14 +383,12 @@ export class ArDropzone extends HTMLElement {
     this.dropArea.addEventListener('dragleave', () => {
       this.dropArea.classList.remove('dragover');
     });
-    // `drop` previously checked nothing at all — pointer-events blocks the
-    // drag gesture from the mouse in most browsers, but that's incidental,
-    // not a real guard, so it needs the same explicit check as every
-    // other entry point.
+    // `drop` is ungated for the same reason as `change`: the user has
+    // already committed the file by releasing it here, so refusing it
+    // would just look broken.
     this.dropArea.addEventListener('drop', (e) => {
       e.preventDefault();
       this.dropArea.classList.remove('dragover');
-      if (!this.enabled) return;
       const files = e.dataTransfer?.files;
       if (files && files.length > 0) this.handleFiles(files);
     });
@@ -414,10 +419,12 @@ export class ArDropzone extends HTMLElement {
 
   /**
    * Enable or disable the dropzone (used to block interaction until model
-   * is ready). `this.enabled` is the real guard checked by every entry
-   * point (click, keydown, change, drop, paste); the CSS class stays for
-   * the visual state, and `aria-disabled` + `tabindex` keep the disabled
-   * state honest to assistive tech instead of only visual/pointer-based.
+   * is ready). `this.enabled` gates the paths that OPEN the file picker
+   * (click, keydown) plus `paste`; the CSS class stays for the visual
+   * state, and `aria-disabled` + `tabindex` keep the disabled state
+   * honest to assistive tech instead of only visual/pointer-based.
+   *
+   * `change` and `drop` are intentionally NOT gated — see those handlers.
    */
   setEnabled(enabled: boolean): void {
     // Assign BEFORE the render guard below: the flag is the real gate for
