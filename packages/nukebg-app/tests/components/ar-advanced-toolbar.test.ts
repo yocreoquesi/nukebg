@@ -17,14 +17,19 @@ import { resolve } from 'node:path';
 const ROOT = resolve(__dirname, '..', '..');
 // ED concatenates the component with its extracted modules so the
 // source-level invariants below still hold after the #255 split (CSS →
-// ar-editor-advanced.styles.ts). Same approach as ar-landing-redesign.test.ts
-// after the equivalent #254 split of ar-app.ts. Roughly half the assertions
-// here are CSS and half are markup, and both must keep being checked — a
-// split that quietly dropped the CSS half would leave this suite green while
-// testing less than it used to.
+// ar-editor-advanced.styles.ts, markup → ar-editor-advanced.template.ts).
+// Same approach as ar-landing-redesign.test.ts after the equivalent #254
+// split of ar-app.ts.
+//
+// Roughly half the assertions here are CSS and half are markup, and both
+// must keep being checked. Each split proved the point: extracting the CSS
+// failed only the 6 CSS assertions and extracting the markup failed only
+// the 9 markup ones, so a split that forgot this list would leave the suite
+// green while testing half of what it used to. Add every new module here.
 const ED = [
   readFileSync(resolve(ROOT, 'src/components/ar-editor-advanced.ts'), 'utf8'),
   readFileSync(resolve(ROOT, 'src/components/ar-editor-advanced.styles.ts'), 'utf8'),
+  readFileSync(resolve(ROOT, 'src/components/ar-editor-advanced.template.ts'), 'utf8'),
 ].join('\n');
 const APP = readFileSync(resolve(ROOT, 'src/components/ar-app.ts'), 'utf8');
 const EXISTS = (rel: string) => existsSync(resolve(ROOT, rel));
