@@ -1,16 +1,34 @@
 /**
- * RMBG-1.4 loader for the lab — Transformers.js on the main thread.
+ * RMBG-1.4 loader on the main thread — Transformers.js.
  *
  * Mirrors the config used by src/workers/ml.worker.ts (INT8 quant, pinned
- * revision SHA) so lab measurements track the real production baseline.
- * Kept as a separate main-thread instance rather than plumbing into the
- * worker so the lab can be invoked with simple sync calls from the
- * compare viewer / bbox-refine. Extra ~45MB in memory is acceptable for
- * staging-only exploration.
+ * revision SHA) and, since #397, its integrity check too.
+ *
+ * This began as a lab-only loader, and its header said so long after it had
+ * stopped being true. It is reached from three shipped buttons in the
+ * advanced editor — Reprocess, Crop and Refine, all via
+ * `ArEditorAdvanced.getLoader()` — so it downloads ~45MB of model weights
+ * for real users, and used to do it without verifying a byte while the
+ * worker beside it verified everything.
+ *
+ * The second in-memory copy of the model was accepted on the grounds that
+ * this was "staging-only exploration". That reason has expired with the
+ * header; whether the editor should route through the worker instead is a
+ * separate question from verification, tracked on #397.
  */
 
+import { RMBG_PARAMS } from 'nukebg-core';
+import { verifyRmbgIntegrity } from '../../lib/verify-rmbg-integrity';
+
 const MODEL_ID = 'briaai/RMBG-1.4';
-const MODEL_REVISION = '2ceba5a5efaec153162aedea169f76caf9b46cf8';
+/**
+ * Imported rather than restated. It used to be a literal copy of
+ * RMBG_PARAMS.REVISION with nothing asserting the two stayed equal — and
+ * they must, because the audited EXPECTED_SHA256 belongs to exactly one
+ * revision. If they had drifted, this path would have downloaded weights
+ * the integrity check could only reject.
+ */
+const MODEL_REVISION = RMBG_PARAMS.REVISION;
 
 export interface SegmentInput {
   /** Packed RGBA pixels at arbitrary resolution. */
@@ -79,6 +97,12 @@ export function createRmbg14Loader(): Rmbg14Loader {
       dtype: 'q8',
       revision: MODEL_REVISION,
     });
+    // Same order the worker uses: verify once the weights are in the Cache
+    // API, before the pipeline is exposed. On failure the entry is evicted
+    // and this throws, and `segPipeline` stays null so the next call
+    // re-fetches rather than reusing an unverified pipeline.
+    await verifyRmbgIntegrity(MODEL_ID);
+
     segPipeline = pipe as unknown as SegPipeline;
     return segPipeline;
   }
