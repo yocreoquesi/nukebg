@@ -1,0 +1,12 @@
+# Blank issues stay ON deliberately.
+#
+# The forms cover the two paths outside contributors use — a broken run and
+# a feature idea. They do not cover the kind of issue this repo actually
+# files most: refactors, dead code, stale configuration, test gaps. Forcing
+# those through a bug form would mean answering "browser and version" for a
+# duplicated constant.
+#
+# See #392, #388, #387 for the shape of issue that needs the blank route.
+blank_issues_enabled: true
+# No contact_links: Discussions are disabled on this repository, and a
+# template pointing at a disabled feature is worse than no pointer.
