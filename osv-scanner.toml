@@ -25,6 +25,21 @@
 # Suppressions are not deleted lightly, but a suppression whose stated reason
 # has expired is worse than none: it hides live findings behind a sentence that
 # used to be true. See #380.
+#
+# ONE CAVEAT ON THAT REMOVAL, found in review of #398 and tracked in #404.
+#
+# The override fixes THIS repository's tree, which is what this file and the
+# npm-audit gate both scan. It does not reach consumers of the published CLI:
+# npm applies `overrides` only from the install root, and the workspace root is
+# never published. `nukebg-cli` is `private: false` and depends on
+# @huggingface/transformers ^3.8.1, which pins sharp ^0.34.1 — a range 0.35.4
+# cannot satisfy — so an installed CLI would resolve a nested vulnerable copy
+# alongside its own good one.
+#
+# Not currently exploitable: `npm view nukebg-cli` is a 404, the package has
+# never been published. It is a hazard for the day it is, and re-adding an
+# entry here would not help — the gate reports it as stale, because in this
+# tree there is genuinely nothing to suppress.
 
 # --- tar -------------------------------------------------------------------
 # Marked critical, but build-time only: reached through onnxruntime-node's
