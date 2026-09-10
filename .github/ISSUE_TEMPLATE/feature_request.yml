@@ -1,0 +1,52 @@
+name: 'Feature request'
+description: 'Got an idea? Drop it here.'
+title: '[FEATURE] '
+labels: ['enhancement']
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: '> problem'
+      description: 'What problem does this solve? Why does it matter?'
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposed-solution
+    attributes:
+      label: '> proposed_solution'
+      description: 'How should it work? Be as concrete as possible.'
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: '> alternatives_considered'
+      description: |
+        Anything else you thought about, and why this approach over those?
+        Saying what you rejected is often more useful than what you picked.
+    validations:
+      required: false
+
+  - type: textarea
+    id: context
+    attributes:
+      label: '> context'
+      description: 'Screenshots, examples, links, related issues.'
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: constraints
+    attributes:
+      label: '> ground_rules'
+      description: |
+        nukebg processes everything in the browser and ships no tracking.
+        Proposals that need a server or an analytics call are declined on
+        principle, not on merit — see CONTRIBUTING.
+      options:
+        - label: 'This works without sending user images to a server'
+          required: true
+        - label: 'This needs no tracking, analytics, or cookies'
+          required: true

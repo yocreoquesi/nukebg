@@ -222,7 +222,7 @@ $ cat CONTRIBUTING.md
 
 Contributions welcome. Read the [Contributing Guide](CONTRIBUTING.md) before submitting a PR.
 
-[Report Bug](https://github.com/yocreoquesi/nukebg/issues/new?template=bug_report.md) | [Request Feature](https://github.com/yocreoquesi/nukebg/issues/new?template=feature_request.md)
+[Report Bug](https://github.com/yocreoquesi/nukebg/issues/new?template=bug_report.yml) | [Request Feature](https://github.com/yocreoquesi/nukebg/issues/new?template=feature_request.yml)
 
 ## > support
 
