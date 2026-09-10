@@ -294,13 +294,25 @@ export class ArApp extends HTMLElement {
       this.progress,
       'ar:stage-report',
       ({ stage }) => {
-        const ua = encodeURIComponent(navigator.userAgent);
-        const title = encodeURIComponent(`[stage:${stage}] pipeline error`);
-        const body = encodeURIComponent(
-          `**Stage:** \`${stage}\`\n**UA:** ${decodeURIComponent(ua)}\n**Locale:** ${document.documentElement.lang}\n\n<!-- what were you trying to do? drag the image that failed if possible -->`,
-        );
+        // Targets the pipeline-error issue form and prefills its fields by
+        // id, rather than passing a prebuilt `body`.
+        //
+        // `?body=` replaces the whole template, which is why #375 arrived
+        // with none of bug_report's sections in it — the reporter silently
+        // overwrote them, so the template nobody saw was the only one that
+        // asked for reproduction steps. Prefilling `stage`, `ua` and
+        // `locale` by id leaves the form's own required fields in place and
+        // lands the technical values as typed fields instead of prose that
+        // has to be parsed back out.
+        const params = new URLSearchParams({
+          template: 'pipeline-error.yml',
+          title: `[stage:${stage}] pipeline error`,
+          stage,
+          ua: navigator.userAgent,
+          locale: document.documentElement.lang,
+        });
         window.open(
-          `https://github.com/yocreoquesi/nukebg/issues/new?title=${title}&body=${body}`,
+          `https://github.com/yocreoquesi/nukebg/issues/new?${params}`,
           '_blank',
           'noopener',
         );

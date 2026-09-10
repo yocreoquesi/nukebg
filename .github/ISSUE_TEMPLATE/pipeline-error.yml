@@ -1,0 +1,76 @@
+name: 'Pipeline error'
+description: 'A processing stage failed. Usually opened for you by the app.'
+title: '[stage:STAGE] pipeline error'
+labels: ['bug', 'area:pipeline']
+body:
+  - type: markdown
+    attributes:
+      value: |
+        If you got here from the **report** button in the app, the technical
+        fields below are already filled in. Just tell us what you were doing
+        and attach the image if you can.
+
+  - type: input
+    id: stage
+    attributes:
+      label: '> stage'
+      description: 'Which pipeline stage failed. The app fills this in.'
+      placeholder: 'ml-segmentation'
+    validations:
+      required: true
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: '> what_happened'
+      description: |
+        What were you trying to do, and what did you see instead? If it works
+        somewhere else — another browser, your phone, a different network —
+        say so. That contrast is often what identifies the cause.
+    validations:
+      required: true
+
+  - type: textarea
+    id: image-info
+    attributes:
+      label: '> image_info'
+      description: |
+        Drag the image that failed in here if you can share it. Otherwise:
+        where it came from (Gemini / DALL-E / Midjourney / Stable Diffusion /
+        Flux / photo / screenshot), roughly what the background looks like,
+        and its dimensions.
+    validations:
+      required: false
+
+  - type: input
+    id: ua
+    attributes:
+      label: '> user_agent'
+      description: 'Browser and OS. The app fills this in.'
+    validations:
+      required: false
+
+  - type: input
+    id: locale
+    attributes:
+      label: '> locale'
+      description: 'Interface language at the time. The app fills this in.'
+    validations:
+      required: false
+
+  - type: textarea
+    id: console
+    attributes:
+      label: '> console'
+      description: |
+        Anything red in the browser console (F12 → Console). Paste it as-is —
+        a truncated error is often the one that mattered.
+      render: text
+    validations:
+      required: false
+
+  - type: markdown
+    attributes:
+      value: |
+        **Your images are never uploaded by the app.** Anything you attach
+        here you are attaching yourself, to a public issue.
