@@ -98,10 +98,27 @@ export function createRmbg14Loader(): Rmbg14Loader {
       revision: MODEL_REVISION,
     });
     // Same order the worker uses: verify once the weights are in the Cache
-    // API, before the pipeline is exposed. On failure the entry is evicted
-    // and this throws, and `segPipeline` stays null so the next call
+    // API, before the pipeline is exposed. On failure the cache entry is
+    // evicted and this throws, and `segPipeline` stays null so the next call
     // re-fetches rather than reusing an unverified pipeline.
-    await verifyRmbgIntegrity(MODEL_ID);
+    //
+    // Disposing on that path is not tidiness. This is reachable from three
+    // buttons, so a user facing a corrupt blob can retry it: each attempt
+    // re-downloads ~45MB and, without this, strands another live ONNX/WASM
+    // session, since `pipe` is a local that goes out of scope with its
+    // session still allocated. That is the OOM the worker's own eviction
+    // loop exists to avoid. ml.worker.ts has had this since #398; this path
+    // was modelled on it and missed it.
+    try {
+      await verifyRmbgIntegrity(MODEL_ID);
+    } catch (err) {
+      try {
+        (pipe as unknown as { dispose?: () => void }).dispose?.();
+      } catch {
+        /* ignore dispose errors */
+      }
+      throw err;
+    }
 
     segPipeline = pipe as unknown as SegPipeline;
     return segPipeline;
