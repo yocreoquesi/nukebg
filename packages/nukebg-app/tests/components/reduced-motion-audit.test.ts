@@ -46,7 +46,10 @@ describe('reduced-motion audit (#35)', () => {
   });
 
   it('ar-editor-advanced gates hint-pulse under reduced-motion', () => {
-    const e = readFileSync(resolve(ROOT, 'src/components/ar-editor-advanced.ts'), 'utf8');
+    // The rule lives in the styles module since the #255 split; the glob
+    // audit above already covers src/components wholesale, so this only
+    // needs to follow the CSS to its new file.
+    const e = readFileSync(resolve(ROOT, 'src/components/ar-editor-advanced.styles.ts'), 'utf8');
     expect(e).toMatch(
       /@media \(prefers-reduced-motion: reduce\) \{[\s\S]*?\.hint \{ animation: none/,
     );
