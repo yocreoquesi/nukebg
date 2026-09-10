@@ -211,31 +211,32 @@ describe('ar-editor-advanced — lasso actions are ranked (#346)', () => {
  * shape, which is the part that would make the port cosmetic if it broke.
  */
 describe('ar-editor-advanced — brush shape reaches the pixels (#346)', () => {
-  it('the stroke routine branches on shape for both eraser and brush', () => {
-    const fn = ED.match(/private applyStrokeSegment\([\s\S]*?\r?\n {2}\}/);
-    expect(fn).not.toBeNull();
-    const body = fn![0];
-    expect(body).toMatch(/const square = this\.brushShape === 'square';/);
-    // Square eraser stamps along the segment rather than stroking a
-    // line: a stroke is only 2r wide perpendicular to motion, so a
-    // diagonal drag would erase a narrower band than the cursor shows.
-    // Stamping also covers the single-click case, which butt caps did not.
-    expect(body).toMatch(/this\.stampAlong\(fromX, fromY, toX, toY, r,/);
-    expect(body).toMatch(/fillRect\(cx - r, cy - r, r \* 2, r \* 2\)/);
-    // Round eraser keeps the cheaper stroked path.
-    expect(body).toMatch(/lineCap = 'round'/);
-    // Brush: clip to a rect instead of an arc.
-    expect(body).toMatch(/wctx\.rect\(cx - r, cy - r, r \* 2, r \* 2\)/);
-    expect(body).toMatch(/wctx\.arc\(cx, cy, r, 0, Math\.PI \* 2\)/);
-  });
-
-  it('brush and square eraser share one stepping routine', () => {
-    // Both must trace the same path density, and a single click has to
-    // produce one stamp rather than nothing.
-    expect(ED).toMatch(/private stampAlong\(/);
-    const fn = ED.match(/private stampAlong\([\s\S]*?\r?\n {2}\}/);
-    expect(fn![0]).toMatch(/const steps = Math\.max\(1, Math\.ceil\(dist \/ step\)\)/);
-  });
+  /*
+   * Two tests lived here asserting the stroke internals by regex — that
+   * `applyStrokeSegment` read `this.brushShape`, that `private stampAlong(`
+   * existed, that the bodies contained particular fillRect/arc/rect calls.
+   *
+   * They were removed when the painting moved to src/lib/stroke-painter.ts
+   * in #255, because every behaviour they were reaching for is now asserted
+   * directly in ar-editor-advanced-drawing.test.ts (#387), against the
+   * recorded sequence of canvas operations rather than the source text:
+   *
+   *   fillRect(cx-r, cy-r, 2r, 2r)  -> exact trace `fillRect(0,0,4,4)`
+   *   lineCap = 'round'             -> exact trace with `lineCap=round`
+   *   wctx.rect(cx-r, ...)          -> exact trace `rect(0,0,4,4)`
+   *   wctx.arc(cx, cy, r, 0, 2pi)   -> exact trace `arc(2,2,2,0,6.283...)`
+   *   steps = max(1, ceil(d/step))  -> three spacing tests, one of which
+   *                                    pins the 0.4 factor specifically
+   *
+   * What did not survive the move is the structural half — the name
+   * `stampAlong`, the `this.` receiver, the `private` keyword — and that is
+   * the half a refactor is allowed to change. Deleting rather than
+   * rewriting them is the call #135's triage prescribed: migrate an
+   * affected source-pattern test as part of the refactor that affects it.
+   *
+   * The two tests below still read the source, because what they assert
+   * (cursor preview, disabled-state toggling) has no behavioural reach yet.
+   */
 
   it('the on-canvas cursor shows the shape it will paint with', () => {
     expect(ED).toMatch(/if \(this\.brushShape === 'square'\) \{[\s\S]*?this\.ctx\.rect\(/);
