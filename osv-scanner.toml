@@ -3,9 +3,9 @@
 # Same discipline as the npm-audit gate: nothing is silenced without a written
 # reason. There are deliberately no `ignoreUntil` dates — a calendar expiry
 # would add a scheduled CI failure and busywork to a low-maintenance repo, and
-# none of these packages reach the shipped static site (sharp is a devDependency
-# nothing imports, protobufjs sits under onnxruntime-web whose parsing runs in
-# WASM, tar runs in an install script, esbuild in the dev server).
+# none of these packages reach the shipped static site (protobufjs sits under
+# onnxruntime-web whose parsing runs in WASM, tar runs in an install script,
+# esbuild in the dev server).
 #
 # The npm-audit side re-fails on its own when a fix appears for anything
 # accepted because none existed. OSV has no equivalent hook, so treat
@@ -13,11 +13,18 @@
 # it — the reachability analysis lives there, where there is room for it.
 
 # --- sharp / libvips -------------------------------------------------------
-# The one that actually matters: runtime, decodes user-supplied images, and
-# has no fix. 0.35.3 is the latest published sharp and still carries these.
-[[IgnoredVulns]]
-id = "GHSA-f88m-g3jw-g9cj"
-reason = "No fix published. sharp 0.35.3 is latest and still inherits the libvips CVEs. Highest real risk here despite not being the highest CVSS — tracked in #331."
+# Deliberately empty. This section used to suppress GHSA-f88m-g3jw-g9cj on the
+# grounds that no fix existed. That stopped being true: sharp 0.35.0 fixed the
+# libvips CVEs and 0.35.4 fixed the libheif ones (GHSA-rgj7-g3m4-5g8c).
+#
+# Both workspaces already declared ^0.35.4; the vulnerable copy was 0.34.5,
+# pulled in transitively by @huggingface/transformers, which still pins
+# ^0.34.x even on its latest release. It is now pinned up by the root
+# `overrides` entry in package.json instead of being waived here.
+#
+# Suppressions are not deleted lightly, but a suppression whose stated reason
+# has expired is worse than none: it hides live findings behind a sentence that
+# used to be true. See #380.
 
 # --- tar -------------------------------------------------------------------
 # Marked critical, but build-time only: reached through onnxruntime-node's
