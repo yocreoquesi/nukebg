@@ -39,6 +39,7 @@ import { t } from '../i18n';
 import { type Point } from './lasso-simplify';
 import { LassoModel } from '../lib/lasso-model';
 import { HistoryManager } from '../lib/history-manager';
+import { paintStrokeSegment } from '../lib/stroke-painter';
 import { emit } from '../lib/event-bus';
 import { renderArEditorAdvancedTemplate } from './ar-editor-advanced.template';
 import { DEFAULT_BRUSH, MIN_BRUSH, MAX_BRUSH } from './ar-editor-advanced.constants';
@@ -773,77 +774,21 @@ export class ArEditorAdvanced extends HTMLElement {
     return this.lasso.hitAnchor(ix, iy, this.anchorRadius() + 4);
   }
 
+  /**
+   * Paint one segment of the current stroke onto the working canvas.
+   *
+   * Thin adapter over `paintStrokeSegment` since #255. The drawing itself
+   * moved to src/lib/stroke-painter.ts; what stayed here is reading the five
+   * pieces of editor state it depends on and handing them over explicitly.
+   */
   private applyStrokeSegment(fromX: number, fromY: number, toX: number, toY: number): void {
     if (!this.working) return;
-    const wctx = this.working.getContext('2d')!;
-    const r = this.brushRadius;
-
-    const square = this.brushShape === 'square';
-
-    if (this.tool === 'eraser') {
-      wctx.save();
-      wctx.globalCompositeOperation = 'destination-out';
-      if (square) {
-        // A stroked line is only `2r` wide perpendicular to motion, so on
-        // a diagonal drag it erases a narrower band than the square
-        // cursor promises. Stamping axis-aligned squares along the
-        // segment gives the true swept footprint, and covers the
-        // single-click case for free. Same stepping the brush uses.
-        this.stampAlong(fromX, fromY, toX, toY, r, (cx, cy) =>
-          wctx.fillRect(cx - r, cy - r, r * 2, r * 2),
-        );
-      } else {
-        wctx.lineCap = 'round';
-        wctx.lineJoin = 'round';
-        wctx.lineWidth = r * 2;
-        wctx.beginPath();
-        wctx.moveTo(fromX, fromY);
-        wctx.lineTo(toX, toY);
-        wctx.stroke();
-      }
-      wctx.restore();
-      return;
-    }
-
-    if (this.tool !== 'brush' || !this.originalBacking) return;
-    const backing = this.originalBacking;
-    this.stampAlong(fromX, fromY, toX, toY, r, (cx, cy) => {
-      wctx.save();
-      wctx.beginPath();
-      if (square) {
-        wctx.rect(cx - r, cy - r, r * 2, r * 2);
-      } else {
-        wctx.arc(cx, cy, r, 0, Math.PI * 2);
-      }
-      wctx.clip();
-      wctx.drawImage(backing, 0, 0);
-      wctx.restore();
+    paintStrokeSegment(this.working.getContext('2d')!, fromX, fromY, toX, toY, {
+      tool: this.tool,
+      shape: this.brushShape,
+      radius: this.brushRadius,
+      backing: this.originalBacking,
     });
-  }
-
-  /**
-   * Walk a segment in steps small enough that consecutive stamps overlap,
-   * calling `stamp` at each centre. Shared by the brush and the square
-   * eraser so both trace the same path density; a single click yields one
-   * stamp rather than nothing.
-   */
-  private stampAlong(
-    fromX: number,
-    fromY: number,
-    toX: number,
-    toY: number,
-    r: number,
-    stamp: (cx: number, cy: number) => void,
-  ): void {
-    const dx = toX - fromX;
-    const dy = toY - fromY;
-    const dist = Math.hypot(dx, dy);
-    const step = Math.max(1, r * 0.4);
-    const steps = Math.max(1, Math.ceil(dist / step));
-    for (let i = 0; i <= steps; i++) {
-      const tfrac = i / steps;
-      stamp(fromX + dx * tfrac, fromY + dy * tfrac);
-    }
   }
 
   private applyTransform(): void {
