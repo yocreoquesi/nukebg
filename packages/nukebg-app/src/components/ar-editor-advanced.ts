@@ -51,9 +51,11 @@ const PAD_RATIO = 0.25;
 const MIN_LASSO_POINT_DIST = 2;
 // Fraction of min(w, h) used as Douglas-Peucker epsilon.
 const LASSO_EPS_RATIO = 0.006;
-// Minimum anchors we'll ever let the user delete down to — below this
-// the polygon stops being meaningful.
-const MIN_ANCHORS = 3;
+// MIN_ANCHORS is not declared here. It used to be, as a second `= 3`
+// alongside LassoModel.MIN_ANCHORS, and the two agreed only because nobody
+// had changed either — see #388. LassoModel owns the rule: it holds the
+// anchors, enforces the floor in four places, and is unit-tested. This file
+// now reads it from there.
 
 // View transform. 1 = natural fit (max-width / max-height); zoom multiplies
 // that via a CSS transform on the canvas. Keep in sync with ar-editor.ts.
@@ -1125,7 +1127,7 @@ export class ArEditorAdvanced extends HTMLElement {
     // them just adds visual noise. Match cursor-preview line width (2) for
     // stroke consistency across tools.
     const anchors = this.lasso.getAnchors();
-    if (!this.selectionMask && anchors && anchors.length >= MIN_ANCHORS) {
+    if (!this.selectionMask && anchors && anchors.length >= LassoModel.MIN_ANCHORS) {
       const pts = anchors;
       this.ctx.save();
       const accentRgb2 =
@@ -1222,7 +1224,7 @@ export class ArEditorAdvanced extends HTMLElement {
 
       if (kind === 'refine') {
         const poly = lassoAnchors ? [...lassoAnchors] : this.selectionMaskToPolygon(w, h);
-        if (!poly || poly.length < MIN_ANCHORS) throw new Error('No region for refine');
+        if (!poly || poly.length < LassoModel.MIN_ANCHORS) throw new Error('No region for refine');
         newAlpha = await this.refineWithSam(poly, prevAlpha, w, h, ac.signal);
       } else if (hasMask) {
         newAlpha = new Uint8Array(prevAlpha);
@@ -1358,7 +1360,7 @@ export class ArEditorAdvanced extends HTMLElement {
     if (this.busy) return;
     if (!this.working || !this.current) return;
     const lassoAnchors = this.lasso.getAnchors();
-    if (!lassoAnchors || lassoAnchors.length < MIN_ANCHORS) return;
+    if (!lassoAnchors || lassoAnchors.length < LassoModel.MIN_ANCHORS) return;
 
     const w = this.current.width;
     const h = this.current.height;
@@ -1541,7 +1543,7 @@ export class ArEditorAdvanced extends HTMLElement {
   private async rmbgDecodeFromLasso(): Promise<void> {
     if (!this.current || !this.original) return;
     const lassoAnchors = this.lasso.getAnchors();
-    if (!lassoAnchors || lassoAnchors.length < MIN_ANCHORS) return;
+    if (!lassoAnchors || lassoAnchors.length < LassoModel.MIN_ANCHORS) return;
 
     const w = this.current.width;
     const h = this.current.height;
