@@ -47,11 +47,33 @@ let currentModelId: ModelId = DEFAULT_MODEL;
 let RawImageClass:
   (new (data: Uint8ClampedArray, w: number, h: number, channels: number) => unknown) | null = null;
 
-/** Detect compute device - currently forced to WASM */
-async function detectDevice(): Promise<'webgpu' | 'wasm'> {
-  // Force WASM - WebGPU in Transformers.js is unstable and causes
-  // NetworkError on some browsers when loading the WebGPU runtime.
-  // Re-enable when Transformers.js WebGPU support is stable.
+/**
+ * The execution provider RMBG runs on. WASM, and not as a placeholder.
+ *
+ * This used to be an async function returning `'webgpu' | 'wasm'` that could
+ * only ever return one of them, above a comment reading "Re-enable when
+ * Transformers.js WebGPU support is stable" — a condition with no owner and
+ * no way for anyone to notice it had been met. #389 measured it instead.
+ *
+ * Chromium 141, real GPU, transformers 3.8.1, drop-to-export median of three
+ * runs on the same fixture:
+ *
+ *   wasm     14958 ms   (warmup ~7.8 s)
+ *   webgpu   18485 ms   (warmup ~9.5 s)
+ *
+ * So two things, and the second is the one that decides it. The NetworkError
+ * the old comment described did not reproduce — that condition looks stale
+ * for this engine. But WebGPU was ~24% SLOWER end to end, consistently, with
+ * variance under 2%. The assumed win is not there.
+ *
+ * WASM therefore stays, on evidence rather than on a stale caveat. What would
+ * justify revisiting: a measurement showing WebGPU ahead on hardware that
+ * matters, or a transformers release whose notes claim a WebGPU speedup. Not
+ * "it feels like it should be faster". Firefox and Safari were not measured,
+ * and the original report said "some browsers", so re-enabling would need
+ * them too.
+ */
+function computeDevice(): 'wasm' {
   return 'wasm';
 }
 
@@ -193,7 +215,7 @@ async function loadModel(
   modelId: ModelId = DEFAULT_MODEL,
   emitReady = true,
 ): Promise<void> {
-  const device = await detectDevice();
+  const device = computeDevice();
 
   if (segmenters.has(modelId)) {
     currentModelId = modelId;
