@@ -55,18 +55,33 @@ let RawImageClass:
  * Transformers.js WebGPU support is stable" — a condition with no owner and
  * no way for anyone to notice it had been met. #389 measured it instead.
  *
- * Chromium 141, real GPU, transformers 3.8.1, drop-to-export median of three
- * runs on the same fixture:
+ * Chromium 141, real GPU, transformers 3.8.1, same fixtures, one browser
+ * session so the second image pays neither the download nor the warmup:
  *
- *   wasm     14958 ms   (warmup ~7.8 s)
- *   webgpu   18485 ms   (warmup ~9.5 s)
+ *                    first image        second image
+ *                    (download +        (inference
+ *                     warmup + infer)     only)
+ *   wasm             15391 ms           7840 ms
+ *   webgpu           17301 ms           8291 ms
  *
- * So two things, and the second is the one that decides it. The NetworkError
- * the old comment described did not reproduce — that condition looks stale
- * for this engine. But WebGPU was ~24% SLOWER end to end, consistently, with
- * variance under 2%. The assumed win is not there.
+ * Two findings. The NetworkError the old comment described did not
+ * reproduce, so that caveat looks stale for this engine. And WebGPU is
+ * marginally slower — about 6% on warm inference, about 12% cold, the cold
+ * gap being the larger WebGPU runtime bundle plus shader compilation.
  *
- * WASM therefore stays, on evidence rather than on a stale caveat. What would
+ * A first pass measured 24% and that number was wrong: it launched a fresh
+ * browser per run, so every run re-downloaded the model and the figure was
+ * mostly cold-start cost. Worth stating because the honest result is much
+ * duller — WebGPU is not dramatically worse, it is simply not better.
+ *
+ * Two plausible reasons it does not win here, neither confirmed. The graph
+ * does not fully fit the WebGPU provider: onnxruntime logs "Some nodes were
+ * not assigned to the preferred execution providers", and every unassigned
+ * node costs a GPU/CPU round trip. And the model is `dtype: 'q8'` — WASM has
+ * good INT8 kernels, while WebGPU backends typically widen to f32, doing more
+ * numerical work to save transfer that a model this size never needed.
+ *
+ * WASM therefore stays, on evidence rather than a stale caveat. What would
  * justify revisiting: a measurement showing WebGPU ahead on hardware that
  * matters, or a transformers release whose notes claim a WebGPU speedup. Not
  * "it feels like it should be faster". Firefox and Safari were not measured,
