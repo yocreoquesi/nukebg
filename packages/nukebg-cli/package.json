@@ -25,7 +25,8 @@
   "scripts": {
     "build": "tsup",
     "test": "vitest run --passWithNoTests",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "node ../../scripts/check-publish-deps.mjs"
   },
   "dependencies": {
     "@huggingface/transformers": "^3.8.1",
