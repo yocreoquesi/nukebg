@@ -15,7 +15,17 @@ import { resolve } from 'node:path';
  */
 
 const ROOT = resolve(__dirname, '..', '..');
-const ED = readFileSync(resolve(ROOT, 'src/components/ar-editor-advanced.ts'), 'utf8');
+// ED concatenates the component with its extracted modules so the
+// source-level invariants below still hold after the #255 split (CSS →
+// ar-editor-advanced.styles.ts). Same approach as ar-landing-redesign.test.ts
+// after the equivalent #254 split of ar-app.ts. Roughly half the assertions
+// here are CSS and half are markup, and both must keep being checked — a
+// split that quietly dropped the CSS half would leave this suite green while
+// testing less than it used to.
+const ED = [
+  readFileSync(resolve(ROOT, 'src/components/ar-editor-advanced.ts'), 'utf8'),
+  readFileSync(resolve(ROOT, 'src/components/ar-editor-advanced.styles.ts'), 'utf8'),
+].join('\n');
 const APP = readFileSync(resolve(ROOT, 'src/components/ar-app.ts'), 'utf8');
 const EXISTS = (rel: string) => existsSync(resolve(ROOT, rel));
 
