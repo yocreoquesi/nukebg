@@ -33,10 +33,25 @@ updates:
       # (RMBG-1.4 WASM compatibility). Migrate manually, not via Dependabot.
       - dependency-name: "onnxruntime-web"
         update-types: ["version-update:semver-major", "version-update:semver-minor"]
-      # @huggingface/transformers v4 requires `model_type` in the model
-      # config; Xenova/RMBG-1.4 ships without it, so v4 fails to load
-      # the segmenter. See #27. Drop this entry once upstream config
-      # adds `model_type` or we fork the model.
+      # @huggingface/transformers v4 cannot load our segmenter. Verified
+      # against 4.2.0 on 2026-09-10 by installing it and running the app:
+      #
+      #   Unsupported model type "SegformerForSemanticSegmentation" for
+      #   task "image-segmentation". None of the candidate model classes
+      #   support this type.
+      #
+      # The earlier note here said v4 "requires `model_type` in the model
+      # config; Xenova/RMBG-1.4 ships without it". Both halves are stale:
+      # the app moved to briaai/RMBG-1.4, and that config DOES carry
+      # `model_type` — at the pinned revision and on main. So anyone who
+      # checks the documented reason finds it satisfied and concludes the
+      # block has lifted. It has not; v4 rejects the value the config has.
+      #
+      # Drop this entry when transformers v4 supports
+      # SegformerForSemanticSegmentation for image-segmentation, or when
+      # we move to a model it does support. Re-verify by installing v4 and
+      # dropping an image — the failure is immediate and unmistakable.
+      # See #27.
       - dependency-name: "@huggingface/transformers"
         update-types: ["version-update:semver-major"]
 
