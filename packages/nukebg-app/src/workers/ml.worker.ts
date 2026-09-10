@@ -47,11 +47,48 @@ let currentModelId: ModelId = DEFAULT_MODEL;
 let RawImageClass:
   (new (data: Uint8ClampedArray, w: number, h: number, channels: number) => unknown) | null = null;
 
-/** Detect compute device - currently forced to WASM */
-async function detectDevice(): Promise<'webgpu' | 'wasm'> {
-  // Force WASM - WebGPU in Transformers.js is unstable and causes
-  // NetworkError on some browsers when loading the WebGPU runtime.
-  // Re-enable when Transformers.js WebGPU support is stable.
+/**
+ * The execution provider RMBG runs on. WASM, and not as a placeholder.
+ *
+ * This used to be an async function returning `'webgpu' | 'wasm'` that could
+ * only ever return one of them, above a comment reading "Re-enable when
+ * Transformers.js WebGPU support is stable" — a condition with no owner and
+ * no way for anyone to notice it had been met. #389 measured it instead.
+ *
+ * Chromium 141, real GPU, transformers 3.8.1, same fixtures, one browser
+ * session so the second image pays neither the download nor the warmup:
+ *
+ *                    first image        second image
+ *                    (download +        (inference
+ *                     warmup + infer)     only)
+ *   wasm             15391 ms           7840 ms
+ *   webgpu           17301 ms           8291 ms
+ *
+ * Two findings. The NetworkError the old comment described did not
+ * reproduce, so that caveat looks stale for this engine. And WebGPU is
+ * marginally slower — about 6% on warm inference, about 12% cold, the cold
+ * gap being the larger WebGPU runtime bundle plus shader compilation.
+ *
+ * A first pass measured 24% and that number was wrong: it launched a fresh
+ * browser per run, so every run re-downloaded the model and the figure was
+ * mostly cold-start cost. Worth stating because the honest result is much
+ * duller — WebGPU is not dramatically worse, it is simply not better.
+ *
+ * Two plausible reasons it does not win here, neither confirmed. The graph
+ * does not fully fit the WebGPU provider: onnxruntime logs "Some nodes were
+ * not assigned to the preferred execution providers", and every unassigned
+ * node costs a GPU/CPU round trip. And the model is `dtype: 'q8'` — WASM has
+ * good INT8 kernels, while WebGPU backends typically widen to f32, doing more
+ * numerical work to save transfer that a model this size never needed.
+ *
+ * WASM therefore stays, on evidence rather than a stale caveat. What would
+ * justify revisiting: a measurement showing WebGPU ahead on hardware that
+ * matters, or a transformers release whose notes claim a WebGPU speedup. Not
+ * "it feels like it should be faster". Firefox and Safari were not measured,
+ * and the original report said "some browsers", so re-enabling would need
+ * them too.
+ */
+function computeDevice(): 'wasm' {
   return 'wasm';
 }
 
@@ -193,7 +230,7 @@ async function loadModel(
   modelId: ModelId = DEFAULT_MODEL,
   emitReady = true,
 ): Promise<void> {
-  const device = await detectDevice();
+  const device = computeDevice();
 
   if (segmenters.has(modelId)) {
     currentModelId = modelId;
