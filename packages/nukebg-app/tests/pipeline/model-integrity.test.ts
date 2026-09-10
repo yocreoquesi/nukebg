@@ -1,4 +1,6 @@
 import { describe, it, expect } from 'vitest';
+import { readFileSync, readdirSync } from 'node:fs';
+import { resolve, join, sep } from 'node:path';
 import { LAMA_PARAMS, MOBILESAM_PARAMS, RMBG_PARAMS } from 'nukebg-core';
 
 /**
@@ -79,12 +81,18 @@ describe('model integrity constants (#132)', () => {
 });
 
 describe('SHA-256 verification primitive (web crypto)', () => {
-  // The actual verifyRmbgIntegrity / fetchModel logic lives inside web
-  // workers, where SubtleCrypto + Cache API are easily exercised end-to-end.
-  // Here we sanity-check that the same primitive both workers rely on
-  // produces stable output for a known input — guards against accidental
-  // encoding changes (e.g. switching to base64) that would silently
-  // bypass the LaMa/SAM/RMBG hash checks.
+  // Sanity-checks that the primitive the hash checks rely on produces stable
+  // output for a known input — guards against an accidental encoding change
+  // (e.g. switching to base64) that would silently bypass LaMa/SAM/RMBG.
+  //
+  // This comment used to say the verification logic "lives inside web
+  // workers, where SubtleCrypto + Cache API are easily exercised end-to-end".
+  // Neither half held: it was never exercised, and being unreachable from a
+  // test is part of how #397 happened — a control nobody can call in
+  // isolation is a control nobody notices is missing from the other path.
+  // RMBG's now lives in src/lib/verify-rmbg-integrity.ts and is tested
+  // directly in tests/lib/verify-rmbg-integrity.test.ts. LaMa and SAM still
+  // verify inline in their own workers.
   it('SHA-256 of the empty buffer is deterministic + lowercase hex', async () => {
     const empty = new Uint8Array(0);
     const digest = await crypto.subtle.digest('SHA-256', empty);
@@ -101,5 +109,68 @@ describe('SHA-256 verification primitive (web crypto)', () => {
       .map((b) => b.toString(16).padStart(2, '0'))
       .join('');
     expect(hex).toBe('2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824');
+  });
+});
+
+/**
+ * The constants above are only worth having if every download path uses
+ * them (#397).
+ *
+ * They did not. `ml.worker.ts` verified its download against
+ * RMBG_PARAMS; `refine/loaders/rmbg14.ts` — reached from the advanced
+ * editor's Reprocess / Crop / Refine buttons — downloaded the same weights,
+ * verified nothing, and restated the revision as its own literal. The
+ * constants were correct the whole time. Nothing checked they were reached.
+ *
+ * These tests are deliberately written over the source tree rather than
+ * against the two known files, so a third loader added later is covered
+ * without anyone remembering to come back here.
+ */
+
+const SRC = resolve(__dirname, '..', '..', 'src');
+
+function tsFilesUnder(dir: string): string[] {
+  const out: string[] = [];
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    const full = join(dir, entry.name);
+    if (entry.isDirectory()) out.push(...tsFilesUnder(full));
+    else if (entry.name.endsWith('.ts')) out.push(full);
+  }
+  return out;
+}
+
+const SOURCES = tsFilesUnder(SRC).map((f) => ({
+  // Windows path separators, so the names below read the same on any OS.
+  name: f
+    .slice(SRC.length + 1)
+    .split(sep)
+    .join('/'),
+  text: readFileSync(f, 'utf8'),
+}));
+
+describe('every RMBG download path is verified (#397)', () => {
+  const loaders = SOURCES.filter(
+    (f) => /transformers\.pipeline\(/.test(f.text) && /image-segmentation/.test(f.text),
+  );
+
+  it('finds the loaders at all — a zero here would make the next test vacuous', () => {
+    expect(loaders.map((f) => f.name).sort()).toEqual([
+      'refine/loaders/rmbg14.ts',
+      'workers/ml.worker.ts',
+    ]);
+  });
+
+  it.each(loaders.map((f) => f.name))('%s verifies what it downloaded', (name) => {
+    const file = loaders.find((f) => f.name === name)!;
+    expect(file.text).toMatch(/verifyRmbgIntegrity\(/);
+  });
+
+  it('no source outside the constants restates the pinned revision', () => {
+    // A second copy of the revision can drift from the one the audited
+    // EXPECTED_SHA256 belongs to, and then the check can only ever reject.
+    const offenders = SOURCES.filter((f) => f.text.includes(RMBG_PARAMS.REVISION)).map(
+      (f) => f.name,
+    );
+    expect(offenders, `import RMBG_PARAMS.REVISION instead of hardcoding it`).toEqual([]);
   });
 });
