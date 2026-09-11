@@ -10,6 +10,176 @@ Unreleased entries accumulate on the `dev` branch. When we cut a release we copy
 
 ## [Unreleased]
 
+## [2.13.0] — 2026-09-11
+
+Minor release. Twenty-three PRs since the 2.12.0 entry, and the first cut
+since v2.10.2 was tagged in April — the changelog kept moving through
+2.11.x and 2.12.0, the git tags did not. This one closes that gap.
+
+The headline is a production outage nobody had reported: background
+removal was broken for every visitor with a cold model cache, and had
+been since Hugging Face moved their CDN. The rest is what looking for its
+neighbours turned up.
+
+### Security
+
+- **RMBG weights are now integrity-checked on both download paths.** The
+  worker verified size and SHA-256 against the audited constants and
+  described itself as the supply-chain check; `refine/loaders/rmbg14.ts`
+  pulled the same weights over the same route and verified nothing. That
+  path ships — the advanced editor reaches it from Reprocess, Crop and
+  Refine — so pressing Refine downloaded ~45MB that nothing inspected.
+  Nothing about the check was worker-specific, so it moved to
+  `src/lib/verify-rmbg-integrity.ts` unchanged and both paths call it in
+  the same order. A test now scans the source tree and fails if any file
+  loading the model does not reach it, so a third loader is covered
+  without anyone remembering
+  ([#398](https://github.com/yocreoquesi/nukebg/pull/398)).
+- **The failed pipeline is disposed instead of leaked.** Found reviewing
+  the above: on a failed check the worker disposes what it just built and
+  the main-thread loader did not. Since that path sits behind three
+  buttons, a user facing a corrupt cached blob could retry it and strand
+  another live ONNX/WASM session each time
+  ([#405](https://github.com/yocreoquesi/nukebg/pull/405)).
+- **`sharp` pinned past the libvips and libheif advisories.** The audit
+  gate failed on GHSA-rgj7-g3m4-5g8c, a new advisory in a package
+  allowlisted only for other ones — working exactly as designed. Both
+  workspaces already declared `^0.35.4`; the affected copy was `0.34.5`
+  pulled in transitively by `@huggingface/transformers`, which pins
+  `^0.34.x` even on its latest release. Fixed with a root `overrides`
+  pin, and both stale sharp suppressions retired — not re-accepted, but
+  expired: they claimed no fix existed, and 0.35.0 had fixed the libvips
+  CVEs with 0.35.4 fixing the libheif ones
+  ([#381](https://github.com/yocreoquesi/nukebg/pull/381)).
+- **`npm publish` of `nukebg-cli` now refuses while a nested dependency
+  conflict is open.** That override fixes this repository's tree, which
+  is all CI and the audit gate ever scan, and reaches nobody installing
+  the published CLI: npm applies `overrides` only from the install root
+  and the workspace root is never published. The package has never been
+  published, so this is a hazard rather than an exposure — but publishing
+  would have shipped it silently. See
+  [#404](https://github.com/yocreoquesi/nukebg/issues/404) for the
+  outstanding decision
+  ([#407](https://github.com/yocreoquesi/nukebg/pull/407)).
+
+### Fixed
+
+- **Background removal works again for visitors with a cold model cache.**
+  Hugging Face moved LFS/Xet weight downloads to regional `*.cdn.hf.co`
+  hosts; `connect-src` still allowlisted the old ones. CSP applies to
+  redirect targets, so the browser killed the download mid-redirect and
+  it surfaced as an opaque `(canceled)` fetch with nothing in the
+  console. The `ml-segmentation` stage failed with no actionable error.
+  Two of the pinned hosts were already dead — `cdn-lfs.huggingface.co`
+  no longer resolves and `cas-bridge.xethub.hf.co` answers 403 — so the
+  allowlist moved to label-suffix wildcards over the HF-owned domains.
+  The new tests assert reachability of real host names rather than the
+  literal policy string, and cover all four declarations; the previous
+  helper only ever inspected the first match in a file
+  ([#376](https://github.com/yocreoquesi/nukebg/pull/376)).
+- **Concurrent model loads no longer start a second 45MB download.**
+  `loadModel()` guarded on a map that is not populated until
+  `transformers.pipeline()` resolves, so a caller arriving in that window
+  started an independent load — and the page-load `preload()` races the
+  auto-load `segment()` performs. Callers now await the same in-flight
+  promise, cleared on both success and failure so a failed load stays
+  retryable ([#377](https://github.com/yocreoquesi/nukebg/pull/377)).
+- **The dropzone actually disables itself.** `setEnabled(false)` only
+  added a CSS class whose sole guard is `pointer-events: none`, which
+  stops the mouse and nothing else — Enter or Space still opened the file
+  picker while the model was downloading. The enabled state is now a real
+  flag on the paths that open the picker, with `aria-disabled` and
+  `tabindex` so the state is honest to assistive tech. A file already
+  chosen is still honoured: discarding it silently would be a worse
+  failure than starting slightly early, and the load dedupe above makes
+  starting early safe
+  ([#377](https://github.com/yocreoquesi/nukebg/pull/377)).
+- **A leaked `window` listener in the error modal.** Registered without
+  the component's `AbortSignal`, so it outlived `disconnectedCallback()`
+  holding a reference to a detached shadow root
+  ([#377](https://github.com/yocreoquesi/nukebg/pull/377)).
+- **Every control in the advanced editor is thumb-sized on a phone.**
+  A previous pass gave three button classes a 44px minimum and left the
+  rest below it. Measured at 393x852: undo/redo/cancel/apply 28px tall,
+  the five background swatches 22x22, restore/reprocess 24px, help
+  toggle 22x22, and the size slider 16px — twelve controls, four of them
+  in the fixed bottom dock. The slider needed its thumb sized too, since
+  a range input's box grows without the track following. Desktop is
+  untouched; every rule sits inside `@media (pointer: coarse)`
+  ([#416](https://github.com/yocreoquesi/nukebg/pull/416)).
+- **`MIN_ANCHORS` has one owner.** The advanced editor declared its own
+  `= 3` beside `LassoModel.MIN_ANCHORS` and enforced the floor
+  independently in four places. They agreed only because nobody had
+  changed either ([#401](https://github.com/yocreoquesi/nukebg/pull/401)).
+
+### Changed
+
+- **The execution provider is WASM on measurement, not on a stale
+  caveat.** `detectDevice()` was an async function returning
+  `'webgpu' | 'wasm'` that could only return one, above a comment saying
+  to re-enable WebGPU "when Transformers.js WebGPU support is stable" —
+  a condition with no owner and no way to notice it had been met.
+  Measured on Chromium 141 with a real GPU: the NetworkError it
+  described did not reproduce, and WebGPU ran about 6% slower on warm
+  inference and 12% cold. WASM stays, and the numbers plus what would
+  justify revisiting now live in the code
+  ([#410](https://github.com/yocreoquesi/nukebg/pull/410),
+  [#412](https://github.com/yocreoquesi/nukebg/pull/412)).
+- **Issues arrive as YAML forms, and the in-app reporter fills them in.**
+  The report button built a prebuilt body, and a `body` parameter
+  replaces the whole template — which is why the one real user bug report
+  this quarter arrived with none of the template's sections in it. The
+  only path that produces bug reports was the one path that skipped every
+  question the template asked. It now targets `pipeline-error.yml` and
+  prefills `stage`, `ua` and `locale` by field id, so the technical
+  values land as typed data and the reporter writes one thing: what they
+  were doing. Blank issues stay enabled — the forms cover outside
+  reporters, not the refactor and dead-code issues this repo files most
+  ([#393](https://github.com/yocreoquesi/nukebg/pull/393)).
+- **`@huggingface/transformers` v4 is still blocked, for a different
+  reason than recorded.** The dependabot exclusion said v4 requires
+  `model_type` and `Xenova/RMBG-1.4` ships without it. Both halves were
+  stale: the app uses `briaai/RMBG-1.4`, and that config carries
+  `model_type`. Verified against 4.2.0 — it rejects the value the config
+  has, not its absence: `Unsupported model type
+"SegformerForSemanticSegmentation" for task "image-segmentation"`.
+  Anyone checking the documented reason would have found it satisfied
+  and concluded the block had lifted
+  ([#413](https://github.com/yocreoquesi/nukebg/pull/413)).
+- **`vitest` 4.1.11 to 5.0.0**
+  ([#374](https://github.com/yocreoquesi/nukebg/pull/374)).
+
+### Internal
+
+- **`ar-editor-advanced.ts` split from 2548 to 1694 lines**, across three
+  released slices: 656 lines of CSS to `ar-editor-advanced.styles.ts`
+  ([#383](https://github.com/yocreoquesi/nukebg/pull/383)), the shadow
+  template to `ar-editor-advanced.template.ts` with its brush bounds in
+  `ar-editor-advanced.constants.ts`
+  ([#385](https://github.com/yocreoquesi/nukebg/pull/385)), and stroke
+  painting to `src/lib/stroke-painter.ts`
+  ([#395](https://github.com/yocreoquesi/nukebg/pull/395)). The template
+  function takes no arguments deliberately: arguments would push its XSS
+  audit boundary out to every caller, and with none every value it can
+  emit is verifiable by reading one file. The ~700-line target in
+  [#255](https://github.com/yocreoquesi/nukebg/issues/255) was dropped —
+  what remains is wiring against the shadow root, and extracting it
+  relocates coupling rather than removing it.
+- **The editor's drawing behaviour has tests for the first time.** The
+  canvas is fully mocked in the unit suite, and no e2e opened the editor,
+  so nothing it drew was observable anywhere. A recording context mock
+  now pins the ordered sequence of canvas operations a stroke produces
+  ([#390](https://github.com/yocreoquesi/nukebg/pull/390)), and an e2e
+  proves those calls reach the exported image by erasing across the
+  subject and measuring the result
+  ([#402](https://github.com/yocreoquesi/nukebg/pull/402)).
+- **Two unreachable modules deleted.** `src/lib/brush-stroke.ts` was
+  extracted from `ar-editor.ts` and outlived its only consumer when that
+  file was deleted, kept green the whole time by its own test suite — a
+  passing suite being the strongest signal a module is alive. A sweep
+  found a second orphan nobody had named, and is now a test
+  ([#400](https://github.com/yocreoquesi/nukebg/pull/400)).
+
 ### Changed
 
 - **`nukebg-cli` now requires Node.js 22.12 or newer** (was 20). Raised to
@@ -972,6 +1142,7 @@ section, keep only the relevant subsections, and empty `[Unreleased]`:
 ### Documentation
 ```
 
-[Unreleased]: https://github.com/yocreoquesi/nukebg/compare/v2.11.2...dev
+[Unreleased]: https://github.com/yocreoquesi/nukebg/compare/v2.13.0...dev
+[2.13.0]: https://github.com/yocreoquesi/nukebg/compare/v2.10.2...v2.13.0
 [2.11.2]: https://github.com/yocreoquesi/nukebg/compare/v2.11.1...v2.11.2
 [2.11.1]: https://github.com/yocreoquesi/nukebg/compare/v2.11.0...v2.11.1
