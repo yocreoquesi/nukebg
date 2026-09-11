@@ -18,6 +18,12 @@ jobs:
     continue-on-error: false
     steps:
       - uses: actions/checkout@v7
+        with:
+          # changelog-integrity.test.ts asserts every dated section has a
+          # tag. The default shallow clone fetches none, so it would fail
+          # for want of data rather than for a real defect.
+          fetch-depth: 0
+          fetch-tags: true
 
       - uses: actions/setup-node@v7
         with:
@@ -38,6 +44,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+        with:
+          # changelog-integrity.test.ts asserts every dated section has a
+          # tag. The default shallow clone fetches none, so it would fail
+          # for want of data rather than for a real defect.
+          fetch-depth: 0
+          fetch-tags: true
 
       - uses: actions/setup-node@v7
         with:
@@ -97,6 +109,12 @@ jobs:
     needs: test
     steps:
       - uses: actions/checkout@v7
+        with:
+          # changelog-integrity.test.ts asserts every dated section has a
+          # tag. The default shallow clone fetches none, so it would fail
+          # for want of data rather than for a real defect.
+          fetch-depth: 0
+          fetch-tags: true
 
       - uses: actions/setup-node@v7
         with:
@@ -141,6 +159,12 @@ jobs:
         project: [webkit, iphone]
     steps:
       - uses: actions/checkout@v7
+        with:
+          # changelog-integrity.test.ts asserts every dated section has a
+          # tag. The default shallow clone fetches none, so it would fail
+          # for want of data rather than for a real defect.
+          fetch-depth: 0
+          fetch-tags: true
 
       - uses: actions/setup-node@v7
         with:
