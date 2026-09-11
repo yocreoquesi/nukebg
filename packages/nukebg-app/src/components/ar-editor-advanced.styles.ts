@@ -675,5 +675,50 @@ export const AR_EDITOR_ADVANCED_STYLES: string = `
           }
           .zoom-group { display: none; }
           .canvas-wrap { max-height: calc(100vh - 200px); }
+
+          /* #154 — the rest of the 44px floor.
+             .tool-btn, .action-btn and .key-btn got it in #350; every
+             other control in the editor was left below it. Measured at
+             393x852 before this block: undo/redo/cancel/apply 28px tall,
+             the five background swatches 22x22, restore/reprocess 24px,
+             and the size slider 16px. All of them are things a thumb has
+             to hit, and four of the five swatches sit in the dock.
+             Desktop is untouched — this is inside pointer: coarse. */
+          button.action {
+            min-height: 44px;
+            padding: 8px 14px;
+          }
+          .restore-btn {
+            min-height: 44px;
+            padding: 8px 12px;
+          }
+          .help-btn {
+            width: 44px;
+            height: 44px;
+          }
+          .bg-btn {
+            width: 44px;
+            height: 44px;
+          }
+          .bg-options {
+            gap: 8px;
+            flex-wrap: wrap;
+          }
+          /* A range input cannot be grown by min-height alone — the track
+             stays where it is and only the box around it moves. Give the
+             control the height, then size the thumb so the hit area is
+             the thumb rather than a 16px sliver of track. */
+          .size-row input[type="range"] {
+            min-height: 44px;
+          }
+          .size-row input[type="range"]::-webkit-slider-thumb {
+            width: 28px;
+            height: 28px;
+          }
+          .size-row input[type="range"]::-moz-range-thumb {
+            width: 28px;
+            height: 28px;
+            border: none;
+          }
         }
 `;
