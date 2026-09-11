@@ -1143,6 +1143,18 @@ section, keep only the relevant subsections, and empty `[Unreleased]`:
 ```
 
 [Unreleased]: https://github.com/yocreoquesi/nukebg/compare/v2.13.0...dev
-[2.13.0]: https://github.com/yocreoquesi/nukebg/compare/v2.10.2...v2.13.0
+[2.13.0]: https://github.com/yocreoquesi/nukebg/compare/v2.12.0...v2.13.0
+[2.12.0]: https://github.com/yocreoquesi/nukebg/compare/v2.11.2...v2.12.0
 [2.11.2]: https://github.com/yocreoquesi/nukebg/compare/v2.11.1...v2.11.2
 [2.11.1]: https://github.com/yocreoquesi/nukebg/compare/v2.11.0...v2.11.1
+[2.11.0]: https://github.com/yocreoquesi/nukebg/compare/v2.10.2...v2.11.0
+[2.10.2]: https://github.com/yocreoquesi/nukebg/compare/v2.10.1...v2.10.2
+[2.10.1]: https://github.com/yocreoquesi/nukebg/compare/v2.10.0...v2.10.1
+[2.10.0]: https://github.com/yocreoquesi/nukebg/compare/v2.9.5...v2.10.0
+[2.9.5]: https://github.com/yocreoquesi/nukebg/compare/v2.9.4...v2.9.5
+[2.9.4]: https://github.com/yocreoquesi/nukebg/compare/v2.9.3...v2.9.4
+[2.9.3]: https://github.com/yocreoquesi/nukebg/compare/v2.9.2...v2.9.3
+[2.9.2]: https://github.com/yocreoquesi/nukebg/compare/v2.9.1...v2.9.2
+[2.9.1]: https://github.com/yocreoquesi/nukebg/compare/v2.9.0...v2.9.1
+[2.9.0]: https://github.com/yocreoquesi/nukebg/compare/v2.8.0...v2.9.0
+[2.8.0]: https://github.com/yocreoquesi/nukebg/releases/tag/v2.8.0
