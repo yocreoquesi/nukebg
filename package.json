@@ -29,7 +29,7 @@
     "eslint": "^10.12.0",
     "eslint-plugin-no-unsanitized": "^4.1.5",
     "globals": "^17.13.0",
-    "typescript-eslint": "^8.71.1"
+    "typescript-eslint": "^8.71.2"
   },
   "overrides": {
     "protobufjs": "^7.5.5",
