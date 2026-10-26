@@ -37,7 +37,7 @@
     "sharp": "^0.35.5"
   },
   "devDependencies": {
-    "tsup": "^8.3.0"
+    "tsup": "^9.0.0"
   },
   "engines": {
     "node": ">=22.12.0"
