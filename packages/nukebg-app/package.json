@@ -28,7 +28,7 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.64.1",
-    "happy-dom": "^20.14.6",
+    "happy-dom": "^21.0.4",
     "prettier": "^3.9.10",
     "sharp": "^0.35.5",
     "tsx": "^4.23.15",
